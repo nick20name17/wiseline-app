@@ -55,8 +55,8 @@ export const BasicInputWithSubmit = (props: BasicInputWithSubmitProps) => {
   const form = useForm({
     defaultValues: { value },
     validators: {
-      onChange: schema,
-      onSubmit: schema
+      onChange: schema as never,
+      onSubmit: schema as never
     },
     onSubmit: ({ value: formValues }) => {
       const payload = schema.parse(formValues)
