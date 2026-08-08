@@ -37,3 +37,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# port captures are regenerated; the demo baseline is committed
+parity/port/
