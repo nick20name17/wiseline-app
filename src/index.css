@@ -14,12 +14,40 @@
  *    each), but shadcn declares them on `:root` and the prototype declares them on the page element.
  *    The nearer declaration wins for everything inside the page.
  *
+ * There is a third way they can fight, and the layer rule does not settle it: a ported class that
+ * happens to spell a Tailwind utility. Tailwind reads class names out of the source it scans, so
+ * `<table class="grid">` made it emit a real `display: grid` — and the prototype's `.grid` declares no
+ * `display` for an unlayered rule to win with. `<thead>` and `<tbody>` became blocks and laid
+ * themselves out as two separate tables. Two things keep that from happening again:
+ *
+ *  - Ported markup is not scanned. Its class names are the prototype's, not ours, and by the decision
+ *    above it never needs a utility of its own. That alone covers every name only it uses — `filter`,
+ *    for one.
+ *  - `.grid` is the single name the prototype and this project genuinely share, across all fifteen
+ *    pages: we write it on our own flex/grid containers, so it is emitted whatever we scan. It is
+ *    reverted inside a ported page below.
+ *
  * The shadcn palette below is the prototype's palette, so a shadcn dialog opened over a ported screen
  * is the same blue, the same borders and the same corner radius as everything around it.
  */
 @import 'tailwindcss';
+@source not './features';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+
+/* `revert` and not a fixed value: the prototype writes `grid` on both `<table>` and `<div>`, and each
+   has to go back to what the browser gives it, not to one display the other cannot use. */
+[data-page] .grid {
+  display: revert;
+}
+
+/* Preflight's `font: inherit` on form elements does reach a ported page, for the same reason: it
+   brings `line-height` with it, and the prototype asks these elements only for `font-family: inherit`,
+   so it has nothing here to win with. Every button and input was a couple of pixels too tall. Kept to
+   one element of specificity so any prototype rule still outranks it. */
+[data-page] :is(button, input, select, textarea, optgroup) {
+  line-height: revert;
+}
 
 @custom-variant dark (&:is(.dark *));
 
