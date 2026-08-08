@@ -342,3 +342,52 @@ export const stockGateOk = (orderId: number) => {
   const order = state.orders.find(candidate => candidate.id === orderId)
   return !!order && !order.released && state.role !== 'worker'
 }
+
+/** Production runs oldest day first, then by priority, then by order number. */
+export const productionSort = (a: Order, b: Order) => {
+  const da = a.productionDate || ''
+  const db = b.productionDate || ''
+  if (da !== db) return da.localeCompare(db)
+  return scheduledSort(a, b)
+}
+
+/** What one machine still has to roll: released, not yet fully packaged, matching the search. */
+export const productionOrdersFor = (group: string) =>
+  releasedOrders()
+    .filter(
+      order => orderInGroup(order, group) && !isDoneInProduction(order) && orderMatchesSearch(order)
+    )
+    .sort(productionSort)
+
+/** Coils are foldered per machine — Slit Line holds none, because it is a process, not a rollformer. */
+export const MACHINE_GROUPS = GROUPS.filter(group => group !== 'Slit Line')
+
+/**
+ * Completed keeps 90 days. An order with no completion stamp is one the Wrapping Worker has not
+ * finished placing yet — recently done by definition, so it is always kept.
+ */
+export const withinCompletedWindow = (order: Order) => {
+  if (!order.completedAt) return true
+  const days = Math.round(
+    (new Date(`${TODAY}T00:00:00`).getTime() -
+      new Date(`${order.completedAt.slice(0, 10)}T00:00:00`).getTime()) /
+      86400000
+  )
+  return days <= 90
+}
+
+export const completedOrdersList = () =>
+  rollformingStore
+    .get()
+    .orders.filter(order => isDoneInProduction(order) && withinCompletedWindow(order))
+    .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
+
+/** What the Wrapping Worker still has to place: released, packaged, and not yet fully located. */
+export const wrappingOrders = (group: string) =>
+  releasedOrders().filter(
+    order =>
+      orderInGroup(order, group) &&
+      !isFullyWrapped(order) &&
+      (order.packages || []).length &&
+      orderMatchesSearch(order)
+  )

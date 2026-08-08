@@ -101,3 +101,6 @@ export const toggleReleaseSel = (orderId: number) =>
   }))
 
 export const setScheduledDay = (scheduledDay: string) => rollformingStore.set({ scheduledDay })
+
+export const setCoilsFolder = (expandedCoilsFolder: string) =>
+  rollformingStore.set({ expandedCoilsFolder })
