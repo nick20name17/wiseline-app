@@ -1,0 +1,340 @@
+[
+  {
+    "id": 197,
+    "path": "coils.html",
+    "dc": "coils-filter-btn",
+    "reach": "direct",
+    "tag": "button",
+    "text": "Coil Filter"
+  },
+  {
+    "id": 207,
+    "path": "coils.html",
+    "dc": "coils-filter-btn",
+    "reach": "direct",
+    "tag": "button",
+    "text": "Coil Filter"
+  },
+  {
+    "id": 157,
+    "path": "home.html",
+    "dc": "uns-next-five-days",
+    "reach": "direct",
+    "tag": "div",
+    "text": "Tue, July 14 · today(630 / 1320)Wed, July 15(409 /"
+  },
+  {
+    "id": 159,
+    "path": "home.html",
+    "dc": "uns-subhead-1",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Split orderTick line items below to schedule part "
+  },
+  {
+    "id": 160,
+    "path": "home.html",
+    "dc": "uns-subhead-4",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Split orderTick line items below to schedule part "
+  },
+  {
+    "id": 169,
+    "path": "home.html",
+    "dc": null,
+    "reach": "no-anchor"
+  },
+  {
+    "id": 170,
+    "path": "home.html",
+    "dc": "uns-next-five-days",
+    "reach": "direct",
+    "tag": "div",
+    "text": "Tue, July 14 · today(630 / 1320)Wed, July 15(409 /"
+  },
+  {
+    "id": 171,
+    "path": "home.html",
+    "dc": "uns-subhead-1",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Split orderTick line items below to schedule part "
+  },
+  {
+    "id": 172,
+    "path": "home.html",
+    "dc": "uns-subhead-4",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Split orderTick line items below to schedule part "
+  },
+  {
+    "id": 174,
+    "path": "home.html",
+    "dc": "machinecap-desc",
+    "reach": "unreachable"
+  },
+  {
+    "id": 179,
+    "path": "home.html",
+    "dc": "prod-i-rem-1-0",
+    "reach": "unreachable"
+  },
+  {
+    "id": 182,
+    "path": "home.html",
+    "dc": "view-production",
+    "reach": "reveal",
+    "tag": "section",
+    "text": "TrimStock ManufacturingSlinetPress BrakeV1V2Rollfo"
+  },
+  {
+    "id": 184,
+    "path": "home.html",
+    "dc": null,
+    "reach": "no-anchor"
+  },
+  {
+    "id": 185,
+    "path": "home.html",
+    "dc": "wrap-locrow-13",
+    "reach": "unreachable"
+  },
+  {
+    "id": 187,
+    "path": "home.html",
+    "dc": "wrap-loclabel-10",
+    "reach": "unreachable"
+  },
+  {
+    "id": 189,
+    "path": "home.html",
+    "dc": "wrap-weightinput-10",
+    "reach": "unreachable"
+  },
+  {
+    "id": 190,
+    "path": "home.html",
+    "dc": "prod-history-toolbar",
+    "reach": "unreachable"
+  },
+  {
+    "id": 192,
+    "path": "home.html",
+    "dc": "comp-seg-cutlists",
+    "reach": "unreachable"
+  },
+  {
+    "id": 193,
+    "path": "home.html",
+    "dc": "coil-w-4",
+    "reach": "unreachable"
+  },
+  {
+    "id": 194,
+    "path": "home.html",
+    "dc": null,
+    "reach": "no-anchor"
+  },
+  {
+    "id": 195,
+    "path": "home.html",
+    "dc": "prod-donebtn-4",
+    "reach": "reveal",
+    "tag": "button",
+    "text": "Done"
+  },
+  {
+    "id": 196,
+    "path": "home.html",
+    "dc": "coils-toolbar",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "16 coils"
+  },
+  {
+    "id": 198,
+    "path": "home.html",
+    "dc": "uns-stock-cards",
+    "reach": "direct",
+    "tag": "button",
+    "text": "Stock Cards"
+  },
+  {
+    "id": 202,
+    "path": "home.html",
+    "dc": "wrap-li-pri-13-1",
+    "reach": "reveal",
+    "tag": "td",
+    "text": "—"
+  },
+  {
+    "id": 203,
+    "path": "home.html",
+    "dc": "wrap-foot-4-7",
+    "reach": "unreachable"
+  },
+  {
+    "id": 205,
+    "path": "home.html",
+    "dc": "compdetail-li-subhead",
+    "reach": "unreachable"
+  },
+  {
+    "id": 210,
+    "path": "home.html",
+    "dc": "compdetail-li-subhead",
+    "reach": "unreachable"
+  },
+  {
+    "id": 213,
+    "path": "home.html",
+    "dc": "prod-batchkey-0",
+    "reach": "reveal",
+    "tag": "span",
+    "text": "24ga Galvalume"
+  },
+  {
+    "id": 215,
+    "path": "home.html",
+    "dc": "prod-mtotals",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Tue, July 14, 2026 · todayTotal # Pieces80Total Be"
+  },
+  {
+    "id": 216,
+    "path": "home.html",
+    "dc": "uns-subhead-4",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Split orderTick line items below to schedule part "
+  },
+  {
+    "id": 217,
+    "path": "home.html",
+    "dc": "uns-liowner-1",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Line items of 338001 · Langton Metal Roofing2 line"
+  },
+  {
+    "id": 218,
+    "path": "home.html",
+    "dc": "prod-batchkey-0",
+    "reach": "reveal",
+    "tag": "span",
+    "text": "24ga Galvalume"
+  },
+  {
+    "id": 219,
+    "path": "home.html",
+    "dc": "prod-batchkey-0",
+    "reach": "reveal",
+    "tag": "span",
+    "text": "24ga Galvalume"
+  },
+  {
+    "id": 220,
+    "path": "home.html",
+    "dc": "machinecap-desc",
+    "reach": "unreachable"
+  },
+  {
+    "id": 221,
+    "path": "home.html",
+    "dc": "prod-batchkey-0",
+    "reach": "reveal",
+    "tag": "span",
+    "text": "24ga Galvalume"
+  },
+  {
+    "id": 222,
+    "path": "home.html",
+    "dc": "prod-mtotals",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "Tue, July 14, 2026 · todayTotal # Pieces80Total Be"
+  },
+  {
+    "id": 223,
+    "path": "home.html",
+    "dc": "compdetail-li-subhead",
+    "reach": "unreachable"
+  },
+  {
+    "id": 224,
+    "path": "home.html",
+    "dc": "prod-batchkey-0",
+    "reach": "reveal",
+    "tag": "span",
+    "text": "24ga Galvalume"
+  },
+  {
+    "id": 241,
+    "path": "home.html",
+    "dc": "sch-unschedule-1",
+    "reach": "reveal",
+    "tag": "button",
+    "text": "Unschedule"
+  },
+  {
+    "id": 242,
+    "path": "home.html",
+    "dc": "note-dismiss-0",
+    "reach": "unreachable"
+  },
+  {
+    "id": 243,
+    "path": "home.html",
+    "dc": "prod-flags-c0",
+    "reach": "unreachable"
+  },
+  {
+    "id": 244,
+    "path": "home.html",
+    "dc": "compdetail-head",
+    "reach": "unreachable"
+  },
+  {
+    "id": 245,
+    "path": "home.html",
+    "dc": "prod-batchhead-c0",
+    "reach": "unreachable"
+  },
+  {
+    "id": 246,
+    "path": "home.html",
+    "dc": "prod-mtabs",
+    "reach": "reveal",
+    "tag": "div",
+    "text": "SlinetPress BrakeV1V2RollformerCapsWrapping"
+  },
+  {
+    "id": 167,
+    "path": "settings.html",
+    "dc": "form-body",
+    "reach": "unreachable"
+  },
+  {
+    "id": 173,
+    "path": "settings.html",
+    "dc": "form-body",
+    "reach": "unreachable"
+  },
+  {
+    "id": 199,
+    "path": "stockcards.html",
+    "dc": "stock-card-1-desc",
+    "reach": "direct",
+    "tag": "div",
+    "text": "Drip Edge Charcoal"
+  },
+  {
+    "id": 200,
+    "path": "stockcards.html",
+    "dc": "stock-card-1-createorder",
+    "reach": "unreachable"
+  }
+]
