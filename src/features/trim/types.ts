@@ -39,6 +39,8 @@ export type LineItem = {
   status: string | null
   /** Pieces flagged for venting; Slinet sorts on it (N-113). */
   vented: number
+  /** Pieces already pushed to EBMS as a manufacturing batch — stock orders only. */
+  qtyManufactured?: number
   /** Set per line only when an order is split-scheduled (N-006/007). */
   scheduledDate: string | null
   notes: Note[]

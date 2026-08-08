@@ -1,6 +1,6 @@
-import { MessageSquare, RefreshCw, Warehouse } from 'lucide-react'
+import { ArrowLeft, MessageSquare, RefreshCw, Warehouse } from 'lucide-react'
 
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
@@ -8,6 +8,7 @@ import { fmtDate } from '../format'
 import { isOverdue, lineDay, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
 import { EmptyState } from './bits'
+import { WrapOrderDetail } from './wrap-detail'
 
 import type { LineItem, Order } from '../types'
 
@@ -41,8 +42,26 @@ type Row = { order: Order; item: LineItem; index: number; day: string }
  */
 export const Wrapping = () => {
   const { orders, remans } = useStore(trimStore, current => current)
+  const [drillOrderId, setDrillOrderId] = useState<number | null>(null)
 
   const released = orders.filter(order => order.released && !order.completed)
+
+  // an order that is completed or unreleased while its detail is open drops back to the list
+  const drilled = released.find(order => order.id === drillOrderId)
+  if (drilled)
+    return (
+      <>
+        <div className='toolbar' data-comment='wrap-detail-toolbar'>
+          <button className='btn btn-sm' data-comment='wrap-back' onClick={() => setDrillOrderId(null)}>
+            <ArrowLeft style={{ width: '14px', height: '14px' }} />
+            Back to Wrapping
+          </button>
+          <div className='toolbar-spacer' />
+        </div>
+        <WrapOrderDetail order={drilled} />
+      </>
+    )
+
   if (!released.length)
     return (
       <EmptyState
@@ -126,6 +145,7 @@ export const Wrapping = () => {
                   data-comment={`wrap-li-${key}`}
                   style={{ cursor: 'pointer' }}
                   title='Open wrapping detail'
+                  onClick={() => setDrillOrderId(order.id)}
                 >
                   <td className='cell-num muted' data-comment={`wrap-li-date-${key}`}>
                     {order.type === 'stock' ? (

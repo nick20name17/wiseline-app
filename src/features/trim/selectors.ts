@@ -2,7 +2,7 @@ import { isWorkDay } from '@/store/shared/settings'
 
 import { TODAY, trimStore } from './store'
 
-import type { LineItem, Note, Order, Priority, Reman } from './types'
+import type { LineItem, Location, Note, Order, Priority, Reman } from './types'
 
 /**
  * How many bends a profile takes is a property of the profile, not of the order: the Machine Capacities
@@ -317,3 +317,43 @@ export const remanBendlistEntries = (machineId: number | null, done: boolean) =>
 
 export const remanIsStock = (reman: Reman) =>
   trimStore.get().orders.find(order => order.id === reman.orderId)?.type === 'stock'
+
+/* -- Wrapping ---------------------------------------------------------------------------------- */
+
+/** Mock pounds per piece — the real system weighs the profile. */
+export const estWeight = (item: LineItem) => Math.max(1, Math.round(item.width * 0.6))
+
+export const wrapLeftOf = (item: LineItem) => Math.max(0, item.qty - (item.wrapped || 0))
+
+/** N-075: only a line the floor has finished — or one that came off stock — can be wrapped. */
+export const wrapEligible = (order: Order, item: LineItem) => {
+  const status = item.status || lineStatus(order, item)
+  return ['bent', 'stock', 'bypassed'].includes(status) && wrapLeftOf(item) > 0
+}
+
+export const activeLocationId = (order: Order) => order.locationIds?.at(-1) ?? null
+
+/** An order's earlier locations — all but the most recently picked — lock for that order only. */
+export const isLocationLockedForOrder = (order: Order, locationId: number) => {
+  const ids = order.locationIds ?? []
+  const at = ids.indexOf(locationId)
+  return at !== -1 && at !== ids.length - 1
+}
+
+export const locOccupants = (location: Location) => location.occupants ?? []
+
+export const locCurrentWeight = (location: Location) =>
+  locOccupants(location).reduce((sum, occupant) => sum + occupant.weight, 0)
+
+export const isLocationOverWeight = (location: Location) =>
+  locCurrentWeight(location) > (location.maxWeight as number)
+
+/** PO# and Salesman are not modelled; both are deterministic demo values off the order number. */
+const numFromOrderNo = (orderNo: string) => Number(/(\d+)$/.exec(orderNo)?.[1] ?? 0)
+
+export const demoPo = (orderNo: string) => `PO-${orderNo.replace(/\D/g, '')}`
+
+const DEMO_SALESMEN = ['Joel Thiessen', 'Marcus Reid', 'Hannah Weir', 'Dave Enns']
+
+export const demoSalesman = (orderNo: string) =>
+  DEMO_SALESMEN[numFromOrderNo(orderNo) % DEMO_SALESMEN.length]!
