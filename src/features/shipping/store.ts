@@ -35,6 +35,30 @@ export const toggleUnschedExpand = (orderId: number) =>
       : [...state.expUnscheduled, orderId]
   }))
 
+/**
+ * The Scheduled board's month picker, kept out of the page store because the prototype keeps it out
+ * too — three loose `let`s beside the render function, not seed data, and nothing else reads them.
+ */
+export const schedCalStore = createStore({ month: 6, year: 2026, open: false })
+
+export const toggleSchedCal = () => schedCalStore.set(state => ({ open: !state.open }))
+
+export const schedCalShift = (delta: number) =>
+  schedCalStore.set(state => {
+    const shifted = state.month + delta
+    if (shifted < 0) return { month: 11, year: state.year - 1 }
+    if (shifted > 11) return { month: 0, year: state.year + 1 }
+    return { month: shifted }
+  })
+
+/** Picking a day drops the truck expansion, the load filter and the selection with it. */
+export const setSchedDay = (day: string) => {
+  schedCalStore.set({ open: false })
+  shippingStore.set({ scheduledDay: day, expTruck: null, loadFilter: null, selScheduled: [] })
+}
+
+export const setLoadingDay = (day: string) => shippingStore.set({ loadingDay: day })
+
 export const setPriority = (orderId: number, priorityId: number | null) =>
   shippingStore.set(state => ({
     orders: state.orders.map(order => (order.id === orderId ? { ...order, priorityId } : order))

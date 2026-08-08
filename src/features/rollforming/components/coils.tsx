@@ -58,12 +58,17 @@ export const Coils = () => {
     else bySize.push({ key, coils: [coil] })
   })
 
-  let index = 0
+  // The row numbers the comment keys are anchored to run across the whole page, not per size group.
+  // They are worked out up front rather than by a counter the row map increments: a variable mutated
+  // inside a lambda is syntax the React Compiler bails on, and it would drop this component entirely.
+  const groupStart = bySize.map((_, position) =>
+    bySize.slice(0, position).reduce((total, group) => total + group.coils.length, 0)
+  )
 
   return (
     <>
       {folders}
-      {bySize.map(({ key, coils: group }) => {
+      {bySize.map(({ key, coils: group }, groupIndex) => {
         const first = group[0] as RfCoil
         const slug = key.replace(/[^a-z0-9]+/gi, '')
 
@@ -103,8 +108,8 @@ export const Coils = () => {
                   </tr>
                 </thead>
                 <tbody data-comment={`coils-tbody-${slug}`}>
-                  {group.map(coil => {
-                    const row = index++
+                  {group.map((coil, rowIndex) => {
+                    const row = (groupStart[groupIndex] ?? 0) + rowIndex
 
                     return (
                       <tr key={coil.id} data-comment={`coils-row-${row}`}>

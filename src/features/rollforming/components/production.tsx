@@ -171,16 +171,19 @@ export const Production = () => {
       section => section.orders.length
     )
 
-    // one counter across every section: the same order can appear under two machines, and each card
-    // it renders needs its own `data-comment`
-    let index = 0
+    // one run of numbers across every section: the same order can appear under two machines, and each
+    // card it renders needs its own `data-comment`. Worked out up front rather than by a counter the
+    // map increments — a variable mutated inside a lambda is syntax the React Compiler bails on.
+    const sectionStart = sections.map((_, position) =>
+      sections.slice(0, position).reduce((total, section) => total + section.orders.length, 0)
+    )
 
     return (
       <>
         <GroupTabs prefix='prod' />
         <CoilPanel prefix='prod' />
         {sections.length ? (
-          sections.map(({ group, orders }) => (
+          sections.map(({ group, orders }, sectionIndex) => (
             <Fragment key={group}>
               <div
                 className='subhead-title'
@@ -189,8 +192,12 @@ export const Production = () => {
               >
                 {group}
               </div>
-              {orders.map(order => (
-                <ProductionRun key={`${group}-${order.id}`} order={order} index={index++} />
+              {orders.map((order, orderIndex) => (
+                <ProductionRun
+                  key={`${group}-${order.id}`}
+                  order={order}
+                  index={(sectionStart[sectionIndex] ?? 0) + orderIndex}
+                />
               ))}
             </Fragment>
           ))
