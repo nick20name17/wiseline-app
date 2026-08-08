@@ -68,6 +68,8 @@
     "pixelmatch": "^7.2.0",
     "playwright": "^1.62.1",
     "pngjs": "^7.0.0",
+    "postcss": "^8.5.26",
+    "postcss-selector-parser": "^7.1.5",
     "react-doctor": "^0.7.4",
     "typescript": "^7.0.2",
     "vite": "^8.1.1",
