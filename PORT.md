@@ -70,6 +70,21 @@ the colliding tokens (`--accent`, `--border`, `--primary`) are declared by shadc
 prototype on the page element. The shadcn palette in `src/index.css` *is* the prototype's palette, so a
 dialog opened over a ported screen matches it.
 
+The layer rule only settles a property the prototype actually declares. Where it declares none, Tailwind
+reaches straight into a ported page, and both ways it can do that cost a day each:
+
+- *A ported class that spells a utility.* `<table class="grid">` made Tailwind emit a real
+  `display: grid`; `<thead>` and `<tbody>` became blocks and laid themselves out as two separate tables.
+  Ported markup is no longer scanned (`@source not './features'`), which covers every name only it
+  uses — `filter`, for one. Across all fifteen pages `grid` is the only name we genuinely share, and it
+  is reverted inside `[data-page]`.
+- *Preflight, which does reach in.* `input, button { font: inherit }` brings `line-height` with it, and
+  the prototype asks these elements only for `font-family: inherit`. Every button and input sat a couple
+  of pixels too tall. Also reverted inside `[data-page]`.
+
+Both guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so any
+prototype rule still outranks them.
+
 One cost to know: this template's shadcn wraps `@base-ui/react`, so the DOM element is created inside
 `node_modules` and the review plugin cannot stamp it with `data-review-src`. Such elements still anchor
 through the `descent` leg, just less strongly. Prefer intrinsic elements on anything a client will
@@ -100,21 +115,9 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/sign-in` | green, both widths |
 | ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
 | ✅ Trim shell + seed | sidebar, top bar, tabs, `seed.json` |
-| 🟡 `/trim?view=home` | `data-comment` 145/145 and structure exact; **0.91% pixels desktop, 0.16% mobile** |
+| ✅ `/trim?view=home` | green, both widths |
 | ⬜ Trim: scheduled, production, coils, calendar, completed | |
 | ⬜ The other 13 pages | |
-
-### The open pixel difference
-
-Three flexible columns disagree: `col-chk` 80 vs 40, `col-exp` 68 vs 34, customer 332 vs 83. Ruled out:
-preflight, `border-collapse`, `table-layout`, `border-spacing`, `box-sizing`, and the markup — `<thead>`
-and the rows are identical, and the computed styles differ in nothing but the resulting `width`.
-
-The thing to chase: in the prototype the three add to 480, which with the fixed columns is exactly the
-1168px table. In the port they add to 157 against the same 1168 — **323px unaccounted for**. Either the
-measurement read the wrong row, or the port's table has a column that query did not see. Take the full
-geometry of both tables in one pass — every `<th>`, every `<td>` of the first row, `offsetParent`, and the
-width of `.table-wrap` — rather than probing property by property.
 
 ## Order of work
 
