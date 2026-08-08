@@ -22,12 +22,17 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Next up: `/shipping`.** Rollforming is done to the same limit Trim is — every view green at both
-widths, everything left behind a modal. Shipping is the third department, so read both of the finished
-ones before starting: `src/components/shell/chrome.tsx` is the chrome it can reuse as-is, and
-`features/rollforming/` is the closer model of the two — its own department bar, machine sub-tabs, a
-shared line explosion parameterised by context, and selectors named exactly as the prototype names
-them. Its stylesheet is already extracted (`src/styles/shipping.css`); its seed is not dumped yet.
+**Next up: Shipping's `?view=scheduled`.** Its shell, its seed and Unscheduled are done, as is the
+Accessories tab (the prototype ships that one unbuilt and says so on the page). What is left is
+Scheduled — a per-truck board with a day strip, capacity bars and a load-assignment grid — then Loading,
+then the Map. Read `renderScheduled` and `renderTruckExpandedGrid` together: the truck card and the grid
+inside it are one screen, and `schedGridOrders` is deliberately shared by the render, Select-All and
+Reschedule so all three act on the same visible rows.
+
+**The Map is the one view that may not be portable to the gate's standard.** The prototype draws it with
+Leaflet against OpenStreetMap tiles fetched over the network — the pixel diff would be comparing two
+tile downloads, and the anchors that matter (`map-filter-*`, the legend) are in the bar above it. Expect
+to port the bar and the markers, and to say plainly which part of that view the gate cannot judge.
 
 ## The gates
 
@@ -114,6 +119,11 @@ Two more things the gate is for, both from Rollforming:
   swallows one of a run of spaces. The structural diff collapses whitespace and reported nothing; the
   screenshot was 0.19% out on three states. Whenever markup is retyped, the spaces *between* elements
   are part of it.
+- **A class the browser computes has to be computed in the port too.** Shipping fades the edge of any
+  horizontally-scrollable table by toggling `can-scroll-l` / `can-scroll-r` on the wrapper from a
+  measurement. The port needs `useTableShadows`, which runs after every render on purpose: a row
+  expanding changes whether there is more to scroll. The gate caught it as `lost class can-scroll-r`,
+  and nothing else on that page disagreed.
 - **Read the store through `useStore`, never `get()`, anywhere a render depends on it.** The group tab
   strip read `activeGroup` with `get()`; its only prop is a constant, so the compiler was free to skip
   it, and the tabs kept the group they first rendered while the tables under them moved. The structural
@@ -202,7 +212,9 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Rollforming shell + Unscheduled | seven views as one search param, 4 states green at both widths |
 | ✅ `/rollforming` — all seven views | green at 1440 and 390, 42 captures |
 | ✅ Rollforming's reachable states | 13 of them, both renderers of every view that has two |
-| ⬜ The other 12 pages | |
+| ✅ Shipping shell + Unscheduled | + its Accessories tab; 5 captures green at both widths |
+| ⬜ Shipping's other three views | Scheduled, Loading, Map |
+| ⬜ The other 11 pages | |
 
 ### What Rollforming still owes
 
