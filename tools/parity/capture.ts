@@ -152,6 +152,21 @@ for (const viewport of VIEWPORTS) {
       await open(view)
 
       const record = async (stateName: string | null) => {
+        /**
+         * Which page the browser is actually on, checked against the one being recorded.
+         *
+         * A run once filed thirteen mobile captures under the name of the page before them: the
+         * content was right and every label was wrong, so the gate compared real screens against
+         * each other's baselines and said nothing. A baseline is only worth having if a mislabelled
+         * one is impossible, and the browser already knows the answer.
+         */
+        const here = await browserPage.evaluate(() => location.pathname)
+        const expected = side === 'demo' ? `/${page.demo}` : page.route
+        if (here !== expected)
+          throw new Error(
+            `recording ${name} but the browser is on ${here}, not ${expected} — baseline would be mislabelled`
+          )
+
         const collected = (await browserPage.evaluate(collectSource)) as Pick<
           Capture,
           'comments' | 'tree'
