@@ -178,6 +178,41 @@ export const STATES: State[] = [
     view: 'view-unscheduled',
     name: 'expanded-with-notes',
     clicks: ['topbar-togglenotes', 'uns-exp-3']
+  },
+  // a single day rather than the whole board: every truck's roll-up is scoped to it
+  {
+    page: 'shipping',
+    view: 'view-scheduled',
+    name: 'day-16',
+    clicks: ['sch-daytab-2026-07-16']
+  },
+  // an overdue day — the tab, the truck card and its flag all change
+  {
+    page: 'shipping',
+    view: 'view-scheduled',
+    name: 'day-12-overdue',
+    clicks: ['sch-daytab-2026-07-12']
+  },
+  // the month picker, where a day nothing ships on is a dead button rather than a missing one
+  {
+    page: 'shipping',
+    view: 'view-scheduled',
+    name: 'calendar-open',
+    clicks: ['sch-cal-trigger']
+  },
+  // today's loads rather than the overdue day the board opens on
+  {
+    page: 'shipping',
+    view: 'view-loading',
+    name: 'day-14',
+    clicks: ['ldg-daytab-2026-07-14']
+  },
+  // a day whose loads are still ahead: every pill is a different point in the scan cascade
+  {
+    page: 'shipping',
+    view: 'view-loading',
+    name: 'day-16',
+    clicks: ['ldg-daytab-2026-07-16']
   }
 ]
 

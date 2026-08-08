@@ -22,17 +22,17 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Next up: Shipping's `?view=scheduled`.** Its shell, its seed and Unscheduled are done, as is the
-Accessories tab (the prototype ships that one unbuilt and says so on the page). What is left is
-Scheduled — a per-truck board with a day strip, capacity bars and a load-assignment grid — then Loading,
-then the Map. Read `renderScheduled` and `renderTruckExpandedGrid` together: the truck card and the grid
-inside it are one screen, and `schedGridOrders` is deliberately shared by the render, Select-All and
-Reschedule so all three act on the same visible rows.
+**Shipping is done, and so is every page that had a view to port.** All five of its views are green at
+both widths, the Map included. What is left everywhere is the modals — 13 on Rollforming, several on
+Trim, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the load-assignment
+grid) and the Load builder live *only* in a modal and nothing on the board reaches them. Read
+`renderScheduled` and `renderTruckExpandedGrid` together when that comes: `schedGridOrders` is
+deliberately shared by the render, Select-All and Reschedule so all three act on the same visible rows.
 
-**The Map is the one view that may not be portable to the gate's standard.** The prototype draws it with
-Leaflet against OpenStreetMap tiles fetched over the network — the pixel diff would be comparing two
-tile downloads, and the anchors that matter (`map-filter-*`, the legend) are in the bar above it. Expect
-to port the bar and the markers, and to say plainly which part of that view the gate cannot judge.
+**The Map is gated, with one honest exemption.** Its pins, legend and counts are the port's own work and
+are compared like anything else. The OpenStreetMap tiles under them are not: how many have arrived when
+the capture is taken is a fact about the network, so `collect.ts` records `.leaflet-tile-pane` but does
+not descend into it. That is the only place the gate looks away, and it is one line, commented.
 
 ## The gates
 
@@ -129,6 +129,11 @@ Two more things the gate is for, both from Rollforming:
   it, and the tabs kept the group they first rendered while the tables under them moved. The structural
   diff named it exactly — `lost class active` — because a state clicked the tab.
 
+- **A counter a lambda increments loses the whole component.** Two views numbered their rows with
+  `index++` inside a `.map`. React Compiler cannot lower that, bails on the function, and stops
+  memoising it — react-doctor reported it as its top error. Compute the offsets before the map instead;
+  the numbers, and so the anchors, are identical.
+
 ### Why the seed is copied and not written
 
 A quarter of the review comments anchor to `data-comment` values built at runtime out of entity ids —
@@ -213,8 +218,17 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/rollforming` — all seven views | green at 1440 and 390, 42 captures |
 | ✅ Rollforming's reachable states | 13 of them, both renderers of every view that has two |
 | ✅ Shipping shell + Unscheduled | + its Accessories tab; 5 captures green at both widths |
-| ⬜ Shipping's other three views | Scheduled, Loading, Map |
+| ✅ `/shipping` — all five views | green at 1440 and 390, Map included |
+| ✅ Shipping's reachable states | 8 of them: three on Scheduled, two on Loading, three on Unscheduled |
 | ⬜ The other 11 pages | |
+
+### What Shipping still owes
+
+Its two modals, and they hold more than the other departments' do. `renderTruckExpandedGrid` — pick
+orders, Add To Load, Reschedule, New Package — opens only from a truck card, and the Load builder with
+its drag-to-reorder route and Release To Loading opens only from there. The board is honest about what it
+shows, but nothing on it can be *done* until those two land. Also unopened: Completed Orders (90 days),
+Trucks Notes, the Schedule modal and the per-order notes drawer.
 
 ### What Rollforming still owes
 
@@ -238,10 +252,10 @@ time, or the next person reads a green gate and believes it.
 
 ## Order of work
 
-Trim first and slowly: it sets every pattern the other departments repeat. It is done to the limit of
-what the gate can reach. Rollforming is under way. Then Shipping, Accessories, then the ten smaller
-pages — and the modals, which are the one thing on Trim still outstanding and the one thing no gate
-currently watches.
+Trim first and slowly: it sets every pattern the other departments repeat. Rollforming and Shipping
+followed and are done to the limit of what the gate can reach. Next: Accessories, then the ten smaller
+pages — and the modals, which are now the only outstanding work on three whole departments and the one
+thing no gate currently watches.
 
 Two things the second department taught, both worth knowing before the third:
 

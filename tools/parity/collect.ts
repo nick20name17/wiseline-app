@@ -51,9 +51,14 @@ export const collectSource = `(${((ignoredTags: string[]) => {
     classes: Array.from(element.classList).sort(),
     comment: element.getAttribute('data-comment'),
     text: ownText(element),
-    children: Array.from(element.children)
-      .filter(child => !skip.has(child.tagName) && visible(child))
-      .map(walk)
+    // The map's tile pane is downloaded images, and how many have arrived when the capture is taken
+    // is a fact about the network. The pane itself is still compared; what is inside it is not
+    // something either build decides, so a difference there would be noise, not a regression.
+    children: element.classList.contains('leaflet-tile-pane')
+      ? []
+      : Array.from(element.children)
+          .filter(child => !skip.has(child.tagName) && visible(child))
+          .map(walk)
   })
 
   /**

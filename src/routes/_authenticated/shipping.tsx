@@ -11,6 +11,9 @@ import { Sidebar } from '@/components/shell/chrome'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/shipping/components/shell'
+import { Loading } from '@/features/shipping/components/loading'
+import { ShipMap } from '@/features/shipping/components/map'
+import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
 import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shipping/selectors'
 import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shipping/store'
@@ -119,6 +122,9 @@ function Shipping() {
           <main className='content' data-comment='content'>
             <section id={`view-${view}`} className='view active' data-comment={`view-${view}`}>
               {view === 'unscheduled' ? <Unscheduled /> : null}
+              {view === 'scheduled' ? <Scheduled /> : null}
+              {view === 'loading' ? <Loading /> : null}
+              {view === 'map' ? <ShipMap /> : null}
               {/* the prototype ships this tab unbuilt, and says so in the page rather than hiding it */}
               {view === 'accessories' ? (
                 <div
