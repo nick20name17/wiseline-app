@@ -78,12 +78,16 @@ reaches straight into a ported page, and both ways it can do that cost a day eac
   Ported markup is no longer scanned (`@source not './features'`), which covers every name only it
   uses — `filter`, for one. Across all fifteen pages `grid` is the only name we genuinely share, and it
   is reverted inside `[data-page]`.
-- *Preflight, which does reach in.* `input, button { font: inherit }` brings `line-height` with it, and
-  the prototype asks these elements only for `font-family: inherit`. Every button and input sat a couple
-  of pixels too tall. Also reverted inside `[data-page]`.
+- *Preflight, which does reach in, twice.* `input, button { font: inherit }` hands every control the
+  page font; the prototype asks for that one declaration at a time, on the controls that want it, and
+  leaves the rest on the browser's own Arial 13.333px — so a calendar cell was set in the wrong face,
+  and the `line-height` the shorthand also carries made every button two pixels too tall. And
+  `svg { display: block }` turns an inline icon into a line of its own: a day tab grew a third row and a
+  production date wrapped under its own icon. Both reverted inside `[data-page]`.
 
-Both guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so any
-prototype rule still outranks them.
+All three guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so
+any prototype rule still outranks them. Two of them were found only because the pixel gate stayed red at
+0.12% — well under what anyone would notice by eye, and wrong on every screen.
 
 One cost to know: this template's shadcn wraps `@base-ui/react`, so the DOM element is created inside
 `node_modules` and the review plugin cannot stamp it with `data-review-src`. Such elements still anchor
@@ -129,9 +133,9 @@ the next thing to do on this page, before Rollforming.
 
 ## Order of work
 
-Trim first and slowly: it sets every pattern the other departments repeat. Within it —
-shell + Unscheduled (done), Scheduled, Production, Wrapping, Coils + Calendar, Completed. Then
-Rollforming, Shipping, Accessories, then the ten smaller pages.
+Trim first and slowly: it sets every pattern the other departments repeat. Its six views are done;
+what is left on it is Production's Wrapping tab and Stock Manufacturing mode. Then Rollforming,
+Shipping, Accessories, then the ten smaller pages.
 
 ## Afterwards: the comments
 
