@@ -82,6 +82,40 @@ export const STATES: State[] = [
     view: 'view-home',
     name: 'expanded-mreq',
     clicks: ['uns-exp-4']
+  },
+  // pre-release: the head reads "Reviewing order", and both bulk buttons wait on a ticked unit
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'expanded-review',
+    clicks: ['sch-exp-7']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'expanded-review-unit',
+    clicks: ['sch-exp-7', 'sch-coilchkin-115-0']
+  },
+  // released: the selection column and the assignment buttons give way to See Packages
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'expanded-released',
+    clicks: ['sch-exp-8']
+  },
+  // one machine rather than the all-machines overview, which is a different renderer
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'machine-tab',
+    clicks: ['sch-gtab-TuffRibDiamondRib']
+  },
+  // another production day, and picking an order for release on it
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'day-16-release-picked',
+    clicks: ['sch-daytab-2026-07-16', 'sch-relchk-6']
   }
 ]
 

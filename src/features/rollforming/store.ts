@@ -57,3 +57,47 @@ export const toggleSortByProductId = (orderId: number) =>
       [orderId]: !state.sortByProductId[orderId]
     }
   }))
+
+/**
+ * Ticking a unit for assignment. The selection belongs to one order *and one profile* — a coil serves
+ * one profile, so ticking a unit of another replaces the selection rather than adding to it.
+ */
+export const toggleCoilUnitSelect = (orderId: number, lineId: number, coilIdx: number) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  const item = order?.lineItems.find(candidate => candidate.id === lineId)
+  if (!item) return
+
+  const key = `${lineId}:${coilIdx}`
+  rollformingStore.set(state => {
+    const ctx = state.selectedCoilCtx
+    if (!ctx || ctx.orderId !== orderId || ctx.profile !== item.profile)
+      return { selectedCoilCtx: { orderId, profile: item.profile, units: [key] } }
+
+    const units = ctx.units.includes(key)
+      ? ctx.units.filter(unit => unit !== key)
+      : [...ctx.units, key]
+    return { selectedCoilCtx: units.length ? { orderId, profile: item.profile, units } : null }
+  })
+}
+
+/** Picking Export picks Release with it: an order cannot be exported without going to production. */
+export const toggleExportSel = (orderId: number) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== orderId || !order.reviewed || order.released) return order
+      const on = !order.exportSel
+      return { ...order, exportSel: on, releaseSel: on ? true : order.releaseSel }
+    })
+  }))
+
+/** Dropping Release drops Export with it, for the same reason. */
+export const toggleReleaseSel = (orderId: number) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== orderId || !order.reviewed || order.released) return order
+      const on = !order.releaseSel
+      return { ...order, releaseSel: on, exportSel: on ? order.exportSel : false }
+    })
+  }))
+
+export const setScheduledDay = (scheduledDay: string) => rollformingStore.set({ scheduledDay })
