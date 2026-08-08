@@ -1,0 +1,873 @@
+{
+  "search": "",
+  "notesExpanded": false,
+  "role": "manager",
+  "selUnscheduled": [],
+  "expUnscheduled": [],
+  "expCompleted": [],
+  "scheduledDay": "all",
+  "expTruck": null,
+  "loadFilter": null,
+  "selScheduled": [],
+  "expScheduledRows": [],
+  "schSearch": "",
+  "loadingDay": null,
+  "expLoadingTruck": null,
+  "loadingSubTab": "truck",
+  "expLoadingRows": [],
+  "nextLoadId": 7,
+  "priorities": [
+    {
+      "id": 1,
+      "name": "Now",
+      "cls": "pri-now",
+      "hierarchy": 1
+    },
+    {
+      "id": 2,
+      "name": "ASAP",
+      "cls": "pri-asap",
+      "hierarchy": 2
+    },
+    {
+      "id": 3,
+      "name": "By 8:00",
+      "cls": "pri-by",
+      "hierarchy": 3
+    },
+    {
+      "id": 4,
+      "name": "By 9:00",
+      "cls": "pri-by",
+      "hierarchy": 4
+    },
+    {
+      "id": 5,
+      "name": "By 10:00",
+      "cls": "pri-by",
+      "hierarchy": 5
+    },
+    {
+      "id": 6,
+      "name": "By 11:00",
+      "cls": "pri-by",
+      "hierarchy": 6
+    },
+    {
+      "id": 7,
+      "name": "By 12:00",
+      "cls": "pri-by",
+      "hierarchy": 7
+    },
+    {
+      "id": 8,
+      "name": "By 1:00",
+      "cls": "pri-by",
+      "hierarchy": 8
+    },
+    {
+      "id": 9,
+      "name": "By 2:00",
+      "cls": "pri-by",
+      "hierarchy": 9
+    },
+    {
+      "id": 10,
+      "name": "By 3:00",
+      "cls": "pri-by",
+      "hierarchy": 10
+    },
+    {
+      "id": 11,
+      "name": "By 4:00",
+      "cls": "pri-by",
+      "hierarchy": 11
+    },
+    {
+      "id": 12,
+      "name": "By 5:00",
+      "cls": "pri-by",
+      "hierarchy": 12
+    }
+  ],
+  "trucks": [
+    {
+      "id": 101,
+      "location": "Warehouse #1",
+      "maxWeight": 12000,
+      "maxLength": 240,
+      "notes": ""
+    },
+    {
+      "id": 102,
+      "location": "Warehouse #1",
+      "maxWeight": 15000,
+      "maxLength": 288,
+      "notes": "Lift-gate equipped."
+    },
+    {
+      "id": 103,
+      "location": "Warehouse #2",
+      "maxWeight": 15000,
+      "maxLength": 288,
+      "notes": ""
+    },
+    {
+      "id": 104,
+      "location": "Warehouse #2",
+      "maxWeight": 18000,
+      "maxLength": 336,
+      "notes": ""
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "entryDate": "2026-07-10",
+      "shipDate": "2026-07-16",
+      "order": "330618",
+      "customer": "A.M.C.",
+      "address": "88 Industrial Dr",
+      "city": "Tillsonburg",
+      "weight": 4200,
+      "longestLength": 96,
+      "shipVia": "Our Truck",
+      "priorityId": 1,
+      "pickup": false,
+      "truckId": 104,
+      "loadId": 5,
+      "status": "notstarted",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": [
+        {
+          "id": 1,
+          "author": "Dana Wells",
+          "email": "dana@amc-metals.com",
+          "ts": "Jul 10, 9:02am",
+          "body": "Please call before arrival — gate code changed.",
+          "dealt": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "entryDate": "2026-07-11",
+      "shipDate": "2026-07-16",
+      "order": "330622",
+      "customer": "Norfolk Roofing Co.",
+      "address": "22 Queen St",
+      "city": "Simcoe",
+      "weight": 6100,
+      "longestLength": 144,
+      "shipVia": "Our Truck",
+      "priorityId": 2,
+      "pickup": false,
+      "truckId": 102,
+      "loadId": 6,
+      "status": "notstarted",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 3,
+      "entryDate": "2026-07-11",
+      "shipDate": null,
+      "reqShip": "2026-07-18",
+      "order": "330627",
+      "customer": "Delhi Farm Structures",
+      "address": "9 King St",
+      "city": "Delhi",
+      "weight": 3100,
+      "longestLength": 120,
+      "shipVia": "Common Carrier",
+      "priorityId": 5,
+      "pickup": false,
+      "truckId": null,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": [
+        {
+          "id": 1,
+          "author": "Rick Osei",
+          "email": "rick@delhifarm.ca",
+          "ts": "Jul 11, 2:14pm",
+          "body": "Deliver to rear loading dock only.",
+          "dealt": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "entryDate": "2026-07-12",
+      "shipDate": "2026-07-16",
+      "order": "330630",
+      "customer": "Port Dover Builders",
+      "address": "14 Main St",
+      "city": "Port Dover",
+      "weight": 5200,
+      "longestLength": 180,
+      "shipVia": "Our Truck",
+      "priorityId": null,
+      "pickup": false,
+      "truckId": 104,
+      "loadId": 5,
+      "status": "notstarted",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 5,
+      "entryDate": "2026-07-12",
+      "shipDate": "2026-07-16",
+      "order": "330633",
+      "customer": "Waterford Sheet Metal",
+      "address": "3 Alice St",
+      "city": "Waterford",
+      "weight": 2600,
+      "longestLength": 96,
+      "shipVia": "Our Truck",
+      "priorityId": 9,
+      "pickup": false,
+      "truckId": 102,
+      "loadId": 6,
+      "status": "notstarted",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 6,
+      "entryDate": "2026-07-13",
+      "shipDate": null,
+      "reqShip": "2026-07-19",
+      "order": "330636",
+      "customer": "Aylmer Ag Supply",
+      "address": "52219 John Wise Line",
+      "city": "Aylmer",
+      "weight": 7300,
+      "longestLength": 216,
+      "shipVia": "Common Carrier",
+      "priorityId": 2,
+      "pickup": false,
+      "truckId": null,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": [
+        {
+          "id": 1,
+          "author": "Wanda Price",
+          "email": "wanda@aylmerag.ca",
+          "ts": "Jul 13, 8:40am",
+          "body": "Farm access road is gravel — no low-clearance trailers.",
+          "dealt": false
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "entryDate": "2026-07-13",
+      "shipDate": null,
+      "reqShip": "2026-07-20",
+      "order": "PU-1042",
+      "customer": "Taylor Steel — supplier pickup",
+      "address": "410 Nebo Rd",
+      "city": "Stoney Creek",
+      "weight": 8800,
+      "longestLength": 240,
+      "shipVia": "Our Truck",
+      "priorityId": null,
+      "pickup": true,
+      "truckId": null,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 8,
+      "entryDate": "2026-07-13",
+      "shipDate": null,
+      "reqShip": "2026-07-20",
+      "order": "PU-1043",
+      "customer": "Color Steel — supplier pickup",
+      "address": "77 Speers Rd",
+      "city": "Oakville",
+      "weight": 4100,
+      "longestLength": 180,
+      "shipVia": "Our Truck",
+      "priorityId": 3,
+      "pickup": true,
+      "truckId": null,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 9,
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-15",
+      "order": "330560",
+      "customer": "Langton Grain Co.",
+      "address": "590 Barth Side Rd",
+      "city": "Langton",
+      "weight": 5100,
+      "longestLength": 120,
+      "shipVia": "Our Truck",
+      "priorityId": 4,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 10,
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-15",
+      "order": "330561",
+      "customer": "Simcoe Steel Works",
+      "address": "12 Talbot St",
+      "city": "Simcoe",
+      "weight": 6200,
+      "longestLength": 168,
+      "shipVia": "Our Truck",
+      "priorityId": 1,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": [
+        {
+          "id": 1,
+          "author": "Mike Falcone",
+          "email": "mike@simcoesteel.ca",
+          "ts": "Jul 12, 11:05am",
+          "body": "Confirm arrival window by phone, dock is shared.",
+          "dealt": false
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "entryDate": "2026-07-10",
+      "shipDate": "2026-07-16",
+      "order": "330562",
+      "customer": "Tillsonburg Contracting",
+      "address": "51 Broadway",
+      "city": "Tillsonburg",
+      "weight": 4300,
+      "longestLength": 96,
+      "shipVia": "Common Carrier",
+      "priorityId": null,
+      "pickup": false,
+      "truckId": 102,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 12,
+      "entryDate": "2026-07-08",
+      "shipDate": "2026-07-13",
+      "order": "330501",
+      "customer": "Delhi Farm Structures",
+      "address": "9 King St",
+      "city": "Delhi",
+      "weight": 5000,
+      "longestLength": 120,
+      "shipVia": "Our Truck",
+      "priorityId": 5,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": 1,
+      "status": "delivered",
+      "packages": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 13,
+      "entryDate": "2026-07-08",
+      "shipDate": "2026-07-13",
+      "order": "330502",
+      "customer": "Norfolk Roofing Co.",
+      "address": "22 Queen St",
+      "city": "Simcoe",
+      "weight": 4200,
+      "longestLength": 96,
+      "shipVia": "Our Truck",
+      "priorityId": 2,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": 1,
+      "status": "delivered",
+      "packages": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 14,
+      "entryDate": "2026-07-08",
+      "shipDate": "2026-07-13",
+      "order": "330503",
+      "customer": "Port Dover Builders",
+      "address": "14 Main St",
+      "city": "Port Dover",
+      "weight": 6100,
+      "longestLength": 144,
+      "shipVia": "Our Truck",
+      "priorityId": null,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": 2,
+      "status": "delivered",
+      "packages": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 15,
+      "entryDate": "2026-07-08",
+      "shipDate": "2026-07-13",
+      "order": "330504",
+      "customer": "Waterford Sheet Metal",
+      "address": "3 Alice St",
+      "city": "Waterford",
+      "weight": 3300,
+      "longestLength": 120,
+      "shipVia": "Our Truck",
+      "priorityId": 9,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": 2,
+      "status": "shipping",
+      "packages": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 16,
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-14",
+      "order": "330550",
+      "customer": "Aylmer Ag Supply",
+      "address": "52219 John Wise Line",
+      "city": "Aylmer",
+      "weight": 4800,
+      "longestLength": 120,
+      "shipVia": "Common Carrier",
+      "priorityId": 2,
+      "pickup": false,
+      "truckId": 102,
+      "loadId": 3,
+      "status": "loading",
+      "packages": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 17,
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-14",
+      "order": "330551",
+      "customer": "Simcoe Steel Works",
+      "address": "12 Talbot St",
+      "city": "Simcoe",
+      "weight": 3900,
+      "longestLength": 96,
+      "shipVia": "Our Truck",
+      "priorityId": 1,
+      "pickup": false,
+      "truckId": 102,
+      "loadId": 3,
+      "status": "loading",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 18,
+      "entryDate": "2026-07-11",
+      "shipDate": "2026-07-16",
+      "order": "330570",
+      "customer": "Tillsonburg Contracting",
+      "address": "51 Broadway",
+      "city": "Tillsonburg",
+      "weight": 5200,
+      "longestLength": 120,
+      "shipVia": "Our Truck",
+      "priorityId": null,
+      "pickup": false,
+      "truckId": 103,
+      "loadId": 4,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 19,
+      "entryDate": "2026-07-11",
+      "shipDate": "2026-07-16",
+      "order": "330571",
+      "customer": "Waterford Sheet Metal",
+      "address": "3 Alice St",
+      "city": "Waterford",
+      "weight": 3100,
+      "longestLength": 96,
+      "shipVia": "Our Truck",
+      "priorityId": 5,
+      "pickup": false,
+      "truckId": 103,
+      "loadId": 4,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 20,
+      "entryDate": "2026-07-12",
+      "shipDate": "2026-07-17",
+      "order": "330565",
+      "customer": "Long Point Fisheries",
+      "address": "18 Erie Blvd",
+      "city": "Long Point",
+      "weight": 6000,
+      "longestLength": 150,
+      "shipVia": "Common Carrier",
+      "priorityId": 2,
+      "pickup": false,
+      "truckId": 104,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 21,
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-12",
+      "order": "330566",
+      "customer": "Vienna Precision Metal",
+      "address": "27 Plank Rd",
+      "city": "Vienna",
+      "weight": 2900,
+      "longestLength": 84,
+      "shipVia": "Our Truck",
+      "priorityId": 6,
+      "pickup": false,
+      "truckId": 104,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 22,
+      "entryDate": "2026-07-14",
+      "shipDate": "2026-07-15",
+      "order": "330580",
+      "customer": "Courtland Truss Co.",
+      "address": "14 Talbot Line",
+      "city": "Courtland",
+      "weight": 600,
+      "longestLength": 300,
+      "shipVia": "Our Truck",
+      "priorityId": 6,
+      "pickup": false,
+      "truckId": 101,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": 23,
+      "entryDate": "2026-07-14",
+      "shipDate": "2026-07-16",
+      "order": "PU-1050",
+      "customer": "Cascadia Metals — supplier pickup",
+      "address": "120 Glover Rd",
+      "city": "Hamilton",
+      "weight": 16500,
+      "longestLength": 264,
+      "shipVia": "Our Truck",
+      "priorityId": 2,
+      "pickup": true,
+      "truckId": 103,
+      "loadId": null,
+      "status": "",
+      "packages": [
+        {
+          "loaded": false
+        },
+        {
+          "loaded": false
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "loads": [
+    {
+      "id": 1,
+      "truckId": 101,
+      "date": "2026-07-13",
+      "status": "shipped",
+      "orderIds": [
+        12,
+        13
+      ],
+      "sequence": [
+        12,
+        13
+      ],
+      "deliveryTerm": "Prepaid",
+      "loadUnloadTime": "40 min",
+      "vehicle": "Unit 101-A"
+    },
+    {
+      "id": 2,
+      "truckId": 101,
+      "date": "2026-07-13",
+      "status": "shipping",
+      "orderIds": [
+        14,
+        15
+      ],
+      "sequence": [
+        14,
+        15
+      ],
+      "deliveryTerm": "Collect",
+      "loadUnloadTime": "55 min",
+      "vehicle": "Unit 101-B"
+    },
+    {
+      "id": 3,
+      "truckId": 102,
+      "date": "2026-07-14",
+      "status": "loading",
+      "orderIds": [
+        16,
+        17
+      ],
+      "sequence": [
+        16,
+        17
+      ],
+      "deliveryTerm": "Prepaid",
+      "loadUnloadTime": "35 min",
+      "vehicle": "Unit 102-A"
+    },
+    {
+      "id": 4,
+      "truckId": 103,
+      "date": "2026-07-16",
+      "status": "unreleased",
+      "orderIds": [
+        18,
+        19
+      ],
+      "sequence": [
+        18,
+        19
+      ],
+      "deliveryTerm": "Prepaid",
+      "loadUnloadTime": "30 min",
+      "vehicle": "Unit 103-A"
+    },
+    {
+      "id": 5,
+      "truckId": 104,
+      "date": "2026-07-16",
+      "status": "notstarted",
+      "orderIds": [
+        1,
+        4
+      ],
+      "sequence": [
+        1,
+        4
+      ],
+      "deliveryTerm": "Prepaid",
+      "loadUnloadTime": "—",
+      "vehicle": "Unit 104-A"
+    },
+    {
+      "id": 6,
+      "truckId": 102,
+      "date": "2026-07-16",
+      "status": "notstarted",
+      "orderIds": [
+        2,
+        5
+      ],
+      "sequence": [
+        2,
+        5
+      ],
+      "deliveryTerm": "Prepaid",
+      "loadUnloadTime": "—",
+      "vehicle": "Unit 102-B"
+    }
+  ]
+}

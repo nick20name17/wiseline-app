@@ -1,0 +1,245 @@
+import { Inbox, List, MapPin, MessageSquare, Truck } from 'lucide-react'
+
+import { useStore } from '@/store/create-store'
+
+import { lineMeta, loadStatusCls, loadStatusLabel, noteState, priorityById } from '../selectors'
+import { shippingStore } from '../store'
+
+import type { Order } from '../types'
+
+/** The pieces every view of this page reuses. Each is one render function in the prototype. */
+
+export const EmptyState = ({
+  title,
+  text,
+  commentKey
+}: {
+  title: string
+  text: string
+  commentKey?: string
+}) => {
+  const key =
+    commentKey ??
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  return (
+    <div className='table-wrap' data-comment={`empty-wrap-${key}`}>
+      <div className='empty' data-comment={`empty-state-${key}`}>
+        <Inbox data-comment={`empty-icon-${key}`} className='empty-ico' />
+        <h3 data-comment={`empty-title-${key}`}>{title}</h3>
+        <p data-comment={`empty-text-${key}`}>{text}</p>
+      </div>
+    </div>
+  )
+}
+
+/** Priority is the Manager's and the Shipping Manager's; Workers and Drivers read it and work to it. */
+export const PriorityCell = ({ order }: { order: Order }) => {
+  const role = useStore(shippingStore, state => state.role)
+  const readOnly = role === 'worker'
+  const priority = priorityById(order.priorityId)
+
+  return (
+    <button
+      className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
+      {...(readOnly ? { title: 'Manager or Shipping Manager only' } : { 'data-pop-anchor': true })}
+      data-comment={`pri-${order.id}`}
+    >
+      <span className='pri-dot' />
+      {priority ? priority.name : readOnly ? 'No priority' : 'Set priority'}
+    </button>
+  )
+}
+
+export const NotesButton = ({ order }: { order: Order }) => {
+  const state = noteState(order.notes)
+
+  return (
+    <button
+      className={`note-btn ${state === 'unread' ? 'has-unread' : state === 'read' ? 'all-read' : ''}`}
+      data-comment={`notes-${order.id}`}
+      onClick={event => event.stopPropagation()}
+      title='Order notes'
+    >
+      <MessageSquare style={{ width: '14px', height: '14px' }} />
+      {state !== 'none' ? <span className='note-dot' /> : null}
+    </button>
+  )
+}
+
+export const MapButton = ({ order }: { order: Order }) => (
+  <button
+    className='map-btn'
+    data-comment={`map-${order.id}`}
+    onClick={event => event.stopPropagation()}
+    title='View on map'
+  >
+    <MapPin style={{ width: '14px', height: '14px' }} />
+  </button>
+)
+
+export const ShipViaCell = ({ order }: { order: Order }) => (
+  <span className='shipvia' data-comment={`shipvia-${order.id}`}>
+    <Truck style={{ width: '14px', height: '14px' }} />
+    {order.shipVia}
+  </span>
+)
+
+export const OrderStatusPill = ({ order }: { order: Order }) => {
+  if (order.status === '')
+    return (
+      <span className='status ss-blank' data-comment={`stat-${order.id}`}>
+        —
+      </span>
+    )
+
+  return (
+    <span className={`status ${loadStatusCls(order.status)}`} data-comment={`stat-${order.id}`}>
+      <span className='st-dot' />
+      {loadStatusLabel(order.status)}
+    </span>
+  )
+}
+
+/** With Toggle Notes on, one peek row under every order that has a note. */
+export const NotePreviewRow = ({
+  order,
+  ctx,
+  colSpan
+}: {
+  order: Order
+  ctx: string
+  colSpan: number
+}) => {
+  if (!order.notes?.length) return null
+
+  const last = order.notes[order.notes.length - 1]
+  const unread = order.notes.some(note => !note.dealt)
+
+  return (
+    <tr className='noterow' data-comment={`${ctx}-noterow-${order.id}`}>
+      <td colSpan={colSpan}>
+        <button
+          className={`note-peek ${unread ? 'unread' : ''}`}
+          data-comment={`${ctx}-notepeek-${order.id}`}
+        >
+          <MessageSquare style={{ width: '14px', height: '14px' }} />
+          <span className='np-txt'>
+            <b>{last?.author}:</b> {last?.body}
+          </span>
+        </button>
+      </td>
+    </tr>
+  )
+}
+
+/** The order's contents. The totals row is the order's own weight and length, not the lines' sum. */
+const LineItemsTable = ({ order, ctx }: { order: Order; ctx: string }) => {
+  const items = lineMeta(order)
+
+  return (
+    <>
+      <div className='exp-li-cap' data-comment={`${ctx}-licap-${order.id}`}>
+        <List style={{ width: '13px', height: '13px' }} />
+        Line items · {items.length}
+      </div>
+      <table className='pkg-table' data-comment={`${ctx}-litable-${order.id}`}>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Description</th>
+            <th>Gauge / Color</th>
+            <th className='num'>Qty</th>
+            <th className='num'>Weight</th>
+            <th className='num'>Longest</th>
+          </tr>
+        </thead>
+        <tbody data-comment={`${ctx}-litbody-${order.id}`}>
+          {items.map((item, index) => (
+            <tr key={index} data-comment={`${ctx}-li-${order.id}-${index}`}>
+              <td className='cell-order' data-comment={`${ctx}-lipid-${order.id}-${index}`}>
+                {item.productId}
+              </td>
+              <td data-comment={`${ctx}-lidesc-${order.id}-${index}`}>{item.description}</td>
+              <td data-comment={`${ctx}-ligc-${order.id}-${index}`}>
+                {item.gauge ? `${item.gauge} · ${item.color}` : <span className='subtle'>—</span>}
+              </td>
+              <td className='num' data-comment={`${ctx}-liqty-${order.id}-${index}`}>
+                {item.qty}
+              </td>
+              <td className='num' data-comment={`${ctx}-liwt-${order.id}-${index}`}>
+                {item.weight.toLocaleString('en-US')} lb
+              </td>
+              <td className='num' data-comment={`${ctx}-lilen-${order.id}-${index}`}>
+                {item.length ? `${item.length}"` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className='li-total' data-comment={`${ctx}-litotal-${order.id}`}>
+            <td colSpan={3}>Total</td>
+            <td className='num'>{items.reduce((total, item) => total + item.qty, 0)}</td>
+            <td className='num'>{order.weight.toLocaleString('en-US')} lb</td>
+            <td className='num'>{order.longestLength}"</td>
+          </tr>
+        </tfoot>
+      </table>
+    </>
+  )
+}
+
+/** What an expanded order shows: the address in full, how it ships, what is on it. */
+export const ExpandRow = ({
+  order,
+  ctx,
+  colSpan
+}: {
+  order: Order
+  ctx: string
+  colSpan: number
+}) => {
+  const notesExpanded = useStore(shippingStore, state => state.notesExpanded)
+  const last = order.notes?.[order.notes.length - 1]
+
+  return (
+    <tr className='subrow' data-comment={`${ctx}-subrow-${order.id}`}>
+      <td colSpan={colSpan}>
+        <div className='subwrap' data-comment={`${ctx}-subwrap-${order.id}`}>
+          <div className='exp-grid' data-comment={`${ctx}-expgrid-${order.id}`}>
+            <div>
+              <span className='exp-label'>Full address</span>
+              <div className='exp-val' data-comment={`${ctx}-fulladdr-${order.id}`}>
+                {order.address}, {order.city}
+              </div>
+            </div>
+            <div>
+              <span className='exp-label'>Ship via</span>
+              <div className='exp-val' data-comment={`${ctx}-fullvia-${order.id}`}>
+                {order.shipVia}
+                {order.pickup ? ' · Supplier pickup' : ''}
+              </div>
+            </div>
+            <div>
+              <span className='exp-label'>Weight / Longest length</span>
+              <div className='exp-val mono' data-comment={`${ctx}-fullwl-${order.id}`}>
+                {order.weight.toLocaleString('en-US')} lb / {order.longestLength}"
+              </div>
+            </div>
+          </div>
+
+          <LineItemsTable order={order} ctx={ctx} />
+
+          {notesExpanded && last ? (
+            <div className='exp-note' data-comment={`${ctx}-notepreview-${order.id}`}>
+              <b>{last.author}:</b> {last.body}
+            </div>
+          ) : null}
+        </div>
+      </td>
+    </tr>
+  )
+}
