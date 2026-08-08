@@ -2,7 +2,7 @@ import { isWorkDay } from '@/store/shared/settings'
 
 import { TODAY, trimStore } from './store'
 
-import type { LineItem, Note, Order, Priority } from './types'
+import type { LineItem, Note, Order, Priority, Reman } from './types'
 
 /**
  * How many bends a profile takes is a property of the profile, not of the order: the Machine Capacities
@@ -192,3 +192,128 @@ export const completedOrders = () => {
       order => order.completed && (order.completedDate || order.productionDate || '') >= cutoffIso
     )
 }
+
+/** How far a line has got. Status never moves backwards, so comparing ranks is the whole gate. */
+export const RANK: Record<string, number> = {
+  not_started: 1,
+  in_progress: 2,
+  cut: 3,
+  bent: 4,
+  wrapped: 5
+}
+
+export const lineOf = (orderId: number, lineId: number) => {
+  const order = trimStore.get().orders.find(candidate => candidate.id === orderId)
+  const item = order?.lineItems.find(candidate => candidate.id === lineId)
+  return order && item ? { order, item } : null
+}
+
+/** The five bendlist machines, as per-piece columns on the expanded Slinet cutlist (§194). */
+export const MACHINE_TABS = [
+  { id: 1, name: 'Slinet', gateway: true },
+  { id: 2, name: 'Press Brake' },
+  { id: 3, name: 'V1' },
+  { id: 4, name: 'V2' },
+  { id: 5, name: 'Rollformer' },
+  { id: 6, name: 'Caps' },
+  { id: 7, name: 'Wrapping', terminal: true }
+] as const
+
+export const BENDLIST_MACHINES = MACHINE_TABS.filter(
+  machine => !('gateway' in machine) && !('terminal' in machine)
+)
+
+export type BatchItem = LineItem & {
+  orderNo: string
+  orderId: number
+  customer: string
+  isStock: boolean
+}
+
+/**
+ * Slinet sees every manufacturing line as one cutlist; a machine tab sees only the lines routed to
+ * it, as a bendlist. Same batches either way — the difference is which lines are in them.
+ */
+export const computeBatches = (machineId: number | null, isSlinet: boolean) =>
+  trimStore
+    .get()
+    .cutlists.map(cutlist => ({
+      ...cutlist,
+      items: cutlist.members
+        .map(member => {
+          const found = lineOf(member.orderId, member.lineId)
+          if (!found) return null
+          return {
+            ...found.item,
+            orderNo: found.order.order,
+            orderId: found.order.id,
+            customer: found.order.customer,
+            isStock: found.order.type === 'stock'
+          } satisfies BatchItem
+        })
+        .filter((item): item is BatchItem => !!item)
+        .filter(item => isSlinet || item.machineId === machineId)
+    }))
+    .filter(cutlist => cutlist.items.length)
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        (priorityById(a.priorityId)?.hierarchy || 99) -
+          (priorityById(b.priorityId)?.hierarchy || 99) ||
+        a.gaugeColour.localeCompare(b.gaugeColour)
+    )
+
+/** Whether a consolidated row has all, some or none of its lines past a station's step. */
+export const groupStepState = (items: BatchItem[], stepRank: number) => {
+  const done = items.filter(item => (RANK[item.status ?? ''] || 0) >= stepRank).length
+  if (done === 0) return 'none'
+  if (done === items.length) return 'done'
+  return 'partial'
+}
+
+/** What one machine has been given for one day — the numbers on the totals strip. */
+export const machineTotals = (machineId: number | null, iso: string) => {
+  let pieces = 0
+  let bends = 0
+  let stockPieces = 0
+  let stockBends = 0
+
+  for (const cutlist of trimStore.get().cutlists) {
+    if (cutlist.date !== iso) continue
+    for (const member of cutlist.members) {
+      const found = lineOf(member.orderId, member.lineId)
+      if (!found || found.item.machineId !== machineId) continue
+      const linePieces = qtyToMake(found.item)
+      const lineBendCount = lineBends(found.item)
+      pieces += linePieces
+      bends += lineBendCount
+      if (found.order.type === 'stock') {
+        stockPieces += linePieces
+        stockBends += lineBendCount
+      }
+    }
+  }
+
+  const machine = trimStore.get().machines.find(candidate => candidate.id === machineId)
+  return { pieces, bends, stockPieces, stockBends, dailyMax: machine?.dailyMax || 0 }
+}
+
+const remanSort = (a: Reman, b: Reman) =>
+  a.date.localeCompare(b.date) ||
+  (priorityById(a.priorityId)?.hierarchy || 99) - (priorityById(b.priorityId)?.hierarchy || 99)
+
+/** #192: `done` is what flips a list from a station's active queue to its Completed tab. */
+export const remanCutlistEntries = (done: boolean) =>
+  trimStore
+    .get()
+    .remans.filter(reman => !reman.slinetDone === !done)
+    .sort(remanSort)
+
+export const remanBendlistEntries = (machineId: number | null, done: boolean) =>
+  trimStore
+    .get()
+    .remans.filter(reman => reman.machineId === machineId && !reman.machineDone === !done)
+    .sort(remanSort)
+
+export const remanIsStock = (reman: Reman) =>
+  trimStore.get().orders.find(order => order.id === reman.orderId)?.type === 'stock'

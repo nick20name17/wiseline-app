@@ -92,6 +92,8 @@ export type TrimState = {
   machines: Machine[]
   locations: Location[]
   orders: Order[]
+  cutlists: Cutlist[]
+  remans: Reman[]
   expandedIds: number[]
   selectedOrderIds: number[]
   selectedLineIds: number[]
@@ -103,5 +105,44 @@ export type TrimState = {
   expandedCoilGroups: string[]
   prodMode: string
   prodListMode: string
+  /**
+   * Which batch cards are open. The prototype keeps this in a module-level `Set` beside its render
+   * function; here it has to be state something re-renders on, and the store is where state lives.
+   */
+  expandedBatches: string[]
   [key: string]: unknown
+}
+
+export type Cutlist = {
+  id: string
+  date: string
+  gaugeColour: string
+  priorityId: number | null
+  members: { orderId: number; lineId: number }[]
+  slinetStarted?: boolean
+  doneSlinet?: boolean
+  doneMachines?: number[]
+}
+
+/** A recut raised against one line — it fans out to both the Slinet and the machine that raised it. */
+export type Reman = {
+  id: string
+  orderId: number
+  lineId: number
+  orderNo: string
+  productId: string
+  description: string
+  gaugeColour: string
+  width: number
+  length: number
+  qty: number
+  machineId: number
+  priorityId: number | null
+  date: string
+  source: 'machine' | 'wrapping'
+  fromCutlistId: string | null
+  recut: boolean
+  bent: boolean
+  slinetDone: boolean
+  machineDone: boolean
 }
