@@ -13,6 +13,7 @@ import { chromium, type Page as BrowserPage } from 'playwright'
 
 import { type Capture, collectSource } from './collect.ts'
 import { PAGES, pageName, VIEWPORTS, type Page } from './manifest.ts'
+import { statesFor } from './states.ts'
 
 const [side, origin] = process.argv.slice(2)
 
@@ -53,7 +54,10 @@ const portViews = async (page: Page) => {
 
   return [
     ...new Set(
-      baseline.filter(capture => capture.page === pageName(page)).map(capture => capture.view)
+      baseline
+        .filter(capture => capture.page === pageName(page))
+        // a state is recorded under `<view>+<state>`, and it is a view plus some clicks, not a view
+        .map(capture => capture.view?.split('+')[0] ?? null)
     )
   ].filter((view): view is string => view !== null)
 }
@@ -68,6 +72,21 @@ const showView = (browserPage: BrowserPage, view: string, page: Page) =>
     : browserPage.goto(`${origin}${page.route}?view=${view.replace(/^view-/, '')}`, {
         waitUntil: 'networkidle'
       })
+
+/**
+ * Walks a state's clicks, addressing each by `data-comment`. Returns the step that could not be
+ * reached, so a state nobody has ported yet is reported rather than captured as whatever was on
+ * screen — a screenshot of the wrong tab compares clean against nothing at all.
+ */
+const walk = async (browserPage: BrowserPage, clicks: string[]) => {
+  for (const comment of clicks) {
+    const target = browserPage.locator(`[data-comment="${comment}"]`).first()
+    if (!(await target.count())) return comment
+    await target.click()
+    await browserPage.waitForTimeout(250)
+  }
+  return null
+}
 
 const browser = await chromium.launch()
 const captures: Capture[] = []
@@ -110,27 +129,72 @@ for (const viewport of VIEWPORTS) {
     }
 
     const views = side === 'demo' ? await viewsOf(browserPage) : await portViews(page)
+
+    /**
+     * The views share one store, so a click made for one state is still made when the next view
+     * renders — expanding an order on Unscheduled put its line items into the Scheduled baseline,
+     * which is a baseline of a screen nobody was looking at. Only a state clicks anything, so only a
+     * state leaves the page dirty, and only a dirty page has to be paid for with a reload: the
+     * fifteen pages that have no states navigate exactly as often as they did before.
+     */
+    let dirty = false
+
+    const open = async (view: string | null) => {
+      if (dirty) await browserPage.goto(url, { waitUntil: 'networkidle' })
+      dirty = false
+      if (!view) return
+      await showView(browserPage, view, page)
+      // the prototype's view transition is 400ms, and a screenshot mid-fade is not a baseline
+      await browserPage.waitForTimeout(600)
+    }
+
     for (const view of views.length ? views : [null]) {
-      if (view) {
-        await showView(browserPage, view, page)
-        // the prototype's view transition is 400ms, and a screenshot mid-fade is not a baseline
-        await browserPage.waitForTimeout(600)
+      await open(view)
+
+      const record = async (stateName: string | null) => {
+        const collected = (await browserPage.evaluate(collectSource)) as Pick<
+          Capture,
+          'comments' | 'tree'
+        >
+        const viewKey = stateName ? `${view}+${stateName}` : view
+        captures.push({ page: name, view: viewKey, viewport: viewport.name, ...collected })
+
+        /**
+         * `fullPage` already means the gate does not judge where the page is scrolled to; horizontal
+         * scrollers inside it are the same kind of fact, and they are judged only by accident. The
+         * prototype replaces its markup wholesale on every click, so its machine-tab strip snaps back
+         * to the left; React keeps the node and the browser leaves the tapped tab in view. Both are
+         * wound back before the shot, on both sides, so the screenshot compares what was rendered
+         * rather than which build destroys more of its DOM.
+         */
+        await browserPage.evaluate(() => {
+          for (const element of document.querySelectorAll('*'))
+            if (element.scrollLeft) element.scrollLeft = 0
+        })
+
+        const shot = [name, viewKey ?? 'page', viewport.name].join('__')
+        await mkdir(join(outputDir, 'shots'), { recursive: true })
+        await browserPage.screenshot({
+          path: join(outputDir, 'shots', `${shot}.png`),
+          fullPage: true,
+          animations: 'disabled'
+        })
+        console.log(`${shot}: ${collected.comments.length} data-comment`)
       }
 
-      const collected = (await browserPage.evaluate(collectSource)) as Pick<
-        Capture,
-        'comments' | 'tree'
-      >
-      captures.push({ page: name, view, viewport: viewport.name, ...collected })
+      await record(null)
 
-      const shot = [name, view ?? 'page', viewport.name].join('__')
-      await mkdir(join(outputDir, 'shots'), { recursive: true })
-      await browserPage.screenshot({
-        path: join(outputDir, 'shots', `${shot}.png`),
-        fullPage: true,
-        animations: 'disabled'
-      })
-      console.log(`${shot}: ${collected.comments.length} data-comment`)
+      for (const state of statesFor(name, view)) {
+        await open(view)
+
+        dirty = true
+        const missed = await walk(browserPage, state.clicks)
+        if (missed) {
+          console.warn(`skip ${name}__${view}+${state.name} @ ${viewport.name} — no ${missed}`)
+          continue
+        }
+        await record(state.name)
+      }
     }
   }
 

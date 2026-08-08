@@ -44,6 +44,8 @@ import {
   trimStore
 } from '../store'
 import { EmptyState } from './bits'
+import { StockMfg } from './stock-mfg'
+import { Wrapping } from './wrapping'
 
 import type { Reman } from '../types'
 
@@ -938,6 +940,15 @@ export const Production = () => {
     </div>
   )
 
+  // Stock Manufacturing is a different screen, not a filter on this one — the machine tabs go with it
+  if (prodMode === 'stock')
+    return (
+      <>
+        {modeBar}
+        <StockMfg />
+      </>
+    )
+
   const isSlinet = activeMachine === 1
   const doneMode = prodListMode === 'completed'
   const listWord = isSlinet ? 'cutlists' : 'bendlists'
@@ -956,6 +967,16 @@ export const Production = () => {
       ))}
     </div>
   )
+
+  // Wrapping is the terminal station: it has no Active/Completed switch and no capacity of its own
+  if (activeMachine === 7)
+    return (
+      <>
+        {modeBar}
+        {machineTabs}
+        <Wrapping />
+      </>
+    )
 
   const batches = computeBatches(activeMachine, isSlinet).filter(
     batch =>
