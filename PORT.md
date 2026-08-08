@@ -22,13 +22,12 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Next up: Rollforming's `?view=scheduled`.** The page's shell, its seed and its Unscheduled view are
-done; the other six views are what is left, in the order the tab strip lists them. Everything derived is
-already ported under the prototype's names in `src/features/rollforming/selectors.ts` — including
-`queueGroupsSorted`, which the *tab counts* need, so it exists before the view that renders it does.
-`components/line-items.tsx` is the file to read first: it takes the prototype's own `ctx` parameter, and
-only the `uns` half of it is wired. Scheduled adds the `sch` half — the bulk Supplier/Coil selection,
-the per-unit Stock ticks, See Packages — and `bulkAssignAvailable` / `stockGateOk` come with it.
+**Next up: Rollforming's `?view=production`.** Unscheduled and Scheduled are done, which means the
+shared line explosion is done in both its contexts. Production is three renderers in one view in the
+prototype (`renderProduction` returns three times) plus the shared *Current Coil In The Rollformer*
+panel, which the Queue renders too — port `renderCoilPanel` as its own component, with the
+`data-comment` prefix it takes. Everything derived is already in `selectors.ts` under the prototype's
+names, `queueGroupsSorted` included: the tab counts needed it, so it exists before the Queue does.
 
 ## The gates
 
@@ -41,6 +40,10 @@ Three checks decide whether a page is done. They are mechanical; nothing is judg
 | pixel diff | everything else | 0.1% |
 
 Both viewports every time: 1440 and 390.
+
+A capture refuses to be recorded under a page the browser is not on: one run filed thirteen mobile
+captures under the name of the page before them, and a mislabelled baseline compares two real screens
+against each other and reports nothing at all.
 
 The first two are the ones that must hold: they are the behaviour and the anchors, and a comment lands or
 does not. The pixel diff is a net, not a specification — it is how the three cascade bugs below were
@@ -105,10 +108,16 @@ Repeat per view; it took roughly one commit each.
    first, structure second, pixels last.
 5. Add a state to `tools/parity/states.ts` for anything the default render does not show.
 
-One more thing the pixel gate is for, from Rollforming: the prototype writes `space · nbsp · space`
-between a line's Product ID and its spec text, and JSX swallows one of a run of spaces. The structural
-diff collapses whitespace and reported nothing; the screenshot was 0.19% out on three states. Whenever
-markup is retyped, the spaces *between* elements are part of it.
+Two more things the gate is for, both from Rollforming:
+
+- The prototype writes `space · nbsp · space` between a line's Product ID and its spec text, and JSX
+  swallows one of a run of spaces. The structural diff collapses whitespace and reported nothing; the
+  screenshot was 0.19% out on three states. Whenever markup is retyped, the spaces *between* elements
+  are part of it.
+- **Read the store through `useStore`, never `get()`, anywhere a render depends on it.** The group tab
+  strip read `activeGroup` with `get()`; its only prop is a constant, so the compiler was free to skip
+  it, and the tabs kept the group they first rendered while the tables under them moved. The structural
+  diff named it exactly — `lost class active` — because a state clicked the tab.
 
 ### Why the seed is copied and not written
 
@@ -142,16 +151,20 @@ reaches straight into a ported page, and both ways it can do that cost a day eac
   Ported markup is no longer scanned (`@source not './features'`), which covers every name only it
   uses — `filter`, for one. Across all fifteen pages `grid` is the only name we genuinely share, and it
   is reverted inside `[data-page]`.
-- *Preflight, which does reach in, twice.* `input, button { font: inherit }` hands every control the
+- *Preflight, which does reach in, three times.* `input, button { font: inherit }` hands every control the
   page font; the prototype asks for that one declaration at a time, on the controls that want it, and
   leaves the rest on the browser's own Arial 13.333px — so a calendar cell was set in the wrong face,
   and the `line-height` the shorthand also carries made every button two pixels too tall. And
   `svg { display: block }` turns an inline icon into a line of its own: a day tab grew a third row and a
-  production date wrapped under its own icon. Both reverted inside `[data-page]`.
+  production date wrapped under its own icon. And `font-size: inherit; font-weight: inherit` on `h1`–`h6`
+  takes away a weight the prototype never declares because it is leaning on the browser's own bold — an
+  empty state's `<h3>` came out at body weight. All three reverted inside `[data-page]`.
 
-All three guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so
-any prototype rule still outranks them. Two of them were found only because the pixel gate stayed red at
-0.12% — well under what anyone would notice by eye, and wrong on every screen.
+All four guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so
+any prototype rule still outranks them. Three of them were found only because the pixel gate stayed red at
+0.11–0.12% — well under what anyone would notice by eye, and wrong on every screen. The heading one was
+red at 390 and *green at 1440*: the same wrong text is a smaller share of a bigger page, so a defect can
+hide behind the budget at one width and not the other.
 
 One cost to know: this template's shadcn wraps `@base-ui/react`, so the DOM element is created inside
 `node_modules` and the review plugin cannot stamp it with `data-review-src`. Such elements still anchor
@@ -187,7 +200,8 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/trim` — all six views | green at 1440 and 390 |
 | ✅ Trim's reachable states | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts` |
 | ✅ Rollforming shell + Unscheduled | seven views as one search param, 4 states green at both widths |
-| ⬜ Rollforming's other six views | Scheduled, Production, Queue, Coils, Wrapping, Completed |
+| ✅ Rollforming Scheduled | both renderers, 6 states, `ctx='sch'` wired through the explosion |
+| ⬜ Rollforming's other five views | Production, Queue, Coils, Wrapping, Completed |
 | ⬜ The other 12 pages | |
 
 ### What Trim still owes
