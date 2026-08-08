@@ -1,5 +1,7 @@
 import { Inbox, MessageSquare, Scissors } from 'lucide-react'
 
+import { useStore } from '@/store/create-store'
+
 import { GROUPS, groupSlug, noteState, priorityById, statusOf } from '../selectors'
 import { rollformingStore, setActiveGroup } from '../store'
 
@@ -43,7 +45,9 @@ export const EmptyState = ({
  * carries the scissors: it is a process the material passes through, not a machine that rolls it.
  */
 export const GroupTabs = ({ prefix }: { prefix: string }) => {
-  const activeGroup = rollformingStore.get().activeGroup
+  // read through the subscription, not `get()`: the compiler is free to skip a component whose props
+  // did not change, and `prefix` never does — the tab strip then keeps the group it first rendered
+  const activeGroup = useStore(rollformingStore, state => state.activeGroup)
 
   return (
     <div className='gtabs' data-comment={`${prefix}-gtabs`}>
@@ -65,7 +69,8 @@ export const GroupTabs = ({ prefix }: { prefix: string }) => {
 /** A Worker sees the priority and works to it but cannot set it; it stays settable after release. */
 export const PriorityCell = ({ order, readOnly }: { order: Order; readOnly?: boolean }) => {
   const priority = priorityById(order.priorityId)
-  const locked = readOnly || rollformingStore.get().role === 'worker'
+  const role = useStore(rollformingStore, state => state.role)
+  const locked = readOnly || role === 'worker'
 
   return (
     <button

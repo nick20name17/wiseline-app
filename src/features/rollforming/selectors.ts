@@ -329,3 +329,16 @@ export const queueGroupsSorted = (forGroup?: string) => {
     })
   }))
 }
+
+/** How many units are ticked on this order — the count the two bulk assignment buttons carry. */
+export const bulkAssignAvailable = (orderId: number) => {
+  const ctx = rollformingStore.get().selectedCoilCtx
+  return ctx && ctx.orderId === orderId ? ctx.units.length : 0
+}
+
+/** The Stock decision is the Manager's, and only until the order goes to production. */
+export const stockGateOk = (orderId: number) => {
+  const state = rollformingStore.get()
+  const order = state.orders.find(candidate => candidate.id === orderId)
+  return !!order && !order.released && state.role !== 'worker'
+}

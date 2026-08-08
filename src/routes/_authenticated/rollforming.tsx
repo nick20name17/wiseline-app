@@ -10,6 +10,7 @@ import { Sidebar, Topbar } from '@/components/shell/chrome'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/rollforming/components/shell'
+import { Scheduled } from '@/features/rollforming/components/scheduled'
 import { Unscheduled } from '@/features/rollforming/components/unscheduled'
 import {
   isDoneInProduction,
@@ -114,6 +115,7 @@ function Rollforming() {
           <main className='content' data-comment='content'>
             <section id={`view-${view}`} className='view active' data-comment={`view-${view}`}>
               {view === 'home' ? <Unscheduled /> : null}
+              {view === 'scheduled' ? <Scheduled /> : null}
             </section>
           </main>
         </div>
