@@ -1,14 +1,162 @@
 /**
- * Almost nothing lives here, on purpose.
+ * Two design systems in one document, kept apart on purpose.
  *
- * Each page brings its own stylesheet, lifted whole from the prototype and scoped to that page — see
- * `tools/port/extract-css.ts`. What is left below is what sits *above* a page and so cannot be scoped
- * to one. Tailwind and shadcn are deliberately not imported. This app's job is to look exactly like the
- * HTML prototype, and both of them fight that: preflight rewrites the reset the prototype already
- * ships, and shadcn's theme declares `--accent`, `--border` and `--primary` on `:root` — the very
- * names the prototype uses for different colours. Whichever loaded last would win, silently.
+ * Tailwind and shadcn dress everything this project *adds*. The fifteen screens ported from the HTML
+ * prototype are dressed by the prototype's own stylesheets, lifted verbatim and scoped to
+ * `[data-page="…"]` — they have to stay pixel-identical, and the parity gate says whether they are.
+ *
+ * The two do not fight, for two reasons worth knowing before editing this file:
+ *
+ *  - Tailwind puts everything it emits in cascade layers. Unlayered rules beat layered ones whatever
+ *    their specificity, and the prototype's CSS is unlayered — so preflight cannot reach into a
+ *    ported page.
+ *  - The token names collide by design (`--accent`, `--border`, `--primary` mean different colours in
+ *    each), but shadcn declares them on `:root` and the prototype declares them on the page element.
+ *    The nearer declaration wins for everything inside the page.
+ *
+ * The shadcn palette below is the prototype's palette, so a shadcn dialog opened over a ported screen
+ * is the same blue, the same borders and the same corner radius as everything around it.
  */
-/* The prototype's `body` rules are scoped onto the page element, which then has to fill the screen. */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Straight from the prototype's `:root`: surfaces, ink, the one accent blue, and its radii. */
+  --background: #f5f6f8;
+  --foreground: #14181f;
+  --card: #ffffff;
+  --card-foreground: #14181f;
+  --popover: #ffffff;
+  --popover-foreground: #14181f;
+  --primary: #3b5bdb;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #14181f;
+  --muted: #f2f4f7;
+  --muted-foreground: #475467;
+  --accent: #eef1fe;
+  --accent-foreground: #3b5bdb;
+  --destructive: #c4362f;
+  --border: #e7eaef;
+  --input: #d6dbe2;
+  --ring: #3b5bdb;
+  --chart-1: #3b5bdb;
+  --chart-2: #0f7a54;
+  --chart-3: #b5760a;
+  --chart-4: #c4362f;
+  --chart-5: #475467;
+  /* the prototype's `--r-md`; its `--r-sm` and `--r-lg` fall out of Tailwind's scale around it */
+  --radius: 0.5625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #14181f;
+  --sidebar-primary: #3b5bdb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef1fe;
+  --sidebar-accent-foreground: #3b5bdb;
+  --sidebar-border: #e7eaef;
+  --sidebar-ring: #3b5bdb;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* -- The ported prototype pages ----------------------------------------------------------------
+   Each page's stylesheet is imported by its own route and scoped to `[data-page]`. What is left here
+   is what sits above a page and so cannot be scoped to one. */
+
 html,
 body,
 #root {

@@ -1,390 +1,65 @@
-/* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
-[data-page='login'] button i,
-[data-page='login'] button svg,
-[data-page='login'] a i,
-[data-page='login'] a svg,
-[data-page='login'] [onclick] i,
-[data-page='login'] [onclick] svg {
-  pointer-events: none;
-}
-[data-page='login'] *,
-[data-page='login'] *::before,
-[data-page='login'] *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-[data-page='login'] {
-  --bg: #f5f6f8;
-  --surface: #fff;
-  --surface-2: #fbfcfd;
-  --surface-3: #f2f4f7;
-  --border: #e7eaef;
-  --border-strong: #d6dbe2;
-  --text: #14181f;
-  --text-muted: #344054;
-  --text-subtle: #475467;
-  --accent: #3b5bdb;
-  --accent-hover: #2f49bd;
-  --accent-soft: #eef1fe;
-  --accent-border: #c8d2f7;
-  --success: #0f7a54;
-  --success-soft: #e4f5ee;
-  --warn: #b5760a;
-  --warn-soft: #fbf1df;
-  --danger: #c4362f;
-  --danger-soft: #fbebea;
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-mono: 'Inter', system-ui, sans-serif;
-  --r-sm: 6px;
-  --r-md: 9px;
-  --r-lg: 13px;
-  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
-  --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
-  --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
-}
-[data-page='login'],
-[data-page='login'] {
-  height: 100%;
-}
-[data-page='login'] {
-  font-family: var(--font-ui);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-}
-[data-page='login'] .mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-[data-page='login'] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-[data-page='login'] ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 8px;
-  border: 2px solid var(--bg);
-}
-[data-page='login'] .btn:focus-visible,
-[data-page='login'] a:focus-visible,
-[data-page='login'] input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-[data-page='login'] .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  white-space: nowrap;
-}
-[data-page='login'] .btn:hover {
-  background: var(--surface-3);
-}
-[data-page='login'] .btn svg,
-[data-page='login'] .btn i {
-  width: 14px;
-  height: 14px;
-}
-[data-page='login'] .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-[data-page='login'] .btn-primary:hover {
-  background: var(--accent-hover);
-}
 
-[data-page='login'] .login-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: radial-gradient(circle at 50% -10%, var(--accent-soft), var(--bg) 55%);
-}
-[data-page='login'] .login-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
-  padding: 32px 30px 26px;
-}
-[data-page='login'] .login-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-[data-page='login'] .brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #6d84ea);
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-sm);
-  flex: none;
-}
-[data-page='login'] .brand-mark span {
-  width: 14px;
-  height: 14px;
-  border: 2.5px solid #fff;
-  transform: rotate(45deg);
-}
-[data-page='login'] .login-brand-name {
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-}
-[data-page='login'] .login-brand-sub {
-  font-size: 11px;
-  color: var(--text-subtle);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-[data-page='login'] .login-heading {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  text-align: center;
-  margin-bottom: 5px;
-}
-[data-page='login'] .login-subheading {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  text-align: center;
-  margin-bottom: 24px;
-}
-[data-page='login'] .field {
-  margin-bottom: 16px;
-}
-[data-page='login'] .field-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-[data-page='login'] .input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-[data-page='login'] .input-ico {
-  position: absolute;
-  left: 12px;
-  width: 14px;
-  height: 14px;
-  color: var(--text-subtle);
-  pointer-events: none;
-}
-[data-page='login'] .field-input {
-  width: 100%;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  height: 36px;
-  padding: 0 12px 0 36px;
-  font-family: var(--font-ui);
-  font-size: 13.5px;
-  color: var(--text);
-  background: var(--surface);
-}
-[data-page='login'] .field-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-[data-page='login'] .login-submit {
-  width: 100%;
-  justify-content: center;
-  margin-top: 8px;
-  padding: 10px 16px;
-  font-size: 13px;
-}
-[data-page='login'] .login-hint {
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--text-subtle);
-  margin-top: 16px;
-}
-[data-page='login'] .login-roles {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-[data-page='login'] .login-roles-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-subtle);
-  font-weight: 600;
-  margin-right: 2px;
-}
-[data-page='login'] .chip {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-  padding: 1px 9px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-[data-page='login'] .chip:hover {
-  color: var(--text);
-}
-[data-page='login'] .chip.chip-active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent-border);
-}
+            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+            [data-page="login"] button i, [data-page="login"] button svg, [data-page="login"] a i, [data-page="login"] a svg, [data-page="login"] [onclick] i, [data-page="login"] [onclick] svg { pointer-events: none; }
+            [data-page="login"] *,[data-page="login"] *::before,[data-page="login"] *::after{box-sizing:border-box;margin:0;padding:0}
+            [data-page="login"]{--bg:#f5f6f8;--surface:#fff;--surface-2:#fbfcfd;--surface-3:#f2f4f7;--border:#e7eaef;--border-strong:#d6dbe2;--text:#14181f;--text-muted: #344054;--text-subtle: #475467;--accent:#3b5bdb;--accent-hover:#2f49bd;--accent-soft:#eef1fe;--accent-border:#c8d2f7;--success:#0f7a54;--success-soft:#e4f5ee;--warn:#b5760a;--warn-soft:#fbf1df;--danger:#c4362f;--danger-soft:#fbebea;--font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;--r-sm:6px;--r-md:9px;--r-lg:13px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 6px 24px rgba(20,24,31,.1);--shadow-lg:0 16px 48px rgba(20,24,31,.18)}
+            [data-page="login"],[data-page="login"]{height:100%}
+            [data-page="login"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+            [data-page="login"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+            [data-page="login"] ::-webkit-scrollbar{width:10px;height:10px}[data-page="login"] ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid var(--bg)}
+            [data-page="login"] .btn:focus-visible,[data-page="login"] a:focus-visible,[data-page="login"] input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+            [data-page="login"] .btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;font-weight:500;height:36px;padding:0 12px;border-radius:var(--r-sm);cursor:pointer;white-space:nowrap}
+            [data-page="login"] .btn:hover{background:var(--surface-3)}[data-page="login"] .btn svg,[data-page="login"] .btn i{width:14px;height:14px}
+            [data-page="login"] .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}[data-page="login"] .btn-primary:hover{background:var(--accent-hover)}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-page='login'] *,
-  [data-page='login'] *::before,
-  [data-page='login'] *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-/* Compact desktop density system. */
-[data-page='login'] .topbar {
-  height: 40px;
-  padding-left: 14px;
-  padding-right: 14px;
-  gap: 10px;
-}
-[data-page='login'] .content {
-  padding-top: 8px;
-  padding-left: 12px;
-  padding-right: 12px;
-}
-[data-page='login'] .tabs {
-  gap: 1px;
-}
-[data-page='login'] .tab {
-  padding: 4px 9px;
-  gap: 5px;
-  min-height: 30px;
-}
-[data-page='login'] .toolbar {
-  gap: 6px;
-  margin-bottom: 6px;
-}
-[data-page='login'] .page-head,
-[data-page='login'] .view-head,
-[data-page='login'] .section-head {
-  margin-bottom: 6px;
-}
-[data-page='login'] .kpi-grid,
-[data-page='login'] .stats-grid,
-[data-page='login'] .cards-grid,
-[data-page='login'] .dept-grid {
-  gap: 8px;
-}
-[data-page='login'] .table-wrap table.grid th {
-  padding: 4px 10px !important;
-}
-[data-page='login'] .table-wrap table.grid td {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-}
-[data-page='login'] .table-wrap table.grid .expander {
-  height: 22px;
-}
-[data-page='login'] .table-wrap table.grid .pri {
-  padding-top: 1px !important;
-  padding-bottom: 1px !important;
-}
-[data-page='login'] .status,
-[data-page='login'] .chip,
-[data-page='login'] .pri,
-[data-page='login'] .dept-chip,
-[data-page='login'] .lock-tag,
-[data-page='login'] .load-num-pill,
-[data-page='login'] .rework-badge {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-[data-page='login'] table.sub th {
-  padding: 3px 7px !important;
-}
-[data-page='login'] table.sub td {
-  padding: 2px 7px !important;
-}
-[data-page='login'] table.sub .btn {
-  height: 26px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-[data-page='login'] table.sub .field-input,
-[data-page='login'] table.sub .pack-input {
-  height: 26px;
-}
-[data-page='login'] table.sub .note-btn {
-  width: 26px;
-  min-height: 26px;
-  height: 26px;
-}
-[data-page='login'] table.sub .pkg-qty-btn {
-  min-height: 26px;
-  padding: 2px 8px;
-}
-[data-page='login'] table.stock-edit th,
-[data-page='login'] table.pkg-table th {
-  padding: 5px 8px !important;
-}
-[data-page='login'] table.stock-edit td,
-[data-page='login'] table.pkg-table td {
-  padding: 5px 8px !important;
-}
-[data-page='login'] .table-wrap .note-btn,
-[data-page='login'] .table-wrap .icon-btn {
-  min-height: 24px;
-  height: 24px;
-}
-[data-page='login'] .btn {
-  height: 30px;
-}
-[data-page='login'] .icon-btn {
-  width: 30px;
-  height: 30px;
-}
-[data-page='login'] .search,
-[data-page='login'] .input,
-[data-page='login'] .field-input,
-[data-page='login'] .field-btn,
-[data-page='login'] .due-filter,
-[data-page='login'] .select-btn {
-  height: 30px;
-}
-[data-page='login'] .empty {
-  padding-top: 16px;
-  padding-bottom: 16px;
-}
+            [data-page="login"] .login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% -10%,var(--accent-soft),var(--bg) 55%)}
+            [data-page="login"] .login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-md);padding:32px 30px 26px}
+            [data-page="login"] .login-brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:24px}
+            [data-page="login"] .brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#6d84ea);display:grid;place-items:center;box-shadow:var(--shadow-sm);flex:none}
+            [data-page="login"] .brand-mark span{width:14px;height:14px;border:2.5px solid #fff;transform:rotate(45deg)}
+            [data-page="login"] .login-brand-name{font-weight:600;font-size:17px;letter-spacing:-.02em;line-height:1.25}
+            [data-page="login"] .login-brand-sub{font-size:11px;color:var(--text-subtle);letter-spacing:.06em;text-transform:uppercase}
+            [data-page="login"] .login-heading{font-size:19px;font-weight:600;letter-spacing:-.02em;text-align:center;margin-bottom:5px}
+            [data-page="login"] .login-subheading{font-size:12.5px;color:var(--text-muted);text-align:center;margin-bottom:24px}
+            [data-page="login"] .field{margin-bottom:16px}
+            [data-page="login"] .field-label{display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px}
+            [data-page="login"] .input-wrap{position:relative;display:flex;align-items:center}
+            [data-page="login"] .input-ico{position:absolute;left:12px;width:14px;height:14px;color:var(--text-subtle);pointer-events:none}
+            [data-page="login"] .field-input{width:100%;border:1px solid var(--border-strong);border-radius:var(--r-md);height:36px;padding:0 12px 0 36px;font-family:var(--font-ui);font-size:13.5px;color:var(--text);background:var(--surface)}
+            [data-page="login"] .field-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+            [data-page="login"] .login-submit{width:100%;justify-content:center;margin-top:8px;padding:10px 16px;font-size:13px}
+            [data-page="login"] .login-hint{text-align:center;font-size:11.5px;color:var(--text-subtle);margin-top:16px}
+            [data-page="login"] .login-roles{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+            [data-page="login"] .login-roles-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subtle);font-weight:600;margin-right:2px}
+            [data-page="login"] .chip{font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface-3);border:1px solid var(--border);padding:1px 9px;border-radius:20px;cursor:pointer}
+            [data-page="login"] .chip:hover{color:var(--text)}
+            [data-page="login"] .chip.chip-active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border)}
+        
+            @media (prefers-reduced-motion: reduce) { [data-page="login"] *, [data-page="login"] *::before, [data-page="login"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
+                    /* Compact desktop density system. */
+            [data-page="login"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
+            [data-page="login"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
+            [data-page="login"] .tabs{gap:1px}
+            [data-page="login"] .tab{padding:4px 9px;gap:5px;min-height:30px}
+            [data-page="login"] .toolbar{gap:6px;margin-bottom:6px}
+            [data-page="login"] .page-head,[data-page="login"] .view-head,[data-page="login"] .section-head{margin-bottom:6px}
+            [data-page="login"] .kpi-grid,[data-page="login"] .stats-grid,[data-page="login"] .cards-grid,[data-page="login"] .dept-grid{gap:8px}
+            [data-page="login"] .table-wrap table.grid th{padding:4px 10px!important}
+            [data-page="login"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
+            [data-page="login"] .table-wrap table.grid .expander{height:22px}
+            [data-page="login"] .table-wrap table.grid .pri{padding-top:1px!important;padding-bottom:1px!important}
+            [data-page="login"] .status,[data-page="login"] .chip,[data-page="login"] .pri,[data-page="login"] .dept-chip,[data-page="login"] .lock-tag,[data-page="login"] .load-num-pill,[data-page="login"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
+            [data-page="login"] table.sub th{padding:3px 7px!important}
+            [data-page="login"] table.sub td{padding:2px 7px!important}
+            [data-page="login"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
+            [data-page="login"] table.sub .field-input,[data-page="login"] table.sub .pack-input{height:26px}
+            [data-page="login"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
+            [data-page="login"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
+            [data-page="login"] table.stock-edit th,[data-page="login"] table.pkg-table th{padding:5px 8px!important}
+            [data-page="login"] table.stock-edit td,[data-page="login"] table.pkg-table td{padding:5px 8px!important}
+            [data-page="login"] .table-wrap .note-btn,[data-page="login"] .table-wrap .icon-btn{min-height:24px;height:24px}
+            [data-page="login"] .btn{height:30px}
+            [data-page="login"] .icon-btn{width:30px;height:30px}
+            [data-page="login"] .search,[data-page="login"] .input,[data-page="login"] .field-input,[data-page="login"] .field-btn,[data-page="login"] .due-filter,[data-page="login"] .select-btn{height:30px}
+            [data-page="login"] .empty{padding-top:16px;padding-bottom:16px}
+        

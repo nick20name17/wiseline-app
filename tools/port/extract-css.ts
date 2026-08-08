@@ -10,6 +10,11 @@
  *
  * So nothing is shared. Fifteen stylesheets repeat perhaps twenty rules each, which costs a few
  * kilobytes and buys the only thing that matters here: each page cascades exactly as it did.
+ *
+ * Every `<style>` on the page counts, attributes and all: the role switcher ships its own block as
+ * `<style data-comment="role-switch-style">`, and a pattern that only matched a bare `<style>` left the
+ * «Viewing as» control unstyled — static instead of a fixed floating pill, which the pixel gate saw
+ * and nothing else would have.
  */
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -29,7 +34,7 @@ const files = (await readdir(demoDir)).filter(name => name.endsWith('.html')).so
 
 for (const file of files) {
   const html = await readFile(join(demoDir, file), 'utf8')
-  const css = Array.from(html.matchAll(/<style>([\s\S]*?)<\/style>/g))
+  const css = Array.from(html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g))
     .map(match => match[1])
     .join('\n')
 

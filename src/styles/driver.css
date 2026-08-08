@@ -1,497 +1,84 @@
-/* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
-[data-page='driver'] button i,
-[data-page='driver'] button svg,
-[data-page='driver'] a i,
-[data-page='driver'] a svg,
-[data-page='driver'] [onclick] i,
-[data-page='driver'] [onclick] svg {
-  pointer-events: none;
-}
-[data-page='driver'] *,
-[data-page='driver'] *::before,
-[data-page='driver'] *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-[data-page='driver'] {
-  --bg: #eef0f3;
-  --surface: #fff;
-  --surface-2: #fbfcfd;
-  --surface-3: #f2f4f7;
-  --border: #e7eaef;
-  --border-strong: #d6dbe2;
-  --text: #14181f;
-  --text-muted: #344054;
-  --text-subtle: #475467;
-  --accent: #3b5bdb;
-  --accent-hover: #2f49bd;
-  --accent-soft: #eef1fe;
-  --success: #0f7a54;
-  --success-soft: #e4f5ee;
-  --warn: #b5760a;
-  --warn-soft: #fbf1df;
-  --danger: #c4362f;
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-mono: 'Inter', system-ui, sans-serif;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
-  --shadow-md: 0 8px 30px rgba(20, 24, 31, 0.12);
-}
-[data-page='driver'],
-[data-page='driver'] {
-  height: 100%;
-}
-[data-page='driver'] {
-  font-family: var(--font-ui);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  justify-content: center;
-}
-[data-page='driver'] .mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-[data-page='driver'] .phone {
-  width: 100%;
-  max-width: 430px;
-  min-height: 100vh;
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-md);
-}
-[data-page='driver'] .top {
-  background: var(--text);
-  color: #fff;
-  padding: 16px 18px 18px;
-}
-[data-page='driver'] .top-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #c7cdd6;
-  font-size: 12.5px;
-  text-decoration: none;
-  margin-bottom: 12px;
-}
-[data-page='driver'] .top-back:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-[data-page='driver'] .top-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-[data-page='driver'] .truck-badge {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-[data-page='driver'] .truck-badge svg {
-  width: 22px !important;
-  height: 22px !important;
-}
-[data-page='driver'] .top-name {
-  font-size: 17px;
-  font-weight: 600;
-}
-[data-page='driver'] .top-sub {
-  font-size: 12px;
-  color: #aeb6c2;
-}
-[data-page='driver'] .route-status {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 10px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.14);
-}
-[data-page='driver'] .progress {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-}
-[data-page='driver'] .progress-bar {
-  height: 8px;
-  border-radius: 8px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-[data-page='driver'] .progress-bar span {
-  display: block;
-  height: 100%;
-  background: var(--success);
-  transition: width 0.3s ease;
-}
-[data-page='driver'] .progress-text {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 8px;
-}
-[data-page='driver'] .progress-text b {
-  color: var(--text);
-  font-family: var(--font-mono);
-}
-[data-page='driver'] .stops {
-  flex: 1;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-[data-page='driver'] .stop {
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-[data-page='driver'] .stop.done {
-  opacity: 0.7;
-}
-[data-page='driver'] .stop.active {
-  border-color: var(--accent-border, #c8d2f7);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
-[data-page='driver'] .stop-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-}
-[data-page='driver'] .stop-seq {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--surface-3);
-  color: var(--text-muted);
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 13px;
-}
-[data-page='driver'] .stop.done .stop-seq {
-  background: var(--success-soft);
-  color: var(--success);
-}
-[data-page='driver'] .stop-cust {
-  font-weight: 600;
-  font-size: 14.5px;
-}
-[data-page='driver'] .stop-order {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-subtle);
-}
-[data-page='driver'] .stop-addr {
-  padding: 0 14px 12px 56px;
-  font-size: 13px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-[data-page='driver'] .stop-meta {
-  display: flex;
-  gap: 14px;
-  padding: 0 14px 12px 56px;
-  font-size: 12px;
-  color: var(--text-subtle);
-}
-[data-page='driver'] .stop-meta .mono {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-[data-page='driver'] .pickup-tag {
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-  color: var(--warn);
-  background: var(--warn-soft);
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-[data-page='driver'] .stop-actions {
-  display: flex;
-  gap: 8px;
-  padding: 12px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-2);
-}
-[data-page='driver'] .btn {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: var(--r-md);
-  cursor: pointer;
-}
-[data-page='driver'] .btn:hover {
-  background: var(--surface-3);
-}
-[data-page='driver'] .btn svg {
-  width: 14px;
-  height: 14px;
-}
-[data-page='driver'] .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-[data-page='driver'] .btn-primary:hover {
-  background: var(--accent-hover);
-}
-[data-page='driver'] .btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-[data-page='driver'] .btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-[data-page='driver'] .stop-delivered {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 12px;
-  color: var(--success);
-  font-weight: 600;
-  font-size: 13px;
-  border-top: 1px solid var(--border);
-  background: var(--success-soft);
-}
-[data-page='driver'] .foot {
-  padding: 14px 18px 22px;
-  border-top: 1px solid var(--border);
-}
-[data-page='driver'] .foot .btn {
-  width: 100%;
-  padding: 0 14px;
-}
-[data-page='driver'] .done-banner {
-  margin: 14px;
-  padding: 18px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--r-lg);
-  text-align: center;
-  color: var(--text-muted);
-}
-[data-page='driver'] .done-banner svg {
-  width: 34px !important;
-  height: 34px !important;
-  color: var(--success);
-  margin-bottom: 8px;
-}
-[data-page='driver'] .done-banner h3 {
-  font-size: 15px;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-[data-page='driver'] .toast {
-  position: fixed;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: #fff;
-  padding: 11px 18px;
-  border-radius: var(--r-md);
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-md);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-[data-page='driver'] .toast.show {
-  opacity: 1;
-}
-[data-page='driver'] .toast svg {
-  width: 14px;
-  height: 14px;
-  color: #fff;
-}
-[data-page='driver'] .toast.t-success {
-  background: var(--success);
-  color: #fff;
-}
-[data-page='driver'] .toast.t-error {
-  background: var(--danger);
-  color: #fff;
-}
-[data-page='driver'] .toast.t-warning {
-  background: var(--warn);
-  color: #fff;
-}
-[data-page='driver'] .toast.t-info {
-  background: var(--accent);
-  color: #fff;
-}
-[data-page='driver'] .toast .toast-ico {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  color: #fff;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-page='driver'] *,
-  [data-page='driver'] *::before,
-  [data-page='driver'] *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-/* Compact desktop density system. */
-[data-page='driver'] .topbar {
-  height: 40px;
-  padding-left: 14px;
-  padding-right: 14px;
-  gap: 10px;
-}
-[data-page='driver'] .content {
-  padding-top: 8px;
-  padding-left: 12px;
-  padding-right: 12px;
-}
-[data-page='driver'] .tabs {
-  gap: 1px;
-}
-[data-page='driver'] .tab {
-  padding: 4px 9px;
-  gap: 5px;
-  min-height: 30px;
-}
-[data-page='driver'] .toolbar {
-  gap: 6px;
-  margin-bottom: 6px;
-}
-[data-page='driver'] .page-head,
-[data-page='driver'] .view-head,
-[data-page='driver'] .section-head {
-  margin-bottom: 6px;
-}
-[data-page='driver'] .kpi-grid,
-[data-page='driver'] .stats-grid,
-[data-page='driver'] .cards-grid,
-[data-page='driver'] .dept-grid {
-  gap: 8px;
-}
-[data-page='driver'] .table-wrap table.grid th {
-  padding: 4px 10px !important;
-}
-[data-page='driver'] .table-wrap table.grid td {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-}
-[data-page='driver'] .table-wrap table.grid .expander {
-  height: 22px;
-}
-[data-page='driver'] .table-wrap table.grid .pri {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-}
-[data-page='driver'] .status,
-[data-page='driver'] .chip,
-[data-page='driver'] .pri,
-[data-page='driver'] .dept-chip,
-[data-page='driver'] .lock-tag,
-[data-page='driver'] .load-num-pill,
-[data-page='driver'] .rework-badge {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-[data-page='driver'] table.sub th {
-  padding: 3px 7px !important;
-}
-[data-page='driver'] table.sub td {
-  padding: 2px 7px !important;
-}
-[data-page='driver'] table.sub .btn {
-  height: 26px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-[data-page='driver'] table.sub .field-input,
-[data-page='driver'] table.sub .pack-input {
-  height: 26px;
-}
-[data-page='driver'] table.sub .note-btn {
-  width: 26px;
-  min-height: 26px;
-  height: 26px;
-}
-[data-page='driver'] table.sub .pkg-qty-btn {
-  min-height: 26px;
-  padding: 2px 8px;
-}
-[data-page='driver'] table.stock-edit th,
-[data-page='driver'] table.pkg-table th {
-  padding: 5px 8px !important;
-}
-[data-page='driver'] table.stock-edit td,
-[data-page='driver'] table.pkg-table td {
-  padding: 5px 8px !important;
-}
-[data-page='driver'] .table-wrap .note-btn,
-[data-page='driver'] .table-wrap .icon-btn {
-  min-height: 24px;
-  height: 24px;
-}
-[data-page='driver'] .btn {
-  height: 30px;
-}
-[data-page='driver'] .icon-btn {
-  width: 30px;
-  height: 30px;
-}
-[data-page='driver'] .search,
-[data-page='driver'] .input,
-[data-page='driver'] .field-input,
-[data-page='driver'] .field-btn,
-[data-page='driver'] .due-filter,
-[data-page='driver'] .select-btn {
-  height: 32px;
-}
-[data-page='driver'] .empty {
-  padding-top: 16px;
-  padding-bottom: 16px;
-}
+            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+            [data-page="driver"] button i, [data-page="driver"] button svg, [data-page="driver"] a i, [data-page="driver"] a svg, [data-page="driver"] [onclick] i, [data-page="driver"] [onclick] svg { pointer-events: none; }
+            [data-page="driver"] *,[data-page="driver"] *::before,[data-page="driver"] *::after{box-sizing:border-box;margin:0;padding:0}
+            [data-page="driver"]{--bg:#eef0f3;--surface:#fff;--surface-2:#fbfcfd;--surface-3:#f2f4f7;--border:#e7eaef;--border-strong:#d6dbe2;--text:#14181f;--text-muted: #344054;--text-subtle: #475467;--accent:#3b5bdb;--accent-hover:#2f49bd;--accent-soft:#eef1fe;--success:#0f7a54;--success-soft:#e4f5ee;--warn:#b5760a;--warn-soft:#fbf1df;--danger:#c4362f;--font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;--r-sm:8px;--r-md:12px;--r-lg:16px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 8px 30px rgba(20,24,31,.12)}
+            [data-page="driver"],[data-page="driver"]{height:100%}
+            [data-page="driver"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;display:flex;justify-content:center}
+            [data-page="driver"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+            [data-page="driver"] .phone{width:100%;max-width:430px;min-height:100vh;background:var(--surface);display:flex;flex-direction:column;box-shadow:var(--shadow-md)}
+            [data-page="driver"] .top{background:var(--text);color:#fff;padding:16px 18px 18px}
+            [data-page="driver"] .top-back{display:inline-flex;align-items:center;gap:6px;color:#c7cdd6;font-size:12.5px;text-decoration:none;margin-bottom:12px}
+            [data-page="driver"] .top-back:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:4px}
+            [data-page="driver"] .top-row{display:flex;align-items:center;gap:12px}
+            [data-page="driver"] .truck-badge{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.12);display:grid;place-items:center;flex:none}
+            [data-page="driver"] .truck-badge svg{width:22px!important;height:22px!important}
+            [data-page="driver"] .top-name{font-size:17px;font-weight:600}
+            [data-page="driver"] .top-sub{font-size:12px;color:#aeb6c2}
+            [data-page="driver"] .route-status{margin-left:auto;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,.14)}
+            [data-page="driver"] .progress{padding:14px 18px;border-bottom:1px solid var(--border)}
+            [data-page="driver"] .progress-bar{height:8px;border-radius:8px;background:var(--surface-3);overflow:hidden}
+            [data-page="driver"] .progress-bar span{display:block;height:100%;background:var(--success);transition:width .3s ease}
+            [data-page="driver"] .progress-text{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-top:8px}
+            [data-page="driver"] .progress-text b{color:var(--text);font-family:var(--font-mono)}
+            [data-page="driver"] .stops{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px}
+            [data-page="driver"] .stop{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+            [data-page="driver"] .stop.done{opacity:.7}
+            [data-page="driver"] .stop.active{border-color:var(--accent-border,#c8d2f7);box-shadow:0 0 0 2px var(--accent-soft)}
+            [data-page="driver"] .stop-head{display:flex;align-items:center;gap:12px;padding:14px}
+            [data-page="driver"] .stop-seq{width:30px;height:30px;border-radius:50%;background:var(--surface-3);color:var(--text-muted);font-weight:600;display:grid;place-items:center;flex:none;font-family:var(--font-mono);font-size:13px}
+            [data-page="driver"] .stop.done .stop-seq{background:var(--success-soft);color:var(--success)}
+            [data-page="driver"] .stop-cust{font-weight:600;font-size:14.5px}
+            [data-page="driver"] .stop-order{font-family:var(--font-mono);font-size:11.5px;color:var(--text-subtle)}
+            [data-page="driver"] .stop-addr{padding:0 14px 12px 56px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:7px}
+            [data-page="driver"] .stop-meta{display:flex;gap:14px;padding:0 14px 12px 56px;font-size:12px;color:var(--text-subtle)}
+            [data-page="driver"] .stop-meta .mono{color:var(--text-muted);font-weight:500}
+            [data-page="driver"] .pickup-tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;color:var(--warn);background:var(--warn-soft);padding:2px 7px;border-radius:4px}
+            [data-page="driver"] .stop-actions{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);background:var(--surface-2)}
+            [data-page="driver"] .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:inherit;font-size:13.5px;font-weight:500;height:36px;padding:0 12px;border-radius:var(--r-md);cursor:pointer}
+            [data-page="driver"] .btn:hover{background:var(--surface-3)}[data-page="driver"] .btn svg{width:14px;height:14px}
+            [data-page="driver"] .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}[data-page="driver"] .btn-primary:hover{background:var(--accent-hover)}
+            [data-page="driver"] .btn:disabled{opacity:.5;cursor:not-allowed}
+            [data-page="driver"] .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+            [data-page="driver"] .stop-delivered{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;color:var(--success);font-weight:600;font-size:13px;border-top:1px solid var(--border);background:var(--success-soft)}
+            [data-page="driver"] .foot{padding:14px 18px 22px;border-top:1px solid var(--border)}
+            [data-page="driver"] .foot .btn{width:100%;padding:0 14px}
+            [data-page="driver"] .done-banner{margin:14px;padding:18px;border:1px dashed var(--border-strong);border-radius:var(--r-lg);text-align:center;color:var(--text-muted)}
+            [data-page="driver"] .done-banner svg{width:34px!important;height:34px!important;color:var(--success);margin-bottom:8px}
+            [data-page="driver"] .done-banner h3{font-size:15px;color:var(--text);margin-bottom:4px}
+            [data-page="driver"] .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--r-md);font-size:13px;font-weight:500;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:100;display:flex;align-items:center;gap:9px}
+            [data-page="driver"] .toast.show{opacity:1}[data-page="driver"] .toast svg{width:14px;height:14px;color:#fff}
+            [data-page="driver"] .toast.t-success{background:var(--success);color:#fff}
+            [data-page="driver"] .toast.t-error{background:var(--danger);color:#fff}
+            [data-page="driver"] .toast.t-warning{background:var(--warn);color:#fff}
+            [data-page="driver"] .toast.t-info{background:var(--accent);color:#fff}
+            [data-page="driver"] .toast .toast-ico{width:14px;height:14px;flex:none;color:#fff}
+        
+            @media (prefers-reduced-motion: reduce) { [data-page="driver"] *, [data-page="driver"] *::before, [data-page="driver"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
+                    /* Compact desktop density system. */
+            [data-page="driver"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
+            [data-page="driver"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
+            [data-page="driver"] .tabs{gap:1px}
+            [data-page="driver"] .tab{padding:4px 9px;gap:5px;min-height:30px}
+            [data-page="driver"] .toolbar{gap:6px;margin-bottom:6px}
+            [data-page="driver"] .page-head,[data-page="driver"] .view-head,[data-page="driver"] .section-head{margin-bottom:6px}
+            [data-page="driver"] .kpi-grid,[data-page="driver"] .stats-grid,[data-page="driver"] .cards-grid,[data-page="driver"] .dept-grid{gap:8px}
+            [data-page="driver"] .table-wrap table.grid th{padding:4px 10px!important}
+            [data-page="driver"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
+            [data-page="driver"] .table-wrap table.grid .expander{height:22px}
+            [data-page="driver"] .table-wrap table.grid .pri{padding-top:2px!important;padding-bottom:2px!important}
+            [data-page="driver"] .status,[data-page="driver"] .chip,[data-page="driver"] .pri,[data-page="driver"] .dept-chip,[data-page="driver"] .lock-tag,[data-page="driver"] .load-num-pill,[data-page="driver"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
+            [data-page="driver"] table.sub th{padding:3px 7px!important}
+            [data-page="driver"] table.sub td{padding:2px 7px!important}
+            [data-page="driver"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
+            [data-page="driver"] table.sub .field-input,[data-page="driver"] table.sub .pack-input{height:26px}
+            [data-page="driver"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
+            [data-page="driver"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
+            [data-page="driver"] table.stock-edit th,[data-page="driver"] table.pkg-table th{padding:5px 8px!important}
+            [data-page="driver"] table.stock-edit td,[data-page="driver"] table.pkg-table td{padding:5px 8px!important}
+            [data-page="driver"] .table-wrap .note-btn,[data-page="driver"] .table-wrap .icon-btn{min-height:24px;height:24px}
+            [data-page="driver"] .btn{height:30px}
+            [data-page="driver"] .icon-btn{width:30px;height:30px}
+            [data-page="driver"] .search,[data-page="driver"] .input,[data-page="driver"] .field-input,[data-page="driver"] .field-btn,[data-page="driver"] .due-filter,[data-page="driver"] .select-btn{height:32px}
+            [data-page="driver"] .empty{padding-top:16px;padding-bottom:16px}
+        
