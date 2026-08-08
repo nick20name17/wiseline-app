@@ -1,0 +1,12 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "files": ["src/components/ui/**", "src/routeTree.gen.ts"],
+    "overrides": [
+      {
+        "files": ["src/routes/**"],
+        "rules": ["react-doctor/only-export-components"]
+      }
+    ]
+  }
+}

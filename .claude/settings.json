@@ -1,0 +1,31 @@
+{
+  "inputNeededNotifEnabled": true,
+  "showMessageTimestamps": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Formatting & linting changed file...",
+            "timeout": 30,
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in *.ts|*.tsx) cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null || exit 0; node_modules/.bin/oxfmt \"$f\" >/dev/null 2>&1; node_modules/.bin/oxlint --fix \"$f\" >/dev/null 2>&1;; esac; exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Checking project (types + lint + doctor + tests)...",
+            "timeout": 180,
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-check.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
