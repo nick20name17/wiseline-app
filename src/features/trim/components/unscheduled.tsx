@@ -2,7 +2,6 @@ import {
   Calendar,
   CalendarDays,
   ChevronRight,
-  CornerDownRight,
   FastForward,
   Plus,
   QrCode,
@@ -25,8 +24,7 @@ import {
 } from '../selectors'
 import { clearPeekDay, TODAY, toggleExpand, toggleOrderSelect, trimStore } from '../store'
 import { EmptyState, NoteButton, PriorityCell } from './bits'
-
-import type { Order } from '../types'
+import { LineItemsSubrow } from './line-items'
 
 /**
  * The read-only glance strip: today plus the next four work days, each with the bends already
@@ -123,52 +121,6 @@ const ColHeader = ({
   >
     {label}
   </th>
-)
-
-/**
- * The line items under an expanded order. #171 put the owning order's name above them: the point is
- * not the Split button but that a reader can see which order these lines belong to.
- */
-const LineItemsSubrow = ({ order, splitCount }: { order: Order; splitCount: number }) => (
-  <tr className='subrow' data-comment={`uns-subrow-${order.id}`}>
-    <td colSpan={8}>
-      <div className='subwrap' data-comment={`uns-subwrap-${order.id}`}>
-        <div className='li-owner' data-comment={`uns-liowner-${order.id}`}>
-          <CornerDownRight style={{ width: '13px', height: '13px' }} />
-          Line items of{' '}
-          <span className='li-owner-order' data-comment={`uns-liowner-order-${order.id}`}>
-            {order.order}
-          </span>
-          <span data-comment={`uns-liowner-cust-${order.id}`}>&nbsp;· {order.customer}</span>
-          <span className='li-owner-count' data-comment={`uns-liowner-count-${order.id}`}>
-            {order.lineItems.length} line item{order.lineItems.length > 1 ? 's' : ''}
-          </span>
-        </div>
-
-        <div
-          className={`subhead split-head${splitCount ? ' is-active' : ''}`}
-          data-comment={`uns-subhead-${order.id}`}
-        >
-          <span className='split-head-info' data-comment={`uns-splitinfo-${order.id}`}>
-            <span className='split-head-title' data-comment={`uns-splittitle-${order.id}`}>
-              <Split style={{ width: '15px', height: '15px' }} />
-              Split order
-            </span>
-            <span className='split-head-hint' data-comment={`uns-splithint-${order.id}`}>
-              {splitCount ? (
-                <>
-                  <b>{splitCount}</b> line item{splitCount > 1 ? 's' : ''} picked — schedule them to
-                  their own day.
-                </>
-              ) : (
-                'Tick line items below to schedule part of this order on a different day.'
-              )}
-            </span>
-          </span>
-        </div>
-      </div>
-    </td>
-  </tr>
 )
 
 export const Unscheduled = () => {
@@ -336,7 +288,7 @@ export const Unscheduled = () => {
                         <NoteButton order={order} />
                       </td>
                     </tr>
-                    {expanded ? <LineItemsSubrow order={order} splitCount={splitCount} /> : null}
+                    {expanded ? <LineItemsSubrow order={order} ctx='uns' /> : null}
                   </Fragment>
                 )
               })}

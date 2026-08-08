@@ -46,3 +46,28 @@ export const setPriority = (orderId: number, priorityId: number | null) =>
   }))
 
 export const clearPeekDay = () => trimStore.set({ peekDay: null })
+
+/** Changing the day drops the release selection: it was made against the day that is going away. */
+export const setScheduledDay = (scheduledDay: string) =>
+  trimStore.set({ scheduledDay, releaseIds: [] })
+
+/** Gate 3 (N-026): an order can only be picked for release once it has been Reviewed. */
+export const toggleRelease = (orderId: number) =>
+  trimStore.set(state => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    if (!order || order.released || !order.reviewed) return {}
+
+    return {
+      releaseIds: state.releaseIds.includes(orderId)
+        ? state.releaseIds.filter(id => id !== orderId)
+        : [...state.releaseIds, orderId]
+    }
+  })
+
+/** Picking lines for a split belongs to one order at a time; the last empty selection releases it. */
+export const toggleLineSelect = (orderId: number, lineId: number) =>
+  trimStore.set(state => {
+    const ids = state.splitOrderId === orderId ? state.selectedLineIds : []
+    const next = ids.includes(lineId) ? ids.filter(id => id !== lineId) : [...ids, lineId]
+    return { splitOrderId: next.length ? orderId : null, selectedLineIds: next }
+  })

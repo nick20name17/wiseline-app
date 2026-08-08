@@ -1,9 +1,9 @@
 import { Inbox, MessageSquare } from 'lucide-react'
 
-import { noteState, priorityById } from '../selectors'
+import { lineStatus, noteState, priorityById, productionStatus } from '../selectors'
 import { trimStore } from '../store'
 
-import type { Order } from '../types'
+import type { LineItem, Order } from '../types'
 
 /** The pieces every view of this page reuses. Each is one render function in the prototype. */
 
@@ -81,5 +81,110 @@ export const NoteButton = ({
       <MessageSquare style={{ width: '14px', height: '14px' }} />
       {state !== 'none' ? <span className='note-dot' /> : null}
     </button>
+  )
+}
+
+const LINE_STATUS: Record<string, [string, string]> = {
+  stock: ['st-stock', 'Stock'],
+  not_started: ['st-notstarted', 'Not Started'],
+  in_progress: ['st-inprogress', 'In Progress'],
+  cut: ['st-cut', 'Cut'],
+  bent: ['st-bent', 'Bent'],
+  wrapped: ['st-wrapped', 'Wrapped'],
+  bypassed: ['st-bypassed', 'Bypassed']
+}
+
+/** N-021: a line says nothing about itself until the order is released, and a dash is that nothing. */
+export const LineStatusPill = ({ order, item }: { order: Order; item: LineItem }) => {
+  const status = LINE_STATUS[lineStatus(order, item)]
+
+  if (!status)
+    return (
+      <span className='status st-none' data-comment={`listatus-${item.id}`}>
+        —
+      </span>
+    )
+
+  const [cls, label] = status
+
+  return (
+    <span className={`status ${cls}`} data-comment={`listatus-${item.id}`}>
+      <span className='st-dot' />
+      {label}
+    </span>
+  )
+}
+
+const ORDER_STATUS: Record<string, [string, string]> = {
+  not_started: ['st-notstarted', 'Not Started'],
+  in_progress: ['st-inprogress', 'In Progress'],
+  complete: ['st-wrapped', 'Complete']
+}
+
+/** N-019: Status stays empty until Release — no invented pre-release chip. */
+export const OrderStatusPill = ({ order }: { order: Order }) => {
+  if (!order.released)
+    return (
+      <span
+        className='subtle'
+        data-comment={`sch-ostat-empty-${order.id}`}
+        style={{ fontSize: '11px' }}
+      >
+        —
+      </span>
+    )
+
+  const production = productionStatus(order)
+
+  if (order.bypassed && production !== 'complete')
+    return (
+      <span className='status st-bypassed' data-comment={`sch-ostat-rel-${order.id}`}>
+        <span className='st-dot' />
+        Bypassed
+      </span>
+    )
+
+  const [cls, label] = ORDER_STATUS[production] as [string, string]
+
+  return (
+    <span className={`status ${cls}`} data-comment={`sch-ostat-rel-${order.id}`}>
+      <span className='st-dot' />
+      {label}
+    </span>
+  )
+}
+
+/**
+ * Gate 1 (N-026): Reviewed cannot be switched on until every line that has to be made has a machine,
+ * and the hint says which of the four gates is holding the order rather than leaving a dead control.
+ */
+export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean }) => {
+  if (order.bypassed)
+    return (
+      <span className='subtle' data-comment={`sch-revlock-${order.id}`} style={{ fontSize: '11px' }}>
+        N/A
+      </span>
+    )
+  if (order.released)
+    return (
+      <span className='status st-notstarted' data-comment={`sch-revlock-${order.id}`}>
+        Reviewed
+      </span>
+    )
+
+  return (
+    <span className='switch-wrap' data-comment={`sch-revwrap-${order.id}`}>
+      <button
+        className={`switch ${order.reviewed ? 'on' : ''}`}
+        data-comment={`sch-revtoggle-${order.id}`}
+        disabled={!gate1}
+        aria-label='Reviewed'
+      />
+      {gate1 ? null : (
+        <span className='switch-hint' data-comment={`sch-revhint-${order.id}`}>
+          assign machines
+        </span>
+      )}
+    </span>
   )
 }

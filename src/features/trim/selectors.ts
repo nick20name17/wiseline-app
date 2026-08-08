@@ -113,3 +113,82 @@ export const nextWorkDays = (startIso: string, count: number) => {
 }
 
 export const isOverdue = (iso: string | null) => !!iso && iso < TODAY
+
+/**
+ * Slinet and Wrapping are not configurable machines — they are the gateway in and the terminal step
+ * out, and the prototype answers for them without consulting the machine list.
+ */
+export const machineById = (id: number | null) =>
+  id === 1
+    ? { id: 1, name: 'Slinet', dailyMax: 0 }
+    : id === 7
+      ? { id: 7, name: 'Wrapping', dailyMax: 0 }
+      : (trimStore.get().machines.find(machine => machine.id === id) ?? null)
+
+export const locById = (id: number) =>
+  trimStore.get().locations.find(location => location.id === id) ?? null
+
+/** N-112: vented pieces, capped to what is actually being made. */
+export const ventedOf = (item: LineItem) => Math.min(item.vented || 0, qtyToMake(item))
+
+/** A line needs a machine only if there is something left to manufacture. */
+export const needsMachine = (item: LineItem) => qtyToMake(item) > 0
+
+export const allMachinesAssigned = (order: Order) =>
+  order.lineItems.every(item => !needsMachine(item) || item.machineId)
+
+/** N-019/020/021/037. Empty is a real value: nothing is claimed about a line before release. */
+export const lineStatus = (order: Order, item: LineItem) => {
+  if (item.status) return item.status
+  if ((item.fromStock || 0) >= item.qty) return 'stock'
+  if (order.released) return 'not_started'
+  return ''
+}
+
+export const productionStatus = (order: Order) => {
+  const statusOf = (item: LineItem) => item.status || lineStatus(order, item)
+  if (order.lineItems.every(item => statusOf(item) === 'wrapped')) return 'complete'
+  if (order.lineItems.some(item => ['cut', 'bent', 'wrapped'].includes(statusOf(item))))
+    return 'in_progress'
+  return 'not_started'
+}
+
+/** Priority first, order number second — the order the floor reads the day's work in. */
+export const sortScheduled = (a: Order, b: Order) => {
+  const left = priorityById(a.priorityId)
+  const right = priorityById(b.priorityId)
+  const rankLeft = left ? left.hierarchy : 99
+  const rankRight = right ? right.hierarchy : 99
+  if (rankLeft !== rankRight) return rankLeft - rankRight
+  return a.order.localeCompare(b.order)
+}
+
+/** #203: location codes are globally unique, so the label carries no warehouse. */
+export const orderLocLabel = (order: Order) => {
+  const ids = order.locationIds ?? []
+  if (!ids.length) return '—'
+  return ids.map(id => locById(id)?.code ?? '—').join(', ')
+}
+
+/**
+ * A release is all-stock or all-customer, never mixed (type exclusion), so the type of the first
+ * selected order decides what the rest of the selection may contain.
+ */
+export const releaseType = () => {
+  const state = trimStore.get()
+  const [first] = state.releaseIds
+  if (first === undefined) return null
+  return state.orders.find(order => order.id === first)?.type ?? null
+}
+
+export const completedOrders = () => {
+  const cutoff = new Date(`${TODAY}T00:00:00Z`)
+  cutoff.setUTCDate(cutoff.getUTCDate() - 90)
+  const cutoffIso = cutoff.toISOString().slice(0, 10)
+
+  return trimStore
+    .get()
+    .orders.filter(
+      order => order.completed && (order.completedDate || order.productionDate || '') >= cutoffIso
+    )
+}
