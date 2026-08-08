@@ -9,6 +9,7 @@ import { useStore } from '@/store/create-store'
 import { DeptBar, Sidebar, Topbar } from '@/features/trim/components/shell'
 import { Toast } from '@/features/trim/components/toast'
 import { Calendar } from '@/features/trim/components/calendar'
+import { Coils } from '@/features/trim/components/coils'
 import { Completed } from '@/features/trim/components/completed'
 import { Production } from '@/features/trim/components/production'
 import { Scheduled } from '@/features/trim/components/scheduled'
@@ -100,6 +101,7 @@ function Trim() {
               {view === 'home' ? <Unscheduled /> : null}
               {view === 'scheduled' ? <Scheduled /> : null}
               {view === 'production' ? <Production /> : null}
+              {view === 'coils' ? <Coils /> : null}
               {view === 'calendar' ? <Calendar /> : null}
               {view === 'completed' ? <Completed /> : null}
             </section>
