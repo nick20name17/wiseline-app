@@ -64,6 +64,15 @@
   vertical-align: revert;
 }
 
+/* And in a third place: `font-size: inherit; font-weight: inherit` on the headings. The prototype styles
+   the size of every heading it uses and never the weight, so it is relying on the browser's own bold —
+   an empty state's `<h3>` came out at body weight. Found on Rollforming's Scheduled tab, where the same
+   text was under budget at 1440 and over it at 390. */
+[data-page] :is(h1, h2, h3, h4, h5, h6) {
+  font-size: revert;
+  font-weight: revert;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
