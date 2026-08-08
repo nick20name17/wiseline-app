@@ -21,6 +21,8 @@ export const DEPARTMENT = 'Trim'
  */
 export const trimStore = createStore<TrimState>({
   ...(seed as unknown as TrimState),
+  // not in the dump: the prototype keeps its open cards outside the store
+  expandedBatches: [],
   machines: withPublishedCaps(DEPARTMENT, (seed as unknown as TrimState).machines)
 })
 
@@ -71,3 +73,16 @@ export const toggleLineSelect = (orderId: number, lineId: number) =>
     const next = ids.includes(lineId) ? ids.filter(id => id !== lineId) : [...ids, lineId]
     return { splitOrderId: next.length ? orderId : null, selectedLineIds: next }
   })
+
+export const setProdMode = (prodMode: string) => trimStore.set({ prodMode })
+
+export const setProdListMode = (prodListMode: string) => trimStore.set({ prodListMode })
+
+export const setActiveMachine = (activeMachine: number) => trimStore.set({ activeMachine })
+
+export const toggleBatchExpand = (key: string) =>
+  trimStore.set(state => ({
+    expandedBatches: state.expandedBatches.includes(key)
+      ? state.expandedBatches.filter(open => open !== key)
+      : [...state.expandedBatches, key]
+  }))

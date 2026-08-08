@@ -8,6 +8,7 @@ import { useStore } from '@/store/create-store'
 
 import { DeptBar, Sidebar, Topbar } from '@/features/trim/components/shell'
 import { Toast } from '@/features/trim/components/toast'
+import { Production } from '@/features/trim/components/production'
 import { Scheduled } from '@/features/trim/components/scheduled'
 import { Unscheduled } from '@/features/trim/components/unscheduled'
 import { scheduledOrders, unscheduledOrders } from '@/features/trim/selectors'
@@ -96,6 +97,7 @@ function Trim() {
             <section id={`view-${view}`} className='view active' data-comment={`view-${view}`}>
               {view === 'home' ? <Unscheduled /> : null}
               {view === 'scheduled' ? <Scheduled /> : null}
+              {view === 'production' ? <Production /> : null}
             </section>
           </main>
         </div>
