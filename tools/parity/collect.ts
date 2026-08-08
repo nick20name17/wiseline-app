@@ -36,7 +36,7 @@ export const collectSource = `(${((ignoredTags: string[]) => {
     Array.from(element.childNodes)
       .filter(node => node.nodeType === 3)
       .map(node => node.textContent ?? '')
-      .join(' ')
+      .join('')
       .replace(/\s+/g, ' ')
       .trim()
 

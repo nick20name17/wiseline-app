@@ -36,6 +36,14 @@ const seed = await browserPage.evaluate('store.get()')
 
 await browser.close()
 
-const out = join(import.meta.dir, '..', '..', 'src', 'features', page === 'home' ? 'trim' : page, 'seed.json')
+const out = join(
+  import.meta.dir,
+  '..',
+  '..',
+  'src',
+  'features',
+  page === 'home' ? 'trim' : page,
+  'seed.json'
+)
 await writeFile(out, `${JSON.stringify(seed, null, 2)}\n`)
 console.log(`${out} — ${Object.keys(seed as object).join(', ')}`)
