@@ -157,6 +157,27 @@ export const STATES: State[] = [
     view: 'view-wrapping',
     name: 'machine-tab',
     clicks: ['wrap-gtab-BoardBatten']
+  },
+  // an expanded order: its full address, what is on it, and the deterministic line items
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'expanded',
+    clicks: ['uns-exp-3']
+  },
+  // Toggle Notes, which puts a peek row under every order carrying a note — in every view at once
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'notes-toggled',
+    clicks: ['topbar-togglenotes']
+  },
+  // both at once: an expanded order shows its last note inside the expansion, not under it
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'expanded-with-notes',
+    clicks: ['topbar-togglenotes', 'uns-exp-3']
   }
 ]
 
