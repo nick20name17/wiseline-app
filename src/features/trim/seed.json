@@ -5423,12 +5423,8 @@
       "completedTime": "11:18 AM",
       "pkgSeq": 2,
       "location": 1,
-      "wrapLocations": [
-        1
-      ],
-      "locationIds": [
-        1
-      ],
+      "wrapLocations": [1],
+      "locationIds": [1],
       "packages": [
         {
           "barcode": "01-338008-01",
@@ -5520,12 +5516,8 @@
       "completedTime": "2:47 PM",
       "pkgSeq": 1,
       "location": 5,
-      "wrapLocations": [
-        5
-      ],
-      "locationIds": [
-        5
-      ],
+      "wrapLocations": [5],
+      "locationIds": [5],
       "packages": [
         {
           "barcode": "01-338011-01",
@@ -5580,9 +5572,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        2
-      ]
+      "doneMachines": [2]
     },
     {
       "id": "S0142|24ga White|0|seed",
@@ -5717,9 +5707,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        2
-      ]
+      "doneMachines": [2]
     },
     {
       "id": "338008|24ga White|3|seed",
@@ -5734,9 +5722,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        3
-      ]
+      "doneMachines": [3]
     },
     {
       "id": "338011|26ga Hawaiian Blue|0|seed",
@@ -5751,9 +5737,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        6
-      ]
+      "doneMachines": [6]
     }
   ],
   "remans": [

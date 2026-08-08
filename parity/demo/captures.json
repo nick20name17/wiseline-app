@@ -18,7 +18,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -840,42 +839,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -904,7 +867,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -2830,7 +2793,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -3702,42 +3664,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -3766,7 +3692,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -6449,7 +6375,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -7301,42 +7226,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -7365,7 +7254,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -10007,7 +9896,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -10740,42 +10628,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -10804,7 +10656,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -13092,7 +12944,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -13825,42 +13676,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -13889,7 +13704,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -15440,7 +15255,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -16173,42 +15987,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -16237,7 +16015,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -16855,7 +16633,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -17722,42 +17499,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -17786,7 +17527,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -20017,7 +19758,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -20841,42 +20581,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -20905,7 +20609,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -22702,7 +22406,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -23638,42 +23341,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -23702,7 +23369,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -27702,7 +27369,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -28659,42 +28325,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -28723,7 +28353,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -33400,7 +33030,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -34137,42 +33766,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -34201,7 +33794,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -35332,7 +34925,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -36136,42 +35728,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -36200,7 +35756,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -37844,7 +37400,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -38581,42 +38136,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -38645,7 +38164,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -39328,7 +38847,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -40143,42 +39661,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -40207,7 +39689,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -42244,7 +41726,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -43033,42 +42514,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -43097,7 +42542,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -44925,7 +44370,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -45658,42 +45102,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -45722,7 +45130,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -46202,7 +45610,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -46935,42 +46342,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -46999,7 +46370,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -47659,7 +47030,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -48393,42 +47763,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -48457,7 +47791,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -49023,7 +48357,188 @@
                                               ],
                                               "comment": null,
                                               "text": "",
-                                              "children": []
+                                              "children": [
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                }
+                                              ]
                                             }
                                           ]
                                         }
@@ -49833,7 +49348,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -50614,42 +50128,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -50678,7 +50156,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -51934,7 +51412,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -52714,42 +52191,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -52778,7 +52219,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -53889,7 +53330,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -54740,42 +54180,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -54804,7 +54208,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -57519,7 +56923,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -58251,42 +57654,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -58315,7 +57682,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -59313,7 +58680,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -60043,42 +59409,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -60107,7 +59437,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -62550,7 +61880,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -63445,42 +62774,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -63509,7 +62802,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -66461,7 +65754,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -67414,42 +66706,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -67478,7 +66734,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -70731,7 +69987,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -71448,42 +70703,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -71512,7 +70731,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -73454,7 +72673,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -74189,42 +73407,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -74253,7 +73435,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -74806,7 +73988,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -75521,42 +74702,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -75585,7 +74730,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -75667,7 +74812,7 @@
                             "role-chip"
                           ],
                           "comment": "topbar-role",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -78279,7 +77424,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -79024,42 +78168,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -79088,7 +78196,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -82295,7 +81403,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -83015,43 +82122,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "active",
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -83080,7 +82150,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -84449,7 +83519,6 @@
       "nav-driver",
       "nav-loading",
       "nav-rollforming",
-      "nav-settings",
       "nav-shipping",
       "nav-stockcards",
       "nav-trim",
@@ -85272,42 +84341,6 @@
                   ]
                 },
                 {
-                  "tag": "a",
-                  "classes": [
-                    "nav-item"
-                  ],
-                  "comment": "nav-settings",
-                  "text": "Settings",
-                  "children": [
-                    {
-                      "tag": "svg",
-                      "classes": [
-                        "lucide",
-                        "lucide-settings",
-                        "nav-ico"
-                      ],
-                      "comment": null,
-                      "text": "",
-                      "children": [
-                        {
-                          "tag": "path",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        },
-                        {
-                          "tag": "circle",
-                          "classes": [],
-                          "comment": null,
-                          "text": "",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
                   "tag": "div",
                   "classes": [
                     "wl-role-fab"
@@ -85336,7 +84369,7 @@
                           "tag": "span",
                           "classes": [],
                           "comment": "role-switch-current",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -85418,7 +84451,7 @@
                             "role-chip"
                           ],
                           "comment": "topbar-role",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -124326,6 +123359,56 @@
                                                   "comment": null,
                                                   "text": "",
                                                   "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "tag": "img",
+                                                  "classes": [
+                                                    "leaflet-tile",
+                                                    "leaflet-tile-loaded"
+                                                  ],
+                                                  "comment": null,
+                                                  "text": "",
+                                                  "children": []
                                                 }
                                               ]
                                             }
@@ -142973,7 +142056,7 @@
                             "role-chip"
                           ],
                           "comment": "topbar-role",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {
@@ -150325,7 +149408,7 @@
                             "role-chip"
                           ],
                           "comment": "topbar-role",
-                          "text": "Admin",
+                          "text": "Manager",
                           "children": []
                         },
                         {

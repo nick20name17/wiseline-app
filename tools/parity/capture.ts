@@ -6,7 +6,7 @@
  *
  * The prototype is the baseline; recording it is the first thing done and the last thing changed.
  */
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { chromium, type Page as BrowserPage } from 'playwright'
@@ -41,12 +41,33 @@ const viewsOf = (browserPage: BrowserPage) =>
       .filter(Boolean)
   )
 
-/** The prototype's own way in — the same hook the review platform uses to reach a commented element. */
-const showView = (browserPage: BrowserPage, view: string) =>
-  browserPage.evaluate(viewId => {
-    const navigate = (window as unknown as { navigate?: (page: string) => void }).navigate
-    if (typeof navigate === 'function') navigate(viewId.replace(/^view-/, ''))
-  }, view)
+/**
+ * The port renders only the view it is showing, so its DOM cannot be asked what the others are — it is
+ * told, from what the prototype said. That also keeps both sides walking the same list while the port
+ * is unfinished and renders nothing for half of it.
+ */
+const portViews = async (page: Page) => {
+  const baseline = JSON.parse(
+    await readFile(join(import.meta.dir, '..', '..', 'parity', 'demo', 'captures.json'), 'utf8')
+  ) as { page: string; view: string | null }[]
+
+  return [
+    ...new Set(
+      baseline.filter(capture => capture.page === pageName(page)).map(capture => capture.view)
+    )
+  ].filter((view): view is string => view !== null)
+}
+
+/** The prototype's own way in is its `navigate()`; the port's is its URL. */
+const showView = (browserPage: BrowserPage, view: string, page: Page) =>
+  side === 'demo'
+    ? browserPage.evaluate(viewId => {
+        const navigate = (window as unknown as { navigate?: (page: string) => void }).navigate
+        if (typeof navigate === 'function') navigate(viewId.replace(/^view-/, ''))
+      }, view)
+    : browserPage.goto(`${origin}${page.route}?view=${view.replace(/^view-/, '')}`, {
+        waitUntil: 'networkidle'
+      })
 
 const browser = await chromium.launch()
 const captures: Capture[] = []
@@ -55,6 +76,16 @@ for (const viewport of VIEWPORTS) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height }
   })
+  /**
+   * The port guards its pages and would answer every one of them with the sign-in screen. The
+   * prototype has no guard and defaults to a Manager viewing every department, so that is who the
+   * port is captured as — anything else compares two different people's screens.
+   */
+  await context.addInitScript(() => {
+    localStorage.setItem('wl_role', 'manager')
+    localStorage.setItem('wl_dept', 'all')
+  })
+
   const browserPage = await context.newPage()
 
   for (const page of PAGES) {
@@ -67,10 +98,10 @@ for (const viewport of VIEWPORTS) {
       continue
     }
 
-    const views = await viewsOf(browserPage)
+    const views = side === 'demo' ? await viewsOf(browserPage) : await portViews(page)
     for (const view of views.length ? views : [null]) {
       if (view) {
-        await showView(browserPage, view)
+        await showView(browserPage, view, page)
         // the prototype's view transition is 400ms, and a screenshot mid-fade is not a baseline
         await browserPage.waitForTimeout(600)
       }

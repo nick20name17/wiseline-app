@@ -1,454 +1,1490 @@
+/* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+[data-page='coils'] button i,
+[data-page='coils'] button svg,
+[data-page='coils'] a i,
+[data-page='coils'] a svg,
+[data-page='coils'] [onclick] i,
+[data-page='coils'] [onclick] svg {
+  pointer-events: none;
+}
+[data-page='coils'] *,
+[data-page='coils'] *::before,
+[data-page='coils'] *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
-            [data-page="coils"] button i, [data-page="coils"] button svg, [data-page="coils"] a i, [data-page="coils"] a svg, [data-page="coils"] [onclick] i, [data-page="coils"] [onclick] svg { pointer-events: none; }
-            [data-page="coils"] *,
-            [data-page="coils"] *::before,
-            [data-page="coils"] *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[data-page='coils'] {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #fbfcfd;
+  --surface-3: #f2f4f7;
+  --border: #e7eaef;
+  --border-strong: #d6dbe2;
+  --text: #14181f;
+  --text-muted: #344054;
+  --text-subtle: #475467;
+  --accent: #3b5bdb;
+  --accent-hover: #2f49bd;
+  --accent-soft: #eef1fe;
+  --accent-border: #c8d2f7;
+  --success: #0f7a54;
+  --success-soft: #e4f5ee;
+  --danger: #c4362f;
+  --danger-soft: #fbebea;
+  --warn: #b5760a;
+  --warn-soft: #fdf1da;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Inter', system-ui, sans-serif;
+  --r-sm: 6px;
+  --r-md: 9px;
+  --r-lg: 13px;
+  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
+  --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
+  --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
+}
 
-            [data-page="coils"] {
-                --bg: #f5f6f8;
-                --surface: #ffffff;
-                --surface-2: #fbfcfd;
-                --surface-3: #f2f4f7;
-                --border: #e7eaef;
-                --border-strong: #d6dbe2;
-                --text: #14181f;
-                --text-muted: #344054;
-                --text-subtle: #475467;
-                --accent: #3b5bdb;
-                --accent-hover: #2f49bd;
-                --accent-soft: #eef1fe;
-                --accent-border: #c8d2f7;
-                --success: #0f7a54;
-                --success-soft: #e4f5ee;
-                --danger: #c4362f;
-                --danger-soft: #fbebea;
-                --warn:#b5760a;
-                --warn-soft: #fdf1da;
-                --font-ui: "Inter", system-ui, sans-serif;
-                --font-mono: "Inter", system-ui, sans-serif;
-                --r-sm: 6px;
-                --r-md: 9px;
-                --r-lg: 13px;
-                --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
-                --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
-                --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
-            }
+[data-page='coils'],
+[data-page='coils'] {
+  height: 100%;
+}
+[data-page='coils'] {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+[data-page='coils'] .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+[data-page='coils'] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-page='coils'] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
 
-            [data-page="coils"], [data-page="coils"] { height: 100%; }
-            [data-page="coils"] {
-                font-family: var(--font-ui);
-                background: var(--bg);
-                color: var(--text);
-                font-size: 13px;
-                line-height: 1.45;
-                -webkit-font-smoothing: antialiased;
-            }
-            [data-page="coils"] .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-            [data-page="coils"] ::-webkit-scrollbar { width: 10px; height: 10px; }
-            [data-page="coils"] ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
+[data-page='coils'] .app {
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+[data-page='coils'] .sidebar {
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  gap: 4px;
+  overflow-y: auto;
+}
+[data-page='coils'] .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px 14px;
+}
+[data-page='coils'] .brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #6d84ea);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-sm);
+  flex: none;
+}
+[data-page='coils'] .brand-mark span {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #fff;
+  transform: rotate(45deg);
+}
+[data-page='coils'] .brand-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+[data-page='coils'] .brand-sub {
+  font-size: 10px;
+  color: var(--text-subtle);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-page='coils'] .nav-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  padding: 12px 8px 6px;
+  font-weight: 600;
+}
+[data-page='coils'] .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: none;
+}
+[data-page='coils'] .nav-item:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='coils'] .nav-item:focus-visible,
+[data-page='coils'] .tab:focus-visible,
+[data-page='coils'] .btn:focus-visible,
+[data-page='coils'] .icon-btn:focus-visible,
+[data-page='coils'] .select-btn:focus-visible,
+[data-page='coils'] a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[data-page='coils'] .nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='coils'] .nav-item.active .nav-ico {
+  color: var(--accent);
+}
+[data-page='coils'] .nav-item.is-disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+[data-page='coils'] .nav-item.is-disabled:hover {
+  background: none;
+}
+[data-page='coils'] .nav-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--text-subtle);
+}
+[data-page='coils'] .nav-soon {
+  margin-left: auto;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 20px;
+}
+[data-page='coils'] .sidebar-foot {
+  margin-top: auto;
+  padding: 10px 8px 2px;
+  border-top: 1px solid var(--border);
+}
 
-            [data-page="coils"] .app { display: grid; grid-template-columns: 236px 1fr; height: 100vh; overflow: hidden; }
-            [data-page="coils"] .sidebar {
-                background: var(--surface-2); border-right: 1px solid var(--border);
-                display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; overflow-y: auto;
-            }
-            [data-page="coils"] .brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 14px; }
-            [data-page="coils"] .brand-mark {
-                width: 26px; height: 26px; border-radius: 7px;
-                background: linear-gradient(135deg, var(--accent), #6d84ea);
-                display: grid; place-items: center; box-shadow: var(--shadow-sm); flex: none;
-            }
-            [data-page="coils"] .brand-mark span { width: 11px; height: 11px; border: 2px solid #fff; transform: rotate(45deg); }
-            [data-page="coils"] .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.02em; }
-            [data-page="coils"] .brand-sub { font-size: 10px; color: var(--text-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
-            [data-page="coils"] .nav-label {
-                font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase;
-                color: var(--text-subtle); padding: 12px 8px 6px; font-weight: 600;
-            }
-            [data-page="coils"] .nav-item {
-                display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: var(--r-sm);
-                color: var(--text-muted); font-weight: 500; cursor: pointer; border: none; background: none;
-                width: 100%; text-align: left; font-family: inherit; font-size: 13px; text-decoration: none;
-            }
-            [data-page="coils"] .nav-item:hover { background: var(--surface-3); color: var(--text); }
-            [data-page="coils"] .nav-item:focus-visible,[data-page="coils"] .tab:focus-visible,[data-page="coils"] .btn:focus-visible,[data-page="coils"] .icon-btn:focus-visible,[data-page="coils"] .select-btn:focus-visible,[data-page="coils"] a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-            [data-page="coils"] .nav-item.active { background: var(--accent-soft); color: var(--accent); }
-            [data-page="coils"] .nav-item.active .nav-ico { color: var(--accent); }
-            [data-page="coils"] .nav-item.is-disabled { color: var(--text-subtle); cursor: not-allowed; }
-            [data-page="coils"] .nav-item.is-disabled:hover { background: none; }
-            [data-page="coils"] .nav-ico { width: 14px; height: 14px; flex: none; color: var(--text-subtle); }
-            [data-page="coils"] .nav-soon {
-                margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
-                color: var(--text-subtle); background: var(--surface-3); padding: 2px 6px; border-radius: 20px;
-            }
-            [data-page="coils"] .sidebar-foot { margin-top: auto; padding: 10px 8px 2px; border-top: 1px solid var(--border); }
+[data-page='coils'] .main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+[data-page='coils'] .topbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  flex: none;
+}
+[data-page='coils'] .crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+[data-page='coils'] .crumb strong {
+  color: var(--text);
+  font-weight: 600;
+}
+[data-page='coils'] .crumb-sep {
+  color: var(--text-subtle);
+}
+[data-page='coils'] .topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-page='coils'] .role-chip {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-3);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+}
+[data-page='coils'] .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
 
-            [data-page="coils"] .main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
-            [data-page="coils"] .topbar {
-                height: 52px; border-bottom: 1px solid var(--border); background: var(--surface);
-                display: flex; align-items: center; gap: 14px; padding: 0 18px; flex: none;
-            }
-            [data-page="coils"] .crumb { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
-            [data-page="coils"] .crumb strong { color: var(--text); font-weight: 600; }
-            [data-page="coils"] .crumb-sep { color: var(--text-subtle); }
-            [data-page="coils"] .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-            [data-page="coils"] .role-chip {
-                font-size: 11.5px; font-weight: 500; color: var(--text-muted);
-                background: var(--surface-3); padding: 4px 10px; border-radius: var(--r-sm);
-            }
-            [data-page="coils"] .avatar {
-                width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff;
-                font-size: 11px; font-weight: 600; display: grid; place-items: center; flex: none;
-            }
+[data-page='coils'] .dept-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 18px;
+  flex: none;
+}
+[data-page='coils'] .dept-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+[data-page='coils'] .dept-title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+[data-page='coils'] .dept-chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+[data-page='coils'] .tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+[data-page='coils'] .tab {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 9px 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+[data-page='coils'] .tab:hover {
+  color: var(--text);
+}
+[data-page='coils'] .tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 
-            [data-page="coils"] .dept-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 18px; flex: none; }
-            [data-page="coils"] .dept-title-row { display: flex; align-items: flex-start; gap: 12px; }
-            [data-page="coils"] .dept-title { font-size: 19px; font-weight: 600; letter-spacing: -0.03em; }
-            [data-page="coils"] .dept-chip {
-                font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted);
-                background: var(--surface-3); border: 1px solid var(--border); padding: 2px 9px; border-radius: 20px;
-            }
-            [data-page="coils"] .tabs { display: flex; gap: 2px; overflow-x: auto; overflow-y: hidden; }
-            [data-page="coils"] .tab {
-                border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 500;
-                color: var(--text-muted); padding: 9px 13px; cursor: pointer; border-bottom: 2px solid transparent;
-                margin-bottom: -1px; white-space: nowrap;
-            }
-            [data-page="coils"] .tab:hover { color: var(--text); }
-            [data-page="coils"] .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+[data-page='coils'] .content {
+  flex: 1;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 18px;
+}
 
-            [data-page="coils"] .content { flex: 1; overflow: auto; scrollbar-gutter: stable; padding: 18px; }
+[data-page='coils'] .subtabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+[data-page='coils'] .subtab {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+[data-page='coils'] .subtab:hover {
+  border-color: var(--border-strong);
+}
+[data-page='coils'] .subtab.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 
-            [data-page="coils"] .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-            [data-page="coils"] .subtab {
-                border: 1px solid var(--border); background: var(--surface); border-radius: 20px;
-                padding: 5px 12px; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--text-muted);
-            }
-            [data-page="coils"] .subtab:hover { border-color: var(--border-strong); }
-            [data-page="coils"] .subtab.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+[data-page='coils'] .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+[data-page='coils'] .toolbar-info {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+[data-page='coils'] .toolbar-info b {
+  color: var(--text);
+  font-weight: 600;
+}
+[data-page='coils'] .toolbar-spacer {
+  flex: 1;
+}
 
-            [data-page="coils"] .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-            [data-page="coils"] .toolbar-info { font-size: 12.5px; color: var(--text-muted); }
-            [data-page="coils"] .toolbar-info b { color: var(--text); font-weight: 600; }
-            [data-page="coils"] .toolbar-spacer { flex: 1; }
+[data-page='coils'] .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+[data-page='coils'] .btn:hover {
+  background: var(--surface-3);
+}
+[data-page='coils'] .btn svg {
+  width: 14px;
+  height: 14px;
+}
+[data-page='coils'] .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+[data-page='coils'] .btn-primary:hover {
+  background: var(--accent-hover);
+}
+[data-page='coils'] .btn-ghost {
+  border-color: transparent;
+  background: none;
+  color: var(--text-muted);
+}
+[data-page='coils'] .btn-ghost:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='coils'] .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+[data-page='coils'] .btn-sm {
+  padding: 0 9px;
+  font-size: 12px;
+}
+[data-page='coils'] .icon-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-subtle);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+[data-page='coils'] .icon-btn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='coils'] .icon-btn.danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
 
-            [data-page="coils"] .btn {
-                display: inline-flex; align-items: center; gap:5px; border: 1px solid var(--border-strong);
-                background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px;
-                font-weight: 500; height: 36px; padding: 0 12px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap;
-            }
-            [data-page="coils"] .btn:hover { background: var(--surface-3); }
-            [data-page="coils"] .btn svg { width: 14px; height: 14px; }
-            [data-page="coils"] .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-            [data-page="coils"] .btn-primary:hover { background: var(--accent-hover); }
-            [data-page="coils"] .btn-ghost { border-color: transparent; background: none; color: var(--text-muted); }
-            [data-page="coils"] .btn-ghost:hover { background: var(--surface-3); color: var(--text); }
-            [data-page="coils"] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-            [data-page="coils"] .btn-sm { padding: 0 9px; font-size: 12px; }
-            [data-page="coils"] .icon-btn {
-                border: none; background: none; cursor: pointer; color: var(--text-subtle);
-                width:36px; height:36px; border-radius:var(--r-sm); display: grid; place-items: center; flex:none;}
-            [data-page="coils"] .icon-btn:hover { background: var(--surface-3); color: var(--text); }
-            [data-page="coils"] .icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+[data-page='coils'] .table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+[data-page='coils'] table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+[data-page='coils'] table.grid th,
+[data-page='coils'] table.grid td {
+  overflow: hidden;
+}
+[data-page='coils'] table.grid td:has(> .chk),
+[data-page='coils'] table.grid td:has(> .expander) {
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+}
+[data-page='coils'] table.grid th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+  padding: 7px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+[data-page='coils'] table.grid td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+[data-page='coils'] table.grid tr:last-child td {
+  border-bottom: none;
+}
+[data-page='coils'] table.grid tbody tr:hover td {
+  background: var(--surface-2);
+}
+[data-page='coils'] .row-order {
+  cursor: pointer;
+}
+[data-page='coils'] .trunc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-page='coils'] .cell-name {
+  font-weight: 500;
+}
+[data-page='coils'] .muted {
+  color: var(--text-muted);
+}
+[data-page='coils'] .subtle {
+  color: var(--text-subtle);
+}
+[data-page='coils'] .mono-cell {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+[data-page='coils'] .row-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
 
-            [data-page="coils"] .table-wrap {
-                background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
-                overflow: hidden; box-shadow: var(--shadow-sm);
-            }
-            [data-page="coils"] table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            [data-page="coils"] table.grid th, [data-page="coils"] table.grid td { overflow: hidden; }
-            [data-page="coils"] table.grid td:has(> .chk), [data-page="coils"] table.grid td:has(> .expander) { padding-left: 0; padding-right: 0; text-align: center; }
-            [data-page="coils"] table.grid th {
-                text-align: left; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
-                color: var(--text-subtle); font-weight: 600; padding: 7px 14px; background: var(--surface-2);
-                border-bottom: 1px solid var(--border); white-space: nowrap;
-            }
-            [data-page="coils"] table.grid td {
-                padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: middle;
-                white-space: nowrap;
-            }
-            [data-page="coils"] table.grid tr:last-child td { border-bottom: none; }
-            [data-page="coils"] table.grid tbody tr:hover td { background: var(--surface-2); }
-            [data-page="coils"] .row-order { cursor: pointer; }
-            [data-page="coils"] .trunc { overflow: hidden; text-overflow: ellipsis; }
-            [data-page="coils"] .cell-name { font-weight: 500; }
-            [data-page="coils"] .muted { color: var(--text-muted); }
-            [data-page="coils"] .subtle { color: var(--text-subtle); }
-            [data-page="coils"] .mono-cell { font-family: var(--font-mono); font-size: 12px; }
-            [data-page="coils"] .row-actions { display: flex; gap: 2px; justify-content: flex-end; }
+[data-page='coils'] .hier {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  padding: 1px 8px;
+  border-radius: 20px;
+}
+[data-page='coils'] .chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+[data-page='coils'] .chip.blue {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='coils'] .chip.green {
+  background: var(--success-soft);
+  color: var(--success);
+}
+[data-page='coils'] .chip.amber {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+[data-page='coils'] .chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+[data-page='coils'] .tag-yes {
+  color: var(--success);
+  font-weight: 500;
+}
+[data-page='coils'] .tag-no {
+  color: var(--text-subtle);
+}
 
-            [data-page="coils"] .hier {
-                font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-                background: var(--surface-3); color: var(--text-muted); padding: 1px 8px; border-radius: 20px;
-            }
-            [data-page="coils"] .chip {
-                display: inline-flex; align-items: center; font-size: 11px; font-weight: 500;
-                padding: 2px 9px; border-radius: 20px; background: var(--surface-3); color: var(--text-muted);
-            }
-            [data-page="coils"] .chip.blue { background: var(--accent-soft); color: var(--accent); }
-            [data-page="coils"] .chip.green { background: var(--success-soft); color: var(--success); }
-            [data-page="coils"] .chip.amber { background: var(--warn-soft); color: var(--warn); }
-            [data-page="coils"] .chips { display: flex; gap: 4px; flex-wrap: wrap; }
-            [data-page="coils"] .tag-yes { color: var(--success); font-weight: 500; }
-            [data-page="coils"] .tag-no { color: var(--text-subtle); }
+[data-page='coils'] .switch {
+  position: relative;
+  width: 34px;
+  height: 19px;
+  border-radius: 20px;
+  background: var(--border-strong);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex: none;
+}
+[data-page='coils'] .switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+[data-page='coils'] .switch.on {
+  background: var(--accent);
+}
+[data-page='coils'] .switch.on::after {
+  transform: translateX(15px);
+}
 
-            [data-page="coils"] .switch {
-                position: relative; width: 34px; height: 19px; border-radius: 20px; background: var(--border-strong);
-                border: none; cursor: pointer; transition: background 0.15s ease; flex: none;
-            }
-            [data-page="coils"] .switch::after {
-                content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
-                background: #fff; box-shadow: var(--shadow-sm); transition: transform 0.15s ease;
-            }
-            [data-page="coils"] .switch.on { background: var(--accent); }
-            [data-page="coils"] .switch.on::after { transform: translateX(15px); }
+/* dropdown popover — must outrank .overlay (80) since selects live inside modals */
+[data-page='coils'] .pop {
+  position: fixed;
+  z-index: 90;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 5px;
+  min-width: 180px;
+  max-height: 280px;
+  overflow: auto;
+}
+[data-page='coils'] .pop-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+[data-page='coils'] .pop-item:hover {
+  background: var(--surface-3);
+}
+[data-page='coils'] .pop-item.selected {
+  color: var(--accent);
+  font-weight: 500;
+}
+[data-page='coils'] .pop-check {
+  margin-left: auto;
+  color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
 
-            /* dropdown popover — must outrank .overlay (80) since selects live inside modals */
-            [data-page="coils"] .pop {
-                position: fixed; z-index: 90; background: var(--surface); border: 1px solid var(--border);
-                border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 5px; min-width: 180px;
-                max-height: 280px; overflow: auto;
-            }
-            [data-page="coils"] .pop-item {
-                display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm);
-                cursor: pointer; font-size: 12.5px; border: none; background: none; width: 100%; text-align: left;
-                font-family: inherit; color: var(--text);
-            }
-            [data-page="coils"] .pop-item:hover { background: var(--surface-3); }
-            [data-page="coils"] .pop-item.selected { color: var(--accent); font-weight: 500; }
-            [data-page="coils"] .pop-check { margin-left: auto; color: var(--accent); width: 14px; height: 14px; }
+/* modal + form */
+[data-page='coils'] .overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 31, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+[data-page='coils'] .overlay.is-open {
+  display: flex;
+}
+[data-page='coils'] .modal {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  max-height: 88vh;
+  overflow: auto;
+}
+[data-page='coils'] .modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 6px;
+}
+[data-page='coils'] .modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-page='coils'] .modal-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+[data-page='coils'] .modal-x {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-subtle);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+}
+[data-page='coils'] .modal-x:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='coils'] .modal-body {
+  padding: 8px 20px;
+}
+[data-page='coils'] .modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px 18px;
+}
 
-            /* modal + form */
-            [data-page="coils"] .overlay {
-                position: fixed; inset: 0; background: rgba(20, 24, 31, 0.4); backdrop-filter: blur(2px);
-                z-index: 80; display: none; align-items: center; justify-content: center; padding: 24px;
-            }
-            [data-page="coils"] .overlay.is-open { display: flex; }
-            [data-page="coils"] .modal {
-                background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
-                width: 100%; max-width: 460px; max-height: 88vh; overflow: auto;
-            }
-            [data-page="coils"] .modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 6px; }
-            [data-page="coils"] .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
-            [data-page="coils"] .modal-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-            [data-page="coils"] .modal-x { border: none; background: none; cursor: pointer; color: var(--text-subtle); width:36px;height:36px; border-radius:var(--r-sm); display: grid; place-items: center; }
-            [data-page="coils"] .modal-x:hover { background: var(--surface-3); color: var(--text); }
-            [data-page="coils"] .modal-body { padding: 8px 20px; }
-            [data-page="coils"] .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 18px; }
+[data-page='coils'] .field {
+  margin-bottom: 14px;
+}
+[data-page='coils'] .field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-page='coils'] .field-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+[data-page='coils'] .field-label .req {
+  color: var(--danger);
+}
+[data-page='coils'] .input,
+[data-page='coils'] .textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+}
+[data-page='coils'] .input:focus,
+[data-page='coils'] .textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+[data-page='coils'] .input.mono {
+  font-family: var(--font-mono);
+}
+[data-page='coils'] .input {
+  height: 36px;
+  padding: 0 10px;
+}
+[data-page='coils'] .textarea {
+  padding: 8px 10px;
+}
+[data-page='coils'] .textarea {
+  resize: none;
+  min-height: 60px;
+}
+[data-page='coils'] .select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  height: 36px;
+  padding: 0 10px;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+[data-page='coils'] .select-btn.placeholder {
+  color: var(--text-subtle);
+}
+[data-page='coils'] .select-btn:hover {
+  border-color: var(--border-strong);
+}
+[data-page='coils'] .select-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-subtle);
+}
+[data-page='coils'] .form-error {
+  padding: 9px 12px;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-sm);
+  color: var(--danger);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
 
-            [data-page="coils"] .field { margin-bottom: 14px; }
-            [data-page="coils"] .field-row { display: flex; align-items: center; gap: 10px; }
-            [data-page="coils"] .field-label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; }
-            [data-page="coils"] .field-label .req { color: var(--danger); }
-            [data-page="coils"] .input, [data-page="coils"] .textarea {
-                width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm);
-                font-family: var(--font-ui); font-size: 13px; color: var(--text); background: var(--surface);
-            }
-            [data-page="coils"] .input:focus, [data-page="coils"] .textarea:focus { outline: none; border-color: var(--accent); }
-            [data-page="coils"] .input.mono { font-family: var(--font-mono); }
-            [data-page="coils"] .input { height: 36px; padding: 0 10px; }
-            [data-page="coils"] .textarea { padding: 8px 10px; }
-            [data-page="coils"] .textarea { resize: none; min-height: 60px; }
-            [data-page="coils"] .select-btn {
-                width: 100%; display: flex; align-items: center; justify-content: space-between;
-                border: 1px solid var(--border); border-radius: var(--r-sm); height: 36px; padding: 0 10px; background: var(--surface);
-                font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer;
-            }
-            [data-page="coils"] .select-btn.placeholder { color: var(--text-subtle); }
-            [data-page="coils"] .select-btn:hover { border-color: var(--border-strong); }
-            [data-page="coils"] .select-btn svg { width: 14px; height: 14px; color: var(--text-subtle); }
-            [data-page="coils"] .form-error {
-                padding: 9px 12px; background: var(--danger-soft); border: 1px solid var(--danger);
-                border-radius: var(--r-sm); color: var(--danger); font-size: 12px; margin-bottom: 12px;
-            }
+[data-page='coils'] .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+[data-page='coils'] .empty-ico {
+  width: 34px;
+  height: 34px;
+  color: var(--text-subtle);
+  margin-bottom: 10px;
+}
+[data-page='coils'] .empty h3 {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+[data-page='coils'] .empty p {
+  font-size: 12.5px;
+  max-width: 320px;
+}
 
-            [data-page="coils"] .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; color: var(--text-muted); }
-            [data-page="coils"] .empty-ico { width: 34px; height: 34px; color: var(--text-subtle); margin-bottom: 10px; }
-            [data-page="coils"] .empty h3 { font-size: 14px; color: var(--text); margin-bottom: 5px; }
-            [data-page="coils"] .empty p { font-size: 12.5px; max-width: 320px; }
+[data-page='coils'] .toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--r-md);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+[data-page='coils'] .toast.show {
+  opacity: 1;
+}
+[data-page='coils'] .toast svg {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}
+[data-page='coils'] .toast.t-success {
+  background: var(--success);
+  color: #fff;
+}
+[data-page='coils'] .toast.t-error {
+  background: var(--danger);
+  color: #fff;
+}
+[data-page='coils'] .toast.t-warning {
+  background: var(--warn);
+  color: #fff;
+}
+[data-page='coils'] .toast.t-info {
+  background: var(--accent);
+  color: #fff;
+}
+[data-page='coils'] .toast .toast-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: #fff;
+}
 
-            [data-page="coils"] .toast {
-                position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
-                background: var(--text); color: #fff; padding: 10px 16px; border-radius: var(--r-md);
-                font-size: 12.5px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;
-                transition: opacity 0.2s ease; z-index: 100; display: flex; align-items: center; gap: 9px;
-            }
-            [data-page="coils"] .toast.show { opacity: 1; }
-            [data-page="coils"] .toast svg { width: 14px; height: 14px; color: #fff; }
-            [data-page="coils"] .toast.t-success{background:var(--success);color:#fff}
-            [data-page="coils"] .toast.t-error{background:var(--danger);color:#fff}
-            [data-page="coils"] .toast.t-warning{background:var(--warn);color:#fff}
-            [data-page="coils"] .toast.t-info{background:var(--accent);color:#fff}
-            [data-page="coils"] .toast .toast-ico{width:14px;height:14px;flex:none;color:#fff}
+/* ---------- Coils page ---------- */
+[data-page='coils'] .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-page='coils'] .header-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+[data-page='coils'] .search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+[data-page='coils'] .search-wrap i,
+[data-page='coils'] .search-wrap svg {
+  position: absolute;
+  left: 9px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+[data-page='coils'] .search-input {
+  padding-left: 30px;
+  width: 220px;
+}
+[data-page='coils'] .filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+[data-page='coils'] .filter-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+[data-page='coils'] .filter-chip:hover {
+  border-color: var(--border-strong);
+}
+[data-page='coils'] .filter-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 
-            /* ---------- Coils page ---------- */
-            [data-page="coils"] .header-actions { display: flex; align-items: center; gap: 10px; }
-            [data-page="coils"] .header-subtitle { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
-            [data-page="coils"] .search-wrap { position: relative; display: flex; align-items: center; }
-            [data-page="coils"] .search-wrap i, [data-page="coils"] .search-wrap svg { position: absolute; left: 9px; width: 14px; height: 14px; color: var(--text-subtle); pointer-events: none; }
-            [data-page="coils"] .search-input { padding-left: 30px; width: 220px; }
-            [data-page="coils"] .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-            [data-page="coils"] .filter-chip {
-                border: 1px solid var(--border); background: var(--surface); border-radius: 20px;
-                padding: 5px 12px; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--text-muted);
-            }
-            [data-page="coils"] .filter-chip:hover { border-color: var(--border-strong); }
-            [data-page="coils"] .filter-chip.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+[data-page='coils'] .stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+[data-page='coils'] .stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+[data-page='coils'] .stat-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+[data-page='coils'] .stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-page='coils'] .stat-value.mono {
+  font-family: var(--font-mono);
+}
+[data-page='coils'] .stat-value.amber {
+  color: var(--warn);
+}
 
-            [data-page="coils"] .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-            [data-page="coils"] .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; box-shadow: var(--shadow-sm); }
-            [data-page="coils"] .stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); font-weight: 600; margin-bottom: 7px; }
-            [data-page="coils"] .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
-            [data-page="coils"] .stat-value.mono { font-family: var(--font-mono); }
-            [data-page="coils"] .stat-value.amber { color: var(--warn); }
+[data-page='coils'] .expander {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-subtle);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+[data-page='coils'] .expander:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='coils'] .expander.open {
+  transform: rotate(90deg);
+}
+[data-page='coils'] .subrow > td {
+  padding: 0;
+  background: var(--surface-2);
+}
+[data-page='coils'] .subwrap {
+  padding: 6px 14px 16px 44px;
+  overflow-x: auto;
+}
+[data-page='coils'] table.sub {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  table-layout: fixed;
+}
+[data-page='coils'] table.sub th,
+[data-page='coils'] table.sub td {
+  overflow: hidden;
+}
+[data-page='coils'] table.sub th {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+[data-page='coils'] table.sub td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  vertical-align: middle;
+}
+[data-page='coils'] table.sub tr:last-child td {
+  border-bottom: none;
+}
+[data-page='coils'] .coil-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
 
-            [data-page="coils"] .expander {
-                background: none; border: none; cursor: pointer; color: var(--text-subtle);
-                display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
-                transition: transform 0.15s ease;
-            }
-            [data-page="coils"] .expander:hover { background: var(--surface-3); color: var(--text); }
-            [data-page="coils"] .expander.open { transform: rotate(90deg); }
-            [data-page="coils"] .subrow > td { padding: 0; background: var(--surface-2); }
-            [data-page="coils"] .subwrap { padding: 6px 14px 16px 44px; overflow-x: auto; }
-            [data-page="coils"] table.sub {
-                width: 100%; min-width: 1050px; border-collapse: collapse; background: var(--surface);
-                border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; table-layout: fixed;
-            }
-            [data-page="coils"] table.sub th, [data-page="coils"] table.sub td { overflow: hidden; }
-            [data-page="coils"] table.sub th {
-                font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-subtle);
-                font-weight: 600; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
-            }
-            [data-page="coils"] table.sub td { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
-            [data-page="coils"] table.sub tr:last-child td { border-bottom: none; }
-            [data-page="coils"] .coil-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+[data-page='coils'] .slinet-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 11px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+[data-page='coils'] .slinet-tag:hover {
+  filter: brightness(0.97);
+}
+[data-page='coils'] .slinet-in {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 22%, transparent);
+}
+[data-page='coils'] .slinet-out {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+  border-color: var(--border);
+}
+[data-page='coils'] .loc-flags {
+  display: flex;
+  gap: 6px;
+}
+[data-page='coils'] .loc-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  color: var(--text-subtle);
+  background: var(--surface);
+  font-family: inherit;
+}
+[data-page='coils'] .loc-flag.on {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='coils'] .loc-flag:disabled,
+[data-page='coils'] .slinet-tag:disabled,
+[data-page='coils'] .keypad-key:disabled,
+[data-page='coils'] .subtab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+[data-page='coils'] .subtab:disabled:hover {
+  border-color: var(--border);
+}
+[data-page='coils'] .input:disabled {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+[data-page='coils'] .input:disabled::placeholder {
+  color: var(--text-subtle);
+  opacity: 0.6;
+}
+[data-page='coils'] .select-btn:disabled {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+[data-page='coils'] .select-btn:disabled:hover {
+  border-color: var(--border);
+}
 
-            [data-page="coils"] .slinet-tag {
-                display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500;
-                padding: 3px 11px; border-radius: 20px; border: 1px solid transparent; cursor: pointer; font-family: inherit;
-            }
-            [data-page="coils"] .slinet-tag:hover { filter: brightness(0.97); }
-            [data-page="coils"] .slinet-in { background: var(--success-soft); color: var(--success); border-color: color-mix(in srgb, var(--success) 22%, transparent); }
-            [data-page="coils"] .slinet-out { background: var(--surface-3); color: var(--text-subtle); border-color: var(--border); }
-            [data-page="coils"] .loc-flags { display: flex; gap: 6px; }
-            [data-page="coils"] .loc-flag {
-                display: inline-flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer;
-                border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; color: var(--text-subtle);
-                background: var(--surface); font-family: inherit;
-            }
-            [data-page="coils"] .loc-flag.on { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
-            [data-page="coils"] .loc-flag:disabled, [data-page="coils"] .slinet-tag:disabled, [data-page="coils"] .keypad-key:disabled, [data-page="coils"] .subtab:disabled { opacity: 0.4; cursor: not-allowed; }
-            [data-page="coils"] .subtab:disabled:hover { border-color: var(--border); }
-            [data-page="coils"] .input:disabled { background: var(--surface-3); color: var(--text-subtle); cursor: not-allowed; }
-            [data-page="coils"] .input:disabled::placeholder { color: var(--text-subtle); opacity: 0.6; }
-            [data-page="coils"] .select-btn:disabled { background: var(--surface-3); color: var(--text-subtle); cursor: not-allowed; opacity: 0.7; }
-            [data-page="coils"] .select-btn:disabled:hover { border-color: var(--border); }
+[data-page='coils'] .gate-note {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin: -6px 0 10px;
+}
+[data-page='coils'] .field-select {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+[data-page='coils'] .field-select .subtab {
+  flex: 1;
+  text-align: center;
+}
+[data-page='coils'] .setup-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+[data-page='coils'] .range-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+[data-page='coils'] .chk {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  flex: none;
+  vertical-align: middle;
+}
+[data-page='coils'] .chk:hover {
+  border-color: var(--accent);
+}
+[data-page='coils'] .chk:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+[data-page='coils'] .chk:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+[data-page='coils'] .chk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* #197: Coil Filter rows — "<Label>: Between [min] & [max]  Apply All []" (canvas) */
+[data-page='coils'] .cf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+}
+[data-page='coils'] .cf-row:last-child {
+  border-bottom: none;
+}
+[data-page='coils'] .cf-label {
+  width: 74px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+[data-page='coils'] .cf-between {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+[data-page='coils'] .cf-input {
+  width: 74px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--text);
+  text-align: right;
+}
+[data-page='coils'] .cf-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+[data-page='coils'] .cf-input:disabled {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+}
+[data-page='coils'] .cf-amp {
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+[data-page='coils'] .cf-unit {
+  font-size: 11px;
+  width: 22px;
+}
+[data-page='coils'] .cf-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+[data-page='coils'] .cf-row.is-all .cf-label,
+[data-page='coils'] .cf-row.is-all .cf-between {
+  color: var(--text-subtle);
+}
+[data-page='coils'] .coil-note-input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: var(--r-sm);
+  padding: 4px 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+}
+[data-page='coils'] .coil-note-input:hover {
+  border-color: var(--border);
+}
+[data-page='coils'] .coil-note-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
 
-            [data-page="coils"] .gate-note { font-size: 11px; color: var(--text-subtle); margin: -6px 0 10px; }
-            [data-page="coils"] .field-select { display: flex; gap: 6px; margin-bottom: 10px; }
-            [data-page="coils"] .field-select .subtab { flex: 1; text-align: center; }
-            [data-page="coils"] .setup-row { display: flex; gap: 10px; margin-bottom: 10px; }
-            [data-page="coils"] .range-badge { display: inline-flex; align-items: center; gap: 5px; }
-            [data-page="coils"] .chk {
-                appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border-strong);
-                border-radius: 4px; background: var(--surface); cursor: pointer; position: relative; flex: none; vertical-align: middle;
-            }
-            [data-page="coils"] .chk:hover { border-color: var(--accent); }
-            [data-page="coils"] .chk:checked { background: var(--accent); border-color: var(--accent); }
-            [data-page="coils"] .chk:checked::after {
-                content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px;
-                border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
-            }
-            [data-page="coils"] .chk:disabled { opacity: 0.4; cursor: not-allowed; }
-            /* #197: Coil Filter rows — "<Label>: Between [min] & [max]  Apply All []" (canvas) */
-            [data-page="coils"] .cf-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border-soft, var(--border)); }
-            [data-page="coils"] .cf-row:last-child { border-bottom: none; }
-            [data-page="coils"] .cf-label { width: 74px; font-size: 12px; font-weight: 600; color: var(--text); }
-            [data-page="coils"] .cf-between { font-size: 12px; color: var(--text-muted); }
-            [data-page="coils"] .cf-input {
-                width: 74px; height: 28px; border: 1px solid var(--border); border-radius: var(--r-sm);
-                background: var(--surface); padding: 0 8px; font-size: 12px; color: var(--text); text-align: right;
-            }
-            [data-page="coils"] .cf-input:focus { outline: none; border-color: var(--accent); }
-            [data-page="coils"] .cf-input:disabled { background: var(--surface-3); color: var(--text-subtle); }
-            [data-page="coils"] .cf-amp { font-size: 12px; color: var(--text-subtle); }
-            [data-page="coils"] .cf-unit { font-size: 11px; width: 22px; }
-            [data-page="coils"] .cf-all { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
-            [data-page="coils"] .cf-row.is-all .cf-label, [data-page="coils"] .cf-row.is-all .cf-between { color: var(--text-subtle); }
-            [data-page="coils"] .coil-note-input {
-                width: 100%; border: 1px solid transparent; background: none; border-radius: var(--r-sm);
-                padding: 4px 6px; font-family: var(--font-ui); font-size: 12px; color: var(--text);
-            }
-            [data-page="coils"] .coil-note-input:hover { border-color: var(--border); }
-            [data-page="coils"] .coil-note-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+[data-page='coils'] .total-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-sm);
+  padding: 3px 9px;
+}
+[data-page='coils'] .total-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
 
-            [data-page="coils"] .total-link {
-                font-family: var(--font-mono); font-size: 12px; cursor: pointer; color: var(--accent); font-weight: 600;
-                background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--r-sm); padding: 3px 9px;
-            }
-            [data-page="coils"] .total-link:hover { border-color: var(--accent); color: var(--accent-hover); }
+[data-page='coils'] .keypad-display {
+  font-size: 22px;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  background: var(--surface-2);
+  font-weight: 500;
+}
+[data-page='coils'] .keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+[data-page='coils'] .keypad-key {
+  aspect-ratio: 1.7;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  cursor: pointer;
+  color: var(--text);
+}
+[data-page='coils'] .keypad-key:hover {
+  background: var(--surface-3);
+}
 
-            [data-page="coils"] .keypad-display {
-                font-size: 22px; text-align: center; padding: 10px; border: 1px solid var(--border);
-                border-radius: var(--r-md); margin-bottom: 12px; background: var(--surface-2); font-weight: 500;
-            }
-            [data-page="coils"] .keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-            [data-page="coils"] .keypad-key {
-                aspect-ratio: 1.7; border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-md);
-                font-family: var(--font-mono); font-size: 17px; cursor: pointer; color: var(--text);
-            }
-            [data-page="coils"] .keypad-key:hover { background: var(--surface-3); }
+[data-page='coils'] .coil-adjust-tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+}
+[data-page='coils'] .coil-adjust-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+[data-page='coils'] .coil-adjust-table th {
+  text-align: left;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+  padding: 7px 9px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+[data-page='coils'] .coil-adjust-table td {
+  padding: 8px 9px;
+}
+[data-page='coils'] .adjust-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+[data-page='coils'] .adjust-info-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+}
+[data-page='coils'] .adjust-info-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  margin-bottom: 3px;
+}
+[data-page='coils'] .adjust-info-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+}
 
-            [data-page="coils"] .coil-adjust-tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 14px; }
-            [data-page="coils"] .coil-adjust-table { width: 100%; border-collapse: collapse; font-size: 11.5px; white-space: nowrap; }
-            [data-page="coils"] .coil-adjust-table th { text-align: left; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; padding: 7px 9px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
-            [data-page="coils"] .coil-adjust-table td { padding: 8px 9px; }
-            [data-page="coils"] .adjust-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-            [data-page="coils"] .adjust-info-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
-            [data-page="coils"] .adjust-info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle); margin-bottom: 3px; }
-            [data-page="coils"] .adjust-info-value { font-family: var(--font-mono); font-weight: 600; font-size: 13px; }
+[data-page='coils'] .usage-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 2px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+[data-page='coils'] .mrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--border);
+}
+[data-page='coils'] .mrow:last-child {
+  border-bottom: none;
+}
+[data-page='coils'] .mrow-name {
+  font-weight: 500;
+}
+[data-page='coils'] .mrow-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+[data-page='coils'] .mrow-sub {
+  font-size: 11px;
+}
 
-            [data-page="coils"] .usage-total-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 2px 4px; font-size: 12.5px; font-weight: 600; }
-            [data-page="coils"] .mrow { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
-            [data-page="coils"] .mrow:last-child { border-bottom: none; }
-            [data-page="coils"] .mrow-name { font-weight: 500; }
-            [data-page="coils"] .mrow-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-            [data-page="coils"] .mrow-sub { font-size: 11px; }
+@media (max-width: 1024px) {
+  [data-page='coils'] .app {
+    grid-template-columns: 1fr;
+  }
+  [data-page='coils'] .sidebar {
+    display: none;
+  }
+}
 
-            @media (max-width: 1024px) { [data-page="coils"] .app { grid-template-columns: 1fr; } [data-page="coils"] .sidebar { display: none; } }
-        
-            @media (prefers-reduced-motion: reduce) { [data-page="coils"] *, [data-page="coils"] *::before, [data-page="coils"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
-            /* Keep row expand controls comfortably separated from table edges. */
-            [data-page="coils"] .table-wrap table.grid td:has(> .chk), [data-page="coils"] .table-wrap table.grid th.col-chk { min-width: 40px; padding-left: 0 !important; padding-right: 0 !important; text-align: center; }
-            [data-page="coils"] .table-wrap table.grid td:has(> .expander), [data-page="coils"] .table-wrap table.grid th.col-exp { min-width: 34px; padding-left: 0 !important; padding-right: 0 !important; text-align: center; }
-            [data-page="coils"] .table-wrap table.grid td:has(> .chk) > .chk, [data-page="coils"] .table-wrap table.grid td:has(> .expander) > .expander { margin-inline: auto; }
-            [data-page="coils"] table.grid .expander:hover { background: transparent; }
-                    /* Compact desktop density system. */
-            [data-page="coils"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
-            [data-page="coils"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
-            [data-page="coils"] .tabs{gap:1px}
-            [data-page="coils"] .tab{padding:4px 9px;gap:5px;min-height:30px}
-            [data-page="coils"] .toolbar{gap:6px;margin-bottom:6px}
-            [data-page="coils"] .page-head,[data-page="coils"] .view-head,[data-page="coils"] .section-head{margin-bottom:6px}
-            [data-page="coils"] .kpi-grid,[data-page="coils"] .stats-grid,[data-page="coils"] .cards-grid,[data-page="coils"] .dept-grid{gap:8px}
-            [data-page="coils"] .table-wrap table.grid th{padding:4px 10px!important}
-            [data-page="coils"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
-            [data-page="coils"] .table-wrap table.grid .expander{height:22px}
-            [data-page="coils"] .table-wrap table.grid .pri{padding-top:2px!important;padding-bottom:2px!important}
-            [data-page="coils"] .status,[data-page="coils"] .chip,[data-page="coils"] .pri,[data-page="coils"] .dept-chip,[data-page="coils"] .lock-tag,[data-page="coils"] .load-num-pill,[data-page="coils"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
-            [data-page="coils"] table.sub th{padding:3px 7px!important}
-            [data-page="coils"] table.sub td{padding:2px 7px!important}
-            [data-page="coils"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
-            [data-page="coils"] table.sub .field-input,[data-page="coils"] table.sub .pack-input{height:26px}
-            [data-page="coils"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
-            [data-page="coils"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
-            [data-page="coils"] table.stock-edit th,[data-page="coils"] table.pkg-table th{padding:5px 8px!important}
-            [data-page="coils"] table.stock-edit td,[data-page="coils"] table.pkg-table td{padding:5px 8px!important}
-            [data-page="coils"] .table-wrap .note-btn,[data-page="coils"] .table-wrap .icon-btn{min-height:24px;height:24px}
-            [data-page="coils"] .btn{height:30px}
-            [data-page="coils"] .icon-btn{width:30px;height:30px}
-            [data-page="coils"] .search,[data-page="coils"] .input,[data-page="coils"] .field-input,[data-page="coils"] .field-btn,[data-page="coils"] .due-filter,[data-page="coils"] .select-btn{height:32px}
-            [data-page="coils"] .empty{padding-top:16px;padding-bottom:16px}
-        
+@media (prefers-reduced-motion: reduce) {
+  [data-page='coils'] *,
+  [data-page='coils'] *::before,
+  [data-page='coils'] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Keep row expand controls comfortably separated from table edges. */
+[data-page='coils'] .table-wrap table.grid td:has(> .chk),
+[data-page='coils'] .table-wrap table.grid th.col-chk {
+  min-width: 40px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center;
+}
+[data-page='coils'] .table-wrap table.grid td:has(> .expander),
+[data-page='coils'] .table-wrap table.grid th.col-exp {
+  min-width: 34px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center;
+}
+[data-page='coils'] .table-wrap table.grid td:has(> .chk) > .chk,
+[data-page='coils'] .table-wrap table.grid td:has(> .expander) > .expander {
+  margin-inline: auto;
+}
+[data-page='coils'] table.grid .expander:hover {
+  background: transparent;
+}
+/* Compact desktop density system. */
+[data-page='coils'] .topbar {
+  height: 40px;
+  padding-left: 14px;
+  padding-right: 14px;
+  gap: 10px;
+}
+[data-page='coils'] .content {
+  padding-top: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+[data-page='coils'] .tabs {
+  gap: 1px;
+}
+[data-page='coils'] .tab {
+  padding: 4px 9px;
+  gap: 5px;
+  min-height: 30px;
+}
+[data-page='coils'] .toolbar {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+[data-page='coils'] .page-head,
+[data-page='coils'] .view-head,
+[data-page='coils'] .section-head {
+  margin-bottom: 6px;
+}
+[data-page='coils'] .kpi-grid,
+[data-page='coils'] .stats-grid,
+[data-page='coils'] .cards-grid,
+[data-page='coils'] .dept-grid {
+  gap: 8px;
+}
+[data-page='coils'] .table-wrap table.grid th {
+  padding: 4px 10px !important;
+}
+[data-page='coils'] .table-wrap table.grid td {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+[data-page='coils'] .table-wrap table.grid .expander {
+  height: 22px;
+}
+[data-page='coils'] .table-wrap table.grid .pri {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+[data-page='coils'] .status,
+[data-page='coils'] .chip,
+[data-page='coils'] .pri,
+[data-page='coils'] .dept-chip,
+[data-page='coils'] .lock-tag,
+[data-page='coils'] .load-num-pill,
+[data-page='coils'] .rework-badge {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-page='coils'] table.sub th {
+  padding: 3px 7px !important;
+}
+[data-page='coils'] table.sub td {
+  padding: 2px 7px !important;
+}
+[data-page='coils'] table.sub .btn {
+  height: 26px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+[data-page='coils'] table.sub .field-input,
+[data-page='coils'] table.sub .pack-input {
+  height: 26px;
+}
+[data-page='coils'] table.sub .note-btn {
+  width: 26px;
+  min-height: 26px;
+  height: 26px;
+}
+[data-page='coils'] table.sub .pkg-qty-btn {
+  min-height: 26px;
+  padding: 2px 8px;
+}
+[data-page='coils'] table.stock-edit th,
+[data-page='coils'] table.pkg-table th {
+  padding: 5px 8px !important;
+}
+[data-page='coils'] table.stock-edit td,
+[data-page='coils'] table.pkg-table td {
+  padding: 5px 8px !important;
+}
+[data-page='coils'] .table-wrap .note-btn,
+[data-page='coils'] .table-wrap .icon-btn {
+  min-height: 24px;
+  height: 24px;
+}
+[data-page='coils'] .btn {
+  height: 30px;
+}
+[data-page='coils'] .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+[data-page='coils'] .search,
+[data-page='coils'] .input,
+[data-page='coils'] .field-input,
+[data-page='coils'] .field-btn,
+[data-page='coils'] .due-filter,
+[data-page='coils'] .select-btn {
+  height: 32px;
+}
+[data-page='coils'] .empty {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
