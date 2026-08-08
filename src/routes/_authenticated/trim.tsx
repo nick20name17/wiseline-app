@@ -6,8 +6,10 @@ import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
-import { DeptBar, Sidebar, Topbar } from '@/features/trim/components/shell'
-import { Toast } from '@/features/trim/components/toast'
+import { Sidebar, Topbar } from '@/components/shell/chrome'
+import { Toast } from '@/components/shell/toast'
+
+import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
 import { Coils } from '@/features/trim/components/coils'
 import { Completed } from '@/features/trim/components/completed'
@@ -92,6 +94,7 @@ function Trim() {
             department={DEPARTMENT}
             tab={TAB_LABELS[view]}
             search={searchTerm}
+            placeholder='Search orders, customers, product IDs'
             onSearch={setSearch}
           />
           <DeptBar title={DEPARTMENT} code='01' tabs={tabs} activeView={view} onNavigate={go} />
