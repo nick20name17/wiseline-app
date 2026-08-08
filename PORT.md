@@ -22,12 +22,12 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Next up: Rollforming's `?view=production`.** Unscheduled and Scheduled are done, which means the
-shared line explosion is done in both its contexts. Production is three renderers in one view in the
-prototype (`renderProduction` returns three times) plus the shared *Current Coil In The Rollformer*
-panel, which the Queue renders too — port `renderCoilPanel` as its own component, with the
-`data-comment` prefix it takes. Everything derived is already in `selectors.ts` under the prototype's
-names, `queueGroupsSorted` included: the tab counts needed it, so it exists before the Queue does.
+**Next up: `/shipping`.** Rollforming is done to the same limit Trim is — every view green at both
+widths, everything left behind a modal. Shipping is the third department, so read both of the finished
+ones before starting: `src/components/shell/chrome.tsx` is the chrome it can reuse as-is, and
+`features/rollforming/` is the closer model of the two — its own department bar, machine sub-tabs, a
+shared line explosion parameterised by context, and selectors named exactly as the prototype names
+them. Its stylesheet is already extracted (`src/styles/shipping.css`); its seed is not dumped yet.
 
 ## The gates
 
@@ -200,9 +200,21 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/trim` — all six views | green at 1440 and 390 |
 | ✅ Trim's reachable states | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts` |
 | ✅ Rollforming shell + Unscheduled | seven views as one search param, 4 states green at both widths |
-| ✅ Rollforming Scheduled | both renderers, 6 states, `ctx='sch'` wired through the explosion |
-| ⬜ Rollforming's other five views | Production, Queue, Coils, Wrapping, Completed |
+| ✅ `/rollforming` — all seven views | green at 1440 and 390, 42 captures |
+| ✅ Rollforming's reachable states | 13 of them, both renderers of every view that has two |
 | ⬜ The other 12 pages | |
+
+### What Rollforming still owes
+
+The same as Trim, and for the same reason: everything left is behind a modal. Thirteen of them, and they
+are the substance of the page — the calendar that schedules, the Select Supplier / Coil Number and Create
+Cutlist window, the coil picker and its lot numbers, the package builder and its keypad, the location
+picker, the notes drawer, the material request form, the completed-order detail. Every button that opens
+one is ported and carries its `data-comment`; none of them opens anything.
+
+Two Queue actions are unwired for the same reason rather than because they are hard: checking a coil into
+a machine depletes its on-hand and toasts, and completing a slit auto-fills a Supplier and Coil Number.
+Both are pure state and both belong with a state that proves them.
 
 ### What Trim still owes
 
