@@ -59,6 +59,7 @@ export type Order = {
   bypassed?: boolean
   completed?: boolean
   completedDate?: string
+  completedTime?: string
   notes: Note[]
   lineItems: LineItem[]
   locationIds?: number[]

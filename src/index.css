@@ -43,8 +43,12 @@
 
 /* Preflight does reach a ported page, for the same reason, and in two places:
 
-   `font: inherit` on form elements brings `line-height` with it, and the prototype asks these elements
-   only for `font-family: inherit` — every button and input was a couple of pixels too tall.
+   `font: inherit` on form elements hands them the page's whole font. The prototype asks for that one
+   declaration at a time, on the controls that want it — `font-family: inherit` appears thirty-odd times
+   in one page's stylesheet — and leaves the rest on the browser's own button font. Reverting the
+   shorthand puts both back: buttons it styles still inherit, buttons it does not go back to Arial
+   13.333px, and the line-height that came along with the shorthand stops making every control a couple
+   of pixels too tall.
 
    `display: block` on replaced elements turns an inline icon into a line of its own. The prototype
    writes its icons inline inside a label and lets them sit on the text baseline, so a day tab grew a
@@ -52,7 +56,7 @@
 
    Both kept to one element of specificity, so any prototype rule still outranks them. */
 [data-page] :is(button, input, select, textarea, optgroup) {
-  line-height: revert;
+  font: revert;
 }
 
 [data-page] :is(img, svg, video, canvas, audio, iframe, embed, object) {

@@ -8,6 +8,8 @@ import { useStore } from '@/store/create-store'
 
 import { DeptBar, Sidebar, Topbar } from '@/features/trim/components/shell'
 import { Toast } from '@/features/trim/components/toast'
+import { Calendar } from '@/features/trim/components/calendar'
+import { Completed } from '@/features/trim/components/completed'
 import { Production } from '@/features/trim/components/production'
 import { Scheduled } from '@/features/trim/components/scheduled'
 import { Unscheduled } from '@/features/trim/components/unscheduled'
@@ -98,6 +100,8 @@ function Trim() {
               {view === 'home' ? <Unscheduled /> : null}
               {view === 'scheduled' ? <Scheduled /> : null}
               {view === 'production' ? <Production /> : null}
+              {view === 'calendar' ? <Calendar /> : null}
+              {view === 'completed' ? <Completed /> : null}
             </section>
           </main>
         </div>
