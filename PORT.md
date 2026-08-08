@@ -21,6 +21,27 @@ Three checks decide whether a page is done. They are mechanical; nothing is judg
 
 Both viewports every time: 1440 and 390.
 
+The first two are the ones that must hold: they are the behaviour and the anchors, and a comment lands or
+does not. The pixel diff is a net, not a specification — it is how the three cascade bugs below were
+found, none of which was visible by eye. When it is the only one red and the cause is understood and
+cosmetic, say so and move on; do not spend a day on a sub-pixel.
+
+### Screens the default capture cannot reach
+
+A `.view` is captured as it first renders, so everything behind a tab, a mode switch or a drill-in went
+unjudged — Production alone hid three whole renderers, and the port was green without any of them. The
+states in `tools/parity/states.ts` are a view plus a short list of things to click, and the clicks are
+addressed by `data-comment`: the one attribute both builds promise to keep, so one list drives the
+prototype and the port without knowing anything about either's markup. A state whose path a build cannot
+follow is reported, not skipped.
+
+Two things the harness had to learn along the way. Views share a store, so a state's clicks are still in
+effect when the next view renders — expanding an order on Unscheduled put its line items into the
+Scheduled baseline — and the page is now reloaded whenever a state has dirtied it. And horizontal
+scrollers are wound back before the screenshot on both sides: `fullPage` already means the gate does not
+judge where a page is scrolled to, and the prototype rebuilds its markup on every click while React does
+not, so the machine-tab strip alone would have failed forever on 390.
+
 ```bash
 python3 ../wiseline-demo/serve.py 8848     # the prototype
 bunx vite build                            # the port is served as a build, see below
@@ -120,16 +141,15 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
 | ✅ Trim shell + seed | sidebar, top bar, tabs, `seed.json` |
 | ✅ `/trim` — all six views | green at 1440 and 390 |
-| 🟡 Production's two other tabs | Wrapping (machine tab 7) and Stock Manufacturing render the cutlist list instead |
+| ✅ Trim's reachable states | Wrapping, Stock Manufacturing, completed lists, All Scheduled Orders, an expanded order |
+| 🟡 Wrapping's drill-in | clicking a line opens the package builder; not ported, and no state reaches it yet |
 | ⬜ The other 13 pages | |
 
-### What Production is still missing
+### What Trim still owes
 
-The prototype answers two of Production's own switches with whole separate renderers, and neither is
-ported: `Wrapping` — the terminal machine tab, an order-centric package builder — and the
-`Stock Manufacturing` mode of the segmented control above the machine tabs. The gate captures Production
-on Slinet in Trim mode, so it is green without them and will stay green if they are forgotten. They are
-the next thing to do on this page, before Rollforming.
+Clicking a row in the Wrapping list drills into that order's package builder — `renderWrapOrderDetail`,
+plus the separate stock-order window `renderStockWrapWindow` behind it (#185). Neither is ported. Add the
+state that reaches it at the same time, or the next person will read a green gate and believe it.
 
 ## Order of work
 
