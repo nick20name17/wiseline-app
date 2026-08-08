@@ -1,17 +1,25 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+import { Toaster } from '@/components/ui/sonner'
 import { queryClient } from '@/lib/query-client'
+
+import { ThemeProvider } from './theme'
+
+import { createPortal } from 'react-dom'
 
 import type { PropsWithChildren } from 'react'
 
-/**
- * Deliberately thin. The template's theme provider, tooltip provider and toaster are all shadcn on
- * Tailwind, and this app renders the prototype's own CSS instead — they would draw unstyled chrome
- * into a document the fidelity gate reads. The prototype's own overlays arrive with the pages.
- *
- * React Query has no callers yet; it is kept because the router's context declares it and because the
- * mock data behind these screens becomes a real API later.
- */
 export const Providers = ({ children }: PropsWithChildren) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <TooltipProvider>
+        {children}
+        {/* portalled out of the mount point: the parity gate reads `#root` as the page, and a toaster
+            sitting inside it is an element the prototype's page does not have */}
+        {createPortal(<Toaster richColors closeButton duration={5_000} />, document.body)}
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 )

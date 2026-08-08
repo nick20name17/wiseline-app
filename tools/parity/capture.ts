@@ -86,11 +86,22 @@ for (const viewport of VIEWPORTS) {
     localStorage.setItem('wl_dept', 'all')
   })
 
-  const browserPage = await context.newPage()
+  /**
+   * The one page that has to be looked at signed out — the port sends a signed-in viewer straight
+   * past it. A second context rather than clearing storage, because the init script above runs again
+   * on every navigation and would put the viewer back.
+   */
+  const signedOutContext = await browser.newContext({
+    viewport: { width: viewport.width, height: viewport.height }
+  })
+
+  const signedInPage = await context.newPage()
+  const signedOutPage = await signedOutContext.newPage()
 
   for (const page of PAGES) {
     const name = pageName(page)
     const url = urlFor(page)
+    const browserPage = page.route === '/sign-in' ? signedOutPage : signedInPage
 
     const response = await browserPage.goto(url, { waitUntil: 'networkidle' }).catch(() => null)
     if (!response || !response.ok()) {
@@ -124,6 +135,7 @@ for (const viewport of VIEWPORTS) {
   }
 
   await context.close()
+  await signedOutContext.close()
 }
 
 await browser.close()

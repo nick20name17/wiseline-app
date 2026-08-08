@@ -1,1054 +1,324 @@
-/* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
-[data-page='warehouse'] button i,
-[data-page='warehouse'] button svg,
-[data-page='warehouse'] a i,
-[data-page='warehouse'] a svg,
-[data-page='warehouse'] [onclick] i,
-[data-page='warehouse'] [onclick] svg {
-  pointer-events: none;
-}
-[data-page='warehouse'] *,
-[data-page='warehouse'] *::before,
-[data-page='warehouse'] *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
 
-[data-page='warehouse'] {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-2: #fbfcfd;
-  --surface-3: #f2f4f7;
-  --border: #e7eaef;
-  --border-strong: #d6dbe2;
-  --text: #14181f;
-  --text-muted: #344054;
-  --text-subtle: #475467;
-  --accent: #3b5bdb;
-  --accent-hover: #2f49bd;
-  --accent-soft: #eef1fe;
-  --accent-border: #c8d2f7;
-  --success: #0f7a54;
-  --success-soft: #e4f5ee;
-  --warn: #b5760a;
-  --warn-soft: #fbf1df;
-  --danger: #c4362f;
-  --danger-soft: #fbebea;
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-mono: 'Inter', system-ui, sans-serif;
-  --r-sm: 6px;
-  --r-md: 9px;
-  --r-lg: 13px;
-  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
-  --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
-  --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
-}
+            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+            [data-page="warehouse"] button i, [data-page="warehouse"] button svg, [data-page="warehouse"] a i, [data-page="warehouse"] a svg, [data-page="warehouse"] [onclick] i, [data-page="warehouse"] [onclick] svg { pointer-events: none; }
+            [data-page="warehouse"] *,
+            [data-page="warehouse"] *::before,
+            [data-page="warehouse"] *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-[data-page='warehouse'],
-[data-page='warehouse'] {
-  height: 100%;
-}
-[data-page='warehouse'] {
-  font-family: var(--font-ui);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-}
-[data-page='warehouse'] .mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-[data-page='warehouse'] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-[data-page='warehouse'] ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 8px;
-  border: 2px solid var(--bg);
-}
+            [data-page="warehouse"] {
+                --bg: #f5f6f8;
+                --surface: #ffffff;
+                --surface-2: #fbfcfd;
+                --surface-3: #f2f4f7;
+                --border: #e7eaef;
+                --border-strong: #d6dbe2;
+                --text: #14181f;
+                --text-muted: #344054;
+                --text-subtle: #475467;
+                --accent: #3b5bdb;
+                --accent-hover: #2f49bd;
+                --accent-soft: #eef1fe;
+                --accent-border: #c8d2f7;
+                --success: #0f7a54;
+                --success-soft: #e4f5ee;
+                --warn: #b5760a;
+                --warn-soft: #fbf1df;
+                --danger: #c4362f;
+                --danger-soft: #fbebea;
+                --font-ui: "Inter", system-ui, sans-serif;
+                --font-mono: "Inter", system-ui, sans-serif;
+                --r-sm: 6px;
+                --r-md: 9px;
+                --r-lg: 13px;
+                --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
+                --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
+                --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
+            }
 
-[data-page='warehouse'] .app {
-  display: grid;
-  grid-template-columns: 236px 1fr;
-  height: 100vh;
-  overflow: hidden;
-}
-[data-page='warehouse'] .sidebar {
-  background: var(--surface-2);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 14px 12px;
-  gap: 4px;
-  overflow-y: auto;
-}
-[data-page='warehouse'] .brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 6px 8px 14px;
-}
-[data-page='warehouse'] .brand-mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), #6d84ea);
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-sm);
-  flex: none;
-}
-[data-page='warehouse'] .brand-mark span {
-  width: 11px;
-  height: 11px;
-  border: 2px solid #fff;
-  transform: rotate(45deg);
-}
-[data-page='warehouse'] .brand-name {
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: -0.02em;
-}
-[data-page='warehouse'] .brand-sub {
-  font-size: 10px;
-  color: var(--text-subtle);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-[data-page='warehouse'] .nav-label {
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-  padding: 12px 8px 6px;
-  font-weight: 600;
-}
-[data-page='warehouse'] .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 9px;
-  border-radius: var(--r-sm);
-  color: var(--text-muted);
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  font-size: 13px;
-  text-decoration: none;
-}
-[data-page='warehouse'] .nav-item:hover {
-  background: var(--surface-3);
-  color: var(--text);
-}
-[data-page='warehouse'] .nav-item:focus-visible,
-[data-page='warehouse'] .tab:focus-visible,
-[data-page='warehouse'] .btn:focus-visible,
-[data-page='warehouse'] .icon-btn:focus-visible,
-[data-page='warehouse'] .select-btn:focus-visible,
-[data-page='warehouse'] a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-[data-page='warehouse'] .nav-item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-[data-page='warehouse'] .nav-item.active .nav-ico {
-  color: var(--accent);
-}
-[data-page='warehouse'] .nav-item.is-disabled {
-  color: var(--text-subtle);
-  cursor: not-allowed;
-}
-[data-page='warehouse'] .nav-item.is-disabled:hover {
-  background: none;
-}
-[data-page='warehouse'] .nav-ico {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  color: var(--text-subtle);
-}
-[data-page='warehouse'] .nav-soon {
-  margin-left: auto;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-subtle);
-  background: var(--surface-3);
-  padding: 1px 6px;
-  border-radius: 20px;
-}
-[data-page='warehouse'] .sidebar-foot {
-  margin-top: auto;
-  padding: 10px 8px 2px;
-  border-top: 1px solid var(--border);
-}
+            [data-page="warehouse"], [data-page="warehouse"] { height: 100%; }
+            [data-page="warehouse"] {
+                font-family: var(--font-ui);
+                background: var(--bg);
+                color: var(--text);
+                font-size: 13px;
+                line-height: 1.45;
+                -webkit-font-smoothing: antialiased;
+            }
+            [data-page="warehouse"] .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+            [data-page="warehouse"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+            [data-page="warehouse"] ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
 
-[data-page='warehouse'] .main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-[data-page='warehouse'] .topbar {
-  height: 52px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 18px;
-  flex: none;
-}
-[data-page='warehouse'] .crumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .crumb strong {
-  color: var(--text);
-  font-weight: 600;
-}
-[data-page='warehouse'] .crumb-sep {
-  color: var(--text-subtle);
-}
-[data-page='warehouse'] .topbar-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-[data-page='warehouse'] .role-chip {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: var(--surface-3);
-  padding: 4px 10px;
-  border-radius: var(--r-sm);
-}
-[data-page='warehouse'] .avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-  flex: none;
-}
+            [data-page="warehouse"] .app { display: grid; grid-template-columns: 236px 1fr; height: 100vh; overflow: hidden; }
+            [data-page="warehouse"] .sidebar {
+                background: var(--surface-2); border-right: 1px solid var(--border);
+                display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; overflow-y: auto;
+            }
+            [data-page="warehouse"] .brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 14px; }
+            [data-page="warehouse"] .brand-mark {
+                width: 26px; height: 26px; border-radius: 7px;
+                background: linear-gradient(135deg, var(--accent), #6d84ea);
+                display: grid; place-items: center; box-shadow: var(--shadow-sm); flex: none;
+            }
+            [data-page="warehouse"] .brand-mark span { width: 11px; height: 11px; border: 2px solid #fff; transform: rotate(45deg); }
+            [data-page="warehouse"] .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.02em; }
+            [data-page="warehouse"] .brand-sub { font-size: 10px; color: var(--text-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
+            [data-page="warehouse"] .nav-label {
+                font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase;
+                color: var(--text-subtle); padding: 12px 8px 6px; font-weight: 600;
+            }
+            [data-page="warehouse"] .nav-item {
+                display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: var(--r-sm);
+                color: var(--text-muted); font-weight: 500; cursor: pointer; border: none; background: none;
+                width: 100%; text-align: left; font-family: inherit; font-size: 13px; text-decoration: none;
+            }
+            [data-page="warehouse"] .nav-item:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="warehouse"] .nav-item:focus-visible,[data-page="warehouse"] .tab:focus-visible,[data-page="warehouse"] .btn:focus-visible,[data-page="warehouse"] .icon-btn:focus-visible,[data-page="warehouse"] .select-btn:focus-visible,[data-page="warehouse"] a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+            [data-page="warehouse"] .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+            [data-page="warehouse"] .nav-item.active .nav-ico { color: var(--accent); }
+            [data-page="warehouse"] .nav-item.is-disabled { color: var(--text-subtle); cursor: not-allowed; }
+            [data-page="warehouse"] .nav-item.is-disabled:hover { background: none; }
+            [data-page="warehouse"] .nav-ico { width: 14px; height: 14px; flex: none; color: var(--text-subtle); }
+            [data-page="warehouse"] .nav-soon {
+                margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+                color: var(--text-subtle); background: var(--surface-3); padding: 1px 6px; border-radius: 20px;
+            }
+            [data-page="warehouse"] .sidebar-foot { margin-top: auto; padding: 10px 8px 2px; border-top: 1px solid var(--border); }
 
-[data-page='warehouse'] .content {
-  flex: 1;
-  overflow: auto;
-  scrollbar-gutter: stable;
-  padding: 18px;
-}
+            [data-page="warehouse"] .main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+            [data-page="warehouse"] .topbar {
+                height: 52px; border-bottom: 1px solid var(--border); background: var(--surface);
+                display: flex; align-items: center; gap: 14px; padding: 0 18px; flex: none;
+            }
+            [data-page="warehouse"] .crumb { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+            [data-page="warehouse"] .crumb strong { color: var(--text); font-weight: 600; }
+            [data-page="warehouse"] .crumb-sep { color: var(--text-subtle); }
+            [data-page="warehouse"] .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+            [data-page="warehouse"] .role-chip {
+                font-size: 11.5px; font-weight: 500; color: var(--text-muted);
+                background: var(--surface-3); padding: 4px 10px; border-radius: var(--r-sm);
+            }
+            [data-page="warehouse"] .avatar {
+                width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff;
+                font-size: 11px; font-weight: 600; display: grid; place-items: center; flex: none;
+            }
 
-[data-page='warehouse'] .icon-btn {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-subtle);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-sm);
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-[data-page='warehouse'] .icon-btn:hover {
-  background: var(--surface-3);
-  color: var(--text);
-}
+            [data-page="warehouse"] .content { flex: 1; overflow: auto; scrollbar-gutter: stable; padding: 18px; }
 
-[data-page='warehouse'] .table-wrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-[data-page='warehouse'] table.grid {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-[data-page='warehouse'] table.grid th,
-[data-page='warehouse'] table.grid td {
-  overflow: hidden;
-}
-[data-page='warehouse'] table.grid th {
-  text-align: left;
-  font-size: 10px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-  font-weight: 600;
-  padding: 7px 14px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-[data-page='warehouse'] table.grid td {
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-[data-page='warehouse'] table.grid tr:last-child td {
-  border-bottom: none;
-}
-[data-page='warehouse'] table.grid tbody tr:hover td {
-  background: var(--surface-2);
-}
-[data-page='warehouse'] .mono-cell {
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-[data-page='warehouse'] .muted {
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .subtle {
-  color: var(--text-subtle);
-}
+            [data-page="warehouse"] .icon-btn {
+                border: none; background: none; cursor: pointer; color: var(--text-subtle);
+                width:36px; height:36px; border-radius:var(--r-sm); display: grid; place-items: center; flex:none;}
+            [data-page="warehouse"] .icon-btn:hover { background: var(--surface-3); color: var(--text); }
 
-[data-page='warehouse'] .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 1px 9px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-[data-page='warehouse'] .st-stock {
-  background: var(--surface-3);
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .st-inprogress {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-[data-page='warehouse'] .st-wrapped {
-  background: var(--success-soft);
-  color: var(--success);
-}
-[data-page='warehouse'] .st-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
+            [data-page="warehouse"] .table-wrap {
+                background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+                overflow: hidden; box-shadow: var(--shadow-sm);
+            }
+            [data-page="warehouse"] table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            [data-page="warehouse"] table.grid th, [data-page="warehouse"] table.grid td { overflow: hidden; }
+            [data-page="warehouse"] table.grid th {
+                text-align: left; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+                color: var(--text-subtle); font-weight: 600; padding: 7px 14px; background: var(--surface-2);
+                border-bottom: 1px solid var(--border); white-space: nowrap;
+            }
+            [data-page="warehouse"] table.grid td {
+                padding: 8px 14px; border-bottom: 1px solid var(--border); vertical-align: middle;
+                white-space: nowrap;
+            }
+            [data-page="warehouse"] table.grid tr:last-child td { border-bottom: none; }
+            [data-page="warehouse"] table.grid tbody tr:hover td { background: var(--surface-2); }
+            [data-page="warehouse"] .mono-cell { font-family: var(--font-mono); font-size: 12px; }
+            [data-page="warehouse"] .muted { color: var(--text-muted); }
+            [data-page="warehouse"] .subtle { color: var(--text-subtle); }
 
-/* dropdown popover */
-[data-page='warehouse'] .pop {
-  position: fixed;
-  z-index: 90;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-md);
-  padding: 5px;
-  min-width: 180px;
-  max-height: 280px;
-  overflow: auto;
-}
-[data-page='warehouse'] .pop-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  font-size: 12.5px;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  color: var(--text);
-}
-[data-page='warehouse'] .pop-item:hover {
-  background: var(--surface-3);
-}
-[data-page='warehouse'] .pop-item.selected {
-  color: var(--accent);
-  font-weight: 500;
-}
-[data-page='warehouse'] .pop-check {
-  margin-left: auto;
-  color: var(--accent);
-  width: 14px;
-  height: 14px;
-}
+            [data-page="warehouse"] .status {
+                display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500;
+                padding: 1px 9px; border-radius: 20px; white-space: nowrap;
+            }
+            [data-page="warehouse"] .st-stock { background: var(--surface-3); color: var(--text-muted); }
+            [data-page="warehouse"] .st-inprogress { background: var(--warn-soft); color: var(--warn); }
+            [data-page="warehouse"] .st-wrapped { background: var(--success-soft); color: var(--success); }
+            [data-page="warehouse"] .st-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-[data-page='warehouse'] .select-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 0 10px;
-  background: var(--surface);
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text);
-  cursor: pointer;
-  width: 190px;
-  height: 36px;
-}
-[data-page='warehouse'] .select-btn:hover {
-  border-color: var(--border-strong);
-}
-[data-page='warehouse'] .select-btn svg {
-  width: 14px;
-  height: 14px;
-  color: var(--text-subtle);
-  flex: none;
-}
+            /* dropdown popover */
+            [data-page="warehouse"] .pop {
+                position: fixed; z-index: 90; background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 5px; min-width: 180px;
+                max-height: 280px; overflow: auto;
+            }
+            [data-page="warehouse"] .pop-item {
+                display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm);
+                cursor: pointer; font-size: 12.5px; border: none; background: none; width: 100%; text-align: left;
+                font-family: inherit; color: var(--text);
+            }
+            [data-page="warehouse"] .pop-item:hover { background: var(--surface-3); }
+            [data-page="warehouse"] .pop-item.selected { color: var(--accent); font-weight: 500; }
+            [data-page="warehouse"] .pop-check { margin-left: auto; color: var(--accent); width: 14px; height: 14px; }
 
-[data-page='warehouse'] .search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 0 10px;
-  color: var(--text-subtle);
-  width: 220px;
-  height: 36px;
-}
-[data-page='warehouse'] .search:hover {
-  border-color: var(--border-strong);
-}
-[data-page='warehouse'] .search:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-[data-page='warehouse'] .search svg {
-  width: 14px;
-  height: 14px;
-  color: var(--text-subtle);
-  flex: none;
-}
-[data-page='warehouse'] .search input {
-  border: none;
-  background: none;
-  outline: none;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text);
-  width: 100%;
-}
+            [data-page="warehouse"] .select-btn {
+                display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
+                border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 10px; background: var(--surface);
+                font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer; width: 190px;
+                height: 36px;
+            }
+            [data-page="warehouse"] .select-btn:hover { border-color: var(--border-strong); }
+            [data-page="warehouse"] .select-btn svg { width: 14px; height: 14px; color: var(--text-subtle); flex: none; }
 
-/* modal */
-[data-page='warehouse'] .overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 24, 31, 0.4);
-  backdrop-filter: blur(2px);
-  z-index: 80;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-[data-page='warehouse'] .overlay.is-open {
-  display: flex;
-}
-[data-page='warehouse'] .modal {
-  background: var(--surface);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 460px;
-  max-height: 88vh;
-  overflow: auto;
-}
-[data-page='warehouse'] .modal-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 18px 20px 6px;
-}
-[data-page='warehouse'] .modal-title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-[data-page='warehouse'] .modal-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 3px;
-}
-[data-page='warehouse'] .modal-x {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-subtle);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-sm);
-  display: grid;
-  place-items: center;
-}
-[data-page='warehouse'] .modal-x:hover {
-  background: var(--surface-3);
-  color: var(--text);
-}
-[data-page='warehouse'] .modal-body {
-  padding: 8px 20px 20px;
-}
+            [data-page="warehouse"] .search {
+                display: flex; align-items: center; gap: 8px; background: var(--surface);
+                border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 10px; color: var(--text-subtle);
+                width: 220px; height: 36px;
+            }
+            [data-page="warehouse"] .search:hover { border-color: var(--border-strong); }
+            [data-page="warehouse"] .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+            [data-page="warehouse"] .search svg { width: 14px; height: 14px; color: var(--text-subtle); flex: none; }
+            [data-page="warehouse"] .search input {
+                border: none; background: none; outline: none; font-family: inherit; font-size: 13px;
+                color: var(--text); width: 100%;
+            }
 
-[data-page='warehouse'] .empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 56px 24px;
-  text-align: center;
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .empty-ico {
-  width: 34px;
-  height: 34px;
-  color: var(--text-subtle);
-  margin-bottom: 10px;
-}
-[data-page='warehouse'] .empty h3 {
-  font-size: 14px;
-  color: var(--text);
-  margin-bottom: 5px;
-}
-[data-page='warehouse'] .empty p {
-  font-size: 12.5px;
-  max-width: 320px;
-}
+            /* modal */
+            [data-page="warehouse"] .overlay {
+                position: fixed; inset: 0; background: rgba(20, 24, 31, 0.4); backdrop-filter: blur(2px);
+                z-index: 80; display: none; align-items: center; justify-content: center; padding: 24px;
+            }
+            [data-page="warehouse"] .overlay.is-open { display: flex; }
+            [data-page="warehouse"] .modal {
+                background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+                width: 100%; max-width: 460px; max-height: 88vh; overflow: auto;
+            }
+            [data-page="warehouse"] .modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 6px; }
+            [data-page="warehouse"] .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+            [data-page="warehouse"] .modal-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+            [data-page="warehouse"] .modal-x { border: none; background: none; cursor: pointer; color: var(--text-subtle); width:36px;height:36px; border-radius:var(--r-sm); display: grid; place-items: center; }
+            [data-page="warehouse"] .modal-x:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="warehouse"] .modal-body { padding: 8px 20px 20px; }
 
-/* ---------- Warehouse page ---------- */
-[data-page='warehouse'] .wh-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
-[data-page='warehouse'] .wh-head-title {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-}
-[data-page='warehouse'] .wh-head-sub {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin-top: 3px;
-}
-[data-page='warehouse'] .wh-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+            [data-page="warehouse"] .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; color: var(--text-muted); }
+            [data-page="warehouse"] .empty-ico { width: 34px; height: 34px; color: var(--text-subtle); margin-bottom: 10px; }
+            [data-page="warehouse"] .empty h3 { font-size: 14px; color: var(--text); margin-bottom: 5px; }
+            [data-page="warehouse"] .empty p { font-size: 12.5px; max-width: 320px; }
 
-[data-page='warehouse'] .legend-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-[data-page='warehouse'] .legend-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 20px;
-  padding: 5px 12px;
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: inherit;
-}
-[data-page='warehouse'] .legend-chip:hover {
-  border-color: var(--border-strong);
-}
-[data-page='warehouse'] .legend-chip.active {
-  border-color: var(--clr);
-  color: var(--clr);
-  background: color-mix(in srgb, var(--clr) 12%, var(--surface));
-}
-[data-page='warehouse'] .legend-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex: none;
-  background: var(--clr);
-}
+            /* ---------- Warehouse page ---------- */
+            [data-page="warehouse"] .wh-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+            [data-page="warehouse"] .wh-head-title { font-size: 19px; font-weight: 600; letter-spacing: -0.03em; }
+            [data-page="warehouse"] .wh-head-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+            [data-page="warehouse"] .wh-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-[data-page='warehouse'] .stat-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
-}
-[data-page='warehouse'] .stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 14px 16px;
-  box-shadow: var(--shadow-sm);
-}
-[data-page='warehouse'] .stat-label {
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-  font-weight: 600;
-  margin-bottom: 7px;
-}
-[data-page='warehouse'] .stat-value {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-[data-page='warehouse'] .stat-value.danger {
-  color: var(--danger);
-}
+            [data-page="warehouse"] .legend-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+            [data-page="warehouse"] .legend-chip {
+                display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border);
+                background: var(--surface); border-radius: 20px; padding: 5px 12px; font-size: 12px;
+                color: var(--text-muted); cursor: pointer; font-family: inherit;
+            }
+            [data-page="warehouse"] .legend-chip:hover { border-color: var(--border-strong); }
+            [data-page="warehouse"] .legend-chip.active { border-color: var(--clr); color: var(--clr); background: color-mix(in srgb, var(--clr) 12%, var(--surface)); }
+            [data-page="warehouse"] .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--clr); }
 
-[data-page='warehouse'] .wh-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-[data-page='warehouse'] .wh-tile {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 12px 13px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  box-shadow: var(--shadow-sm);
-}
-[data-page='warehouse'] .wh-tile:hover {
-  border-color: var(--border-strong);
-}
-[data-page='warehouse'] .wh-tile.is-empty {
-  background: var(--surface-2);
-}
-[data-page='warehouse'] .wh-tile.is-empty .wh-tile-num {
-  color: var(--text-subtle);
-}
-[data-page='warehouse'] .wh-tile.is-over {
-  border-color: var(--danger);
-}
-[data-page='warehouse'] .wh-tile.is-full {
-  background: var(--surface-3);
-  border-style: dashed;
-}
-[data-page='warehouse'] .wh-tile.is-full .wh-tile-num {
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .wh-tile.is-full:not(.is-over) {
-  border-color: var(--border-strong);
-}
-[data-page='warehouse'] .wh-tile-alert {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 14px;
-  height: 14px;
-  color: var(--danger);
-}
-[data-page='warehouse'] .wh-tile-lock {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 13px;
-  height: 13px;
-  color: var(--text-subtle);
-}
-[data-page='warehouse'] .wh-tile-badge {
-  display: inline-block;
-  margin-top: 7px;
-  font-size: 9.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 7px;
-  border-radius: 20px;
-}
-[data-page='warehouse'] .wh-tile-badge.full {
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  color: var(--text-muted);
-}
-[data-page='warehouse'] .wh-tile-badge.avail {
-  background: var(--success-soft);
-  color: var(--success);
-}
-[data-page='warehouse'] .cap-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 12px;
-}
-[data-page='warehouse'] .cap-badge {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 8px;
-  border-radius: 20px;
-}
-[data-page='warehouse'] .cap-badge.full {
-  background: var(--surface-3);
-  color: var(--text-muted);
-  border: 1px solid var(--border-strong);
-}
-[data-page='warehouse'] .cap-badge.avail {
-  background: var(--success-soft);
-  color: var(--success);
-}
-[data-page='warehouse'] .release-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-[data-page='warehouse'] .release-note-body {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.5;
-}
-[data-page='warehouse'] .occ-remove {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-subtle);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  display: grid;
-  place-items: center;
-  margin: 0 auto;
-  flex: none;
-}
-[data-page='warehouse'] .occ-remove:hover {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-[data-page='warehouse'] .countdown {
-  font-size: 11px;
-  color: var(--text-subtle);
-  white-space: nowrap;
-}
-[data-page='warehouse'] .countdown.is-due {
-  color: var(--danger);
-}
-[data-page='warehouse'] .toast {
-  position: fixed;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: #fff;
-  padding: 10px 16px;
-  border-radius: var(--r-md);
-  font-size: 12.5px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-[data-page='warehouse'] .toast.show {
-  opacity: 1;
-}
-[data-page='warehouse'] .toast svg {
-  width: 14px;
-  height: 14px;
-  color: #fff;
-}
-[data-page='warehouse'] .toast.t-success {
-  background: var(--success);
-  color: #fff;
-}
-[data-page='warehouse'] .toast.t-error {
-  background: var(--danger);
-  color: #fff;
-}
-[data-page='warehouse'] .toast.t-warning {
-  background: var(--warn);
-  color: #fff;
-}
-[data-page='warehouse'] .toast.t-info {
-  background: var(--accent);
-  color: #fff;
-}
-[data-page='warehouse'] .toast .toast-ico {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  color: #fff;
-}
-[data-page='warehouse'] .wh-tile-num {
-  font-size: 17px;
-  font-weight: 600;
-}
-[data-page='warehouse'] .wh-tile-type {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  color: var(--text-muted);
-  margin-top: 5px;
-}
-[data-page='warehouse'] .wh-tile-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex: none;
-}
-[data-page='warehouse'] .wh-tile-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 10px;
-}
-[data-page='warehouse'] .wh-tile-bar {
-  flex: 1;
-  height: 5px;
-  border-radius: 4px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-[data-page='warehouse'] .wh-tile-bar span {
-  display: block;
-  height: 100%;
-}
-[data-page='warehouse'] .wh-tile-pct {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  flex: none;
-}
-[data-page='warehouse'] .wh-tile.is-over .wh-tile-pct {
-  color: var(--danger);
-}
-[data-page='warehouse'] .wh-tile-amount {
-  font-size: 10px;
-  color: var(--text-subtle);
-  margin-top: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-[data-page='warehouse'] .wh-tile-occ {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 7px;
-}
+            [data-page="warehouse"] .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+            [data-page="warehouse"] .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+            [data-page="warehouse"] .stat-label { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; margin-bottom: 7px; }
+            [data-page="warehouse"] .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+            [data-page="warehouse"] .stat-value.danger { color: var(--danger); }
 
-[data-page='warehouse'] .detail-bar-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-[data-page='warehouse'] .detail-bar-row .danger-text {
-  color: var(--danger);
-}
-[data-page='warehouse'] .detail-bar {
-  height: 10px;
-  border-radius: var(--r-sm);
-  background: var(--surface-3);
-  overflow: hidden;
-}
-[data-page='warehouse'] .detail-bar span {
-  display: block;
-  height: 100%;
-}
-[data-page='warehouse'] .detail-over-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--danger);
-  font-size: 11.5px;
-  margin-top: 9px;
-}
+            [data-page="warehouse"] .wh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+            [data-page="warehouse"] .wh-tile {
+                position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+                padding: 12px 13px; cursor: pointer; text-align: left; font-family: inherit; box-shadow: var(--shadow-sm);
+            }
+            [data-page="warehouse"] .wh-tile:hover { border-color: var(--border-strong); }
+            [data-page="warehouse"] .wh-tile.is-empty { background: var(--surface-2); }
+            [data-page="warehouse"] .wh-tile.is-empty .wh-tile-num { color: var(--text-subtle); }
+            [data-page="warehouse"] .wh-tile.is-over { border-color: var(--danger); }
+            [data-page="warehouse"] .wh-tile.is-full { background: var(--surface-3); border-style: dashed; }
+            [data-page="warehouse"] .wh-tile.is-full .wh-tile-num { color: var(--text-muted); }
+            [data-page="warehouse"] .wh-tile.is-full:not(.is-over) { border-color: var(--border-strong); }
+            [data-page="warehouse"] .wh-tile-alert { position: absolute; top: 9px; right: 9px; width: 14px; height: 14px; color: var(--danger); }
+            [data-page="warehouse"] .wh-tile-lock { position: absolute; top: 9px; right: 9px; width: 13px; height: 13px; color: var(--text-subtle); }
+            [data-page="warehouse"] .wh-tile-badge {
+                display: inline-block; margin-top: 7px; font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+                letter-spacing: 0.05em; padding: 1px 7px; border-radius: 20px;
+            }
+            [data-page="warehouse"] .wh-tile-badge.full { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-muted); }
+            [data-page="warehouse"] .wh-tile-badge.avail { background: var(--success-soft); color: var(--success); }
+            [data-page="warehouse"] .cap-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+            [data-page="warehouse"] .cap-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 8px; border-radius: 20px; }
+            [data-page="warehouse"] .cap-badge.full { background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border-strong); }
+            [data-page="warehouse"] .cap-badge.avail { background: var(--success-soft); color: var(--success); }
+            [data-page="warehouse"] .release-note { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--text-muted); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+            [data-page="warehouse"] .release-note-body { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; line-height: 1.5; }
+            [data-page="warehouse"] .occ-remove { border: none; background: none; cursor: pointer; color: var(--text-subtle); width: 28px; height: 28px; border-radius: var(--r-sm); display: grid; place-items: center; margin: 0 auto; flex:none;}
+            [data-page="warehouse"] .occ-remove:hover { background: var(--danger-soft); color: var(--danger); }
+            [data-page="warehouse"] .countdown { font-size: 11px; color: var(--text-subtle); white-space: nowrap; }
+            [data-page="warehouse"] .countdown.is-due { color: var(--danger); }
+            [data-page="warehouse"] .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 16px; border-radius: var(--r-md); font-size: 12.5px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 100; display: flex; align-items: center; gap: 9px; }
+            [data-page="warehouse"] .toast.show { opacity: 1; }
+            [data-page="warehouse"] .toast svg { width: 14px; height: 14px; color: #fff; }
+            [data-page="warehouse"] .toast.t-success{background:var(--success);color:#fff}
+            [data-page="warehouse"] .toast.t-error{background:var(--danger);color:#fff}
+            [data-page="warehouse"] .toast.t-warning{background:var(--warn);color:#fff}
+            [data-page="warehouse"] .toast.t-info{background:var(--accent);color:#fff}
+            [data-page="warehouse"] .toast .toast-ico{width:14px;height:14px;flex:none;color:#fff}
+            [data-page="warehouse"] .wh-tile-num { font-size: 17px; font-weight: 600; }
+            [data-page="warehouse"] .wh-tile-type { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); margin-top: 5px; }
+            [data-page="warehouse"] .wh-tile-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+            [data-page="warehouse"] .wh-tile-bar-row { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+            [data-page="warehouse"] .wh-tile-bar { flex: 1; height: 5px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+            [data-page="warehouse"] .wh-tile-bar span { display: block; height: 100%; }
+            [data-page="warehouse"] .wh-tile-pct { font-size: 10.5px; font-weight: 600; color: var(--text-muted); flex: none; }
+            [data-page="warehouse"] .wh-tile.is-over .wh-tile-pct { color: var(--danger); }
+            [data-page="warehouse"] .wh-tile-amount { font-size: 10px; color: var(--text-subtle); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            [data-page="warehouse"] .wh-tile-occ { font-size: 11px; color: var(--text-muted); margin-top: 7px; }
 
-@media (max-width: 1024px) {
-  [data-page='warehouse'] .app {
-    grid-template-columns: 1fr;
-  }
-  [data-page='warehouse'] .sidebar {
-    display: none;
-  }
-}
+            [data-page="warehouse"] .detail-bar-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+            [data-page="warehouse"] .detail-bar-row .danger-text { color: var(--danger); }
+            [data-page="warehouse"] .detail-bar { height: 10px; border-radius:var(--r-sm); background: var(--surface-3); overflow: hidden; }
+            [data-page="warehouse"] .detail-bar span { display: block; height: 100%; }
+            [data-page="warehouse"] .detail-over-note { display: flex; align-items: center; gap: 6px; color: var(--danger); font-size: 11.5px; margin-top: 9px; }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-page='warehouse'] *,
-  [data-page='warehouse'] *::before,
-  [data-page='warehouse'] *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-/* Compact desktop density system. */
-[data-page='warehouse'] .topbar {
-  height: 40px;
-  padding-left: 14px;
-  padding-right: 14px;
-  gap: 10px;
-}
-[data-page='warehouse'] .content {
-  padding-top: 8px;
-  padding-left: 12px;
-  padding-right: 12px;
-}
-[data-page='warehouse'] .tabs {
-  gap: 1px;
-}
-[data-page='warehouse'] .tab {
-  padding: 4px 9px;
-  gap: 5px;
-  min-height: 30px;
-}
-[data-page='warehouse'] .toolbar {
-  gap: 6px;
-  margin-bottom: 6px;
-}
-[data-page='warehouse'] .page-head,
-[data-page='warehouse'] .view-head,
-[data-page='warehouse'] .section-head {
-  margin-bottom: 6px;
-}
-[data-page='warehouse'] .kpi-grid,
-[data-page='warehouse'] .stats-grid,
-[data-page='warehouse'] .cards-grid,
-[data-page='warehouse'] .dept-grid {
-  gap: 8px;
-}
-[data-page='warehouse'] .table-wrap table.grid th {
-  padding: 4px 10px !important;
-}
-[data-page='warehouse'] .table-wrap table.grid td {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-}
-[data-page='warehouse'] .table-wrap table.grid td.occ-cell {
-  padding-left: 4px !important;
-  padding-right: 4px !important;
-  overflow: visible;
-}
-[data-page='warehouse'] .table-wrap table.grid .expander {
-  height: 22px;
-}
-[data-page='warehouse'] .table-wrap table.grid .pri {
-  padding-top: 1px !important;
-  padding-bottom: 1px !important;
-}
-[data-page='warehouse'] .status,
-[data-page='warehouse'] .chip,
-[data-page='warehouse'] .pri,
-[data-page='warehouse'] .dept-chip,
-[data-page='warehouse'] .lock-tag,
-[data-page='warehouse'] .load-num-pill,
-[data-page='warehouse'] .rework-badge {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-[data-page='warehouse'] table.sub th {
-  padding: 3px 7px !important;
-}
-[data-page='warehouse'] table.sub td {
-  padding: 2px 7px !important;
-}
-[data-page='warehouse'] table.sub .btn {
-  height: 26px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-[data-page='warehouse'] table.sub .field-input,
-[data-page='warehouse'] table.sub .pack-input {
-  height: 26px;
-}
-[data-page='warehouse'] table.sub .note-btn {
-  width: 26px;
-  min-height: 26px;
-  height: 26px;
-}
-[data-page='warehouse'] table.sub .pkg-qty-btn {
-  min-height: 26px;
-  padding: 2px 8px;
-}
-[data-page='warehouse'] table.stock-edit th,
-[data-page='warehouse'] table.pkg-table th {
-  padding: 5px 8px !important;
-}
-[data-page='warehouse'] table.stock-edit td,
-[data-page='warehouse'] table.pkg-table td {
-  padding: 5px 8px !important;
-}
-[data-page='warehouse'] .table-wrap .note-btn,
-[data-page='warehouse'] .table-wrap .icon-btn {
-  min-height: 24px;
-  height: 24px;
-}
-[data-page='warehouse'] .btn {
-  height: 30px;
-}
-[data-page='warehouse'] .icon-btn {
-  width: 30px;
-  height: 30px;
-}
-[data-page='warehouse'] .search,
-[data-page='warehouse'] .input,
-[data-page='warehouse'] .field-input,
-[data-page='warehouse'] .field-btn,
-[data-page='warehouse'] .due-filter,
-[data-page='warehouse'] .select-btn {
-  height: 30px;
-}
-[data-page='warehouse'] .empty {
-  padding-top: 16px;
-  padding-bottom: 16px;
-}
+            @media (max-width: 1024px) { [data-page="warehouse"] .app { grid-template-columns: 1fr; } [data-page="warehouse"] .sidebar { display: none; } }
+        
+            @media (prefers-reduced-motion: reduce) { [data-page="warehouse"] *, [data-page="warehouse"] *::before, [data-page="warehouse"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
+                    /* Compact desktop density system. */
+            [data-page="warehouse"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
+            [data-page="warehouse"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
+            [data-page="warehouse"] .tabs{gap:1px}
+            [data-page="warehouse"] .tab{padding:4px 9px;gap:5px;min-height:30px}
+            [data-page="warehouse"] .toolbar{gap:6px;margin-bottom:6px}
+            [data-page="warehouse"] .page-head,[data-page="warehouse"] .view-head,[data-page="warehouse"] .section-head{margin-bottom:6px}
+            [data-page="warehouse"] .kpi-grid,[data-page="warehouse"] .stats-grid,[data-page="warehouse"] .cards-grid,[data-page="warehouse"] .dept-grid{gap:8px}
+            [data-page="warehouse"] .table-wrap table.grid th{padding:4px 10px!important}
+            [data-page="warehouse"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
+            [data-page="warehouse"] .table-wrap table.grid td.occ-cell{padding-left:4px!important;padding-right:4px!important;overflow:visible}
+            [data-page="warehouse"] .table-wrap table.grid .expander{height:22px}
+            [data-page="warehouse"] .table-wrap table.grid .pri{padding-top:1px!important;padding-bottom:1px!important}
+            [data-page="warehouse"] .status,[data-page="warehouse"] .chip,[data-page="warehouse"] .pri,[data-page="warehouse"] .dept-chip,[data-page="warehouse"] .lock-tag,[data-page="warehouse"] .load-num-pill,[data-page="warehouse"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
+            [data-page="warehouse"] table.sub th{padding:3px 7px!important}
+            [data-page="warehouse"] table.sub td{padding:2px 7px!important}
+            [data-page="warehouse"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
+            [data-page="warehouse"] table.sub .field-input,[data-page="warehouse"] table.sub .pack-input{height:26px}
+            [data-page="warehouse"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
+            [data-page="warehouse"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
+            [data-page="warehouse"] table.stock-edit th,[data-page="warehouse"] table.pkg-table th{padding:5px 8px!important}
+            [data-page="warehouse"] table.stock-edit td,[data-page="warehouse"] table.pkg-table td{padding:5px 8px!important}
+            [data-page="warehouse"] .table-wrap .note-btn,[data-page="warehouse"] .table-wrap .icon-btn{min-height:24px;height:24px}
+            [data-page="warehouse"] .btn{height:30px}
+            [data-page="warehouse"] .icon-btn{width:30px;height:30px}
+            [data-page="warehouse"] .search,[data-page="warehouse"] .input,[data-page="warehouse"] .field-input,[data-page="warehouse"] .field-btn,[data-page="warehouse"] .due-filter,[data-page="warehouse"] .select-btn{height:30px}
+            [data-page="warehouse"] .empty{padding-top:16px;padding-bottom:16px}
+        
+
+            [data-page="warehouse"] .wl-role-fab { position: fixed; bottom: 16px; right: 16px; z-index: 45; display: flex; align-items: center; gap: 9px; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow-md); padding: 6px 8px 6px 14px; }
+            [data-page="warehouse"] .content { padding-bottom: 88px; }
+            [data-page="warehouse"] .wl-role-fab-label { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; }
+            [data-page="warehouse"] .role-switch-btn { display: flex; align-items: center; gap: 8px; padding: 6px 11px; border: 1px solid var(--border); background: var(--surface); border-radius: 20px; font-family: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; }
+            [data-page="warehouse"] .role-switch-btn:hover { background: var(--surface-3); }
+            [data-page="warehouse"] .role-switch-caret { width: 14px; height: 14px; color: var(--text-subtle); flex: none; }
+            [data-page="warehouse"] .wl-role-menu { position: fixed; z-index: 200; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 5px; min-width: 240px; }
+            [data-page="warehouse"] .wl-role-opt { display: block; width: 100%; text-align: left; padding: 8px 14px; border: none; background: none; color: var(--text); border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+            [data-page="warehouse"] .wl-role-opt:hover { background: var(--surface-3); }
+            [data-page="warehouse"] .wl-role-opt.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+            [data-page="warehouse"] .wl-role-head { padding: 7px 9px 3px 9px; font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; }
+            [data-page="warehouse"] .wl-role-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+            [data-page="warehouse"] .wl-role-danger { color: var(--danger); }
+            [data-page="warehouse"] .wl-role-danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+        
