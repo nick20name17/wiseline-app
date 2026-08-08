@@ -1,0 +1,372 @@
+
+            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+            [data-page="stockcards"] button i, [data-page="stockcards"] button svg, [data-page="stockcards"] a i, [data-page="stockcards"] a svg, [data-page="stockcards"] [onclick] i, [data-page="stockcards"] [onclick] svg { pointer-events: none; }
+            [data-page="stockcards"] *,
+            [data-page="stockcards"] *::before,
+            [data-page="stockcards"] *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+            [data-page="stockcards"] {
+                --bg: #f5f6f8;
+                --surface: #ffffff;
+                --surface-2: #fbfcfd;
+                --surface-3: #f2f4f7;
+                --border: #e7eaef;
+                --border-strong: #d6dbe2;
+                --text: #14181f;
+                --text-muted: #344054;
+                --text-subtle: #475467;
+                --accent: #3b5bdb;
+                --accent-hover: #2f49bd;
+                --accent-soft: #eef1fe;
+                --accent-border: #c8d2f7;
+                --success: #0f7a54;
+                --success-soft: #e4f5ee;
+                --danger: #c4362f;
+                --danger-soft: #fbebea;
+                --warn: #b58608;
+                --font-ui: "Inter", system-ui, sans-serif;
+                --font-mono: "Inter", system-ui, sans-serif;
+                --r-sm: 6px;
+                --r-md: 9px;
+                --r-lg: 13px;
+                --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
+                --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
+                --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
+            }
+
+            [data-page="stockcards"], [data-page="stockcards"] { height: 100%; }
+            [data-page="stockcards"] {
+                font-family: var(--font-ui);
+                background: var(--bg);
+                color: var(--text);
+                font-size: 13px;
+                line-height: 1.45;
+                -webkit-font-smoothing: antialiased;
+            }
+            [data-page="stockcards"] .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+            [data-page="stockcards"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+            [data-page="stockcards"] ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--bg); }
+
+            [data-page="stockcards"] .app { display: grid; grid-template-columns: 236px 1fr; height: 100vh; overflow: hidden; }
+            [data-page="stockcards"] .sidebar {
+                background: var(--surface-2); border-right: 1px solid var(--border);
+                display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; overflow-y: auto;
+            }
+            [data-page="stockcards"] .brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 14px; }
+            [data-page="stockcards"] .brand-mark {
+                width: 26px; height: 26px; border-radius: 7px;
+                background: linear-gradient(135deg, var(--accent), #6d84ea);
+                display: grid; place-items: center; box-shadow: var(--shadow-sm); flex: none;
+            }
+            [data-page="stockcards"] .brand-mark span { width: 11px; height: 11px; border: 2px solid #fff; transform: rotate(45deg); }
+            [data-page="stockcards"] .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.02em; }
+            [data-page="stockcards"] .brand-sub { font-size: 10px; color: var(--text-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
+            [data-page="stockcards"] .nav-label {
+                font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase;
+                color: var(--text-subtle); padding: 12px 8px 6px; font-weight: 600;
+            }
+            [data-page="stockcards"] .nav-item {
+                display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: var(--r-sm);
+                color: var(--text-muted); font-weight: 500; cursor: pointer; border: none; background: none;
+                width: 100%; text-align: left; font-family: inherit; font-size: 13px; text-decoration: none;
+            }
+            [data-page="stockcards"] .nav-item:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="stockcards"] .nav-item:focus-visible,[data-page="stockcards"] .tab:focus-visible,[data-page="stockcards"] .btn:focus-visible,[data-page="stockcards"] .icon-btn:focus-visible,[data-page="stockcards"] .select-btn:focus-visible,[data-page="stockcards"] a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+            [data-page="stockcards"] .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+            [data-page="stockcards"] .nav-item.active .nav-ico { color: var(--accent); }
+            [data-page="stockcards"] .nav-item.is-disabled { color: var(--text-subtle); cursor: not-allowed; }
+            [data-page="stockcards"] .nav-item.is-disabled:hover { background: none; }
+            [data-page="stockcards"] .nav-ico { width: 14px; height: 14px; flex: none; color: var(--text-subtle); }
+            [data-page="stockcards"] .nav-soon {
+                margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+                color: var(--text-subtle); background: var(--surface-3); padding: 1px 6px; border-radius: 20px;
+            }
+            [data-page="stockcards"] .sidebar-foot { margin-top: auto; padding: 10px 8px 2px; border-top: 1px solid var(--border); }
+
+            [data-page="stockcards"] .main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+            [data-page="stockcards"] .topbar {
+                height: 52px; border-bottom: 1px solid var(--border); background: var(--surface);
+                display: flex; align-items: center; gap: 14px; padding: 0 18px; flex: none;
+            }
+            [data-page="stockcards"] .crumb { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+            [data-page="stockcards"] .crumb strong { color: var(--text); font-weight: 600; }
+            [data-page="stockcards"] .crumb-sep { color: var(--text-subtle); }
+            [data-page="stockcards"] .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+            [data-page="stockcards"] .role-chip {
+                font-size: 11.5px; font-weight: 500; color: var(--text-muted);
+                background: var(--surface-3); padding: 4px 10px; border-radius: var(--r-sm);
+            }
+            [data-page="stockcards"] .avatar {
+                width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff;
+                font-size: 11px; font-weight: 600; display: grid; place-items: center; flex: none;
+            }
+
+            [data-page="stockcards"] .dept-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 18px 0; flex: none; }
+            [data-page="stockcards"] .dept-bar { padding-bottom: 14px; }
+            [data-page="stockcards"] .dept-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 3px; }
+            [data-page="stockcards"] .dept-title { font-size: 19px; font-weight: 600; letter-spacing: -0.03em; }
+            [data-page="stockcards"] .dept-chip {
+                font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted);
+                background: var(--surface-3); border: 1px solid var(--border); padding: 1px 9px; border-radius: 20px;
+            }
+            [data-page="stockcards"] .dept-subtitle { font-size: 12.5px; color: var(--text-muted); }
+            [data-page="stockcards"] .tabs { display: flex; gap: 2px; overflow-x: auto; overflow-y: hidden; }
+            [data-page="stockcards"] .tab {
+                border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 500;
+                color: var(--text-muted); padding: 9px 13px; cursor: pointer; border-bottom: 2px solid transparent;
+                margin-bottom: -1px; white-space: nowrap;
+            }
+            [data-page="stockcards"] .tab:hover { color: var(--text); }
+            [data-page="stockcards"] .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+            [data-page="stockcards"] .content { flex: 1; overflow: auto; scrollbar-gutter: stable; padding: 18px; margin-bottom: 72px; } /* reserve corner so content can't land under the fixed "Viewing as" pill */
+            [data-page="stockcards"] .view { display: none; }
+            [data-page="stockcards"] .view.active { display: block; }
+
+            [data-page="stockcards"] .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+            [data-page="stockcards"] .toolbar-info { font-size: 12.5px; color: var(--text-muted); }
+            [data-page="stockcards"] .toolbar-info b { color: var(--text); font-weight: 600; }
+            [data-page="stockcards"] .toolbar-spacer { flex: 1; }
+
+            [data-page="stockcards"] .search {
+                display: flex; align-items: center; gap: 8px; background: var(--surface);
+                border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 10px;
+                color: var(--text-subtle); width: 240px; height: 36px;
+            }
+            [data-page="stockcards"] .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+            [data-page="stockcards"] .search input {
+                border: none; background: none; outline: none; font-family: inherit;
+                font-size: 13px; color: var(--text); width: 100%;
+            }
+
+            [data-page="stockcards"] .btn {
+                display: inline-flex; align-items: center; gap:5px; border: 1px solid var(--border-strong);
+                background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px;
+                font-weight: 500; padding: 0 12px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap;
+                height: 36px;
+            }
+            [data-page="stockcards"] .btn:hover { background: var(--surface-3); }
+            [data-page="stockcards"] .btn svg { width: 14px; height: 14px; }
+            [data-page="stockcards"] .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+            [data-page="stockcards"] .btn-primary:hover { background: var(--accent-hover); }
+            [data-page="stockcards"] .btn-ghost { border-color: transparent; background: none; color: var(--text-muted); }
+            [data-page="stockcards"] .btn-ghost:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="stockcards"] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+            [data-page="stockcards"] .btn-sm { padding: 0 9px; font-size: 12px; }
+            [data-page="stockcards"] .icon-btn {
+                border: none; background: none; cursor: pointer; color: var(--text-subtle);
+                width:36px; height:36px; border-radius:var(--r-sm); display: grid; place-items: center; flex:none;}
+            [data-page="stockcards"] .icon-btn:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="stockcards"] .icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+
+            [data-page="stockcards"] .table-wrap {
+                background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+                overflow: hidden; box-shadow: var(--shadow-sm);
+            }
+
+            [data-page="stockcards"] .chip {
+                display: inline-flex; align-items: center; font-size: 11px; font-weight: 500;
+                padding: 1px 9px; border-radius: 20px; background: var(--surface-3); color: var(--text-muted);
+            }
+            [data-page="stockcards"] .chip.blue { background: var(--accent-soft); color: var(--accent); }
+            [data-page="stockcards"] .chip.green { background: var(--success-soft); color: var(--success); }
+
+            /* dropdown popover — must outrank .overlay (80) since selects live inside modals */
+            [data-page="stockcards"] .pop {
+                position: fixed; z-index: 90; background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 5px; min-width: 190px;
+                max-height: 280px; overflow: auto;
+            }
+            [data-page="stockcards"] .pop-item {
+                display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm);
+                cursor: pointer; font-size: 12.5px; border: none; background: none; width: 100%; text-align: left;
+                font-family: inherit; color: var(--text);
+            }
+            [data-page="stockcards"] .pop-item:hover { background: var(--surface-3); }
+            [data-page="stockcards"] .pop-item.selected { color: var(--accent); font-weight: 500; }
+            [data-page="stockcards"] .pop-check { margin-left: auto; color: var(--accent); width: 14px; height: 14px; }
+
+            /* modal + form */
+            [data-page="stockcards"] .overlay {
+                position: fixed; inset: 0; background: rgba(20, 24, 31, 0.4); backdrop-filter: blur(2px);
+                z-index: 80; display: none; align-items: center; justify-content: center; padding: 24px;
+            }
+            [data-page="stockcards"] .overlay.is-open { display: flex; }
+            [data-page="stockcards"] .modal {
+                background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+                width: 100%; max-width: 460px; max-height: 88vh; overflow: auto;
+            }
+            [data-page="stockcards"] .modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 6px; }
+            [data-page="stockcards"] .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+            [data-page="stockcards"] .modal-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+            [data-page="stockcards"] .modal-x { border: none; background: none; cursor: pointer; color: var(--text-subtle); width:36px;height:36px; border-radius:var(--r-sm); display: grid; place-items: center; }
+            [data-page="stockcards"] .modal-x:hover { background: var(--surface-3); color: var(--text); }
+            [data-page="stockcards"] .modal-body { padding: 8px 20px; }
+            [data-page="stockcards"] .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 18px; }
+
+            [data-page="stockcards"] .field { margin-bottom: 14px; }
+            [data-page="stockcards"] .field-label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; }
+            [data-page="stockcards"] .field-label .req { color: var(--danger); }
+            [data-page="stockcards"] .field-label .field-optional { color: var(--text-subtle); font-weight: 400; }
+            [data-page="stockcards"] .input, [data-page="stockcards"] .textarea {
+                width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm);
+                font-family: var(--font-ui); font-size: 13px; color: var(--text); background: var(--surface);
+            }
+            [data-page="stockcards"] .input { height: 36px; padding: 0 10px; }
+            [data-page="stockcards"] .textarea { padding: 8px 10px; }
+            [data-page="stockcards"] .input:focus, [data-page="stockcards"] .textarea:focus { outline: none; border-color: var(--accent); }
+            [data-page="stockcards"] .input.mono { font-family: var(--font-mono); }
+            [data-page="stockcards"] .select-btn {
+                width: 100%; display: flex; align-items: center; justify-content: space-between;
+                border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 10px; background: var(--surface);
+                font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer;
+                height: 36px;
+            }
+            [data-page="stockcards"] .select-btn.placeholder { color: var(--text-subtle); }
+            [data-page="stockcards"] .select-btn:hover { border-color: var(--border-strong); }
+            [data-page="stockcards"] .select-btn svg { width: 14px; height: 14px; color: var(--text-subtle); }
+            [data-page="stockcards"] .field-row { display: flex; align-items: center; gap: 10px; }
+            [data-page="stockcards"] .form-error {
+                padding: 9px 12px; background: var(--danger-soft); border: 1px solid var(--danger);
+                border-radius: var(--r-sm); color: var(--danger); font-size: 12px; margin-bottom: 12px;
+            }
+
+            [data-page="stockcards"] .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; color: var(--text-muted); }
+            [data-page="stockcards"] .empty-ico { width: 34px; height: 34px; color: var(--text-subtle); margin-bottom: 10px; }
+            [data-page="stockcards"] .empty h3 { font-size: 14px; color: var(--text); margin-bottom: 5px; }
+            [data-page="stockcards"] .empty p { font-size: 12.5px; max-width: 320px; }
+
+            [data-page="stockcards"] .toast {
+                position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+                background: var(--text); color: #fff; padding: 10px 16px; border-radius: var(--r-md);
+                font-size: 12.5px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;
+                transition: opacity 0.2s ease; z-index: 100; display: flex; align-items: center; gap: 9px;
+            }
+            [data-page="stockcards"] .toast.show { opacity: 1; }
+            [data-page="stockcards"] .toast svg { width: 14px; height: 14px; color: #fff; }
+            [data-page="stockcards"] .toast.t-success{background:var(--success);color:#fff}
+            [data-page="stockcards"] .toast.t-error{background:var(--danger);color:#fff}
+            [data-page="stockcards"] .toast.t-warning{background:var(--warn);color:#fff}
+            [data-page="stockcards"] .toast.t-info{background:var(--accent);color:#fff}
+            [data-page="stockcards"] .toast .toast-ico{width:14px;height:14px;flex:none;color:#fff}
+
+            /* ---------- Checkbox ---------- */
+            [data-page="stockcards"] .chk {
+                appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border-strong);
+                border-radius: 4px; background: var(--surface); cursor: pointer; position: relative; flex: none;
+                vertical-align: middle;
+            }
+            [data-page="stockcards"] .chk:hover { border-color: var(--accent); }
+            [data-page="stockcards"] .chk:checked { background: var(--accent); border-color: var(--accent); }
+            [data-page="stockcards"] .chk:checked::after {
+                content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px;
+                border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+            }
+            [data-page="stockcards"] .chk:disabled { opacity: 0.4; cursor: not-allowed; }
+
+            /* ---------- Stock Cards page ---------- */
+            /* #199/#200: a stock card IS the printed 2-1/4" x 3-1/4" card (canvas). Above it sits only the
+               Print Select checkbox and the edit / delete icons — no per-card action buttons. */
+            [data-page="stockcards"] .stock-grid {
+                /* columns are exactly one card wide, so the grid reads as a sheet of cards (canvas) */
+                display: grid; grid-template-columns: repeat(auto-fill, 3.25in); gap: 18px 22px; justify-content: start;
+            }
+            [data-page="stockcards"] .stock-item { display: flex; flex-direction: column; gap: 7px; }
+            [data-page="stockcards"] .stock-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+            [data-page="stockcards"] .stock-card-top-left { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+            [data-page="stockcards"] .stock-card-top-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+            [data-page="stockcards"] .stock-card {
+                /* printed size, kept as the on-screen aspect too */
+                width: 3.25in; height: 2.25in; max-width: 100%;
+                background: #fff; border: 2px solid #14181f; border-radius: 2px;
+                display: flex; overflow: hidden; color: #14181f;
+            }
+            [data-page="stockcards"] .sc-draw {
+                width: 34%; flex: none; border-right: 2px solid #14181f;
+                display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff;
+            }
+            [data-page="stockcards"] .sc-draw img { width: 100%; height: 100%; object-fit: contain; }
+            [data-page="stockcards"] .sc-draw svg { width: 76%; height: 60%; }
+            [data-page="stockcards"] .sc-body { flex: 1; min-width: 0; padding: 9px 10px; display: flex; flex-direction: column; gap: 4px; }
+            [data-page="stockcards"] .sc-idrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+            [data-page="stockcards"] .sc-pid { font-size: 13px; font-weight: 700; letter-spacing: 0.01em; }
+            [data-page="stockcards"] .sc-width { font-size: 9.5px; font-weight: 600; margin-top: 1px; }
+            [data-page="stockcards"] .stock-qr { width: 70px; height: 70px; flex: none; display: grid; place-items: center; }
+            [data-page="stockcards"] .sc-qr-scan { cursor: pointer; }
+            [data-page="stockcards"] .stock-qr svg, [data-page="stockcards"] .stock-qr img, [data-page="stockcards"] .stock-qr canvas, [data-page="stockcards"] .stock-qr table { width: 70px !important; height: 70px !important; }
+            [data-page="stockcards"] .sc-desc { font-size: 11px; font-weight: 700; text-transform: uppercase; line-height: 1.25; margin-top: auto; }
+            [data-page="stockcards"] .sc-stats { display: flex; gap: 10px; margin-top: 6px; }
+            [data-page="stockcards"] .sc-stat { flex: 1; border: 1.5px solid #14181f; border-radius: 2px; padding: 3px 4px 4px; text-align: center; }
+            [data-page="stockcards"] .sc-stat-label { font-size: 6.5px; font-weight: 700; letter-spacing: 0.05em; }
+            [data-page="stockcards"] .sc-stat-num { font-size: 16px; font-weight: 700; line-height: 1.05; }
+
+            /* #199 (edited): the ticked cards print at their real 2-1/4" x 3-1/4" size, tiled onto plain
+               8-1/2" x 11" paper — 2 across x 4 down, so a full sheet holds 8 cards to cut apart. */
+            @media print {
+                @page { size: letter portrait; margin: 0.4in; }
+                [data-page="stockcards"].is-printing-cards, [data-page="stockcards"].is-printing-cards body { background: #fff; }
+                [data-page="stockcards"].is-printing-cards body > *:not(#print-sheet) { display: none !important; }
+                [data-page="stockcards"].is-printing-cards #print-sheet {
+                    display: grid !important; grid-template-columns: repeat(2, 3.25in); gap: 0.1in; justify-content: center;
+                }
+                [data-page="stockcards"] #print-sheet .stock-card { border-radius: 0; break-inside: avoid; }
+                /* start a fresh sheet after every 8th card */
+                [data-page="stockcards"] #print-sheet .stock-card:nth-child(8n + 1) { break-before: page; }
+                [data-page="stockcards"] #print-sheet .stock-card:first-child { break-before: auto; }
+            }
+            [data-page="stockcards"] #print-sheet { display: none; }
+
+            /* ---------- Stock card form additions ---------- */
+            [data-page="stockcards"] .input.is-readonly { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
+            [data-page="stockcards"] .field-help { font-size: 11px; color: var(--text-subtle); margin-top: 5px; }
+            [data-page="stockcards"] .pop-item.disabled { opacity: 0.4; cursor: not-allowed; }
+            [data-page="stockcards"] .pop-item.disabled:hover { background: none; }
+            [data-page="stockcards"] .image-drop {
+                display: flex; align-items: center; gap: 10px; border: 1px dashed var(--border-strong);
+                border-radius: var(--r-sm); padding: 8px 10px; background: var(--surface-2);
+            }
+            [data-page="stockcards"] .image-drop-preview {
+                width: 40px; height: 40px; border-radius:var(--r-sm); background: var(--surface); border: 1px solid var(--border);
+                display: grid; place-items: center; flex: none; overflow: hidden;
+            }
+            [data-page="stockcards"] .image-drop-preview img { width: 100%; height: 100%; object-fit: cover; }
+            [data-page="stockcards"] .image-drop-preview svg { width: 14px; height: 14px; color: var(--text-subtle); }
+            [data-page="stockcards"] .image-drop-text { font-size: 12px; color: var(--text-muted); flex: 1; }
+
+            @media (max-width: 1024px) { [data-page="stockcards"] .app { grid-template-columns: 1fr; } [data-page="stockcards"] .sidebar { display: none; } }
+        
+            @media (prefers-reduced-motion: reduce) { [data-page="stockcards"] *, [data-page="stockcards"] *::before, [data-page="stockcards"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
+                    /* Compact desktop density system. */
+            [data-page="stockcards"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
+            [data-page="stockcards"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
+            [data-page="stockcards"] .tabs{gap:1px}
+            [data-page="stockcards"] .tab{padding:4px 9px;gap:5px;min-height:30px}
+            [data-page="stockcards"] .toolbar{gap:6px;margin-bottom:6px}
+            [data-page="stockcards"] .page-head,[data-page="stockcards"] .view-head,[data-page="stockcards"] .section-head{margin-bottom:6px}
+            [data-page="stockcards"] .kpi-grid,[data-page="stockcards"] .stats-grid,[data-page="stockcards"] .cards-grid,[data-page="stockcards"] .dept-grid{gap:8px}
+            [data-page="stockcards"] .table-wrap table.grid th{padding:4px 10px!important}
+            [data-page="stockcards"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
+            [data-page="stockcards"] .table-wrap table.grid .expander{height:22px}
+            [data-page="stockcards"] .table-wrap table.grid .pri{padding-top:1px!important;padding-bottom:1px!important}
+            [data-page="stockcards"] .status,[data-page="stockcards"] .chip,[data-page="stockcards"] .pri,[data-page="stockcards"] .dept-chip,[data-page="stockcards"] .lock-tag,[data-page="stockcards"] .load-num-pill,[data-page="stockcards"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
+            [data-page="stockcards"] table.sub th{padding:3px 7px!important}
+            [data-page="stockcards"] table.sub td{padding:2px 7px!important}
+            [data-page="stockcards"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
+            [data-page="stockcards"] table.sub .field-input,[data-page="stockcards"] table.sub .pack-input{height:26px}
+            [data-page="stockcards"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
+            [data-page="stockcards"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
+            [data-page="stockcards"] table.stock-edit th,[data-page="stockcards"] table.pkg-table th{padding:5px 8px!important}
+            [data-page="stockcards"] table.stock-edit td,[data-page="stockcards"] table.pkg-table td{padding:5px 8px!important}
+            [data-page="stockcards"] .table-wrap .note-btn,[data-page="stockcards"] .table-wrap .icon-btn{min-height:24px;height:24px}
+            [data-page="stockcards"] .btn{height:30px}
+            [data-page="stockcards"] .icon-btn{width:30px;height:30px}
+            [data-page="stockcards"] .search,[data-page="stockcards"] .input,[data-page="stockcards"] .field-input,[data-page="stockcards"] .field-btn,[data-page="stockcards"] .due-filter,[data-page="stockcards"] .select-btn{height:30px}
+            [data-page="stockcards"] .empty{padding-top:16px;padding-bottom:16px}
+            /* #198: embedded inside a department page — no sidebar / topbar / dept header, no page background */
+            [data-page="stockcards"].is-embed,[data-page="stockcards"].is-embed body{background:transparent}
+            [data-page="stockcards"].is-embed .sidebar,[data-page="stockcards"].is-embed .topbar,[data-page="stockcards"].is-embed .dept-bar,[data-page="stockcards"].is-embed .wl-role-fab{display:none}
+            [data-page="stockcards"].is-embed .app{display:block;min-height:0}
+            [data-page="stockcards"].is-embed .main{margin:0;min-height:0}
+            [data-page="stockcards"].is-embed .content{padding:0;max-width:none}
+            [data-page="stockcards"].is-embed .toolbar{padding-top:0}
+        

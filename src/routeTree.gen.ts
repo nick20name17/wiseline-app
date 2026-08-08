@@ -11,7 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedWarehouseRouteImport } from './routes/_authenticated/warehouse'
+import { Route as AuthenticatedTrimRouteImport } from './routes/_authenticated/trim'
+import { Route as AuthenticatedStockCardsRouteImport } from './routes/_authenticated/stock-cards'
+import { Route as AuthenticatedShippingRouteImport } from './routes/_authenticated/shipping'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScannerRouteImport } from './routes/_authenticated/scanner'
+import { Route as AuthenticatedRollformingRouteImport } from './routes/_authenticated/rollforming'
+import { Route as AuthenticatedLoadingRouteImport } from './routes/_authenticated/loading'
+import { Route as AuthenticatedEbmsRouteImport } from './routes/_authenticated/ebms'
+import { Route as AuthenticatedDriverRouteImport } from './routes/_authenticated/driver'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCoilsRouteImport } from './routes/_authenticated/coils'
+import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
+import { Route as AuthenticatedAccessoriesRouteImport } from './routes/_authenticated/accessories'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -22,32 +35,189 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthenticatedWarehouseRoute = AuthenticatedWarehouseRouteImport.update({
+  id: '/warehouse',
+  path: '/warehouse',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedTrimRoute = AuthenticatedTrimRouteImport.update({
+  id: '/trim',
+  path: '/trim',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedStockCardsRoute = AuthenticatedStockCardsRouteImport.update({
+  id: '/stock-cards',
+  path: '/stock-cards',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedShippingRoute = AuthenticatedShippingRouteImport.update({
+  id: '/shipping',
+  path: '/shipping',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedScannerRoute = AuthenticatedScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRollformingRoute =
+  AuthenticatedRollformingRouteImport.update({
+    id: '/rollforming',
+    path: '/rollforming',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedLoadingRoute = AuthenticatedLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEbmsRoute = AuthenticatedEbmsRouteImport.update({
+  id: '/ebms',
+  path: '/ebms',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDriverRoute = AuthenticatedDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCoilsRoute = AuthenticatedCoilsRouteImport.update({
+  id: '/coils',
+  path: '/coils',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAccessoriesRoute =
+  AuthenticatedAccessoriesRouteImport.update({
+    id: '/accessories',
+    path: '/accessories',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof AuthenticatedRouteWithChildren
   '/sign-in': typeof SignInRoute
+  '/accessories': typeof AuthenticatedAccessoriesRoute
+  '/activity': typeof AuthenticatedActivityRoute
+  '/coils': typeof AuthenticatedCoilsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/driver': typeof AuthenticatedDriverRoute
+  '/ebms': typeof AuthenticatedEbmsRoute
+  '/loading': typeof AuthenticatedLoadingRoute
+  '/rollforming': typeof AuthenticatedRollformingRoute
+  '/scanner': typeof AuthenticatedScannerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/shipping': typeof AuthenticatedShippingRoute
+  '/stock-cards': typeof AuthenticatedStockCardsRoute
+  '/trim': typeof AuthenticatedTrimRoute
+  '/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedRouteWithChildren
   '/sign-in': typeof SignInRoute
-  '/': typeof AuthenticatedIndexRoute
+  '/accessories': typeof AuthenticatedAccessoriesRoute
+  '/activity': typeof AuthenticatedActivityRoute
+  '/coils': typeof AuthenticatedCoilsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/driver': typeof AuthenticatedDriverRoute
+  '/ebms': typeof AuthenticatedEbmsRoute
+  '/loading': typeof AuthenticatedLoadingRoute
+  '/rollforming': typeof AuthenticatedRollformingRoute
+  '/scanner': typeof AuthenticatedScannerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/shipping': typeof AuthenticatedShippingRoute
+  '/stock-cards': typeof AuthenticatedStockCardsRoute
+  '/trim': typeof AuthenticatedTrimRoute
+  '/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/sign-in': typeof SignInRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/accessories': typeof AuthenticatedAccessoriesRoute
+  '/_authenticated/activity': typeof AuthenticatedActivityRoute
+  '/_authenticated/coils': typeof AuthenticatedCoilsRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/driver': typeof AuthenticatedDriverRoute
+  '/_authenticated/ebms': typeof AuthenticatedEbmsRoute
+  '/_authenticated/loading': typeof AuthenticatedLoadingRoute
+  '/_authenticated/rollforming': typeof AuthenticatedRollformingRoute
+  '/_authenticated/scanner': typeof AuthenticatedScannerRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/shipping': typeof AuthenticatedShippingRoute
+  '/_authenticated/stock-cards': typeof AuthenticatedStockCardsRoute
+  '/_authenticated/trim': typeof AuthenticatedTrimRoute
+  '/_authenticated/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/accessories'
+    | '/activity'
+    | '/coils'
+    | '/dashboard'
+    | '/driver'
+    | '/ebms'
+    | '/loading'
+    | '/rollforming'
+    | '/scanner'
+    | '/settings'
+    | '/shipping'
+    | '/stock-cards'
+    | '/trim'
+    | '/warehouse'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/'
-  id: '__root__' | '/_authenticated' | '/sign-in' | '/_authenticated/'
+  to:
+    | '/'
+    | '/sign-in'
+    | '/accessories'
+    | '/activity'
+    | '/coils'
+    | '/dashboard'
+    | '/driver'
+    | '/ebms'
+    | '/loading'
+    | '/rollforming'
+    | '/scanner'
+    | '/settings'
+    | '/shipping'
+    | '/stock-cards'
+    | '/trim'
+    | '/warehouse'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/sign-in'
+    | '/_authenticated/accessories'
+    | '/_authenticated/activity'
+    | '/_authenticated/coils'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/driver'
+    | '/_authenticated/ebms'
+    | '/_authenticated/loading'
+    | '/_authenticated/rollforming'
+    | '/_authenticated/scanner'
+    | '/_authenticated/settings'
+    | '/_authenticated/shipping'
+    | '/_authenticated/stock-cards'
+    | '/_authenticated/trim'
+    | '/_authenticated/warehouse'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -71,22 +241,139 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+    '/_authenticated/warehouse': {
+      id: '/_authenticated/warehouse'
+      path: '/warehouse'
+      fullPath: '/warehouse'
+      preLoaderRoute: typeof AuthenticatedWarehouseRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/trim': {
+      id: '/_authenticated/trim'
+      path: '/trim'
+      fullPath: '/trim'
+      preLoaderRoute: typeof AuthenticatedTrimRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/stock-cards': {
+      id: '/_authenticated/stock-cards'
+      path: '/stock-cards'
+      fullPath: '/stock-cards'
+      preLoaderRoute: typeof AuthenticatedStockCardsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/shipping': {
+      id: '/_authenticated/shipping'
+      path: '/shipping'
+      fullPath: '/shipping'
+      preLoaderRoute: typeof AuthenticatedShippingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/scanner': {
+      id: '/_authenticated/scanner'
+      path: '/scanner'
+      fullPath: '/scanner'
+      preLoaderRoute: typeof AuthenticatedScannerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/rollforming': {
+      id: '/_authenticated/rollforming'
+      path: '/rollforming'
+      fullPath: '/rollforming'
+      preLoaderRoute: typeof AuthenticatedRollformingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/loading': {
+      id: '/_authenticated/loading'
+      path: '/loading'
+      fullPath: '/loading'
+      preLoaderRoute: typeof AuthenticatedLoadingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ebms': {
+      id: '/_authenticated/ebms'
+      path: '/ebms'
+      fullPath: '/ebms'
+      preLoaderRoute: typeof AuthenticatedEbmsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/driver': {
+      id: '/_authenticated/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AuthenticatedDriverRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/coils': {
+      id: '/_authenticated/coils'
+      path: '/coils'
+      fullPath: '/coils'
+      preLoaderRoute: typeof AuthenticatedCoilsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/activity': {
+      id: '/_authenticated/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AuthenticatedActivityRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/accessories': {
+      id: '/_authenticated/accessories'
+      path: '/accessories'
+      fullPath: '/accessories'
+      preLoaderRoute: typeof AuthenticatedAccessoriesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAccessoriesRoute: typeof AuthenticatedAccessoriesRoute
+  AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
+  AuthenticatedCoilsRoute: typeof AuthenticatedCoilsRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDriverRoute: typeof AuthenticatedDriverRoute
+  AuthenticatedEbmsRoute: typeof AuthenticatedEbmsRoute
+  AuthenticatedLoadingRoute: typeof AuthenticatedLoadingRoute
+  AuthenticatedRollformingRoute: typeof AuthenticatedRollformingRoute
+  AuthenticatedScannerRoute: typeof AuthenticatedScannerRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedShippingRoute: typeof AuthenticatedShippingRoute
+  AuthenticatedStockCardsRoute: typeof AuthenticatedStockCardsRoute
+  AuthenticatedTrimRoute: typeof AuthenticatedTrimRoute
+  AuthenticatedWarehouseRoute: typeof AuthenticatedWarehouseRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAccessoriesRoute: AuthenticatedAccessoriesRoute,
+  AuthenticatedActivityRoute: AuthenticatedActivityRoute,
+  AuthenticatedCoilsRoute: AuthenticatedCoilsRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDriverRoute: AuthenticatedDriverRoute,
+  AuthenticatedEbmsRoute: AuthenticatedEbmsRoute,
+  AuthenticatedLoadingRoute: AuthenticatedLoadingRoute,
+  AuthenticatedRollformingRoute: AuthenticatedRollformingRoute,
+  AuthenticatedScannerRoute: AuthenticatedScannerRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedShippingRoute: AuthenticatedShippingRoute,
+  AuthenticatedStockCardsRoute: AuthenticatedStockCardsRoute,
+  AuthenticatedTrimRoute: AuthenticatedTrimRoute,
+  AuthenticatedWarehouseRoute: AuthenticatedWarehouseRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

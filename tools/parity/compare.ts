@@ -93,7 +93,15 @@ for (const baseline of demo) {
   if (missing.length)
     problems.push(`${missing.length} data-comment missing: ${missing.slice(0, 8).join(', ')}`)
 
-  const structural = firstStructuralDiff(baseline.tree, candidate.tree)
+  // the roots are a `<body>` on one side and the mount `<div>` on the other; only what is in them counts
+  const asRoot = (node: Node): Node => ({
+    ...node,
+    tag: 'root',
+    classes: [],
+    comment: null,
+    text: ''
+  })
+  const structural = firstStructuralDiff(asRoot(baseline.tree), asRoot(candidate.tree))
   if (structural) problems.push(structural)
 
   const pixels = await pixelDiff(key).catch(() => null)

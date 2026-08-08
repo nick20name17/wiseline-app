@@ -1,94 +1,182 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { ArrowRight, Lock, Mail } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
 
-import { useLogin, type Credentials } from '@/api/auth'
-import { sessionStore } from '@/api/auth/session-store'
-import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { usePage } from '@/session/use-page'
 
-const searchSchema = z.object({
-  redirect: z.string().optional().catch(undefined)
-})
+import { departmentsFor, isScoped, viewerStore, type Department, type Role } from '@/session/viewer'
 
-const formSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required')
-})
-
-// seeded in src/mocks/mock-server.ts — remove alongside the mock backend
-const DEMO_CREDENTIALS: Credentials = { email: 'demo@example.com', password: 'demo1234' }
-
-const FIELDS = [
-  { name: 'email', label: 'Email', type: 'email', autoComplete: 'email' },
-  { name: 'password', label: 'Password', type: 'password', autoComplete: 'current-password' }
-] as const satisfies ReadonlyArray<{
-  name: keyof Credentials
-  label: string
-  type: string
-  autoComplete: string
-}>
+import '@/styles/login.css'
 
 export const Route = createFileRoute('/sign-in')({
-  validateSearch: searchSchema,
-  beforeLoad: ({ search }) => {
-    if (sessionStore.get()) throw redirect({ to: search.redirect ?? '/' })
+  beforeLoad: () => {
+    if (viewerStore.get())
+      throw redirect({ to: landingFor(viewerStore.get()!.role, viewerStore.get()!.department) })
   },
-  component: SignInPage
+  component: SignIn
 })
 
-function SignInPage() {
-  const router = useRouter()
-  const { redirect: redirectTo } = Route.useSearch()
-  const login = useLogin()
+const ROLES: { role: Role; label: string }[] = [
+  { role: 'manager', label: 'Manager' },
+  { role: 'admin', label: 'Admin' },
+  { role: 'worker', label: 'Worker' },
+  { role: 'shipping', label: 'Shipping Manager' },
+  { role: 'driver', label: 'Driver' }
+]
 
-  const { register, handleSubmit, formState } = useForm<Credentials>({
-    resolver: zodResolver(formSchema),
-    defaultValues: DEMO_CREDENTIALS
-  })
+const DEPARTMENT_LABELS: Record<Department, string> = {
+  all: 'All',
+  trim: 'Trim',
+  rollforming: 'Rollforming',
+  accessories: 'Accessories',
+  shipping: 'Shipping'
+}
 
-  const onSubmit = handleSubmit(async values => {
-    await login.mutateAsync(values)
-    await router.navigate({ to: redirectTo ?? '/' })
-  })
+/** Where each role starts, and the department override — both straight from the prototype. */
+const LANDING: Record<Role, string> = {
+  admin: '/dashboard',
+  manager: '/dashboard',
+  worker: '/trim',
+  shipping: '/shipping',
+  driver: '/driver'
+}
+
+const DEPARTMENT_LANDING: Record<Exclude<Department, 'all'>, string> = {
+  trim: '/trim',
+  rollforming: '/rollforming',
+  accessories: '/accessories',
+  shipping: '/shipping'
+}
+
+const landingFor = (role: Role, department: Department) =>
+  isScoped(role) && department !== 'all' ? DEPARTMENT_LANDING[department] : LANDING[role]
+
+function SignIn() {
+  usePage('login')
+
+  const navigate = useNavigate()
+  const [role, setRole] = useState<Role>('admin')
+  const [department, setDepartment] = useState<Department>('all')
+
+  const departments = departmentsFor(role)
+
+  const pickRole = (next: Role) => {
+    setRole(next)
+    if (!departments.includes(department)) setDepartment('all')
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    viewerStore.set({ role, department })
+    void navigate({ to: landingFor(role, department) })
+  }
 
   return (
-    <main className='flex min-h-svh items-center justify-center p-6'>
-      <form onSubmit={onSubmit} className='w-full max-w-sm'>
-        <FieldGroup>
-          <div className='flex flex-col gap-1 text-center'>
-            <h1 className='text-xl font-semibold'>Sign in</h1>
-            <p className='text-muted-foreground text-sm'>Sign in with the seeded demo account.</p>
+    <div className='login-page' data-comment='login-page'>
+      <div className='login-card' data-comment='login-card'>
+        <div className='login-brand' data-comment='login-brand'>
+          <div className='brand-mark' data-comment='login-brand-mark'>
+            <span />
           </div>
-
-          <div className='bg-muted text-muted-foreground rounded-lg border px-3 py-2 text-center font-mono text-xs'>
-            {DEMO_CREDENTIALS.email} · {DEMO_CREDENTIALS.password}
+          <div data-comment='login-brand-text'>
+            <div className='login-brand-name' data-comment='login-brand-name'>
+              Wiseline
+            </div>
+            <div className='login-brand-sub' data-comment='login-brand-sub'>
+              Production
+            </div>
           </div>
-
-          {FIELDS.map(field => {
-            const error = formState.errors[field.name]
-            return (
-              <Field key={field.name} data-invalid={Boolean(error)}>
-                <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
-                <Input
-                  id={field.name}
-                  type={field.type}
-                  autoComplete={field.autoComplete}
-                  aria-invalid={Boolean(error)}
-                  {...register(field.name)}
-                />
-                <FieldError errors={[error]} />
-              </Field>
-            )
-          })}
-
-          <Button type='submit' disabled={formState.isSubmitting}>
-            {formState.isSubmitting ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </FieldGroup>
-      </form>
-    </main>
+        </div>
+        <h1 className='login-heading' data-comment='login-heading'>
+          Sign in
+        </h1>
+        <p className='login-subheading' data-comment='login-subheading'>
+          Access the production floor dashboard
+        </p>
+        <form data-comment='login-form' onSubmit={submit}>
+          <div className='field' data-comment='login-email-field'>
+            <label className='field-label' htmlFor='login-email' data-comment='login-email-label'>
+              Email
+            </label>
+            <div className='input-wrap' data-comment='login-email-wrap'>
+              <Mail className='input-ico' data-comment='login-email-icon' />
+              <input
+                className='field-input'
+                type='email'
+                id='login-email'
+                data-comment='login-email-input'
+                placeholder='you@wiseline.com'
+              />
+            </div>
+          </div>
+          <div className='field' data-comment='login-password-field'>
+            <label
+              className='field-label'
+              htmlFor='login-password'
+              data-comment='login-password-label'
+            >
+              Password
+            </label>
+            <div className='input-wrap' data-comment='login-password-wrap'>
+              <Lock className='input-ico' data-comment='login-password-icon' />
+              <input
+                className='field-input'
+                type='password'
+                id='login-password'
+                data-comment='login-password-input'
+                placeholder='••••••••'
+              />
+            </div>
+          </div>
+          <button
+            type='submit'
+            className='btn btn-primary login-submit'
+            data-comment='login-continue-btn'
+          >
+            Continue
+            <ArrowRight />
+          </button>
+        </form>
+        <p className='login-hint' data-comment='login-hint'>
+          Any credentials work
+        </p>
+        <div className='login-roles' data-comment='login-roles'>
+          <span className='login-roles-label' data-comment='login-roles-label'>
+            Sign in as
+          </span>
+          {ROLES.map(option => (
+            <span
+              key={option.role}
+              className={option.role === role ? 'chip chip-active' : 'chip'}
+              role='button'
+              tabIndex={0}
+              data-comment={`login-role-${option.role}`}
+              onClick={() => pickRole(option.role)}
+            >
+              {option.label}
+            </span>
+          ))}
+        </div>
+        {isScoped(role) ? (
+          <div className='login-roles' data-comment='login-depts' id='login-depts'>
+            <span className='login-roles-label' data-comment='login-depts-label'>
+              Department
+            </span>
+            {departments.map(option => (
+              <span
+                key={option}
+                className={option === department ? 'chip chip-active' : 'chip'}
+                role='button'
+                tabIndex={0}
+                data-comment={`login-dept-${option}`}
+                onClick={() => setDepartment(option)}
+              >
+                {DEPARTMENT_LABELS[option]}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
   )
 }

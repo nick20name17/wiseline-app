@@ -56,10 +56,17 @@ export const collectSource = `(${((ignoredTags: string[]) => {
       .map(walk)
   })
 
-  const comments = Array.from(document.querySelectorAll('[data-comment]'))
+  /**
+   * `#root` is the port's body: the prototype writes its page as the first child of `<body>`, and the
+   * port writes the same markup as the first child of the mount point. Comparing from `<body>` on both
+   * sides would report the mount point itself as a difference on every page, forever.
+   */
+  const root = document.getElementById('root') ?? document.body
+
+  const comments = Array.from(root.querySelectorAll('[data-comment]'))
     .filter(element => visible(element))
     .map(element => element.getAttribute('data-comment') as string)
     .sort()
 
-  return { comments, tree: walk(document.body) }
+  return { comments, tree: walk(root) }
 }).toString()})(${JSON.stringify(IGNORED_TAGS)})`
