@@ -161,7 +161,11 @@ export const OrderStatusPill = ({ order }: { order: Order }) => {
 export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean }) => {
   if (order.bypassed)
     return (
-      <span className='subtle' data-comment={`sch-revlock-${order.id}`} style={{ fontSize: '11px' }}>
+      <span
+        className='subtle'
+        data-comment={`sch-revlock-${order.id}`}
+        style={{ fontSize: '11px' }}
+      >
         N/A
       </span>
     )

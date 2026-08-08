@@ -52,7 +52,11 @@ export const Wrapping = () => {
     return (
       <>
         <div className='toolbar' data-comment='wrap-detail-toolbar'>
-          <button className='btn btn-sm' data-comment='wrap-back' onClick={() => setDrillOrderId(null)}>
+          <button
+            className='btn btn-sm'
+            data-comment='wrap-back'
+            onClick={() => setDrillOrderId(null)}
+          >
             <ArrowLeft style={{ width: '14px', height: '14px' }} />
             Back to Wrapping
           </button>
