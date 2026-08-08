@@ -30,6 +30,18 @@ export const STATES: State[] = [
   {
     page: 'home',
     view: 'view-production',
+    name: 'wrapping-detail',
+    clicks: ['prod-mtab-7', 'wrap-li-ono-13-0']
+  },
+  {
+    page: 'home',
+    view: 'view-production',
+    name: 'wrapping-detail-stock',
+    clicks: ['prod-mtab-7', 'wrap-li-ono-15-0']
+  },
+  {
+    page: 'home',
+    view: 'view-production',
     name: 'stockmfg',
     clicks: ['prod-mode-stock']
   },

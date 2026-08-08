@@ -141,15 +141,16 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
 | ✅ Trim shell + seed | sidebar, top bar, tabs, `seed.json` |
 | ✅ `/trim` — all six views | green at 1440 and 390 |
-| ✅ Trim's reachable states | Wrapping, Stock Manufacturing, completed lists, All Scheduled Orders, an expanded order |
-| 🟡 Wrapping's drill-in | clicking a line opens the package builder; not ported, and no state reaches it yet |
+| ✅ Trim's reachable states | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts` |
 | ⬜ The other 13 pages | |
 
 ### What Trim still owes
 
-Clicking a row in the Wrapping list drills into that order's package builder — `renderWrapOrderDetail`,
-plus the separate stock-order window `renderStockWrapWindow` behind it (#185). Neither is ported. Add the
-state that reaches it at the same time, or the next person will read a green gate and believe it.
+Nothing the gate can see. What is left on this page is behind a modal — the reschedule and machine
+popovers, the notes drawer, the location picker, the coil-adjustment window, the wrap and stock keypads.
+The buttons are all there and carry their `data-comment`; none of them opens anything yet, and no state
+can reach a screen that does not open. Porting one means porting the state that proves it at the same
+time, or the next person reads a green gate and believes it.
 
 ## Order of work
 
