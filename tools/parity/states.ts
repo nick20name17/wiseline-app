@@ -62,6 +62,26 @@ export const STATES: State[] = [
     view: 'view-home',
     name: 'expanded',
     clicks: ['uns-exp-1']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-home',
+    name: 'expanded',
+    clicks: ['uns-exp-1']
+  },
+  // a split order: the line already scheduled by an earlier split is locked, losing its drag handle
+  {
+    page: 'rollforming',
+    view: 'view-home',
+    name: 'expanded-split',
+    clicks: ['uns-exp-7']
+  },
+  // a Material Request is raw coil for a machine — it never splits, so the whole split head is gone
+  {
+    page: 'rollforming',
+    view: 'view-home',
+    name: 'expanded-mreq',
+    clicks: ['uns-exp-4']
   }
 ]
 
