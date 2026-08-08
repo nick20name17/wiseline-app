@@ -10,8 +10,13 @@ import { Sidebar, Topbar } from '@/components/shell/chrome'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/rollforming/components/shell'
+import { Coils } from '@/features/rollforming/components/coils'
+import { Completed } from '@/features/rollforming/components/completed'
+import { Production } from '@/features/rollforming/components/production'
+import { Queue } from '@/features/rollforming/components/queue'
 import { Scheduled } from '@/features/rollforming/components/scheduled'
 import { Unscheduled } from '@/features/rollforming/components/unscheduled'
+import { Wrapping } from '@/features/rollforming/components/wrapping'
 import {
   isDoneInProduction,
   isFullyWrapped,
@@ -116,6 +121,11 @@ function Rollforming() {
             <section id={`view-${view}`} className='view active' data-comment={`view-${view}`}>
               {view === 'home' ? <Unscheduled /> : null}
               {view === 'scheduled' ? <Scheduled /> : null}
+              {view === 'production' ? <Production /> : null}
+              {view === 'queue' ? <Queue /> : null}
+              {view === 'coils' ? <Coils /> : null}
+              {view === 'wrapping' ? <Wrapping /> : null}
+              {view === 'completed' ? <Completed /> : null}
             </section>
           </main>
         </div>

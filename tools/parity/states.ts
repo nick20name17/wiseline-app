@@ -116,6 +116,47 @@ export const STATES: State[] = [
     view: 'view-scheduled',
     name: 'day-16-release-picked',
     clicks: ['sch-daytab-2026-07-16', 'sch-relchk-6']
+  },
+  // one machine's runs rather than the all-machines overview
+  {
+    page: 'rollforming',
+    view: 'view-production',
+    name: 'machine-tab',
+    clicks: ['prod-gtab-TuffRibDiamondRib']
+  },
+  // the Slit Line tab, where a run is listed for material that cannot be rolled yet
+  {
+    page: 'rollforming',
+    view: 'view-production',
+    name: 'slit-line',
+    clicks: ['prod-gtab-SlitLine']
+  },
+  // one machine's buckets rather than the overview
+  {
+    page: 'rollforming',
+    view: 'view-queue',
+    name: 'machine-tab',
+    clicks: ['q-gtab-TuffRibDiamondRib']
+  },
+  // the Slit Line Worker's own tab: every row here is waiting on material being slit
+  {
+    page: 'rollforming',
+    view: 'view-queue',
+    name: 'slit-line',
+    clicks: ['q-gtab-SlitLine']
+  },
+  // a second coil folder, which is a different set of size sub-folders
+  {
+    page: 'rollforming',
+    view: 'view-coils',
+    name: 'folder-corrugated',
+    clicks: ['coils-folder-Corrugated']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-wrapping',
+    name: 'machine-tab',
+    clicks: ['wrap-gtab-BoardBatten']
   }
 ]
 
