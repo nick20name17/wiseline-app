@@ -22,11 +22,13 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Next up: `/rollforming`.** Its stylesheet is extracted and its seed is dumped
-(`src/features/rollforming/seed.json`, 14 orders, 9 coils, its own `queueOrder` and
-`currentCoilByGroup`). What is left is the shell and seven views. Read `src/features/trim/` first —
-every pattern it needs is already there, and `components/line-items.tsx` is the example of the one that
-matters most: the prototype has one function for two contexts, and so does the port.
+**Next up: Rollforming's `?view=scheduled`.** The page's shell, its seed and its Unscheduled view are
+done; the other six views are what is left, in the order the tab strip lists them. Everything derived is
+already ported under the prototype's names in `src/features/rollforming/selectors.ts` — including
+`queueGroupsSorted`, which the *tab counts* need, so it exists before the view that renders it does.
+`components/line-items.tsx` is the file to read first: it takes the prototype's own `ctx` parameter, and
+only the `uns` half of it is wired. Scheduled adds the `sch` half — the bulk Supplier/Coil selection,
+the per-unit Stock ticks, See Packages — and `bulkAssignAvailable` / `stockGateOk` come with it.
 
 ## The gates
 
@@ -103,6 +105,11 @@ Repeat per view; it took roughly one commit each.
    first, structure second, pixels last.
 5. Add a state to `tools/parity/states.ts` for anything the default render does not show.
 
+One more thing the pixel gate is for, from Rollforming: the prototype writes `space · nbsp · space`
+between a line's Product ID and its spec text, and JSX swallows one of a run of spaces. The structural
+diff collapses whitespace and reported nothing; the screenshot was 0.19% out on three states. Whenever
+markup is retyped, the spaces *between* elements are part of it.
+
 ### Why the seed is copied and not written
 
 A quarter of the review comments anchor to `data-comment` values built at runtime out of entity ids —
@@ -175,10 +182,13 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Gates, baseline, tooling | `tools/parity/`, `tools/port/`, `parity/demo/` committed |
 | ✅ `/sign-in` | green, both widths |
 | ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
-| ✅ Trim shell + seed | sidebar, top bar, tabs, `seed.json` |
+| ✅ Shared chrome | sidebar + top bar in `src/components/shell/`, lifted once two pages spelled them alike |
+| ✅ Trim shell + seed | its own department bar, tabs, `seed.json` |
 | ✅ `/trim` — all six views | green at 1440 and 390 |
 | ✅ Trim's reachable states | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts` |
-| ⬜ The other 13 pages | |
+| ✅ Rollforming shell + Unscheduled | seven views as one search param, 4 states green at both widths |
+| ⬜ Rollforming's other six views | Scheduled, Production, Queue, Coils, Wrapping, Completed |
+| ⬜ The other 12 pages | |
 
 ### What Trim still owes
 
@@ -191,8 +201,19 @@ time, or the next person reads a green gate and believes it.
 ## Order of work
 
 Trim first and slowly: it sets every pattern the other departments repeat. It is done to the limit of
-what the gate can reach. Then Rollforming, Shipping, Accessories, then the ten smaller pages — and the
-modals, which are the one thing on Trim still outstanding and the one thing no gate currently watches.
+what the gate can reach. Rollforming is under way. Then Shipping, Accessories, then the ten smaller
+pages — and the modals, which are the one thing on Trim still outstanding and the one thing no gate
+currently watches.
+
+Two things the second department taught, both worth knowing before the third:
+
+- **Share a piece of chrome only when two pages already spell it the same way.** The sidebar and top bar
+  were identical down to the `data-comment`, so they moved to `src/components/shell/` with one prop
+  between them (the search placeholder). The department bar was not: Rollforming's has a spacer, a
+  `tabs-row` and an actor bar. Sharing that one would have meant six props and two branches.
+- **A tab count can need a view that does not exist yet.** The tab strip is on screen in every view, so
+  Rollforming's Queue count had to be right before the Queue was ported. Port the selector with the
+  shell, not with the view.
 
 ## Afterwards: the comments
 
