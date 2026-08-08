@@ -9,6 +9,25 @@ comments written against the prototype have to land on the same elements afterwa
 
 `../wiseline-demo` is reference only. **Never commit there.**
 
+## Start here
+
+```bash
+python3 ../wiseline-demo/serve.py 8848         # the prototype — leave it running
+bunx vite build && bunx vite preview --port 5199 --strictPort
+bun tools/parity/capture.ts port http://localhost:5199
+bun run parity                                 # or `bun run parity home__view-production`
+```
+
+Port 5199 rather than the 5173 in `package.json`: another project on this machine holds 5173, and the
+scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
+is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
+
+**Next up: `/rollforming`.** Its stylesheet is extracted and its seed is dumped
+(`src/features/rollforming/seed.json`, 14 orders, 9 coils, its own `queueOrder` and
+`currentCoilByGroup`). What is left is the shell and seven views. Read `src/features/trim/` first —
+every pattern it needs is already there, and `components/line-items.tsx` is the example of the one that
+matters most: the prototype has one function for two contexts, and so does the port.
+
 ## The gates
 
 Three checks decide whether a page is done. They are mechanical; nothing is judged by eye.
@@ -66,6 +85,23 @@ Nothing here is retyped by hand if a tool can copy it.
 - **Markup** — by hand, element for element, keeping every `data-comment` and every class.
 - **Logic** — by hand, keeping the prototype's function names and store keys so its knowledge base still
   describes this code.
+
+### The loop that ported six views
+
+Repeat per view; it took roughly one commit each.
+
+1. Read the prototype's `renderX()` and every helper it calls. Port the helpers into `selectors.ts` and
+   `store.ts` under **the prototype's names** — `sortScheduled`, `allMachinesAssigned`, `releaseType` —
+   so its knowledge base still describes this code.
+2. Write the component with every `data-comment` and every class, and follow the prototype's *control
+   flow*: where it returns early, return early. Production has three renderers behind one view because
+   `renderProduction` returns three times, and flattening that into one component would have quietly
+   changed which chrome each screen carries.
+3. Interactions that only open a popover stay unwired, but the button, its classes and its
+   `data-comment` are all there — a comment has to land on it either way.
+4. `bunx vite build`, capture the port, run the gate. Read the three checks in order: `data-comment`
+   first, structure second, pixels last.
+5. Add a state to `tools/parity/states.ts` for anything the default render does not show.
 
 ### Why the seed is copied and not written
 
@@ -154,9 +190,9 @@ time, or the next person reads a green gate and believes it.
 
 ## Order of work
 
-Trim first and slowly: it sets every pattern the other departments repeat. Its six views are done;
-what is left on it is Production's Wrapping tab and Stock Manufacturing mode. Then Rollforming,
-Shipping, Accessories, then the ten smaller pages.
+Trim first and slowly: it sets every pattern the other departments repeat. It is done to the limit of
+what the gate can reach. Then Rollforming, Shipping, Accessories, then the ten smaller pages — and the
+modals, which are the one thing on Trim still outstanding and the one thing no gate currently watches.
 
 ## Afterwards: the comments
 
@@ -168,6 +204,7 @@ project 25 is never touched.
 
 Coverage is decided by how much of the app a reveal hook can reach: the prototype's `window.__ebmsReveal`
 (in `home.html` only) reaches 19 of them, 6 need nothing, and 20 sit behind modals and deep states it
-cannot drive. Port a stronger `__ebmsReveal` — every page, and a declarative map from `data-comment` to
-whatever opens it. The same map is what lets the gates see modal screens at all, which today's baseline
-does not.
+cannot drive. The stronger hook this needs — a declarative map from `data-comment` to whatever opens it,
+on every page — is the same idea as `tools/parity/states.ts`, which already reaches the tabs and the
+drill-ins. When the modals are ported, grow that list rather than starting a second one, and the reveal
+hook becomes a reader of it.
