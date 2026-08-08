@@ -115,9 +115,17 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/sign-in` | green, both widths |
 | ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
 | ✅ Trim shell + seed | sidebar, top bar, tabs, `seed.json` |
-| ✅ `/trim?view=home` | green, both widths |
-| ⬜ Trim: scheduled, production, coils, calendar, completed | |
+| ✅ `/trim` — all six views | green at 1440 and 390 |
+| 🟡 Production's two other tabs | Wrapping (machine tab 7) and Stock Manufacturing render the cutlist list instead |
 | ⬜ The other 13 pages | |
+
+### What Production is still missing
+
+The prototype answers two of Production's own switches with whole separate renderers, and neither is
+ported: `Wrapping` — the terminal machine tab, an order-centric package builder — and the
+`Stock Manufacturing` mode of the segmented control above the machine tabs. The gate captures Production
+on Slinet in Trim mode, so it is green without them and will stay green if they are forgotten. They are
+the next thing to do on this page, before Rollforming.
 
 ## Order of work
 

@@ -1,3 +1,5 @@
+import type { Coil } from '@/store/shared/coils'
+
 /** The shapes the prototype's Trim store holds, named as it names them. */
 
 export type Note = {
@@ -95,6 +97,7 @@ export type TrimState = {
   orders: Order[]
   cutlists: Cutlist[]
   remans: Reman[]
+  coils: Coil[]
   expandedIds: number[]
   selectedOrderIds: number[]
   selectedLineIds: number[]
