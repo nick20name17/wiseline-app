@@ -55,6 +55,8 @@ export type Order = {
   productionDate: string | null
   /** True when the order's lines sit on more than one day. */
   isSplit: boolean
+  /** Skipped Slinet and the machines entirely — straight to Wrapping, so there is no review to do. */
+  bypassed?: boolean
   completed?: boolean
   completedDate?: string
   notes: Note[]
