@@ -1,0 +1,6123 @@
+{
+  "role": "manager",
+  "searchTerm": "",
+  "priorities": [
+    {
+      "id": 1,
+      "name": "NOW",
+      "cls": "pri-now",
+      "hierarchy": 1
+    },
+    {
+      "id": 2,
+      "name": "ASAP",
+      "cls": "pri-asap",
+      "hierarchy": 2
+    },
+    {
+      "id": 3,
+      "name": "By 10:00",
+      "cls": "pri-by",
+      "hierarchy": 3
+    },
+    {
+      "id": 4,
+      "name": "By 3:00",
+      "cls": "pri-by",
+      "hierarchy": 4
+    }
+  ],
+  "machines": [
+    {
+      "id": 2,
+      "name": "Press Brake",
+      "dailyMax": 320
+    },
+    {
+      "id": 3,
+      "name": "V1",
+      "dailyMax": 260
+    },
+    {
+      "id": 4,
+      "name": "V2",
+      "dailyMax": 260
+    },
+    {
+      "id": 5,
+      "name": "Rollformer",
+      "dailyMax": 300
+    },
+    {
+      "id": 6,
+      "name": "Caps",
+      "dailyMax": 180
+    }
+  ],
+  "locations": [
+    {
+      "id": 1,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "101",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": [
+        {
+          "orderId": 11,
+          "weight": 408,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "102",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": [
+        {
+          "orderId": -1,
+          "weight": 900,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "103",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 4,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "104",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 5,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "105",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": [
+        {
+          "orderId": 12,
+          "weight": 300,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "106",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 7,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "201",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 8,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "202",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 9,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "203",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 10,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "204",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 11,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "205",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 12,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "206",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 13,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "207",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 14,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "208",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 15,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "209",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 16,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "210",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 17,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "211",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 18,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "212",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 19,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "301",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 20,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "302",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": [
+        {
+          "orderId": -1,
+          "weight": 300,
+          "lastScanAt": 1786211252733
+        },
+        {
+          "orderId": -2,
+          "weight": 220,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "303",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 22,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "304",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 23,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "305",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 24,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "306",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 25,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "307",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": [
+        {
+          "orderId": -1,
+          "weight": 260,
+          "lastScanAt": 1786211252733
+        },
+        {
+          "orderId": -2,
+          "weight": 240,
+          "lastScanAt": 1786211252733
+        },
+        {
+          "orderId": -3,
+          "weight": 220,
+          "lastScanAt": 1786211252733
+        },
+        {
+          "orderId": -4,
+          "weight": 200,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "308",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 27,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "309",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 28,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "310",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 29,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "311",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 30,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "312",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 31,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "313",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 32,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "314",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 33,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "315",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 34,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "316",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 35,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "317",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 36,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "318",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 37,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "401",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 38,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "402",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 39,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "403",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 40,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "404",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 41,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "405",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 42,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "406",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 43,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "407",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 44,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "408",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 45,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "409",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 46,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "410",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 47,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "501",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 48,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "502",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 49,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "503",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 50,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "504",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 51,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "505",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 52,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "506",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 53,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "507",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 54,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "508",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 55,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "509",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 56,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "510",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 57,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "601",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 58,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "602",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 59,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "603",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 60,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "604",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": [
+        {
+          "orderId": -1,
+          "weight": 4000,
+          "lastScanAt": 1786211252733
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "605",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 62,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "606",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 63,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "607",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 64,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "608",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 65,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "609",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 66,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "610",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 67,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "611",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 68,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "612",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 69,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "613",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 70,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "614",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 71,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "615",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 72,
+      "wh": 1,
+      "dept": "Trim",
+      "code": "616",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 73,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A1",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 74,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A2",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 75,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A3",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 76,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A4",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 77,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A5",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 78,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "A6",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 79,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B1",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 80,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B2",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 81,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B3",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 82,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B4",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 83,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B5",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 84,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B6",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 85,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B7",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 86,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B8",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 87,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B9",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 88,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B10",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 89,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B11",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 90,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B12",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 91,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B13",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 92,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B14",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 93,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B15",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 94,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B16",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 95,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B17",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 96,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "B18",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 97,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 98,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 99,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 100,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 101,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 102,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "C6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 103,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 104,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 105,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 106,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 107,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 108,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 109,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D7",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 110,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D8",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 111,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D9",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 112,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "D10",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 113,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E1",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 114,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E2",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 115,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E3",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 116,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E4",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 117,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E5",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 118,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E6",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 119,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E7",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 120,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E8",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 121,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E9",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 122,
+      "wh": 1,
+      "dept": "Rollforming",
+      "code": "E10",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 123,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F1",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 124,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F2",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 125,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F3",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 126,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F4",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 127,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F5",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 128,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "F6",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 129,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G1",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 130,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G2",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 131,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G3",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 132,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G4",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 133,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G5",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 134,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G6",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 135,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G7",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 136,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G8",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 137,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G9",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 138,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G10",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 139,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G11",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 140,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G12",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 141,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G13",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 142,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G14",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 143,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G15",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 144,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G16",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 145,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G17",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 146,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "G18",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 147,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 148,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 149,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 150,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 151,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 152,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "H6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 153,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 154,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 155,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 156,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 157,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 158,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 159,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I7",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 160,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I8",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 161,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I9",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 162,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "I10",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 163,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J1",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 164,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J2",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 165,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J3",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 166,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J4",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 167,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J5",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 168,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J6",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 169,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J7",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 170,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J8",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 171,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J9",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 172,
+      "wh": 1,
+      "dept": "Accessories",
+      "code": "J10",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 173,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1101",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 174,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1102",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 175,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1103",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 176,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1104",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 177,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1105",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 178,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1106",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 179,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1201",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 180,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1202",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 181,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1203",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 182,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1204",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 183,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1205",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 184,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1206",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 185,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1207",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 186,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1208",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 187,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1209",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 188,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1210",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 189,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1211",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 190,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1212",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 191,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1301",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 192,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1302",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 193,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1303",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 194,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1304",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 195,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1305",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 196,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1306",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 197,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1307",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 198,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1308",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 199,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1309",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 200,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1310",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 201,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1311",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 202,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1312",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 203,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1313",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 204,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1314",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 205,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1315",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 206,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1316",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 207,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1317",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 208,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1318",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 209,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1401",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 210,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1402",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 211,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1403",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 212,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1404",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 213,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1405",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 214,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1406",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 215,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1407",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 216,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1408",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 217,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1409",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 218,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1410",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 219,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1501",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 220,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1502",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 221,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1503",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 222,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1504",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 223,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1505",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 224,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1506",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 225,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1507",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 226,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1508",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 227,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1509",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 228,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1510",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 229,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1601",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 230,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1602",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 231,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1603",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 232,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1604",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 233,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1605",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 234,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1606",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 235,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1607",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 236,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1608",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 237,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1609",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 238,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1610",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 239,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1611",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 240,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1612",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 241,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1613",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 242,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1614",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 243,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1615",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 244,
+      "wh": 2,
+      "dept": "Trim",
+      "code": "1616",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 245,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A1",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 246,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A2",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 247,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A3",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 248,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A4",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 249,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A5",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 250,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2A6",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 251,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B1",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 252,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B2",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 253,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B3",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 254,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B4",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 255,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B5",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 256,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B6",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 257,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B7",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 258,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B8",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 259,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B9",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 260,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B10",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 261,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B11",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 262,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B12",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 263,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B13",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 264,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B14",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 265,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B15",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 266,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B16",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 267,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B17",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 268,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2B18",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 269,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 270,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 271,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 272,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 273,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 274,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2C6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 275,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 276,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 277,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 278,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 279,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 280,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 281,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D7",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 282,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D8",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 283,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D9",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 284,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2D10",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 285,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E1",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 286,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E2",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 287,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E3",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 288,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E4",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 289,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E5",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 290,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E6",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 291,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E7",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 292,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E8",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 293,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E9",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 294,
+      "wh": 2,
+      "dept": "Rollforming",
+      "code": "2E10",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 295,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F1",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 296,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F2",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 297,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F3",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 298,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F4",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 299,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F5",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 300,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2F6",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 301,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G1",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 302,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G2",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 303,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G3",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 304,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G4",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 305,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G5",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 306,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G6",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 307,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G7",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 308,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G8",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 309,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G9",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 310,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G10",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 311,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G11",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 312,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G12",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 313,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G13",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 314,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G14",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 315,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G15",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 316,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G16",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 317,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G17",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 318,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2G18",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 319,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 320,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 321,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 322,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 323,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 324,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2H6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 325,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 326,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 327,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 328,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 329,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 330,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 331,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I7",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 332,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I8",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 333,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I9",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 334,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2I10",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 335,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J1",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 336,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J2",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 337,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J3",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 338,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J4",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 339,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J5",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 340,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J6",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 341,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J7",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 342,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J8",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 343,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J9",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 344,
+      "wh": 2,
+      "dept": "Accessories",
+      "code": "2J10",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 345,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2101",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 346,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2102",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 347,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2103",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 348,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2104",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 349,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2105",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 350,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2106",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 351,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2201",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 352,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2202",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 353,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2203",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 354,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2204",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 355,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2205",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 356,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2206",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 357,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2207",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 358,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2208",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 359,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2209",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 360,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2210",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 361,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2211",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 362,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2212",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 363,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2301",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 364,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2302",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 365,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2303",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 366,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2304",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 367,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2305",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 368,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2306",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 369,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2307",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 370,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2308",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 371,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2309",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 372,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2310",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 373,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2311",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 374,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2312",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 375,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2313",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 376,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2314",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 377,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2315",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 378,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2316",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 379,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2317",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 380,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2318",
+      "maxWeight": 1000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 381,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2401",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 382,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2402",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 383,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2403",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 384,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2404",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 385,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2405",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 386,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2406",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 387,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2407",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 388,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2408",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 389,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2409",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 390,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2410",
+      "maxWeight": 2000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 391,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2501",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 392,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2502",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 393,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2503",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 394,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2504",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 395,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2505",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 396,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2506",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 397,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2507",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 398,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2508",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 399,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2509",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 400,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2510",
+      "maxWeight": 3000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 401,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2601",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 402,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2602",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 403,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2603",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 404,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2604",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 405,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2605",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 406,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2606",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 407,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2607",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 408,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2608",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 409,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2609",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 410,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2610",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 411,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2611",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 412,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2612",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 413,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2613",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 414,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2614",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 415,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2615",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 416,
+      "wh": 3,
+      "dept": "Trim",
+      "code": "2616",
+      "maxWeight": 4000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 417,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A1",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 418,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A2",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 419,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A3",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 420,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A4",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 421,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A5",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 422,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3A6",
+      "maxWeight": 1500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 423,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B1",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 424,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B2",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 425,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B3",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 426,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B4",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 427,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B5",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 428,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B6",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 429,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B7",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 430,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B8",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 431,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B9",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 432,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B10",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 433,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B11",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 434,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B12",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 435,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B13",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 436,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B14",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 437,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B15",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 438,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B16",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 439,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B17",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 440,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3B18",
+      "maxWeight": 3000,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 441,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 442,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 443,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 444,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 445,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 446,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3C6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 447,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D1",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 448,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D2",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 449,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D3",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 450,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D4",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 451,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D5",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 452,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D6",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 453,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D7",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 454,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D8",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 455,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D9",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 456,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3D10",
+      "maxWeight": 6000,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 457,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E1",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 458,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E2",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 459,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E3",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 460,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E4",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 461,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E5",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 462,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E6",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 463,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E7",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 464,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E8",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 465,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E9",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 466,
+      "wh": 3,
+      "dept": "Rollforming",
+      "code": "3E10",
+      "maxWeight": 9000,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 467,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F1",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 468,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F2",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 469,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F3",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 470,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F4",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 471,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F5",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 472,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3F6",
+      "maxWeight": 40,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 473,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G1",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 474,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G2",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 475,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G3",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 476,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G4",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 477,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G5",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 478,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G6",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 479,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G7",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 480,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G8",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 481,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G9",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 482,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G10",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 483,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G11",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 484,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G12",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 485,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G13",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 486,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G14",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 487,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G15",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 488,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G16",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 489,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G17",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 490,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3G18",
+      "maxWeight": 120,
+      "maxOrders": 4,
+      "occupants": []
+    },
+    {
+      "id": 491,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 492,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 493,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 494,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 495,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 496,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3H6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 497,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I1",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 498,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I2",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 499,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I3",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 500,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I4",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 501,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I5",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 502,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I6",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 503,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I7",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 504,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I8",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 505,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I9",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 506,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3I10",
+      "maxWeight": 500,
+      "maxOrders": 1,
+      "occupants": []
+    },
+    {
+      "id": 507,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J1",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 508,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J2",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 509,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J3",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 510,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J4",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 511,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J5",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 512,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J6",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 513,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J7",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 514,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J8",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 515,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J9",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    },
+    {
+      "id": 516,
+      "wh": 3,
+      "dept": "Accessories",
+      "code": "3J10",
+      "maxWeight": 700,
+      "maxOrders": 3,
+      "occupants": []
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "order": "338001",
+      "type": "customer",
+      "customer": "Langton Metal Roofing",
+      "entryDate": "2026-07-08",
+      "shipDate": "2026-07-16",
+      "priorityId": null,
+      "reviewed": false,
+      "released": false,
+      "productionDate": "2026-07-14",
+      "isSplit": true,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Hannah Weir",
+          "email": "hannah@wiseline.app",
+          "ts": "Jul 8, 9:41 AM",
+          "body": "Customer needs charcoal sidewall to match a prior job — confirm colour lot before cutting.",
+          "dealt": false
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 101,
+          "qty": 40,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": "2026-07-14",
+          "notes": [
+            {
+              "id": 1,
+              "author": "Marcus Reid",
+              "email": "marcus@wiseline.app",
+              "ts": "Jul 9, 10:15 AM",
+              "body": "Use the tighter hem profile on this run.",
+              "dealt": false
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "qty": 24,
+          "productId": "TDRIP24",
+          "description": "Drip Edge",
+          "gaugeColour": "24ga Galvalume",
+          "width": 4,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "order": "338004",
+      "type": "customer",
+      "customer": "Aylmer Steel Supply",
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-15",
+      "priorityId": 2,
+      "reviewed": false,
+      "released": false,
+      "productionDate": null,
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 103,
+          "qty": 60,
+          "productId": "TRAKE24",
+          "description": "Rake Trim",
+          "gaugeColour": "24ga White",
+          "width": 8,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 104,
+          "qty": 12,
+          "productId": "TVAL26",
+          "description": "Valley",
+          "gaugeColour": "26ga Barn Red",
+          "width": 16,
+          "length": 96,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "order": "338007",
+      "type": "customer",
+      "customer": "Tillsonburg Contracting",
+      "entryDate": "2026-07-10",
+      "shipDate": "2026-07-20",
+      "priorityId": null,
+      "reviewed": false,
+      "released": false,
+      "productionDate": null,
+      "isSplit": false,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Marcus Reid",
+          "email": "marcus@wiseline.app",
+          "ts": "Jul 10, 2:14 PM",
+          "body": "Split shipment approved — first 50 by Friday.",
+          "dealt": true
+        },
+        {
+          "id": 2,
+          "author": "Hannah Weir",
+          "email": "hannah@wiseline.app",
+          "ts": "Jul 11, 8:02 AM",
+          "body": "Hold gable trim until PO revision comes through.",
+          "dealt": false
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 105,
+          "qty": 100,
+          "productId": "TGABLE26",
+          "description": "Gable Trim",
+          "gaugeColour": "26ga Hawaiian Blue",
+          "width": 10,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "order": "338010",
+      "type": "customer",
+      "customer": "Delhi Farm Structures",
+      "entryDate": "2026-07-11",
+      "shipDate": "2026-07-15",
+      "priorityId": 1,
+      "reviewed": false,
+      "released": false,
+      "productionDate": null,
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 106,
+          "qty": 30,
+          "productId": "TRIDGE26",
+          "description": "Ridge Cap",
+          "gaugeColour": "26ga Charcoal",
+          "width": 14,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 107,
+          "qty": 30,
+          "productId": "TDE8262",
+          "description": "Eave Trim",
+          "gaugeColour": "26ga Charcoal",
+          "width": 6,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "order": "338012",
+      "type": "customer",
+      "customer": "Simcoe Exteriors",
+      "entryDate": "2026-07-12",
+      "shipDate": "2026-07-18",
+      "priorityId": null,
+      "reviewed": false,
+      "released": false,
+      "productionDate": null,
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 108,
+          "qty": 48,
+          "productId": "TWCAP24",
+          "description": "W-Valley",
+          "gaugeColour": "24ga Galvalume",
+          "width": 20,
+          "length": 144,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "order": "338002",
+      "type": "customer",
+      "customer": "Norfolk Roofing Co.",
+      "entryDate": "2026-07-07",
+      "shipDate": "2026-07-17",
+      "priorityId": 2,
+      "reviewed": false,
+      "released": false,
+      "productionDate": "2026-07-15",
+      "isSplit": false,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Marcus Reid",
+          "email": "marcus@wiseline.app",
+          "ts": "Jul 7, 11:20 AM",
+          "body": "White drip edge — customer supplied their own coil, verify gauge.",
+          "dealt": false
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 109,
+          "qty": 50,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 110,
+          "qty": 20,
+          "productId": "TDRIP24",
+          "description": "Drip Edge",
+          "gaugeColour": "24ga White",
+          "width": 4,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "order": "338005",
+      "type": "customer",
+      "customer": "Port Dover Builders",
+      "entryDate": "2026-07-06",
+      "shipDate": "2026-07-16",
+      "priorityId": 1,
+      "reviewed": false,
+      "released": false,
+      "productionDate": "2026-07-15",
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 111,
+          "qty": 25,
+          "productId": "TRAKE24",
+          "description": "Rake Trim",
+          "gaugeColour": "26ga Barn Red",
+          "width": 8,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 15,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 112,
+          "qty": 10,
+          "productId": "TGABLE26",
+          "description": "Gable Trim",
+          "gaugeColour": "26ga Barn Red",
+          "width": 10,
+          "length": 120,
+          "machineId": null,
+          "fromStock": 10,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "order": "338009",
+      "type": "customer",
+      "customer": "Waterford Sheet Metal",
+      "entryDate": "2026-07-05",
+      "shipDate": "2026-07-13",
+      "priorityId": null,
+      "reviewed": false,
+      "released": false,
+      "productionDate": "2026-07-13",
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 113,
+          "qty": 18,
+          "productId": "TVAL26",
+          "description": "Valley",
+          "gaugeColour": "26ga Charcoal",
+          "width": 16,
+          "length": 120,
+          "machineId": 3,
+          "fromStock": 4,
+          "wrapped": 0,
+          "status": null,
+          "vented": 6,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "order": "S0142",
+      "type": "stock",
+      "customer": "Stock",
+      "entryDate": "2026-07-11",
+      "shipDate": null,
+      "priorityId": null,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-07-14",
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 114,
+          "qty": 40,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "wrapped",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": [],
+          "qtyManufactured": 38
+        },
+        {
+          "id": 115,
+          "qty": 25,
+          "productId": "TDRIP24",
+          "description": "Drip Edge",
+          "gaugeColour": "24ga White",
+          "width": 4,
+          "length": 120,
+          "machineId": 3,
+          "fromStock": 0,
+          "wrapped": 15,
+          "status": "bent",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "order": "338001",
+      "type": "customer",
+      "customer": "Delhi Farm Supply",
+      "entryDate": "2026-07-06",
+      "shipDate": "2026-07-16",
+      "priorityId": 1,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-07-09",
+      "isSplit": false,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Marcus Reid",
+          "email": "marcus@wiseline.app",
+          "ts": "Jul 13, 8:12 AM",
+          "body": "Past its production date — wrap and ship as soon as the drip edge is bent.",
+          "dealt": false
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 116,
+          "qty": 28,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "bent",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 117,
+          "qty": 12,
+          "productId": "TDRIP24",
+          "description": "Drip Edge",
+          "gaugeColour": "24ga Galvalume",
+          "width": 4,
+          "length": 120,
+          "machineId": 3,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "cut",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "order": "338003",
+      "type": "customer",
+      "customer": "Brantford Roofing Supply",
+      "entryDate": "2026-07-09",
+      "shipDate": "2026-07-17",
+      "priorityId": 1,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-07-14",
+      "isSplit": false,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Marcus Reid",
+          "email": "marcus@wiseline.app",
+          "ts": "Jul 12, 3:40 PM",
+          "body": "Priority job — keep on today's board.",
+          "dealt": true
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 118,
+          "qty": 40,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "cut",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 119,
+          "qty": 20,
+          "productId": "TDRIP24",
+          "description": "Drip Edge",
+          "gaugeColour": "24ga Galvalume",
+          "width": 4,
+          "length": 120,
+          "machineId": 3,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "in_progress",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "order": "338006",
+      "type": "customer",
+      "customer": "Otterville Building Supply",
+      "entryDate": "2026-07-10",
+      "shipDate": "2026-07-18",
+      "priorityId": 2,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-07-14",
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 120,
+          "qty": 30,
+          "productId": "TRIDGE26",
+          "description": "Ridge Cap",
+          "gaugeColour": "26ga Charcoal",
+          "width": 14,
+          "length": 120,
+          "machineId": 5,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "bent",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 121,
+          "qty": 15,
+          "productId": "TGABLE26",
+          "description": "Gable Trim",
+          "gaugeColour": "26ga Charcoal",
+          "width": 10,
+          "length": 120,
+          "machineId": 6,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": "in_progress",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "order": "338013",
+      "type": "customer",
+      "customer": "Courtland Building Centre",
+      "entryDate": "2026-07-12",
+      "shipDate": "2026-07-20",
+      "priorityId": 3,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-07-15",
+      "isSplit": false,
+      "notes": [],
+      "lineItems": [
+        {
+          "id": 122,
+          "qty": 24,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 123,
+          "qty": 18,
+          "productId": "TRIDGE26",
+          "description": "Ridge Cap",
+          "gaugeColour": "24ga White",
+          "width": 14,
+          "length": 120,
+          "machineId": 5,
+          "fromStock": 0,
+          "wrapped": 0,
+          "status": null,
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "order": "338008",
+      "type": "customer",
+      "customer": "Vittoria Metal Works",
+      "entryDate": "2026-06-18",
+      "shipDate": "2026-06-29",
+      "priorityId": 3,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-06-24",
+      "isSplit": false,
+      "notes": [
+        {
+          "id": 1,
+          "author": "Hannah Weir",
+          "email": "hannah@wiseline.app",
+          "ts": "Jun 27, 11:05 AM",
+          "body": "Confirmed with customer — full order picked up.",
+          "dealt": true
+        }
+      ],
+      "completed": true,
+      "completedDate": "2026-06-27",
+      "completedTime": "11:18 AM",
+      "pkgSeq": 2,
+      "location": 1,
+      "wrapLocations": [
+        1
+      ],
+      "locationIds": [
+        1
+      ],
+      "packages": [
+        {
+          "barcode": "01-338008-01",
+          "seq": 1,
+          "contents": "36 × TSWB262",
+          "locId": 1,
+          "locName": "101",
+          "qty": 36,
+          "weight": 288,
+          "deleted": false,
+          "lines": [
+            {
+              "lineId": 124,
+              "qty": 36,
+              "prevStatus": "bent",
+              "prevWrapped": 0
+            }
+          ]
+        },
+        {
+          "barcode": "01-338008-02",
+          "seq": 2,
+          "contents": "24 × TRAKE24",
+          "locId": 1,
+          "locName": "101",
+          "qty": 24,
+          "weight": 120,
+          "deleted": false,
+          "lines": [
+            {
+              "lineId": 125,
+              "qty": 24,
+              "prevStatus": "bent",
+              "prevWrapped": 0
+            }
+          ]
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 124,
+          "qty": 36,
+          "productId": "TSWB262",
+          "description": "Sidewall Flashing",
+          "gaugeColour": "26ga Charcoal",
+          "width": 12.5,
+          "length": 120,
+          "machineId": 2,
+          "fromStock": 0,
+          "wrapped": 36,
+          "status": "wrapped",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        },
+        {
+          "id": 125,
+          "qty": 24,
+          "productId": "TRAKE24",
+          "description": "Rake Trim",
+          "gaugeColour": "24ga White",
+          "width": 8,
+          "length": 120,
+          "machineId": 3,
+          "fromStock": 4,
+          "wrapped": 24,
+          "status": "wrapped",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "order": "338011",
+      "type": "customer",
+      "customer": "Walsingham Contracting",
+      "entryDate": "2026-05-10",
+      "shipDate": "2026-05-20",
+      "priorityId": null,
+      "reviewed": true,
+      "released": true,
+      "productionDate": "2026-05-16",
+      "isSplit": false,
+      "notes": [],
+      "completed": true,
+      "completedDate": "2026-05-19",
+      "completedTime": "2:47 PM",
+      "pkgSeq": 1,
+      "location": 5,
+      "wrapLocations": [
+        5
+      ],
+      "locationIds": [
+        5
+      ],
+      "packages": [
+        {
+          "barcode": "01-338011-01",
+          "seq": 1,
+          "contents": "50 × TGABLE26",
+          "locId": 5,
+          "locName": "105",
+          "qty": 50,
+          "weight": 300,
+          "deleted": false,
+          "lines": [
+            {
+              "lineId": 126,
+              "qty": 50,
+              "prevStatus": "bent",
+              "prevWrapped": 0
+            }
+          ]
+        }
+      ],
+      "lineItems": [
+        {
+          "id": 126,
+          "qty": 50,
+          "productId": "TGABLE26",
+          "description": "Gable Trim",
+          "gaugeColour": "26ga Hawaiian Blue",
+          "width": 10,
+          "length": 120,
+          "machineId": 6,
+          "fromStock": 0,
+          "wrapped": 50,
+          "status": "wrapped",
+          "vented": 0,
+          "scheduledDate": null,
+          "notes": []
+        }
+      ]
+    }
+  ],
+  "cutlists": [
+    {
+      "id": "S0142|26ga Charcoal|0|seed",
+      "date": "2026-07-14",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": null,
+      "members": [
+        {
+          "orderId": 13,
+          "lineId": 114
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": true,
+      "doneMachines": [
+        2
+      ]
+    },
+    {
+      "id": "S0142|24ga White|0|seed",
+      "date": "2026-07-14",
+      "gaugeColour": "24ga White",
+      "priorityId": null,
+      "members": [
+        {
+          "orderId": 13,
+          "lineId": 115
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338001|26ga Charcoal|1|seed",
+      "date": "2026-07-09",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": 1,
+      "members": [
+        {
+          "orderId": 15,
+          "lineId": 116
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338001|24ga Galvalume|1|seed",
+      "date": "2026-07-09",
+      "gaugeColour": "24ga Galvalume",
+      "priorityId": 1,
+      "members": [
+        {
+          "orderId": 15,
+          "lineId": 117
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338003|26ga Charcoal|1|seed",
+      "date": "2026-07-14",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": 1,
+      "members": [
+        {
+          "orderId": 9,
+          "lineId": 118
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338003|24ga Galvalume|1|seed",
+      "date": "2026-07-14",
+      "gaugeColour": "24ga Galvalume",
+      "priorityId": 1,
+      "members": [
+        {
+          "orderId": 9,
+          "lineId": 119
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338006|26ga Charcoal|2|seed",
+      "date": "2026-07-14",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": 2,
+      "members": [
+        {
+          "orderId": 10,
+          "lineId": 120
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338013|26ga Charcoal|3|seed",
+      "date": "2026-07-15",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": 3,
+      "members": [
+        {
+          "orderId": 14,
+          "lineId": 122
+        }
+      ],
+      "slinetStarted": false,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338013|24ga White|3|seed",
+      "date": "2026-07-15",
+      "gaugeColour": "24ga White",
+      "priorityId": 3,
+      "members": [
+        {
+          "orderId": 14,
+          "lineId": 123
+        }
+      ],
+      "slinetStarted": false,
+      "doneSlinet": false,
+      "doneMachines": []
+    },
+    {
+      "id": "338008|26ga Charcoal|3|seed",
+      "date": "2026-06-24",
+      "gaugeColour": "26ga Charcoal",
+      "priorityId": 3,
+      "members": [
+        {
+          "orderId": 11,
+          "lineId": 124
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": true,
+      "doneMachines": [
+        2
+      ]
+    },
+    {
+      "id": "338008|24ga White|3|seed",
+      "date": "2026-06-24",
+      "gaugeColour": "24ga White",
+      "priorityId": 3,
+      "members": [
+        {
+          "orderId": 11,
+          "lineId": 125
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": true,
+      "doneMachines": [
+        3
+      ]
+    },
+    {
+      "id": "338011|26ga Hawaiian Blue|0|seed",
+      "date": "2026-05-16",
+      "gaugeColour": "26ga Hawaiian Blue",
+      "priorityId": null,
+      "members": [
+        {
+          "orderId": 12,
+          "lineId": 126
+        }
+      ],
+      "slinetStarted": true,
+      "doneSlinet": true,
+      "doneMachines": [
+        6
+      ]
+    }
+  ],
+  "remans": [
+    {
+      "id": "Rseed1",
+      "orderId": 10,
+      "lineId": 121,
+      "orderNo": "338006",
+      "productId": "TGABLE26",
+      "description": "Gable Trim",
+      "gaugeColour": "26ga Charcoal",
+      "width": 10,
+      "length": 120,
+      "qty": 4,
+      "machineId": 6,
+      "priorityId": 2,
+      "date": "2026-07-14",
+      "source": "machine",
+      "fromCutlistId": "338006|26ga Charcoal|2|seed",
+      "recut": false,
+      "bent": false,
+      "slinetDone": false,
+      "machineDone": false
+    },
+    {
+      "id": "Rseed2",
+      "orderId": 10,
+      "lineId": 120,
+      "orderNo": "338006",
+      "productId": "TRIDGE26",
+      "description": "Ridge Cap",
+      "gaugeColour": "26ga Charcoal",
+      "width": 14,
+      "length": 120,
+      "qty": 2,
+      "machineId": 5,
+      "priorityId": 2,
+      "date": "2026-07-14",
+      "source": "wrapping",
+      "fromCutlistId": "338006|26ga Charcoal|2|seed",
+      "recut": true,
+      "bent": false,
+      "slinetDone": false,
+      "machineDone": false
+    }
+  ],
+  "coils": [
+    {
+      "id": 1,
+      "productId": "CB4826C",
+      "color": "Charcoal",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3781012",
+      "grade": 50,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 2140,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 5.69,
+      "weight": 6257
+    },
+    {
+      "id": 2,
+      "productId": "CB4826C",
+      "color": "Charcoal",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3781013",
+      "grade": 50,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 1980,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 5.34,
+      "weight": 5790
+    },
+    {
+      "id": 3,
+      "productId": "CB4826R",
+      "color": "Barn Red",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3782201",
+      "grade": 50,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 2260,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 5.95,
+      "weight": 6608
+    },
+    {
+      "id": 4,
+      "productId": "CB4826W",
+      "color": "Bright White",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3782977",
+      "grade": 33,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 1272,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "Partial",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 3.67,
+      "weight": 3719
+    },
+    {
+      "id": 5,
+      "productId": "CB4826W",
+      "color": "Bright White",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3782978",
+      "grade": 33,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 928,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 2.78,
+      "weight": 2713
+    },
+    {
+      "id": 6,
+      "productId": "CR2640B",
+      "color": "Bright White",
+      "width": 40,
+      "gauge": 26,
+      "coilNumber": "CN-60340",
+      "grade": 33,
+      "folder": "26 Ga. B&B Coils",
+      "linearFeet": 2210,
+      "locRollforming": true,
+      "locTrim": false,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 5.85,
+      "weight": 5385
+    },
+    {
+      "id": 7,
+      "productId": "CB4824G",
+      "color": "Galvalume",
+      "width": 48,
+      "gauge": 24,
+      "coilNumber": "3790455",
+      "grade": 50,
+      "folder": "24 Ga. Flat Stock Coils",
+      "linearFeet": 3010,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "",
+      "materialThickness": 0.0239,
+      "coreOD": 20,
+      "thickness": 9.36,
+      "weight": 11751
+    },
+    {
+      "id": 8,
+      "productId": "CB4824W",
+      "color": "White",
+      "width": 48,
+      "gauge": 24,
+      "coilNumber": "3790461",
+      "grade": 50,
+      "folder": "24 Ga. Flat Stock Coils",
+      "linearFeet": 2480,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "",
+      "materialThickness": 0.0239,
+      "coreOD": 20,
+      "thickness": 8.07,
+      "weight": 9682
+    },
+    {
+      "id": 9,
+      "productId": "CB4826H",
+      "color": "Hawaiian Blue",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3785540",
+      "grade": 50,
+      "folder": "26 Ga. Flat Stock Coils",
+      "linearFeet": 1990,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": true,
+      "note": "",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 5.36,
+      "weight": 5819
+    },
+    {
+      "id": 10,
+      "productId": "CB2928C",
+      "color": "Charcoal",
+      "width": 29,
+      "gauge": 28,
+      "coilNumber": "3795112",
+      "grade": 80,
+      "folder": "28 Ga. Flat Stock Coils",
+      "linearFeet": 1560,
+      "locRollforming": true,
+      "locTrim": false,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0149,
+      "coreOD": 20,
+      "thickness": 3.74,
+      "weight": 2294
+    },
+    {
+      "id": 11,
+      "productId": "CR2644G",
+      "color": "Galvalume",
+      "width": 44,
+      "gauge": 24,
+      "coilNumber": "CN-60220",
+      "grade": 50,
+      "folder": "24 Ga. B&B Coils",
+      "linearFeet": 1975,
+      "locRollforming": true,
+      "locTrim": false,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0239,
+      "coreOD": 20,
+      "thickness": 6.74,
+      "weight": 7068
+    },
+    {
+      "id": 12,
+      "productId": "CB3626C",
+      "color": "Charcoal",
+      "width": 36,
+      "gauge": 26,
+      "coilNumber": "3796210",
+      "grade": 50,
+      "folder": "26 Ga. B&B Coils",
+      "linearFeet": 640,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": false,
+      "note": "Low",
+      "materialThickness": 0.0179,
+      "coreOD": 20,
+      "thickness": 1.99,
+      "weight": 1404
+    },
+    {
+      "id": 13,
+      "productId": "CB3624W",
+      "color": "Bright White",
+      "width": 36,
+      "gauge": 24,
+      "coilNumber": "3796884",
+      "grade": 33,
+      "folder": "24 Ga. B&B Coils",
+      "linearFeet": 1830,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0239,
+      "coreOD": 20,
+      "thickness": 6.34,
+      "weight": 5358
+    },
+    {
+      "id": 14,
+      "productId": "CB4828B",
+      "color": "Bone White",
+      "width": 48,
+      "gauge": 28,
+      "coilNumber": "3797401",
+      "grade": 33,
+      "folder": "28 Ga. Flat Stock Coils Colorbond",
+      "linearFeet": 2410,
+      "locRollforming": false,
+      "locTrim": true,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0149,
+      "coreOD": 20,
+      "thickness": 5.4,
+      "weight": 5866
+    },
+    {
+      "id": 15,
+      "productId": "CB4826S",
+      "color": "Mill Finish",
+      "width": 48,
+      "gauge": 26,
+      "coilNumber": "3798120",
+      "grade": 80,
+      "folder": "26 Ga. SS Coils",
+      "linearFeet": 1140,
+      "locRollforming": false,
+      "locTrim": false,
+      "slinetIn": false,
+      "note": "Just arrived from EBMS — needs Material Thickness + Core OD",
+      "materialThickness": null,
+      "coreOD": null,
+      "thickness": null,
+      "weight": 3333
+    },
+    {
+      "id": 16,
+      "productId": "CB4824S",
+      "color": "Mill Finish",
+      "width": 48,
+      "gauge": 24,
+      "coilNumber": "3798133",
+      "grade": 80,
+      "folder": "24 Ga. SS Coils",
+      "linearFeet": 980,
+      "locRollforming": false,
+      "locTrim": false,
+      "slinetIn": false,
+      "note": "",
+      "materialThickness": 0.0239,
+      "coreOD": 20,
+      "thickness": 3.76,
+      "weight": 3826
+    }
+  ],
+  "expandedIds": [],
+  "selectedOrderIds": [],
+  "selectedLineIds": [],
+  "splitOrderId": null,
+  "scheduledDay": null,
+  "peekDay": null,
+  "stockWrapChecked": [],
+  "releaseIds": [],
+  "activeMachine": 1,
+  "expandedCoilGroups": [],
+  "loadedViews": [],
+  "prodMode": "trim",
+  "prodListMode": "active",
+  "stockBatches": []
+}
