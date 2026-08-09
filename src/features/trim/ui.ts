@@ -5,10 +5,12 @@ import { createStore } from '@/store/create-store'
 
 import { unscheduleOrder } from './store'
 
+import type { NoteCtx } from './components/note-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
 
 export type TrimUi = {
   schedule: ScheduleCtx | null
+  note: NoteCtx | null
   confirm: Confirm
   toast: { message: string; type: ToastType; shown: boolean }
 }
@@ -23,9 +25,13 @@ export type TrimUi = {
  */
 export const trimUi = createStore<TrimUi>({
   schedule: null,
+  note: null,
   confirm: null,
   toast: { message: '', type: 'success', shown: false }
 })
+
+export const openNotes = (note: NoteCtx) => trimUi.set({ note })
+export const closeNotes = () => trimUi.set({ note: null })
 
 export const openSchedule = (schedule: ScheduleCtx) => trimUi.set({ schedule })
 export const closeSchedule = () => trimUi.set({ schedule: null })

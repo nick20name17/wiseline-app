@@ -3,7 +3,7 @@ import { withPublishedCaps } from '@/store/shared/settings'
 
 import seed from './seed.json'
 
-import type { TrimState } from './types'
+import type { Note, TrimState } from './types'
 
 /**
  * The prototype pins its own clock so the demo reads the same on any day it is opened. Every date in
@@ -213,3 +213,43 @@ export const bypassProduction = (orderIds: number[]) =>
   }))
 
 export const setPeekDay = (peekDay: string | null) => trimStore.set({ peekDay })
+
+/* -- notes ------------------------------------------------------------------------------------- */
+
+export const addLineNote = (orderId: number, lineId: number, note: Note) =>
+  trimStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id === orderId
+        ? {
+            ...order,
+            lineItems: order.lineItems.map(item =>
+              item.id === lineId ? { ...item, notes: [...(item.notes ?? []), note] } : item
+            )
+          }
+        : order
+    )
+  }))
+
+/** Acknowledging is reversible: the red dot is a claim about attention, not a permanent state. */
+export const setNoteDealt = (
+  ctx: { orderId: number; lineId: number | null },
+  noteId: number,
+  dealt: boolean
+) =>
+  trimStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== ctx.orderId) return order
+
+      const mark = (notes: Note[]) =>
+        notes.map(note => (note.id === noteId ? { ...note, dealt } : note))
+
+      return ctx.lineId == null
+        ? { ...order, notes: mark(order.notes ?? []) }
+        : {
+            ...order,
+            lineItems: order.lineItems.map(item =>
+              item.id === ctx.lineId ? { ...item, notes: mark(item.notes ?? []) } : item
+            )
+          }
+    })
+  }))
