@@ -540,6 +540,10 @@ const BatchRows = ({
                     className={`note-btn ${noteState(first.notes) === 'unread' ? 'has-unread' : noteState(first.notes) === 'read' ? 'all-read' : ''}`}
                     data-comment={`prod-note-${rowKey}`}
                     title='Line notes'
+                    onClick={event => {
+                      event.stopPropagation()
+                      openNotes({ orderId: first.orderId, lineId: first.id })
+                    }}
                   >
                     <MessageSquare style={{ width: '14px', height: '14px' }} />
                     {noteState(first.notes) !== 'none' ? <span className='note-dot' /> : null}

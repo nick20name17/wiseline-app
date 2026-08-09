@@ -277,11 +277,7 @@ export const groupStepState = (items: BatchItem[], stepRank: number) => {
 }
 
 /** What one machine has been given for one day — the numbers on the totals strip. */
-export const machineTotals = (
-  machineId: number | null,
-  iso: string,
-  state = trimStore.get()
-) => {
+export const machineTotals = (machineId: number | null, iso: string, state = trimStore.get()) => {
   let pieces = 0
   let bends = 0
   let stockPieces = 0
@@ -356,6 +352,46 @@ export const locCurrentWeight = (location: Location) =>
 
 export const isLocationOverWeight = (location: Location) =>
   locCurrentWeight(location) > (location.maxWeight as number)
+
+export const locOccupantCount = (location: Location) => locOccupants(location).length
+
+export const isMultiLocation = (location: Location) => ((location.maxOrders as number) || 1) > 1
+
+/**
+ * A single-order cell is full the moment anything sits on it. A multi-order cell fills by count or by
+ * weight, whichever runs out first — a bay with room for four orders is still full at its weight.
+ */
+export const isLocationFull = (location: Location) =>
+  isMultiLocation(location)
+    ? locOccupantCount(location) >= (location.maxOrders as number) ||
+      locCurrentWeight(location) >= (location.maxWeight as number)
+    : locOccupantCount(location) >= 1
+
+/** The columns of each department's location grid: a code's first character is what kind of cell it is. */
+export const LOC_SCHEMES: Record<string, { prefix: string; label: string }[]> = {
+  Trim: [
+    { prefix: '1', label: '1 of 1' },
+    { prefix: '2', label: 'Wooden' },
+    { prefix: '3', label: 'Small' },
+    { prefix: '4', label: 'Medium' },
+    { prefix: '5', label: 'Large' },
+    { prefix: '6', label: 'Long' }
+  ],
+  Rollforming: [
+    { prefix: 'A', label: 'Rack' },
+    { prefix: 'B', label: 'Cart' },
+    { prefix: 'C', label: 'Lumber' },
+    { prefix: 'D', label: 'Lumber' },
+    { prefix: 'E', label: 'Long' }
+  ],
+  Accessories: [
+    { prefix: 'F', label: 'Rack' },
+    { prefix: 'G', label: 'Cart' },
+    { prefix: 'H', label: 'Lumber' },
+    { prefix: 'I', label: 'Lumber' },
+    { prefix: 'J', label: 'Long' }
+  ]
+}
 
 /** PO# and Salesman are not modelled; both are deterministic demo values off the order number. */
 const numFromOrderNo = (orderNo: string) => Number(/(\d+)$/.exec(orderNo)?.[1] ?? 0)

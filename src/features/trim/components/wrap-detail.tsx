@@ -11,6 +11,8 @@ import {
   demoPo,
   demoSalesman,
   estWeight,
+  isLocationLockedForOrder,
+  isLocationOverWeight,
   isOverdue,
   lineStatus,
   locById,
@@ -22,8 +24,17 @@ import {
   wrapEligible,
   wrapLeftOf
 } from '../selectors'
-import { DEPARTMENT, trimStore } from '../store'
-import { openPad } from '../ui'
+import { completeOrder, createPackage, DEPARTMENT, trimStore } from '../store'
+import {
+  askConfirm,
+  closeConfirm,
+  openLocPicker,
+  openNotes,
+  openPackages,
+  openPad,
+  pickLocation,
+  showToast
+} from '../ui'
 import { StockWrapWindow } from './stock-wrap'
 
 import type { LineItem, Order } from '../types'
@@ -112,10 +123,17 @@ const LocationTags = ({ order }: { order: Order }) => {
         return (
           <span className='loc-tag-wrap' key={id} data-comment={`loctagwrap-${order.id}-${id}`}>
             <button
-              className='loc-tag'
+              className={`loc-tag ${isLocationOverWeight(location) ? 'over' : isLocationLockedForOrder(order, id) ? 'locked' : ''}`}
               data-comment={`loctag-${order.id}-${id}`}
-              title='Click to remove this location'
-              onClick={event => event.stopPropagation()}
+              title={
+                isLocationLockedForOrder(order, id)
+                  ? 'Locked — full, do not add more packages here'
+                  : 'Click to remove this location'
+              }
+              onClick={event => {
+                event.stopPropagation()
+                pickLocation(order, id, location.code)
+              }}
             >
               {location.code}
             </button>
@@ -163,6 +181,78 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
     !!activeLoc &&
     draftWeight > 0 &&
     locCurrentWeight(activeLoc) + draftWeight > (activeLoc.maxWeight as number)
+
+  const batchQty = order.lineItems.reduce(
+    (sum, item) => sum + Math.max(0, item.qty - (item.fromStock || 0)),
+    0
+  )
+
+  /**
+   * These take the location rather than closing over `activeLoc`.
+   *
+   * The React Compiler lifts a property read out of a callback into the render-time dependency check
+   * it builds for that callback, so an `activeLoc!.code` written inside one of these runs on *every*
+   * render — and an order that has not picked a location yet has no `activeLoc` to read. The
+   * parameter keeps the read where it was written.
+   */
+  const finalize = (location: { id: number; code: string }) => {
+    const pkg = createPackage(
+      order.id,
+      location.id,
+      staged.map(item => ({ lineId: item.id, qty: stagedQty(item) })),
+      draftWeight
+    )
+    if (!pkg) return
+
+    setDraft(current => {
+      const next = { ...current }
+      for (const item of staged) delete next[item.id]
+      return next
+    })
+    showToast(`Printed label ${pkg.barcode}  ·  ${pkg.qty} pcs → ${location.code}`)
+  }
+
+  /**
+   * Both weight limits are soft, and independent: overriding the package one still has to clear the
+   * cell's, so the two questions are asked in turn rather than merged into one.
+   */
+  const confirmLocWeight = (location: { id: number; code: string; maxWeight: number }) => {
+    if (!overLoc) return finalize(location)
+
+    askConfirm(
+      'Location over weight limit',
+      `${location.code} would exceed ${location.maxWeight} lb (soft limit). Print anyway?`,
+      () => {
+        closeConfirm()
+        finalize(location)
+      },
+      'Print anyway'
+    )
+  }
+
+  const print = () => {
+    if (!staged.length) return showToast('Enter a wrapping quantity first', 'warning')
+    if (!activeLoc) return showToast('Select a location first', 'warning')
+
+    const location = {
+      id: activeLoc.id,
+      code: activeLoc.code,
+      maxWeight: activeLoc.maxWeight as number
+    }
+
+    if (overPkg)
+      return askConfirm(
+        'Package over the weight limit',
+        `${draftWeight} lb exceeds the ${maxPkg} lb limit set for Trim in Settings › Machines. Wrap fewer pieces into this package, or print anyway.`,
+        () => {
+          closeConfirm()
+          confirmLocWeight(location)
+        },
+        'Print anyway'
+      )
+
+    confirmLocWeight(location)
+  }
 
   return (
     <div className='bendlist' data-comment={`wrap-order-${order.id}`}>
@@ -382,6 +472,7 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                       className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
                       data-comment={`wrap-note-${key}`}
                       title='Line notes'
+                      onClick={() => openNotes({ orderId: order.id, lineId: item.id })}
                     >
                       <MessageSquare style={{ width: '14px', height: '14px' }} />
                       {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}
@@ -405,6 +496,7 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
           className='btn'
           data-comment={`wrap-selectloc-${order.id}`}
           disabled={!canSelectLoc}
+          onClick={() => openLocPicker(order.id, draftWeight)}
         >
           <MapPin style={{ width: '14px', height: '14px' }} />
           Select location{activeLoc ? ` · ${activeLoc.code}` : ''}
@@ -413,6 +505,7 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
           className='btn btn-primary'
           data-comment={`wrap-createprint-${order.id}`}
           disabled={!canCreate}
+          onClick={print}
         >
           <Printer style={{ width: '14px', height: '14px' }} />
           Create &amp; print
@@ -445,6 +538,7 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
           className='btn'
           data-comment={`wrap-seepkg2-${order.id}`}
           disabled={!packageCount}
+          onClick={() => openPackages(order.id)}
           title={packageCount ? undefined : 'Available after the first package is printed'}
         >
           <Package style={{ width: '14px', height: '14px' }} />
@@ -454,6 +548,21 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
           className='btn btn-primary'
           data-comment={`wrap-complete2-${order.id}`}
           disabled={!canComplete}
+          onClick={() =>
+            askConfirm(
+              `Complete order ${order.order}?`,
+              'Are you sure you are done with this order and that you want to create a manufacturing batch for it?',
+              () => {
+                completeOrder(order.id)
+                closeConfirm()
+                showToast(
+                  `Order ${order.order} complete · C_MFG batch (${batchQty} pcs) pushed to EBMS`
+                )
+              },
+              'Yes, Create Manufacturing Batch',
+              'No'
+            )
+          }
         >
           <Check style={{ width: '14px', height: '14px' }} />
           Order Complete

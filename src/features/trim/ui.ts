@@ -1,9 +1,9 @@
-import type { Confirm } from '@/components/shell/modal'
+import type { Alert, Confirm } from '@/components/shell/modal'
 import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
-import { remanListDone, setRemanFlag, unscheduleOrder } from './store'
+import { assignLocation, removeLocation, remanListDone, setRemanFlag, unscheduleOrder } from './store'
 
 import type { PadCtx } from './components/keypads'
 import type { NoteCtx } from './components/note-modal'
@@ -13,7 +13,14 @@ export type TrimUi = {
   schedule: ScheduleCtx | null
   note: NoteCtx | null
   pad: PadCtx | null
+  /**
+   * Which order is picking a location, and what the package it has staged weighs — the grid greys a
+   * cell that *this* package would push over, so the weight has to travel with the request.
+   */
+  locPicker: { orderId: number; stagedWeight: number } | null
+  packages: number | null
   confirm: Confirm
+  alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
 }
 
@@ -29,7 +36,10 @@ export const trimUi = createStore<TrimUi>({
   schedule: null,
   note: null,
   pad: null,
+  locPicker: null,
+  packages: null,
   confirm: null,
+  alert: null,
   toast: { message: '', type: 'success', shown: false }
 })
 
@@ -43,6 +53,16 @@ export const openPad = (pad: PadCtx) => {
   if (pad.kind === 'stock' && pad.locked) return showToast('Stock is locked — line already wrapped')
   trimUi.set({ pad })
 }
+
+export const openLocPicker = (orderId: number, stagedWeight: number) =>
+  trimUi.set({ locPicker: { orderId, stagedWeight } })
+export const closeLocPicker = () => trimUi.set({ locPicker: null })
+
+export const openPackages = (packages: number) => trimUi.set({ packages })
+export const closePackages = () => trimUi.set({ packages: null })
+
+export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
+export const closeAlert = () => trimUi.set({ alert: null })
 
 export const openSchedule = (schedule: ScheduleCtx) => trimUi.set({ schedule })
 export const closeSchedule = () => trimUi.set({ schedule: null })
@@ -117,3 +137,41 @@ export const askRemanListDone = (id: string, which: 'slinet' | 'machine') =>
       showToast(which === 'slinet' ? 'Recut cutlist closed' : 'Remanufacture bendlist closed')
     }
   )
+
+/**
+ * Picking a cell that already holds this order removes it instead — the grid is a toggle, not a list.
+ *
+ * N-087: an order that has printed packages must keep at least one location, so removing its last one
+ * is refused outright rather than confirmed. There is nothing to weigh up: the packages are physically
+ * somewhere, and the app has to be able to say where.
+ */
+export const pickLocation = (
+  order: { id: number; locationIds?: number[]; packages?: { deleted?: boolean }[] },
+  locationId: number,
+  code: string
+) => {
+  if (!(order.locationIds ?? []).includes(locationId)) {
+    assignLocation(order.id, locationId)
+    return showToast(`Location ${code} assigned`)
+  }
+
+  const isLast = (order.locationIds ?? []).length <= 1
+  const hasPackages = (order.packages ?? []).some(pkg => !pkg.deleted)
+
+  if (isLast && hasPackages)
+    return askAlert(
+      'Location required',
+      'An order with existing packages needs to have at least 1 location, please select a location to continue.'
+    )
+
+  askConfirm(
+    'Remove location',
+    'Are you sure you want to remove this location from this order?',
+    () => {
+      removeLocation(order.id, locationId)
+      closeConfirm()
+      showToast(`Location ${code} removed`)
+    },
+    'Yes, remove'
+  )
+}

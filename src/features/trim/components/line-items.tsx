@@ -14,7 +14,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { lineDay, machineById, noteState, qtyToMake, ventedOf } from '../selectors'
 import { toggleLineSelect, trimStore } from '../store'
-import { confirmUnschedule, openSchedule } from '../ui'
+import { confirmUnschedule, openNotes, openSchedule } from '../ui'
 import { LineStatusPill } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -28,7 +28,7 @@ import type { LineItem, Order } from '../types'
 
 type Context = 'uns' | 'sch'
 
-const LineNotes = ({ ctx, item }: { ctx: Context; item: LineItem }) => {
+const LineNotes = ({ ctx, orderId, item }: { ctx: Context; orderId: number; item: LineItem }) => {
   const state = noteState(item.notes)
 
   return (
@@ -37,7 +37,10 @@ const LineNotes = ({ ctx, item }: { ctx: Context; item: LineItem }) => {
         data-comment={`${ctx}-linotebtn-${item.id}`}
         className={`note-btn ${state === 'unread' ? 'has-unread' : state === 'read' ? 'all-read' : ''}`}
         title='Line item notes'
-        onClick={event => event.stopPropagation()}
+        onClick={event => {
+          event.stopPropagation()
+          openNotes({ orderId, lineId: item.id })
+        }}
       >
         <MessageSquare style={{ width: '14px', height: '14px' }} />
         {state !== 'none' ? <span className='note-dot' /> : null}
@@ -457,7 +460,7 @@ export const LineItemsSubrow = ({
                       </>
                     ) : null}
 
-                    <LineNotes ctx={ctx} item={item} />
+                    <LineNotes ctx={ctx} orderId={order.id} item={item} />
                   </tr>
                 )
               })}

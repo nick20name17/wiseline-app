@@ -7,12 +7,14 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar, Topbar } from '@/components/shell/chrome'
-import { ConfirmOverlay } from '@/components/shell/modal'
+import { AlertOverlay, ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
 import { Keypads } from '@/features/trim/components/keypads'
+import { LocationPicker } from '@/features/trim/components/location-picker'
+import { PackagesModal } from '@/features/trim/components/packages-modal'
 import { NoteModal } from '@/features/trim/components/note-modal'
 import { ScheduleModal } from '@/features/trim/components/schedule-modal'
 import { Coils } from '@/features/trim/components/coils'
@@ -33,10 +35,14 @@ import {
   trimStore
 } from '@/features/trim/store'
 import {
+  closeAlert,
   closeConfirm,
+  closeLocPicker,
   closeNotes,
+  closePackages,
   closeSchedule,
   confirmUnschedule,
+  pickLocation,
   showToast,
   trimUi
 } from '@/features/trim/ui'
@@ -163,7 +169,19 @@ function Trim() {
       />
       <NoteModal ctx={ui.note} onClose={closeNotes} />
       <Keypads />
+      <LocationPicker
+        orderId={ui.locPicker?.orderId ?? null}
+        stagedWeight={ui.locPicker?.stagedWeight ?? 0}
+        onClose={closeLocPicker}
+        onPick={locationId => {
+          const order = trimStore.get().orders.find(entry => entry.id === ui.locPicker?.orderId)
+          const location = trimStore.get().locations.find(entry => entry.id === locationId)
+          if (order && location) pickLocation(order, locationId, location.code)
+        }}
+      />
+      <PackagesModal orderId={ui.packages} onClose={closePackages} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
+      <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>
   )
