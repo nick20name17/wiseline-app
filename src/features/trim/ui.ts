@@ -9,6 +9,7 @@ import {
   remanListDone,
   setRemanFlag,
   setReviewed,
+  toggleCoilLocation,
   unscheduleOrder
 } from './store'
 
@@ -223,5 +224,30 @@ export const requestToggleReviewed = (order: { id: number; order: string; review
       setReviewed(order.id, false)
       closeConfirm()
     }
+  )
+}
+
+const DEPT_FLAG_LABEL = { locTrim: 'Trim', locRollforming: 'Rollforming' } as const
+
+/**
+ * Moving a coil between departments asks; clearing a box, or ticking one with nothing to displace,
+ * does not. The question is only worth asking when an answer is being overwritten.
+ */
+export const requestCoilLocation = (
+  coil: { id: string | number; locTrim: boolean; locRollforming: boolean },
+  flag: 'locTrim' | 'locRollforming'
+) => {
+  const other = flag === 'locTrim' ? 'locRollforming' : 'locTrim'
+  if (coil[flag] || !coil[other]) return toggleCoilLocation(coil.id, flag)
+
+  askConfirm(
+    `Move coil to ${DEPT_FLAG_LABEL[flag]}?`,
+    `By clicking Yes, the location for this coil will change to the ${DEPT_FLAG_LABEL[flag]} department. This will uncheck the ${DEPT_FLAG_LABEL[other]} department — both locations can NOT be checked at the same time.`,
+    () => {
+      toggleCoilLocation(coil.id, flag)
+      closeConfirm()
+    },
+    'Yes',
+    'No'
   )
 }
