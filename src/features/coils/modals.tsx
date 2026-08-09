@@ -418,7 +418,7 @@ export const CoilFilterModal = ({
                   Between
                 </span>
                 <NumberInput
-                  className='cf-input mono'
+                  variant='compact'
                   comment={`coilfilter-${leg.key}-min`}
                   ariaLabel={`${leg.label} min`}
                   step={+leg.step}
@@ -431,7 +431,7 @@ export const CoilFilterModal = ({
                 />
                 <span className='cf-amp'>&amp;</span>
                 <NumberInput
-                  className='cf-input mono'
+                  variant='compact'
                   comment={`coilfilter-${leg.key}-max`}
                   ariaLabel={`${leg.label} max`}
                   step={+leg.step}

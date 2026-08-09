@@ -224,7 +224,16 @@ const publish = (area: string, rows: unknown[]) => {
 export const addRow = (area: string, draft: Record<string, unknown>) =>
   settingsStore.set(state => {
     const id = ++seq
-    const rows = [...(state[area as keyof SettingsState] as unknown[]), { ...draft, id }]
+    // a new priority goes last in its department; dragging is how it gets anywhere else
+    const entry =
+      area === 'priorities'
+        ? {
+            ...draft,
+            hierarchy:
+              state.priorities.filter(priority => priority.dept === draft.dept).length + 1
+          }
+        : draft
+    const rows = [...(state[area as keyof SettingsState] as unknown[]), { ...entry, id }]
     publish(area, rows)
 
     // one default warehouse: naming a new one demotes whichever held it
