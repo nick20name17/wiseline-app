@@ -11,9 +11,19 @@ import {
 
 import { useStore } from '@/store/create-store'
 
+import { usePopover } from '@/components/shell/pop'
+
 import { fmtDate } from '../format'
 import { lineDay, machineById, noteState, qtyToMake, ventedOf } from '../selectors'
-import { toggleLineSelect, trimStore } from '../store'
+import {
+  setFromStock,
+  setLineField,
+  setLineMachine,
+  setVented,
+  toggleLineSelect,
+  toggleVented,
+  trimStore
+} from '../store'
 import { confirmUnschedule, openNotes, openSchedule } from '../ui'
 import { LineStatusPill } from './bits'
 
@@ -114,7 +124,7 @@ const VentCell = ({
         className='chk'
         data-comment={`${ctx}-ventchk-${item.id}`}
         checked={!!vented}
-        readOnly
+        onChange={() => toggleVented(order.id, item.id)}
       />
       {vented ? (
         <input
@@ -126,7 +136,7 @@ const VentCell = ({
           placeholder='1'
           data-comment={`${ctx}-ventqty-${item.id}`}
           title='Pieces to vent'
-          readOnly
+          onChange={event => setVented(order.id, item.id, Number.parseInt(event.target.value, 10))}
         />
       ) : null}
     </label>
@@ -137,12 +147,14 @@ const MachineCell = ({
   ctx,
   order,
   item,
-  otherDay
+  otherDay,
+  onPick
 }: {
   ctx: Context
   order: Order
   item: LineItem
   otherDay: boolean
+  onPick: (anchor: HTMLElement, item: LineItem) => void
 }) => {
   if (otherDay || order.bypassed || (item.fromStock || 0) >= item.qty)
     return (
@@ -158,6 +170,10 @@ const MachineCell = ({
       className={`field-btn field-sel ${machine ? '' : 'is-empty'}`}
       data-pop-anchor
       data-comment={`${ctx}-machbtn-${item.id}`}
+      onClick={event => {
+        event.stopPropagation()
+        onPick(event.currentTarget, item)
+      }}
     >
       <span>{machine ? machine.name : 'Assign'}</span>
       <ChevronDown style={{ width: '14px', height: '14px' }} />
@@ -270,11 +286,21 @@ export const LineItemsSubrow = ({
   const selectedOrderIds = useStore(trimStore, state => state.selectedOrderIds)
 
   const orderSelectedForWhole = !isScheduled && selectedOrderIds.includes(order.id)
+  const { openPop, popNode } = usePopover()
+
+  const pickMachine = (anchor: HTMLElement, item: LineItem) =>
+    openPop(
+      anchor,
+      trimStore.get().machines.map(machine => ({ label: machine.name, value: machine.id })),
+      value => setLineMachine(order.id, item.id, value as number),
+      item.machineId ?? undefined
+    )
 
   return (
     <tr className='subrow' data-comment={`${ctx}-subrow-${order.id}`}>
       <td colSpan={isScheduled ? 11 : 8}>
         <div className='subwrap' data-comment={`${ctx}-subwrap-${order.id}`}>
+          {popNode}
           {/* #171: name the owning order above its line items */}
           <div className='li-owner' data-comment={`${ctx}-liowner-${order.id}`}>
             <CornerDownRight style={{ width: '13px', height: '13px' }} />
@@ -383,7 +409,7 @@ export const LineItemsSubrow = ({
                           <VentCell ctx={ctx} order={order} item={item} otherDay={otherDay} />
                         </td>
                         <td data-comment={`${ctx}-limachine-${item.id}`}>
-                          <MachineCell ctx={ctx} order={order} item={item} otherDay={otherDay} />
+                          <MachineCell ctx={ctx} order={order} item={item} otherDay={otherDay} onPick={pickMachine} />
                         </td>
                         {order.type !== 'stock' ? (
                           otherDay ? (
@@ -400,7 +426,14 @@ export const LineItemsSubrow = ({
                                 value={item.fromStock || 0}
                                 placeholder='0'
                                 data-comment={`${ctx}-stockinput-${item.id}`}
-                                readOnly
+                                onClick={event => event.stopPropagation()}
+                                onChange={event =>
+                                  setFromStock(
+                                    order.id,
+                                    item.id,
+                                    Number.parseInt(event.target.value, 10)
+                                  )
+                                }
                               />
                             </td>
                           )
@@ -424,7 +457,10 @@ export const LineItemsSubrow = ({
                           value={item.description}
                           data-comment={`${ctx}-descinput-${item.id}`}
                           title='Description (editable)'
-                          readOnly
+                          onClick={event => event.stopPropagation()}
+                          onChange={event =>
+                            setLineField(order.id, item.id, { description: event.target.value })
+                          }
                         />
                       ) : (
                         item.description
@@ -444,7 +480,13 @@ export const LineItemsSubrow = ({
                               value={item.width}
                               data-comment={`${ctx}-widthinput-${item.id}`}
                               title='Width in inches (editable)'
-                              readOnly
+                              onClick={event => event.stopPropagation()}
+                              onChange={event => {
+                                const width = Number.parseFloat(event.target.value)
+                                setLineField(order.id, item.id, {
+                                  width: Number.isNaN(width) || width < 0 ? 0 : width
+                                })
+                              }}
                             />
                           ) : (
                             item.width.toFixed(1)

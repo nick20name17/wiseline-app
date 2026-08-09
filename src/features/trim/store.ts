@@ -390,6 +390,111 @@ export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
   return !!trimStore.get().orders.find(order => order.id === orderId)?.completed
 }
 
+/* -- the Manager's review pass (N-026, N-030, N-037, N-105, N-113, item 165) -------------------- */
+
+/** Item 165: Description and Width are the Manager's to correct, up until the order is released. */
+export const setLineField = (
+  orderId: number,
+  lineId: number,
+  patch: Partial<TrimState['orders'][number]['lineItems'][number]>
+) => trimStore.set(state => patchLine(state, orderId, lineId, () => patch))
+
+export const setLineMachine = (orderId: number, lineId: number, machineId: number | null) =>
+  trimStore.set(state => patchLine(state, orderId, lineId, () => ({ machineId })))
+
+/**
+ * N-113: venting is a flag with a quantity behind it, so ticking it means «all of them».
+ *
+ * A vent count above what is actually being made would be a promise the floor cannot keep, so it is
+ * capped at Qty to Manufacture rather than at Qty Ordered — stock pieces are not going through the
+ * machine at all.
+ */
+export const toggleVented = (orderId: number, lineId: number) =>
+  trimStore.set(state =>
+    patchLine(state, orderId, lineId, item => ({
+      vented: (item.vented || 0) > 0 ? 0 : Math.max(0, item.qty - (item.fromStock || 0))
+    }))
+  )
+
+export const setVented = (orderId: number, lineId: number, value: number) =>
+  trimStore.set(state =>
+    patchLine(state, orderId, lineId, item => ({
+      vented: Math.min(
+        Math.max(0, Number.isNaN(value) ? 0 : value),
+        Math.max(0, item.qty - (item.fromStock || 0))
+      )
+    }))
+  )
+
+/** Un-reviewing also drops the order from the release selection — it is no longer eligible for it. */
+export const setReviewed = (orderId: number, reviewed: boolean) =>
+  trimStore.set(state => ({
+    orders: state.orders.map(order => (order.id === orderId ? { ...order, reviewed } : order)),
+    releaseIds: reviewed ? state.releaseIds : state.releaseIds.filter(id => id !== orderId)
+  }))
+
+/**
+ * Gate 4: releasing is what turns reviewed orders into work on the floor.
+ *
+ * Lines are grouped into cutlists by Date × Gauge/Colour × Priority (N-030) — the three things that
+ * decide whether two pieces can be cut in one run. A line fully covered by stock generates nothing;
+ * there is nothing to make.
+ *
+ * N-105: the id carries a timestamp, so a second release on the same day and colour opens a *new*
+ * cutlist rather than joining one the Slinet may already be part-way through.
+ */
+export const releaseToProduction = () => {
+  const state = trimStore.get()
+  if (!state.releaseIds.length) return null
+
+  const releasing = state.orders.filter(order => state.releaseIds.includes(order.id))
+  if (!releasing.every(order => order.reviewed)) return null
+
+  const groups = new Map<string, TrimState['cutlists'][number]>()
+
+  for (const order of releasing)
+    for (const item of order.lineItems) {
+      if (item.qty - (item.fromStock || 0) <= 0) continue
+
+      const key = `${order.productionDate}|${item.gaugeColour}|${order.priorityId || 0}`
+      const group = groups.get(key) ?? {
+        id: key,
+        date: order.productionDate as string,
+        gaugeColour: item.gaugeColour,
+        priorityId: order.priorityId,
+        members: [],
+        slinetStarted: false,
+        doneSlinet: false,
+        doneMachines: []
+      }
+      group.members.push({ orderId: order.id, lineId: item.id })
+      groups.set(key, group)
+    }
+
+  const stamp = Date.now()
+  const cutlists = [...groups.values()].map(group => ({ ...group, id: `${group.id}|${stamp}` }))
+
+  trimStore.set(current => ({
+    orders: current.orders.map(order =>
+      !current.releaseIds.includes(order.id)
+        ? order
+        : {
+            ...order,
+            released: true,
+            // N-037: a line covered entirely by stock is already done; the rest starts at the beginning
+            lineItems: order.lineItems.map(item => ({
+              ...item,
+              status: (item.fromStock || 0) >= item.qty ? 'stock' : 'not_started'
+            }))
+          }
+    ),
+    cutlists: [...current.cutlists, ...cutlists],
+    releaseIds: []
+  }))
+
+  return { orders: releasing.length, cutlists: cutlists.length }
+}
+
 /* -- production: cut, bent, done (N-051..056) --------------------------------------------------- */
 
 /** How far a line has got. Status never moves backwards, so comparing ranks is the whole gate. */
