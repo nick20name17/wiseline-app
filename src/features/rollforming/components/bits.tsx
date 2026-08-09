@@ -3,7 +3,10 @@ import { Inbox, MessageSquare, Scissors } from 'lucide-react'
 import { useStore } from '@/store/create-store'
 
 import { GROUPS, groupSlug, noteState, priorityById, statusOf } from '../selectors'
-import { rollformingStore, setActiveGroup } from '../store'
+import { usePopover } from '@/components/shell/pop'
+
+import { rollformingStore, setActiveGroup, setPriority } from '../store'
+import { openNotes } from '../ui'
 
 import type { LineItem, Order } from '../types'
 
@@ -68,19 +71,40 @@ export const GroupTabs = ({ prefix }: { prefix: string }) => {
 
 /** A Worker sees the priority and works to it but cannot set it; it stays settable after release. */
 export const PriorityCell = ({ order, readOnly }: { order: Order; readOnly?: boolean }) => {
-  const priority = priorityById(order.priorityId)
   const role = useStore(rollformingStore, state => state.role)
+  const priorities = useStore(rollformingStore, state => state.priorities)
+  const priority = priorityById(order.priorityId, priorities)
+  const { openPop, popNode } = usePopover()
   const locked = readOnly || role === 'worker'
 
   return (
-    <button
-      className={`pri ${priority ? priority.cls : 'pri-none'}${locked ? ' readonly' : ''}`}
-      data-pop-anchor
-      data-comment={`pri-${order.id}`}
-    >
-      <span className='pri-dot' />
-      {priority ? priority.name : 'Set priority'}
-    </button>
+    <>
+      <button
+        className={`pri ${priority ? priority.cls : 'pri-none'}${locked ? ' readonly' : ''}`}
+        data-pop-anchor
+        data-comment={`pri-${order.id}`}
+        onClick={
+          locked
+            ? undefined
+            : event => {
+                event.stopPropagation()
+                openPop<number>(
+                  event.currentTarget,
+                  [
+                    ...priorities.map(entry => ({ label: entry.name, value: entry.id })),
+                    { label: 'No priority', value: 0 }
+                  ],
+                  value => setPriority(order.id, value || null),
+                  order.priorityId ?? 0
+                )
+              }
+        }
+      >
+        <span className='pri-dot' />
+        {priority ? priority.name : 'Set priority'}
+      </button>
+      {popNode}
+    </>
   )
 }
 
@@ -94,7 +118,10 @@ export const NoteButton = ({ order }: { order: Order }) => {
     <button
       className={`note-btn ${noteClass(state)}`}
       data-comment={`note-btn-${order.id}`}
-      onClick={event => event.stopPropagation()}
+      onClick={event => {
+        event.stopPropagation()
+        openNotes({ orderId: order.id, lineId: null })
+      }}
       title='Order notes'
     >
       <MessageSquare style={{ width: '14px', height: '14px' }} />
@@ -104,14 +131,25 @@ export const NoteButton = ({ order }: { order: Order }) => {
 }
 
 /** Line item notes are the plant's own — Manager and Worker share them, EBMS never sees them. */
-export const LineNoteButton = ({ item, comment }: { item: LineItem; comment: string }) => {
+export const LineNoteButton = ({
+  order,
+  item,
+  comment
+}: {
+  order: Order
+  item: LineItem
+  comment: string
+}) => {
   const state = noteState(item.notes)
 
   return (
     <button
       className={`note-btn ${noteClass(state)}`}
       data-comment={comment}
-      onClick={event => event.stopPropagation()}
+      onClick={event => {
+        event.stopPropagation()
+        openNotes({ orderId: order.id, lineId: item.id })
+      }}
       title='Line item notes'
     >
       <MessageSquare style={{ width: '14px', height: '14px' }} />

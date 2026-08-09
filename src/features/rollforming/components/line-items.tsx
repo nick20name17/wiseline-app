@@ -104,145 +104,148 @@ const StockControl = ({ order, item, ctx }: { order: Order; item: LineItem; ctx:
 const CoilUnitTable = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: Ctx }) => {
   // after Release the assignment is history: the selection column and the Assign buttons both go
   const canBulkSelect = ctx === 'sch' && !order.released
-  const canTickStock = ctx === 'sch' && stockGateOk(order.id)
-  const selectedCoilCtx = useStore(rollformingStore, state => state.selectedCoilCtx)
+  const state = useStore(rollformingStore, current => current)
+  const canTickStock = ctx === 'sch' && stockGateOk(order.id, state)
+  const selectedCoilCtx = state.selectedCoilCtx
 
   return (
-  <table className='sub' data-comment={`${ctx}-coiltable-${item.id}`}>
-    <thead>
-      <tr>
-        {canBulkSelect ? <th style={{ width: '26px' }} /> : null}
-        <th style={{ width: '56px' }}>Coil</th>
-        <th style={{ width: '64px' }}>Stock</th>
-        <th style={{ width: '104px' }}>To Produce</th>
-        <th style={{ width: '170px' }}>Supplier</th>
-        <th style={{ width: '150px' }}>Coil Number</th>
-        <th style={{ width: '80px' }}>Slit</th>
-        <th style={{ width: '110px' }} />
-      </tr>
-    </thead>
-    <tbody>
-      {item.coils.map((coil, index) => {
-        const waiting = !coil.stock && coil.needsSlit && !coil.slitDone
-        const selected =
-          !!selectedCoilCtx &&
-          selectedCoilCtx.orderId === order.id &&
-          selectedCoilCtx.profile === item.profile &&
-          selectedCoilCtx.units.includes(`${item.id}:${index}`)
+    <table className='sub' data-comment={`${ctx}-coiltable-${item.id}`}>
+      <thead>
+        <tr>
+          {canBulkSelect ? <th style={{ width: '26px' }} /> : null}
+          <th style={{ width: '56px' }}>Coil</th>
+          <th style={{ width: '64px' }}>Stock</th>
+          <th style={{ width: '104px' }}>To Produce</th>
+          <th style={{ width: '170px' }}>Supplier</th>
+          <th style={{ width: '150px' }}>Coil Number</th>
+          <th style={{ width: '80px' }}>Slit</th>
+          <th style={{ width: '110px' }} />
+        </tr>
+      </thead>
+      <tbody>
+        {item.coils.map((coil, index) => {
+          const waiting = !coil.stock && coil.needsSlit && !coil.slitDone
+          const selected =
+            !!selectedCoilCtx &&
+            selectedCoilCtx.orderId === order.id &&
+            selectedCoilCtx.profile === item.profile &&
+            selectedCoilCtx.units.includes(`${item.id}:${index}`)
 
-        return (
-          <tr
-            key={index}
-            className={`${selected ? 'li-selected' : ''}${coil.stock ? ' unit-stock' : ''}`}
-            data-comment={`${ctx}-coilrow-${item.id}-${index}`}
-          >
-            {canBulkSelect ? (
-              <td data-comment={`${ctx}-coilchk-${item.id}-${index}`}>
-                {coil.stock ? null : (
+          return (
+            <tr
+              key={index}
+              className={`${selected ? 'li-selected' : ''}${coil.stock ? ' unit-stock' : ''}`}
+              data-comment={`${ctx}-coilrow-${item.id}-${index}`}
+            >
+              {canBulkSelect ? (
+                <td data-comment={`${ctx}-coilchk-${item.id}-${index}`}>
+                  {coil.stock ? null : (
+                    <input
+                      type='checkbox'
+                      className='chk'
+                      data-comment={`${ctx}-coilchkin-${item.id}-${index}`}
+                      checked={selected}
+                      onChange={() => toggleCoilUnitSelect(order.id, item.id, index)}
+                    />
+                  )}
+                </td>
+              ) : null}
+              <td className='mono' data-comment={`${ctx}-coilno-${item.id}-${index}`}>
+                #{index + 1}
+              </td>
+              <td data-comment={`${ctx}-unitstock-${item.id}-${index}`}>
+                {canTickStock ? (
                   <input
                     type='checkbox'
                     className='chk'
-                    data-comment={`${ctx}-coilchkin-${item.id}-${index}`}
-                    checked={selected}
-                    onChange={() => toggleCoilUnitSelect(order.id, item.id, index)}
+                    data-comment={`${ctx}-unitstockchk-${item.id}-${index}`}
+                    checked={coil.stock}
+                    title='Take this coil from Stock — opens Select Supplier / Coil Number'
+                    onChange={() => {}}
                   />
+                ) : coil.stock ? (
+                  <Check style={{ width: '14px', height: '14px', color: 'var(--success)' }} />
+                ) : (
+                  <span className='subtle'>—</span>
                 )}
               </td>
-            ) : null}
-            <td className='mono' data-comment={`${ctx}-coilno-${item.id}-${index}`}>
-              #{index + 1}
-            </td>
-            <td data-comment={`${ctx}-unitstock-${item.id}-${index}`}>
-              {canTickStock ? (
-                <input
-                  type='checkbox'
-                  className='chk'
-                  data-comment={`${ctx}-unitstockchk-${item.id}-${index}`}
-                  checked={coil.stock}
-                  title='Take this coil from Stock — opens Select Supplier / Coil Number'
-                  onChange={() => {}}
-                />
-              ) : coil.stock ? (
-                <Check style={{ width: '14px', height: '14px', color: 'var(--success)' }} />
-              ) : (
-                <span className='subtle'>—</span>
-              )}
-            </td>
-            <td className='mono' data-comment={`${ctx}-unittoproduce-${item.id}-${index}`}>
-              {coil.stock ? <span className='subtle'>—</span> : '1'}
-            </td>
-            <td data-comment={`${ctx}-sup-${item.id}-${index}`}>
-              {waiting ? (
-                <span className='subtle' style={{ fontSize: '11px' }}>
-                  locked
-                </span>
-              ) : (
-                supplierName(coil.supplierId)
-              )}
-            </td>
-            <td data-comment={`${ctx}-cn-${item.id}-${index}`}>
-              {waiting ? (
-                <span className='lock-tag' data-comment={`${ctx}-waiting-${item.id}-${index}`}>
-                  <Clock style={{ width: '14px', height: '14px' }} />
-                  waiting...
-                </span>
-              ) : (
-                <>
-                  <span className='mono'>{coil.coilNumber || 'Undefined'}</span>
-                  {coil.coilNumber ? (
-                    <>
-                      {' '}
-                      <button
-                        className='icon-btn'
-                        title='Copy Coil Number'
-                        data-comment={`${ctx}-copycn-${item.id}-${index}`}
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <Copy style={{ width: '14px', height: '14px' }} />
-                      </button>
-                    </>
-                  ) : null}
-                </>
-              )}
-            </td>
-            <td data-comment={`${ctx}-slit-${item.id}-${index}`}>
-              {coil.stock ? (
-                <span className='subtle'>—</span>
-              ) : (
-                <button
-                  className='icon-btn'
-                  title={coil.needsSlit ? 'Needs Slit Line first' : 'Rolls off existing coil'}
-                  data-comment={`${ctx}-slitbtn-${item.id}-${index}`}
-                >
-                  {coil.needsSlit ? (
-                    <Scissors
-                      style={{
-                        width: '14px',
-                        height: '14px',
-                        color: coil.slitDone ? 'var(--success)' : 'var(--pri-by)'
-                      }}
-                    />
-                  ) : (
-                    <Disc style={{ width: '14px', height: '14px', color: 'var(--text-subtle)' }} />
-                  )}
-                </button>
-              )}
-            </td>
-            <td data-comment={`${ctx}-assignbtn-${item.id}-${index}`}>
-              {waiting || order.released ? null : (
-                <button
-                  className='btn btn-sm'
-                  data-comment={`${ctx}-assignact-${item.id}-${index}`}
-                >
-                  Assign
-                </button>
-              )}
-            </td>
-          </tr>
-        )
-      })}
-    </tbody>
-  </table>
+              <td className='mono' data-comment={`${ctx}-unittoproduce-${item.id}-${index}`}>
+                {coil.stock ? <span className='subtle'>—</span> : '1'}
+              </td>
+              <td data-comment={`${ctx}-sup-${item.id}-${index}`}>
+                {waiting ? (
+                  <span className='subtle' style={{ fontSize: '11px' }}>
+                    locked
+                  </span>
+                ) : (
+                  supplierName(coil.supplierId, state.suppliers)
+                )}
+              </td>
+              <td data-comment={`${ctx}-cn-${item.id}-${index}`}>
+                {waiting ? (
+                  <span className='lock-tag' data-comment={`${ctx}-waiting-${item.id}-${index}`}>
+                    <Clock style={{ width: '14px', height: '14px' }} />
+                    waiting...
+                  </span>
+                ) : (
+                  <>
+                    <span className='mono'>{coil.coilNumber || 'Undefined'}</span>
+                    {coil.coilNumber ? (
+                      <>
+                        {' '}
+                        <button
+                          className='icon-btn'
+                          title='Copy Coil Number'
+                          data-comment={`${ctx}-copycn-${item.id}-${index}`}
+                          onClick={event => event.stopPropagation()}
+                        >
+                          <Copy style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </td>
+              <td data-comment={`${ctx}-slit-${item.id}-${index}`}>
+                {coil.stock ? (
+                  <span className='subtle'>—</span>
+                ) : (
+                  <button
+                    className='icon-btn'
+                    title={coil.needsSlit ? 'Needs Slit Line first' : 'Rolls off existing coil'}
+                    data-comment={`${ctx}-slitbtn-${item.id}-${index}`}
+                  >
+                    {coil.needsSlit ? (
+                      <Scissors
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          color: coil.slitDone ? 'var(--success)' : 'var(--pri-by)'
+                        }}
+                      />
+                    ) : (
+                      <Disc
+                        style={{ width: '14px', height: '14px', color: 'var(--text-subtle)' }}
+                      />
+                    )}
+                  </button>
+                )}
+              </td>
+              <td data-comment={`${ctx}-assignbtn-${item.id}-${index}`}>
+                {waiting || order.released ? null : (
+                  <button
+                    className='btn btn-sm'
+                    data-comment={`${ctx}-assignact-${item.id}-${index}`}
+                  >
+                    Assign
+                  </button>
+                )}
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
   )
 }
 
@@ -291,7 +294,7 @@ const LineToolbar = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: 
 
   const selectedForProfile =
     selectedCoilCtx?.orderId === order.id && selectedCoilCtx.profile === item.profile
-      ? bulkAssignAvailable(order.id)
+      ? bulkAssignAvailable(order.id, selectedCoilCtx)
       : 0
 
   return (
@@ -326,6 +329,7 @@ export const LineItemsSubrow = ({
 }) => {
   const splitOrderId = useStore(rollformingStore, state => state.splitOrderId)
   const selectedLineIds = useStore(rollformingStore, state => state.selectedLineIds)
+  const sortByProductId = useStore(rollformingStore, state => state.sortByProductId)
   const canSplit = ctx === 'uns' && allCoilsAssignable(order)
   const splitCount = splitOrderId === order.id ? selectedLineIds.length : 0
 
@@ -368,7 +372,7 @@ export const LineItemsSubrow = ({
             </div>
           ) : null}
 
-          {orderedLineItems(order).map(({ item, groupBreak }) => {
+          {orderedLineItems(order, sortByProductId).map(({ item, groupBreak }) => {
             const selected =
               canSplit && splitOrderId === order.id && selectedLineIds.includes(item.id)
             // a line already scheduled by an earlier split cannot be split again, or reordered
@@ -436,10 +440,8 @@ export const LineItemsSubrow = ({
                   </span>
 
                   <StockControl order={order} item={item} ctx={ctx} />
-                  {ctx === 'sch' ? (
-                    <LineToolbar order={order} item={item} ctx={ctx} />
-                  ) : null}
-                  <LineNoteButton item={item} comment={`${ctx}-linote-${item.id}`} />
+                  {ctx === 'sch' ? <LineToolbar order={order} item={item} ctx={ctx} /> : null}
+                  <LineNoteButton order={order} item={item} comment={`${ctx}-linote-${item.id}`} />
                 </div>
 
                 <CoilUnitTable order={order} item={item} ctx={ctx} />

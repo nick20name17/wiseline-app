@@ -26,6 +26,7 @@ import type { Order } from '../types'
 export const CoilPanel = ({ prefix }: { prefix: string }) => {
   // the panel is scoped to the machine tab, so the selector reads the group as well as the coil
   const current = useStore(rollformingStore, state => state.currentCoilByGroup[state.activeGroup])
+  const suppliers = useStore(rollformingStore, state => state.suppliers)
 
   return (
     <div className='coil-panel' data-comment={`${prefix}-coilpanel`}>
@@ -33,7 +34,7 @@ export const CoilPanel = ({ prefix }: { prefix: string }) => {
       <span>Current Coil In The Rollformer:</span>
       {current ? (
         <span className='mono' data-comment={`${prefix}-coilinfo-set`}>
-          {current.material} · {supplierName(current.supplierId)} ·{' '}
+          {current.material} · {supplierName(current.supplierId, suppliers)} ·{' '}
           {current.coilNumber || 'Undefined'}
         </span>
       ) : (
@@ -150,7 +151,11 @@ const ProductionRun = ({ order, index }: { order: Order; index: number }) => {
                   <StatusPill order={order} item={item} comment={`prod-stp-${index}-${row}`} />
                 </td>
                 <td data-comment={`prod-note-${index}-${row}`}>
-                  <LineNoteButton item={item} comment={`prod-linote-${index}-${row}`} />
+                  <LineNoteButton
+                    order={order}
+                    item={item}
+                    comment={`prod-linote-${index}-${row}`}
+                  />
                 </td>
               </tr>
             )
@@ -162,14 +167,14 @@ const ProductionRun = ({ order, index }: { order: Order; index: number }) => {
 }
 
 export const Production = () => {
-  const activeGroup = useStore(rollformingStore, state => state.activeGroup)
-  // the runs read the orders, so the view has to re-render when any of them changes
-  useStore(rollformingStore, state => state.orders)
+  const state = useStore(rollformingStore, current => current)
+  const activeGroup = state.activeGroup
 
   if (activeGroup === 'All') {
-    const sections = GROUPS.map(group => ({ group, orders: productionOrdersFor(group) })).filter(
-      section => section.orders.length
-    )
+    const sections = GROUPS.map(group => ({
+      group,
+      orders: productionOrdersFor(group, state)
+    })).filter(section => section.orders.length)
 
     // one run of numbers across every section: the same order can appear under two machines, and each
     // card it renders needs its own `data-comment`. Worked out up front rather than by a counter the
@@ -211,7 +216,7 @@ export const Production = () => {
     )
   }
 
-  const orders = productionOrdersFor(activeGroup)
+  const orders = productionOrdersFor(activeGroup, state)
 
   return (
     <>

@@ -7,6 +7,7 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar, Topbar } from '@/components/shell/chrome'
+import { AlertOverlay, ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/rollforming/components/shell'
@@ -26,7 +27,9 @@ import {
   scheduledOrdersActive,
   unscheduledOrders
 } from '@/features/rollforming/selectors'
+import { NoteModal } from '@/features/rollforming/components/note-modal'
 import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
+import { closeAlert, closeConfirm, closeNotes, rollformingUi } from '@/features/rollforming/ui'
 
 import '@/styles/rollforming.css'
 
@@ -65,22 +68,25 @@ function Rollforming() {
 
   const { view } = Route.useSearch()
   const navigate = Route.useNavigate()
-  // one call per value: a selector that builds an object returns a new snapshot every render
-  const searchTerm = useStore(rollformingStore, state => state.searchTerm)
-  const activeGroup = useStore(rollformingStore, state => state.activeGroup)
-  const expandedCoilsFolder = useStore(rollformingStore, state => state.expandedCoilsFolder)
-  const coils = useStore(rollformingStore, state => state.coils)
+  // the counts read most of the board, so this one subscribes to all of it
+  const state = useStore(rollformingStore, current => current)
+  const { searchTerm, activeGroup, expandedCoilsFolder, coils } = state
   const viewer = useViewer()
+  const ui = useStore(rollformingUi, current => current)
 
   const counts: Record<View, number> = {
-    home: unscheduledOrders().filter(order => orderInGroup(order, activeGroup)).length,
-    scheduled: scheduledOrdersActive().filter(order => orderInGroup(order, activeGroup)).length,
-    production: releasedOrders().filter(
+    home: unscheduledOrders(state.orders).filter(order => orderInGroup(order, activeGroup)).length,
+    scheduled: scheduledOrdersActive(state.orders).filter(order => orderInGroup(order, activeGroup))
+      .length,
+    production: releasedOrders(state.orders).filter(
       order => orderInGroup(order, activeGroup) && !isDoneInProduction(order)
     ).length,
-    queue: queueGroupsSorted().reduce((total, bucket) => total + bucket.rows.length, 0),
+    queue: queueGroupsSorted(undefined, state).reduce(
+      (total, bucket) => total + bucket.rows.length,
+      0
+    ),
     coils: coils.filter(coil => coil.group === expandedCoilsFolder).length,
-    wrapping: releasedOrders().filter(
+    wrapping: releasedOrders(state.orders).filter(
       order => orderInGroup(order, activeGroup) && !isFullyWrapped(order) && order.packages.length
     ).length,
     completed: 0
@@ -130,7 +136,10 @@ function Rollforming() {
           </main>
         </div>
       </div>
-      <Toast />
+      <NoteModal ctx={ui.note} onClose={closeNotes} />
+      <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
+      <AlertOverlay alert={ui.alert} onClose={closeAlert} />
+      <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>
   )
 }

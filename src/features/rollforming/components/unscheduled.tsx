@@ -20,8 +20,8 @@ const COLUMNS = 14
 
 export const Unscheduled = () => {
   const state = useStore(rollformingStore, current => current)
-  const rows = unscheduledOrders()
-    .filter(orderMatchesSearch)
+  const rows = unscheduledOrders(state.orders)
+    .filter(order => orderMatchesSearch(order, state.searchTerm))
     .filter(order => orderInGroup(order, state.activeGroup))
   const selectedCount = state.selectedOrderIds.filter(id =>
     rows.some(order => order.id === id)

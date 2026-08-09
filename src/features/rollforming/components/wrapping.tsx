@@ -13,10 +13,10 @@ import { EmptyState, GroupTabs } from './bits'
  * that story in two numbers.
  */
 export const Wrapping = () => {
-  const activeGroup = useStore(rollformingStore, state => state.activeGroup)
-  useStore(rollformingStore, state => state.orders)
+  const state = useStore(rollformingStore, current => current)
+  const activeGroup = state.activeGroup
 
-  const orders = wrappingOrders(activeGroup)
+  const orders = wrappingOrders(activeGroup, state)
 
   if (!orders.length)
     return (
@@ -106,11 +106,11 @@ export const Wrapping = () => {
                       </td>
                       <td className='mono trunc' data-comment={`wrap-sc-${index}-${row}`}>
                         {coil
-                          ? `${supplierName(coil.supplierId)} · ${coil.coilNumber || 'Undefined'}`
+                          ? `${supplierName(coil.supplierId, state.suppliers)} · ${coil.coilNumber || 'Undefined'}`
                           : '—'}
                       </td>
                       <td className='mono muted' data-comment={`wrap-loc-${index}-${row}`}>
-                        {pkg.locId ? locName(pkg.locId) : '—'}
+                        {pkg.locId ? locName(pkg.locId, state.locations) : '—'}
                       </td>
                       <td data-comment={`wrap-act-${index}-${row}`}>
                         <div className='act-cell'>

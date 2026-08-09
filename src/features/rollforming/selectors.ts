@@ -5,9 +5,10 @@ import type { CoilUnit, LineItem, Order, Priority } from './types'
 /**
  * Everything derived, under the prototype's own names, so its knowledge base still describes this code.
  *
- * Each reads `rollformingStore.get()` at call time rather than taking state as an argument, exactly as
- * the prototype's functions read its module-level `store` — a component that re-renders on the slice it
- * cares about then gets the same answer the prototype would give.
+ * A selector that reads the store takes it as a trailing argument, defaulted to the live read. The
+ * default is for callers outside render; a component must pass what it subscribed to. The React
+ * Compiler keys a derived value on the reactive inputs it can *see*, and a call that reaches into the
+ * store on its own shows it none — so the board would answer once and then freeze on stale rows.
  */
 
 /**
@@ -45,28 +46,34 @@ export const groupOf = (profile: string) => PROFILE_INFO[profile]?.group ?? (GRO
 /** `Tuff Rib & Diamond Rib` → `TuffRibDiamondRib`, the slug every group-keyed `data-comment` uses. */
 export const groupSlug = (group: string) => group.replace(/[^a-z0-9]+/gi, '')
 
-export const priorityById = (id: number | null): Priority | null =>
-  rollformingStore.get().priorities.find(priority => priority.id === id) ?? null
+export const priorityById = (
+  id: number | null,
+  priorities = rollformingStore.get().priorities
+): Priority | null => priorities.find(priority => priority.id === id) ?? null
 
-export const supplierName = (id: number | null) =>
-  rollformingStore.get().suppliers.find(supplier => supplier.id === id)?.name ?? 'Undefined'
+export const supplierName = (id: number | null, suppliers = rollformingStore.get().suppliers) =>
+  suppliers.find(supplier => supplier.id === id)?.name ?? 'Undefined'
 
 export const isOverdue = (iso: string | null) => !!iso && iso < TODAY
 
-export const unscheduledOrders = () =>
-  rollformingStore.get().orders.filter(order => !order.productionDate || order.isSplit)
+export const unscheduledOrders = (orders = rollformingStore.get().orders) =>
+  orders.filter(order => !order.productionDate || order.isSplit)
 
-export const scheduledOrders = () =>
-  rollformingStore.get().orders.filter(order => order.productionDate)
+export const scheduledOrders = (orders = rollformingStore.get().orders) =>
+  orders.filter(order => order.productionDate)
 
 /** The Scheduled tab drops an order once it is fully done — it moves to Completed, mirroring Trim. */
-export const scheduledOrdersActive = () =>
-  scheduledOrders().filter(order => !isDoneInProduction(order))
+export const scheduledOrdersActive = (orders = rollformingStore.get().orders) =>
+  scheduledOrders(orders).filter(order => !isDoneInProduction(order))
 
-export const releasedOrders = () => rollformingStore.get().orders.filter(order => order.released)
+export const releasedOrders = (orders = rollformingStore.get().orders) =>
+  orders.filter(order => order.released)
 
-export const orderMatchesSearch = (order: Order) => {
-  const query = rollformingStore.get().searchTerm.trim().toLowerCase()
+export const orderMatchesSearch = (
+  order: Order,
+  searchTerm = rollformingStore.get().searchTerm
+) => {
+  const query = searchTerm.trim().toLowerCase()
   if (!query) return true
   if (order.order.toLowerCase().includes(query)) return true
   if (order.customer.toLowerCase().includes(query)) return true
@@ -169,12 +176,13 @@ export const unitLF = (item: LineItem) =>
 export const unitWeight = (item: LineItem) =>
   Math.max(1, Math.round((item.width || 36) * 0.65 * ((item.length || 96) / 12)))
 
-export const locById = (id: number | null) =>
-  rollformingStore.get().locations.find(location => location.id === id) ?? null
+export const locById = (id: number | null, locations = rollformingStore.get().locations) =>
+  locations.find(location => location.id === id) ?? null
 
-export const locName = (id: number | null) => locById(id)?.code ?? '—'
+export const locName = (id: number | null, locations = rollformingStore.get().locations) =>
+  locById(id, locations)?.code ?? '—'
 
-export const orderLocLabel = (order: Order) => {
+export const orderLocLabel = (order: Order, locations = rollformingStore.get().locations) => {
   const ids = [
     ...new Set(
       (order.packages || [])
@@ -182,12 +190,12 @@ export const orderLocLabel = (order: Order) => {
         .map(pkg => pkg.locId as number)
     )
   ]
-  return ids.length ? ids.map(locName).join(', ') : '—'
+  return ids.length ? ids.map(id => locName(id, locations)).join(', ') : '—'
 }
 
-export const scheduledDays = () => {
+export const scheduledDays = (orders = rollformingStore.get().orders) => {
   const days = new Map<string, { date: string; lf: number }>()
-  scheduledOrders().forEach(order => {
+  scheduledOrders(orders).forEach(order => {
     const date = order.productionDate
     if (!date) return
     const day = days.get(date) ?? { date, lf: 0 }
@@ -205,9 +213,11 @@ export const scheduledSort = (a: Order, b: Order) => {
 }
 
 /** One order's line items in view order: stored order, or grouped by Product ID then Length. */
-export const orderedLineItems = (order: Order) => {
-  if (!rollformingStore.get().sortByProductId[order.id])
-    return order.lineItems.map(item => ({ item, groupBreak: false }))
+export const orderedLineItems = (
+  order: Order,
+  sortByProductId = rollformingStore.get().sortByProductId
+) => {
+  if (!sortByProductId[order.id]) return order.lineItems.map(item => ({ item, groupBreak: false }))
 
   const sorted = [...order.lineItems].sort((a, b) =>
     a.productId !== b.productId
@@ -243,10 +253,10 @@ export type QueueGroup = {
  * The Queue combines units into one row wherever production date, colour/gauge, profile, priority,
  * supplier, coil number and the slit decision all match, and sums their linear feet.
  */
-export const queueGroups = () => {
+export const queueGroups = (orders = rollformingStore.get().orders) => {
   const rows: (Omit<QueueGroup, 'orders'> & { orders: Set<string> })[] = []
 
-  releasedOrders().forEach(order => {
+  releasedOrders(orders).forEach(order => {
     if (isFullyWrapped(order)) return
     order.lineItems.forEach(item => {
       rollCoils(item).forEach((coil: CoilUnit) => {
@@ -299,9 +309,9 @@ export const queueGroups = () => {
  * The Queue's rows bucketed by production date. Priorities are shown but do not sort: the Manager
  * reorders by hand into `queueOrder[date]`, and colour is only a stable tiebreak so rows do not jump.
  */
-export const queueGroupsSorted = (forGroup?: string) => {
-  const group = forGroup || rollformingStore.get().activeGroup
-  const groups = queueGroups().filter(row => {
+export const queueGroupsSorted = (forGroup?: string, state = rollformingStore.get()) => {
+  const group = forGroup || state.activeGroup
+  const groups = queueGroups(state.orders).filter(row => {
     if (group === 'All') return true
     if (!row.profile) return true
     return (
@@ -315,7 +325,7 @@ export const queueGroupsSorted = (forGroup?: string) => {
     byDate.set(date, [...(byDate.get(date) ?? []), row])
   })
 
-  const saved = rollformingStore.get().queueOrder
+  const saved = state.queueOrder
   return [...byDate.keys()].sort().map(date => ({
     date,
     rows: [...(byDate.get(date) as QueueGroup[])].sort((a, b) => {
@@ -331,14 +341,13 @@ export const queueGroupsSorted = (forGroup?: string) => {
 }
 
 /** How many units are ticked on this order — the count the two bulk assignment buttons carry. */
-export const bulkAssignAvailable = (orderId: number) => {
-  const ctx = rollformingStore.get().selectedCoilCtx
-  return ctx && ctx.orderId === orderId ? ctx.units.length : 0
-}
+export const bulkAssignAvailable = (
+  orderId: number,
+  ctx = rollformingStore.get().selectedCoilCtx
+) => (ctx && ctx.orderId === orderId ? ctx.units.length : 0)
 
 /** The Stock decision is the Manager's, and only until the order goes to production. */
-export const stockGateOk = (orderId: number) => {
-  const state = rollformingStore.get()
+export const stockGateOk = (orderId: number, state = rollformingStore.get()) => {
   const order = state.orders.find(candidate => candidate.id === orderId)
   return !!order && !order.released && state.role !== 'worker'
 }
@@ -352,10 +361,13 @@ export const productionSort = (a: Order, b: Order) => {
 }
 
 /** What one machine still has to roll: released, not yet fully packaged, matching the search. */
-export const productionOrdersFor = (group: string) =>
-  releasedOrders()
+export const productionOrdersFor = (group: string, state = rollformingStore.get()) =>
+  releasedOrders(state.orders)
     .filter(
-      order => orderInGroup(order, group) && !isDoneInProduction(order) && orderMatchesSearch(order)
+      order =>
+        orderInGroup(order, group) &&
+        !isDoneInProduction(order) &&
+        orderMatchesSearch(order, state.searchTerm)
     )
     .sort(productionSort)
 
@@ -376,18 +388,17 @@ export const withinCompletedWindow = (order: Order) => {
   return days <= 90
 }
 
-export const completedOrdersList = () =>
-  rollformingStore
-    .get()
-    .orders.filter(order => isDoneInProduction(order) && withinCompletedWindow(order))
+export const completedOrdersList = (orders = rollformingStore.get().orders) =>
+  orders
+    .filter(order => isDoneInProduction(order) && withinCompletedWindow(order))
     .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
 
 /** What the Wrapping Worker still has to place: released, packaged, and not yet fully located. */
-export const wrappingOrders = (group: string) =>
-  releasedOrders().filter(
+export const wrappingOrders = (group: string, state = rollformingStore.get()) =>
+  releasedOrders(state.orders).filter(
     order =>
       orderInGroup(order, group) &&
       !isFullyWrapped(order) &&
       (order.packages || []).length &&
-      orderMatchesSearch(order)
+      orderMatchesSearch(order, state.searchTerm)
   )
