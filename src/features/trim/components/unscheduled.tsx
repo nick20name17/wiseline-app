@@ -138,7 +138,7 @@ const ColHeader = ({
 
 export const Unscheduled = () => {
   const state = useStore(trimStore, current => current)
-  const rows = unscheduledOrders().filter(orderMatchesSearch)
+  const rows = unscheduledOrders(state.orders).filter(orderMatchesSearch)
   const selectedCount = state.selectedOrderIds.filter(id =>
     rows.some(order => order.id === id)
   ).length

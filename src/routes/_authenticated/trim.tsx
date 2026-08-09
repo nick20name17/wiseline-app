@@ -12,6 +12,7 @@ import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
+import { NoteModal } from '@/features/trim/components/note-modal'
 import { ScheduleModal } from '@/features/trim/components/schedule-modal'
 import { Coils } from '@/features/trim/components/coils'
 import { Completed } from '@/features/trim/components/completed'
@@ -30,7 +31,14 @@ import {
   setSearch,
   trimStore
 } from '@/features/trim/store'
-import { closeConfirm, closeSchedule, confirmUnschedule, showToast, trimUi } from '@/features/trim/ui'
+import {
+  closeConfirm,
+  closeNotes,
+  closeSchedule,
+  confirmUnschedule,
+  showToast,
+  trimUi
+} from '@/features/trim/ui'
 
 import '@/styles/home.css'
 
@@ -152,6 +160,7 @@ function Trim() {
           closeSchedule()
         }}
       />
+      <NoteModal ctx={ui.note} onClose={closeNotes} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>

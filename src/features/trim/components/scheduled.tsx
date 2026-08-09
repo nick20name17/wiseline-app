@@ -59,10 +59,12 @@ const dayTabs = (scheduledDay: string | null) => {
 
 const DayTabs = ({
   days,
-  active
+  active,
+  scheduledCount
 }: {
   days: { date: string; bends: number; orders: number }[]
   active: string
+  scheduledCount: number
 }) => {
   const isAll = active === 'all'
   const dayCap = totalDailyCap()
@@ -78,7 +80,7 @@ const DayTabs = ({
           All Scheduled Orders
         </span>
         <span className='day-tab-cap mono' data-comment='sch-daytab-all-count'>
-          {scheduledOrders().length} orders
+          {scheduledCount} orders
         </span>
       </button>
 
@@ -205,10 +207,10 @@ const ColHeader = ({ col, label, width }: { col: string; label: string; width?: 
 )
 
 export const Scheduled = () => {
-  const { expandedIds, releaseIds, scheduledDay } = useStore(trimStore, current => current)
+  const { expandedIds, releaseIds, scheduledDay, orders } = useStore(trimStore, current => current)
 
   // nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing
-  if (!scheduledOrders().length)
+  if (!scheduledOrders(orders).length)
     return (
       <EmptyState
         title='Nothing scheduled'
@@ -219,7 +221,7 @@ export const Scheduled = () => {
   const { days, active } = dayTabs(scheduledDay)
   const isAll = active === 'all'
 
-  const dayOrders = scheduledOrders()
+  const dayOrders = scheduledOrders(orders)
     .filter(
       order =>
         (isAll || order.lineItems.some(item => lineDay(order, item) === active)) &&
@@ -288,7 +290,7 @@ export const Scheduled = () => {
 
   return (
     <>
-      <DayTabs days={days} active={active} />
+      <DayTabs days={days} active={active} scheduledCount={scheduledOrders(orders).length} />
       {toolbar}
 
       {dayOrders.length === 0 ? (

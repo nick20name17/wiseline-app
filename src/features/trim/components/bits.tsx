@@ -2,6 +2,7 @@ import { Inbox, MessageSquare } from 'lucide-react'
 
 import { lineStatus, noteState, priorityById, productionStatus } from '../selectors'
 import { trimStore } from '../store'
+import { openNotes } from '../ui'
 
 import type { LineItem, Order } from '../types'
 
@@ -52,6 +53,8 @@ export const PriorityCell = ({
 }
 
 /** A stock order has no EBMS counterpart and so no order notes — it shows a dash, not an empty button. */
+const openOrderNotes = (orderId: number) => openNotes({ orderId, lineId: null })
+
 export const NoteButton = ({
   order,
   onOpen
@@ -74,7 +77,7 @@ export const NoteButton = ({
       data-comment={`note-btn-${order.id}`}
       onClick={event => {
         event.stopPropagation()
-        onOpen?.(order.id)
+        ;(onOpen ?? openOrderNotes)(order.id)
       }}
       title='Order notes'
     >
