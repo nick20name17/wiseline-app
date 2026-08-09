@@ -59,7 +59,8 @@ const portViews = async (page: Page) => {
         // a state is recorded under `<view>+<state>`, and it is a view plus some clicks, not a view
         .map(capture => capture.view?.split('+')[0] ?? null)
     )
-  ].filter((view): view is string => view !== null)
+    // `page` is the name a viewless page's states are filed under, not a view to navigate to
+  ].filter((view): view is string => view !== null && view !== 'page')
 }
 
 /** The prototype's own way in is its `navigate()`; the port's is its URL. */
@@ -171,7 +172,8 @@ for (const viewport of VIEWPORTS) {
           Capture,
           'comments' | 'tree'
         >
-        const viewKey = stateName ? `${view}+${stateName}` : view
+        // `page`, not a stringified null: a page with no views still has states worth naming
+        const viewKey = stateName ? `${view ?? 'page'}+${stateName}` : view
         captures.push({ page: name, view: viewKey, viewport: viewport.name, ...collected })
 
         /**

@@ -12,8 +12,8 @@
 export type State = {
   /** Page name, as `pageName()` gives it. */
   page: string
-  /** The `.view` id the clicks start from. */
-  view: string
+  /** The `.view` id the clicks start from, or `null` on a page that has no views. */
+  view: string | null
   /** Appended to the capture key, so `home__view-production+wrapping__desktop`. */
   name: string
   /** `data-comment` values to click, in order. */
@@ -261,6 +261,41 @@ export const STATES: State[] = [
     view: 'view-completed',
     name: 'expanded',
     clicks: ['comp-exp-8']
+  },
+  // a scan: the package's dot turns loaded and its load's progress moves with it
+  {
+    page: 'loading',
+    view: null,
+    name: 'scanned',
+    clicks: ['loading-quick-1']
+  },
+  // the whole of Load 1 scanned on, which turns its status dot complete
+  {
+    page: 'loading',
+    view: null,
+    name: 'load-complete',
+    clicks: ['loading-quick-1', 'loading-quick-2', 'loading-quick-3']
+  },
+  // the route started: every stop arms its Scan package button and the status reads Shipping
+  {
+    page: 'driver',
+    view: null,
+    name: 'started',
+    clicks: ['foot-start']
+  },
+  // one package of two scanned off — the stop stays open and counts (1/2)
+  {
+    page: 'driver',
+    view: null,
+    name: 'part-delivered',
+    clicks: ['foot-start', 'stop-deliver-1']
+  },
+  // both packages: the stop closes to Delivered and the next one becomes active
+  {
+    page: 'driver',
+    view: null,
+    name: 'stop-delivered',
+    clicks: ['foot-start', 'stop-deliver-1', 'stop-deliver-1']
   }
 ]
 

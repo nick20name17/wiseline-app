@@ -37,3 +37,47 @@ export const isPackageLoaded = (barcode: string) => {
   const record = shipState.get().packages?.[barcode]
   return record ? !!record.loaded : null
 }
+
+export const patchPackage = (barcode: string, fields: Record<string, unknown>) => {
+  if (!barcode) return
+  const state = shipState.get()
+  const packages = { ...(state.packages ?? {}) }
+  packages[barcode] = { ...packages[barcode], ...fields }
+  shipState.set({ ...state, packages })
+}
+
+/**
+ * Statuses only ever move forwards. Two screens can write the same order — the driver scanning a
+ * package off and Shipping recomputing the load — and without a rank the later of the two writes wins
+ * rather than the further-along one, which would walk a delivered stop back to "loading".
+ */
+const ORDER_RANK = ['notstarted', 'loading', 'loaded', 'shipping', 'delivered']
+const LOAD_RANK = ['unreleased', 'notstarted', 'loading', 'loaded', 'shipping', 'shipped']
+
+const advance = (ranks: string[], current: unknown, next: string) =>
+  ranks.indexOf(next) >= ranks.indexOf(typeof current === 'string' ? current : '')
+
+export const patchOrderStatus = (orderNumber: string, status: string) => {
+  if (!orderNumber) return
+  const state = shipState.get()
+  const orders = { ...((state.orders as Record<string, { status?: string }>) ?? {}) }
+  if (!advance(ORDER_RANK, orders[orderNumber]?.status, status)) return
+  orders[orderNumber] = { ...orders[orderNumber], status }
+  shipState.set({ ...state, orders })
+}
+
+export const patchLoadStatus = (loadKey: string, status: string) => {
+  if (!loadKey) return
+  const state = shipState.get()
+  const loads = { ...((state.loads as Record<string, { status?: string }>) ?? {}) }
+  if (!advance(LOAD_RANK, loads[loadKey]?.status, status)) return
+  loads[loadKey] = { ...loads[loadKey], status }
+  shipState.set({ ...state, loads })
+}
+
+export const loadStatusOf = (loadKey: string) => {
+  const loads = shipState.get().loads as Record<string, { status?: string }> | undefined
+  return loads?.[loadKey]?.status ?? null
+}
+
+export const loadRankOf = (status: string | null) => LOAD_RANK.indexOf(status ?? '')
