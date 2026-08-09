@@ -24,7 +24,7 @@ is ~3–4 minutes — run it in the background and wait for `NN captures →`, d
 
 **All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
 both widths. The three scan tools — driver, scanner and the loading station — are done too. What is left is
-coils, stockcards, settings and ebms.
+coils, stockcards and settings.
 
 **Activity is gated on a race, and it is worth knowing.** Its feed generates a random event every 4.5
 seconds, on both sides. Both captures land inside that first window, so both show the sixteen seeded
@@ -144,9 +144,10 @@ Two more things the gate is for, both from Rollforming:
   the prototype's baseline had. `useToast` wires it for real, on the prototype's own 2200ms.
 - **The scan input takes focus back after every scan.** A gun types into whatever holds focus, and the
   focus ring is in the screenshot: leaving it off read as a 0.17% pixel difference, twice.
-- **lucide renamed an icon after the prototype pinned its copy.** `wand-2` is `wand-sparkles` now —
-  same glyph, different class, and the class is what the structural diff reads. The port writes
-  `className='lucide-wand-2'` alongside it; extra classes are tolerated, missing ones are not.
+- **lucide renames icons; the prototype pinned an older CDN copy.** `wand-2` is `wand-sparkles` now,
+  `check-square` is `square-check-big` — same glyphs, different classes, and the class is what the
+  structural diff reads. The port writes the prototype's name on alongside; extra classes are
+  tolerated, missing ones are not. Expect one of these per few pages.
 - **Reading the clock in render costs the component its memoisation.** The release countdown called
   `Date.now()` inline, as the prototype does inside its 5-second re-render. React Compiler refuses to
   optimise a component that calls an impure function while rendering, and react-doctor caught it as an
@@ -247,7 +248,8 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ The three scan tools | `/driver`, `/scanner`, `/loading` — green, with 5 states |
 | ✅ `/activity` | green, with 3 states — paused, filtered, and no matches |
 | ✅ `/dashboard` and `/warehouse` | green, warehouse with 2 legend states |
-| ⬜ The other 4 pages | coils, stockcards, settings, ebms |
+| ✅ `/ebms` | green, with 2 states — the Failed filter and a retry |
+| ⬜ The last 3 pages | coils, stockcards, settings |
 
 ### What Shipping still owes
 

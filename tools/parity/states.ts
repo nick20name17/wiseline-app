@@ -331,6 +331,20 @@ export const STATES: State[] = [
     view: null,
     name: 'type-stock-staging',
     clicks: ['legend-chip-stock', 'legend-chip-staging']
+  },
+  // Failed filters on the status, not the type — the one chip in that strip that reads a different field
+  {
+    page: 'ebms',
+    view: null,
+    name: 'failed-only',
+    clicks: ['wb-filter-failed']
+  },
+  // retrying the failed row: it turns Synced, the Retry button goes, and the two counts move
+  {
+    page: 'ebms',
+    view: null,
+    name: 'retried',
+    clicks: ['wb-filter-failed', 'wb-retry-6']
   }
 ]
 
