@@ -17,11 +17,16 @@ const WEEKDAYS_FALLBACK = [false, true, true, true, true, true, false]
 
 const WorkDaysStoredSchema = z.object({
   weekdays: z.array(z.boolean()).optional(),
-  /** Older builds wrote objects; both forms are still out there. */
-  holidays: z.array(z.union([z.string(), z.object({ date: z.string() })])).optional()
+  /** Older builds wrote bare dates; both forms are still out there. */
+  holidays: z
+    .array(z.union([z.string(), z.object({ date: z.string(), name: z.string().optional() })]))
+    .optional()
 })
 
-export type WorkDays = { weekdays: boolean[]; holidays: string[] }
+/** A closure is a named day, because Settings lists it by name and only the scheduler reads the date. */
+export type Holiday = { date: string; name: string }
+
+export type WorkDays = { weekdays: boolean[]; holidays: Holiday[] }
 
 export const workDays = persisted<WorkDays, z.infer<typeof WorkDaysStoredSchema>>({
   key: 'wl_workdays_v1',
@@ -30,7 +35,9 @@ export const workDays = persisted<WorkDays, z.infer<typeof WorkDaysStoredSchema>
   decode: stored => ({
     weekdays: stored.weekdays?.length === 7 ? stored.weekdays : [...WEEKDAYS_FALLBACK],
     holidays: (stored.holidays ?? []).map(holiday =>
-      typeof holiday === 'string' ? holiday : holiday.date
+      typeof holiday === 'string'
+        ? { date: holiday, name: '' }
+        : { date: holiday.date, name: holiday.name ?? '' }
     )
   }),
   encode: value => value
@@ -38,7 +45,10 @@ export const workDays = persisted<WorkDays, z.infer<typeof WorkDaysStoredSchema>
 
 export const isWorkDay = (iso: string) => {
   const { weekdays, holidays } = workDays.get()
-  return !!weekdays[new Date(`${iso}T00:00:00Z`).getUTCDay()] && !holidays.includes(iso)
+  return (
+    !!weekdays[new Date(`${iso}T00:00:00Z`).getUTCDay()] &&
+    !holidays.some(holiday => holiday.date === iso)
+  )
 }
 
 /* -- Machine capacities ---------------------------------------------------------------------- */
