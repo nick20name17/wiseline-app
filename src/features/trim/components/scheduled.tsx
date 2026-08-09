@@ -28,8 +28,15 @@ import {
   sortScheduled,
   totalDailyCap
 } from '../selectors'
-import { setScheduledDay, TODAY, toggleExpand, toggleRelease, trimStore } from '../store'
-import { openSchedule } from '../ui'
+import {
+  releaseToProduction,
+  setScheduledDay,
+  TODAY,
+  toggleExpand,
+  toggleRelease,
+  trimStore
+} from '../store'
+import { openSchedule, showToast } from '../ui'
 import { EmptyState, NoteButton, OrderStatusPill, PriorityCell, ReviewedToggle } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -276,6 +283,13 @@ export const Scheduled = () => {
         className='btn btn-primary'
         data-comment='sch-release'
         disabled={!allSelectedReviewed}
+        onClick={() => {
+          const done = releaseToProduction()
+          if (done)
+            showToast(
+              `Released ${done.orders} order${done.orders > 1 ? 's' : ''} · ${done.cutlists} cutlist${done.cutlists > 1 ? 's' : ''} generated`
+            )
+        }}
         title={
           releaseIds.length && !allSelectedReviewed
             ? 'All selected orders must be Reviewed to release'
@@ -393,6 +407,15 @@ export const Scheduled = () => {
                             data-pop-anchor
                             data-comment={`sch-proddate-btn-${order.id}`}
                             title='Change production day (pre-release, N-041)'
+                            onClick={event => {
+                              event.stopPropagation()
+                              openSchedule({
+                                mode: 'reschedule',
+                                orderId: order.id,
+                                order: order.order,
+                                current: order.productionDate
+                              })
+                            }}
                           >
                             <Calendar style={{ width: '13px', height: '13px' }} />
                             {fmtDate(order.productionDate)}

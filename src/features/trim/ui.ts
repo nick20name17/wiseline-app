@@ -3,7 +3,14 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
-import { assignLocation, removeLocation, remanListDone, setRemanFlag, unscheduleOrder } from './store'
+import {
+  assignLocation,
+  removeLocation,
+  remanListDone,
+  setRemanFlag,
+  setReviewed,
+  unscheduleOrder
+} from './store'
 
 import type { BatchItem } from './selectors'
 import type { PadCtx } from './components/keypads'
@@ -186,5 +193,24 @@ export const pickLocation = (
       showToast(`Location ${code} removed`)
     },
     'Yes, remove'
+  )
+}
+
+/**
+ * Reviewed goes on instantly and comes off only after a question.
+ *
+ * Switching it on is a claim the Manager is making and can retract; switching it off retracts one
+ * other people may already be acting on, because a reviewed order is what the release list offers.
+ */
+export const requestToggleReviewed = (order: { id: number; order: string; reviewed: boolean }) => {
+  if (!order.reviewed) return setReviewed(order.id, true)
+
+  askConfirm(
+    'Turn off Reviewed?',
+    `Order ${order.order} will no longer be selectable for release.`,
+    () => {
+      setReviewed(order.id, false)
+      closeConfirm()
+    }
   )
 }

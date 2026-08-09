@@ -2,7 +2,7 @@ import { Inbox, MessageSquare } from 'lucide-react'
 
 import { lineStatus, noteState, priorityById, productionStatus } from '../selectors'
 import { trimStore } from '../store'
-import { openNotes } from '../ui'
+import { openNotes, requestToggleReviewed } from '../ui'
 
 import type { LineItem, Order } from '../types'
 
@@ -197,6 +197,10 @@ export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean 
         data-comment={`sch-revtoggle-${order.id}`}
         disabled={!gate1}
         aria-label='Reviewed'
+        onClick={event => {
+          event.stopPropagation()
+          requestToggleReviewed(order)
+        }}
       />
       {gate1 ? null : (
         <span className='switch-hint' data-comment={`sch-revhint-${order.id}`}>
