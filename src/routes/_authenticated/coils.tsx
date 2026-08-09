@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { ChevronRight, Filter, Inbox, Search, SlidersHorizontal } from 'lucide-react'
 
 import type { Coil } from '@/store/shared/coils'
@@ -10,12 +10,17 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { ConfirmOverlay, type Confirm } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
+import { useToast } from '@/components/shell/use-toast'
+
+import { AdjustModal, CoilFilterModal, UsageModal } from '@/features/coils/modals'
 
 import {
   buildGroups,
   coilFilterActive,
   coilsStore,
+  DEPT_FLAG_LABEL,
   FILTER_CHIPS,
   filteredCoils,
   folderSlug,
@@ -24,8 +29,10 @@ import {
   moveNeedsConfirm,
   qualifyingFolders,
   rfEligible,
+  removeCoil,
   setActiveFolder,
   setCoilNote,
+  setFolderFilter,
   setFilter,
   setSearch,
   slinetEligible,
@@ -57,6 +64,12 @@ function Coils() {
 
   const state = useStore(coilsStore, current => current)
   const viewer = useViewer()
+  const { toast, show } = useToast(2400)
+
+  const [usageOf, setUsageOf] = useState<string | null>(null)
+  const [adjustId, setAdjustId] = useState<Coil['id'] | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [confirm, setConfirm] = useState<Confirm>(null)
 
   const folders = qualifyingFolders(state)
   // the prototype resets the folder in its render; deriving it does the same without a write
@@ -74,10 +87,37 @@ function Coils() {
   const totalWeight = coils.reduce((total, coil) => total + coil.weight, 0)
   const lowStock = coils.filter(coil => coil.linearFeet < LOW_STOCK_LF).length
 
-  // a move that displaces the other department is confirmed first, and that modal is not ported yet
+  const adjusting = state.coils.find(coil => coil.id === adjustId) ?? null
+  const usageCoil = state.coils.find(coil => coil.productId === usageOf) ?? null
+
+  // moving a coil that is checked in elsewhere displaces it, and that is what the confirm is about
   const move = (coil: Coil, flag: DeptFlag) => {
-    if (!moveNeedsConfirm(coil, flag)) moveCoilLocation(coil.id, flag)
+    if (!moveNeedsConfirm(coil, flag)) {
+      moveCoilLocation(coil.id, flag)
+      return
+    }
+
+    const other: DeptFlag = flag === 'locTrim' ? 'locRollforming' : 'locTrim'
+    setConfirm({
+      title: `Move coil to ${DEPT_FLAG_LABEL[flag]}?`,
+      desc: `By clicking Yes, the location for this coil will change to the ${DEPT_FLAG_LABEL[flag]} department. This will uncheck the ${DEPT_FLAG_LABEL[other]} department — both locations can NOT be checked at the same time.`,
+      onOk: () => {
+        moveCoilLocation(coil.id, flag)
+        setConfirm(null)
+      }
+    })
   }
+
+  const deplete = (coil: Coil) =>
+    setConfirm({
+      title: 'Deplete this coil?',
+      desc: `This removes coil ${coil.coilNumber} from inventory. This can't be undone.`,
+      onOk: () => {
+        removeCoil(coil.id)
+        setConfirm(null)
+        show(`Coil ${coil.coilNumber} depleted & removed`)
+      }
+    })
 
   return (
     <>
@@ -125,7 +165,12 @@ function Coils() {
                     onChange={event => setSearch(event.target.value)}
                   />
                 </div>
-                <button className='btn' id='coils-filter-btn' data-comment='coils-filter-btn'>
+                <button
+                  className='btn'
+                  id='coils-filter-btn'
+                  data-comment='coils-filter-btn'
+                  onClick={() => setFilterOpen(true)}
+                >
                   <SlidersHorizontal style={{ width: '14px', height: '14px' }} />
                   Coil Filter
                 </button>
@@ -269,7 +314,10 @@ function Coils() {
                                 <button
                                   className='total-link'
                                   data-comment={`coilg-total-${index}`}
-                                  onClick={event => event.stopPropagation()}
+                                  onClick={event => {
+                                    event.stopPropagation()
+                                    setUsageOf(group.productId)
+                                  }}
                                 >
                                   {usageQty(group.productId)} pcs
                                 </button>
@@ -304,6 +352,8 @@ function Coils() {
                                           <CoilRow
                                             coil={coil}
                                             onMove={move}
+                                            onDeplete={deplete}
+                                            onAdjust={setAdjustId}
                                             key={coil.id}
                                           />
                                         ))}
@@ -324,17 +374,53 @@ function Coils() {
           </main>
         </div>
       </div>
-      <Toast />
+
+      <UsageModal coil={usageCoil} onClose={() => setUsageOf(null)} />
+      <AdjustModal
+        coil={adjusting}
+        onClose={() => setAdjustId(null)}
+        onConfirm={question =>
+          setConfirm({
+            ...question,
+            onOk: () => {
+              question.onOk()
+              setConfirm(null)
+              setAdjustId(null)
+              show('Pushed updated linear feet to EBMS')
+            }
+          })
+        }
+      />
+      <CoilFilterModal
+        open={filterOpen}
+        filter={state.folderFilter}
+        onClose={() => setFilterOpen(false)}
+        onApply={filter => {
+          setFolderFilter(filter)
+          setFilterOpen(false)
+          show(
+            coilFilterActive(filter)
+              ? 'Coil filter applied'
+              : 'Coil filter cleared — showing all folders'
+          )
+        }}
+      />
+      <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} />
+      <Toast message={toast.message} type={toast.type} shown={toast.shown} />
     </>
   )
 }
 
 const CoilRow = ({
   coil,
-  onMove
+  onMove,
+  onDeplete,
+  onAdjust
 }: {
   coil: Coil
   onMove: (coil: Coil, flag: DeptFlag) => void
+  onDeplete: (coil: Coil) => void
+  onAdjust: (id: Coil['id']) => void
 }) => {
   const low = coil.linearFeet < LOW_STOCK_LF
   const slinetOk = slinetEligible(coil)
@@ -406,12 +492,17 @@ const CoilRow = ({
       </td>
       <td data-comment={`coil-actionscell-${coil.id}`}>
         <div className='coil-row-actions'>
-          <button className='btn btn-sm' data-comment={`coil-adjust-${coil.id}`}>
+          <button
+            className='btn btn-sm'
+            data-comment={`coil-adjust-${coil.id}`}
+            onClick={() => onAdjust(coil.id)}
+          >
             Adjust
           </button>
           <button
             className='btn btn-sm btn-ghost'
             data-comment={`coil-deplete-${coil.id}`}
+            onClick={() => onDeplete(coil)}
           >
             Deplete
           </button>

@@ -62,3 +62,53 @@ export const toggleCardSelect = (id: number) =>
 
 /** The QR encodes the product, not the card: a reprinted card scans to the same stock order. */
 export const qrText = (card: StockCard) => `WL-STOCK-${card.pid}`
+
+/** EBMS-valid products: a Product ID is only ever picked from here, never free-typed. */
+export const PRODUCT_CATALOG = [
+  { pid: 'TDRIP24', desc: 'Drip Edge', color: 'Charcoal', gauge: 24, width: 4, length: 120 },
+  { pid: 'TRIDGE26', desc: 'Ridge Cap', color: 'Barn Red', gauge: 26, width: 12, length: 120 },
+  { pid: 'TRAKE24', desc: 'Rake Trim', color: 'Bright White', gauge: 24, width: 6, length: 120 },
+  { pid: 'TSWB262', desc: 'Sidewall Flashing', color: 'Galvalume', gauge: 26, width: 10, length: 120 },
+  { pid: 'TVAL26', desc: 'Valley', color: 'Hawaiian Blue', gauge: 26, width: 16, length: 120 },
+  { pid: 'TGABLE26', desc: 'Gable Trim', color: 'White', gauge: 26, width: 8, length: 120 },
+  { pid: 'TDE8262', desc: 'Eave Trim', color: 'Charcoal', gauge: 29, width: 8, length: 120 },
+  { pid: 'TWCAP24', desc: 'W-Valley', color: 'Barn Red', gauge: 24, width: 14, length: 120 },
+  { pid: 'TJC24', desc: 'J-Channel', color: 'Galvalume', gauge: 24, width: 3, length: 120 },
+  { pid: 'TCORNER26', desc: 'Outside Corner', color: 'White', gauge: 26, width: 5, length: 120 },
+  { pid: 'TICORNER26', desc: 'Inside Corner', color: 'Charcoal', gauge: 26, width: 5, length: 120 },
+  { pid: 'TZFLASH24', desc: 'Z-Flashing', color: 'Bright White', gauge: 24, width: 6, length: 120 },
+  { pid: 'THEAD26', desc: 'Head Flashing', color: 'Barn Red', gauge: 26, width: 8, length: 120 },
+  { pid: 'TFASCIA24', desc: 'Fascia Trim', color: 'Galvalume', gauge: 24, width: 10, length: 120 },
+  { pid: 'TPEAK26', desc: 'Peak Box', color: 'Hawaiian Blue', gauge: 26, width: 12, length: 120 },
+  { pid: 'TENDWALL26', desc: 'Endwall Flashing', color: 'White', gauge: 26, width: 9, length: 120 }
+]
+
+export const GAUGES = [24, 26, 29]
+
+/** Filter options track the catalog rather than a hand-kept list. */
+export const COLOR_NAMES = [...new Set(PRODUCT_CATALOG.map(entry => entry.color))]
+
+export const lookupProduct = (pid: string) =>
+  PRODUCT_CATALOG.find(entry => entry.pid === pid) ?? null
+
+let cardSeq = 8
+/** Offset from Trim's own 1000 seed so two independent creation flows cannot collide. */
+let stockSeq = 1500
+
+export const nextStockOrderNo = () => `S${String(++stockSeq).padStart(4, '0')}`
+
+export const addCard = (card: Omit<StockCard, 'id'>) =>
+  stockcardsStore.set(state => ({ stockCards: [...state.stockCards, { ...card, id: ++cardSeq }] }))
+
+export const updateCard = (id: number, card: Omit<StockCard, 'id'>) =>
+  stockcardsStore.set(state => ({
+    stockCards: state.stockCards.map(existing =>
+      existing.id === id ? { ...existing, ...card } : existing
+    )
+  }))
+
+export const removeCard = (id: number) =>
+  stockcardsStore.set(state => ({
+    stockCards: state.stockCards.filter(card => card.id !== id),
+    selectedIds: state.selectedIds.filter(selected => selected !== id)
+  }))

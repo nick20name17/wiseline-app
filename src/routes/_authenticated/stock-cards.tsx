@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 import { ChevronDown, Pencil, Plus, Printer, Search, SearchX, Trash2 } from 'lucide-react'
 
 import { viewingAsLabel } from '@/session/nav-visibility'
@@ -7,12 +8,23 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { ConfirmOverlay, type Confirm } from '@/components/shell/modal'
+import { usePopover, type PopItem } from '@/components/shell/pop'
 import { Toast } from '@/components/shell/toast'
+import { useToast } from '@/components/shell/use-toast'
+
+import { CreateOrderModal, NewCardModal } from '@/features/stockcards/modals'
+
+import type { StockCard } from '@/features/stockcards/store'
 
 import { StockCardFace } from '@/features/stockcards/card'
 import {
   clearFilters,
+  COLOR_NAMES,
   filterLabel,
+  GAUGES,
+  removeCard,
+  setFilter,
   setSearch,
   stockcardsStore,
   toggleCardSelect,
@@ -38,10 +50,44 @@ function Stockcards() {
 
   const state = useStore(stockcardsStore, current => current)
   const viewer = useViewer()
+  const { toast, show } = useToast(2400)
+  const { openPop, popNode } = usePopover()
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<StockCard | null>(null)
+  const [scanned, setScanned] = useState<StockCard | null>(null)
+  const [confirm, setConfirm] = useState<Confirm>(null)
 
   const cards = visibleCards(state)
   const total = state.stockCards.length
   const selected = state.selectedIds.length
+
+  const openFilterPop = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    const items: PopItem[] = [
+      { value: 'all', label: 'All colors & gauges' },
+      ...COLOR_NAMES.map(name => ({ value: `color:${name}`, label: name })),
+      ...GAUGES.map(gauge => ({ value: `gauge:${gauge}`, label: `${gauge}ga` }))
+    ]
+    openPop<string>(event.currentTarget, items, setFilter, state.filterValue)
+  }
+
+  const remove = (card: StockCard) =>
+    setConfirm({
+      title: 'Delete stock card?',
+      desc: `This removes ${card.pid} (${card.desc}) from the list. This can’t be undone.`,
+      onOk: () => {
+        removeCard(card.id)
+        setConfirm(null)
+        show(`Stock card ${card.pid} deleted`)
+      }
+    })
+
+  // the sheet the prototype builds is the cards themselves, laid out by print CSS
+  const printSelected = () => {
+    if (!selected) return
+    window.print()
+  }
 
   return (
     <>
@@ -105,6 +151,7 @@ function Stockcards() {
                 data-comment='stock-filter-btn'
                 id='stock-filter-btn'
                 style={{ width: 'auto', minWidth: '190px' }}
+                onClick={openFilterPop}
               >
                 {filterLabel(state.filterValue)}
                 <ChevronDown style={{ width: '14px', height: '14px' }} />
@@ -114,11 +161,19 @@ function Stockcards() {
                 data-comment='stock-print-selected-btn'
                 id='stock-print-selected-btn'
                 disabled={selected === 0}
+                onClick={printSelected}
               >
                 <Printer style={{ width: '14px', height: '14px' }} />
                 Print Selected{selected ? ` (${selected})` : ''}
               </button>
-              <button className='btn btn-primary' data-comment='stock-new-btn'>
+              <button
+                className='btn btn-primary'
+                data-comment='stock-new-btn'
+                onClick={() => {
+                  setEditing(null)
+                  setFormOpen(true)
+                }}
+              >
                 <Plus style={{ width: '14px', height: '14px' }} />
                 New stock card
               </button>
@@ -174,6 +229,10 @@ function Stockcards() {
                             className='icon-btn'
                             data-comment={`stock-card-${card.id}-edit`}
                             aria-label='Edit stock card'
+                            onClick={() => {
+                              setEditing(card)
+                              setFormOpen(true)
+                            }}
                           >
                             <Pencil style={{ width: '14px', height: '14px' }} />
                           </button>
@@ -181,12 +240,13 @@ function Stockcards() {
                             className='icon-btn danger'
                             data-comment={`stock-card-${card.id}-delete`}
                             aria-label='Delete stock card'
+                            onClick={() => remove(card)}
                           >
                             <Trash2 style={{ width: '14px', height: '14px' }} />
                           </button>
                         </div>
                       </div>
-                      <StockCardFace card={card} />
+                      <StockCardFace card={card} onScan={() => setScanned(card)} />
                     </div>
                   ))}
                 </div>
@@ -198,7 +258,19 @@ function Stockcards() {
 
       {/* filled by Print Selected, one card per page; hidden on screen */}
       <div id='print-sheet' data-comment='print-sheet' />
-      <Toast />
+
+      <NewCardModal
+        key={formOpen ? `form-${editing?.id ?? 'new'}` : 'form-closed'}
+        open={formOpen}
+        editing={editing}
+        cards={state.stockCards}
+        onClose={() => setFormOpen(false)}
+        onSaved={show}
+      />
+      <CreateOrderModal key={`order-${scanned?.id ?? 'none'}`} card={scanned} onClose={() => setScanned(null)} onCreated={show} />
+      <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} />
+      {popNode}
+      <Toast message={toast.message} type={toast.type} shown={toast.shown} />
     </>
   )
 }
