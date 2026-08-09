@@ -3,7 +3,7 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
-import { unscheduleOrder } from './store'
+import { remanListDone, setRemanFlag, unscheduleOrder } from './store'
 
 import type { PadCtx } from './components/keypads'
 import type { NoteCtx } from './components/note-modal'
@@ -78,5 +78,42 @@ export const confirmUnschedule = (orderId: number, orderNo: string) =>
       closeConfirm()
       closeSchedule()
       showToast(`Order ${orderNo} unscheduled — Manager edits reset`)
+    }
+  )
+
+/** N-054 semantics again: No→Yes is silent, Yes→No asks — and answers with Yes / No, not Confirm. */
+export const askRemanFlag = (id: string, flag: 'recut' | 'bent', toYes: boolean) => {
+  if (toYes) {
+    setRemanFlag(id, flag, true)
+    return showToast(
+      flag === 'recut'
+        ? 'Recut complete → Remanufacture green in the Machine tab (Wrapping stays orange until Bent)'
+        : 'Remanufacture bent → Remanufacture green in the Wrapping tab'
+    )
+  }
+
+  askConfirm(
+    `Mark this ${flag === 'recut' ? 'recut' : 'remanufacture'} as NOT completed?`,
+    'Are you sure you want to mark this row as NOT completed?',
+    () => {
+      setRemanFlag(id, flag, false)
+      closeConfirm()
+    },
+    'Yes',
+    'No'
+  )
+}
+
+/** #212: a reman list's Done is the same gate as a normal one, so it asks the same question. */
+export const askRemanListDone = (id: string, which: 'slinet' | 'machine') =>
+  askConfirm(
+    `Mark this ${which === 'slinet' ? 'recut cutlist' : 'remanufacture bendlist'} done?`,
+    which === 'slinet'
+      ? 'Confirm that you have made all the necessary coil adjustments and that you are done with this cutlist.'
+      : 'Confirm that you are done with this bendlist.',
+    () => {
+      remanListDone(id, which)
+      closeConfirm()
+      showToast(which === 'slinet' ? 'Recut cutlist closed' : 'Remanufacture bendlist closed')
     }
   )
