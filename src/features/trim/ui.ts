@@ -5,6 +5,7 @@ import { createStore } from '@/store/create-store'
 
 import { assignLocation, removeLocation, remanListDone, setRemanFlag, unscheduleOrder } from './store'
 
+import type { BatchItem } from './selectors'
 import type { PadCtx } from './components/keypads'
 import type { NoteCtx } from './components/note-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
@@ -21,6 +22,8 @@ export type TrimUi = {
   packages: number | null
   /** The cutlist whose Slinet coils are open, held as its gauge/colour — that is what they match on. */
   cutlistCoils: string | null
+  /** The lines behind one consolidated Total — the rows themselves, since that is all the modal reads. */
+  cutlistTotal: BatchItem[] | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -41,6 +44,7 @@ export const trimUi = createStore<TrimUi>({
   locPicker: null,
   packages: null,
   cutlistCoils: null,
+  cutlistTotal: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -66,6 +70,9 @@ export const closePackages = () => trimUi.set({ packages: null })
 
 export const openCutlistCoils = (cutlistCoils: string) => trimUi.set({ cutlistCoils })
 export const closeCutlistCoils = () => trimUi.set({ cutlistCoils: null })
+
+export const openCutlistTotal = (cutlistTotal: BatchItem[]) => trimUi.set({ cutlistTotal })
+export const closeCutlistTotal = () => trimUi.set({ cutlistTotal: null })
 
 export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
 export const closeAlert = () => trimUi.set({ alert: null })

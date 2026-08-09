@@ -488,6 +488,54 @@ export const revertRowComplete = (refs: { orderId: number; lineId: number }[], i
     }
   })
 
+/**
+ * N-053: sending a line to a different machine pulls it onto a new bendlist of its own.
+ *
+ * It cannot stay on the old one — that list is the other machine's work — and it cannot join an
+ * existing list on the new machine either, because those were consolidated for a run that is already
+ * planned. A line already cut carries that fact across: the new list opens with the Slinet's half
+ * already done, so the receiving machine is not made to wait for a cut that has happened.
+ */
+export const reassignMachine = (orderId: number, lineId: number, machineId: number) =>
+  trimStore.set(state => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    const item = order?.lineItems.find(candidate => candidate.id === lineId)
+    if (!order || !item) return {}
+
+    const alreadyCut = (RANK[item.status ?? ''] || 0) >= RANK.cut!
+
+    return {
+      cutlists: [
+        ...state.cutlists.map(cutlist => ({
+          ...cutlist,
+          members: cutlist.members.filter(
+            member => !(member.orderId === orderId && member.lineId === lineId)
+          )
+        })),
+        {
+          id: `reassign|${orderId}-${lineId}|${Date.now()}`,
+          date: order.productionDate as string,
+          gaugeColour: item.gaugeColour,
+          priorityId: order.priorityId,
+          members: [{ orderId, lineId }],
+          slinetStarted: alreadyCut,
+          doneSlinet: alreadyCut,
+          doneMachines: []
+        }
+      ],
+      orders: state.orders.map(candidate =>
+        candidate.id !== orderId
+          ? candidate
+          : {
+              ...candidate,
+              lineItems: candidate.lineItems.map(line =>
+                line.id === lineId ? { ...line, machineId } : line
+              )
+            }
+      )
+    }
+  })
+
 /** N-056: a station signs off its whole list. `key` is 'slinet' or a machine id. */
 export const markBatchDone = (batchId: string, key: 'slinet' | number) =>
   trimStore.set(state => ({
