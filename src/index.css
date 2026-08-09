@@ -228,13 +228,43 @@ body {
    Every number the app asks for is a stepper rather than a bare `type="number"`: the browser's own
    spinner is invisible until hover, tiny, and absent on touch — which is most of the shop floor.
 
-   The frame is the prototype's, taken from whichever input class the call site passes (`input mono`,
-   `cf-input mono`), so these read as part of the page they are in. The field inside it is bare, and
-   the two stepper buttons sit inside that same frame. */
+   The frame is drawn here rather than borrowed from each page's `.input` class, because those pin a
+   width (the Coil Filter's is 74px) that two buttons do not fit inside. The custom properties are the
+   prototype's own, so the field still reads as part of whatever page it lands on. These rules are
+   unlayered on purpose: that is what lets them beat the utility classes the component ships with. */
 .wl-numfield {
-  display: flex;
+  display: inline-flex;
   align-items: stretch;
   overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #e4e7ec);
+  border-radius: var(--r-sm, 6px);
+  background: var(--surface, #fff);
+  box-shadow: none;
+  transition: border-color 0.12s ease;
+}
+
+.wl-numfield:focus-within {
+  border-color: var(--accent, #3b5bdb);
+  box-shadow: none;
+  outline: none;
+}
+
+.wl-numfield[data-disabled] {
+  background: var(--surface-3, #f2f4f7);
+  color: var(--text-subtle, #98a2b3);
+}
+
+.wl-numfield-default {
+  width: 100%;
+  height: 34px;
+  font-size: 13px;
+}
+
+.wl-numfield-compact {
+  width: 108px;
+  height: 28px;
+  font-size: 12px;
 }
 
 .wl-numfield-input {
@@ -245,21 +275,33 @@ body {
   background: transparent;
   color: inherit;
   font: inherit;
-  padding: 0 8px;
-  text-align: inherit;
+  padding: 0 4px;
+  text-align: center;
 }
 
-.wl-numfield button {
+.wl-numfield-step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted, #667085);
   cursor: pointer;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
 }
 
-.wl-numfield button:hover {
+.wl-numfield-compact .wl-numfield-step {
+  width: 22px;
+}
+
+.wl-numfield-step svg {
+  width: 13px;
+  height: 13px;
+}
+
+.wl-numfield-step:hover {
   background: var(--surface-3, rgb(0 0 0 / 4%));
   color: inherit;
 }

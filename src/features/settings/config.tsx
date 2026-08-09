@@ -101,18 +101,14 @@ export const CONFIG: Record<string, AreaConfig> = {
         render: (row: Priority) => <span className='hier'>{row.hierarchy}</span>
       }
     ],
+    // no hierarchy field: a new priority lands at the bottom and is dragged to where it belongs,
+    // which is the same gesture that reorders the rest — asking for a number as well would let the
+    // two disagree
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, ph: 'e.g. Now' },
-      { key: 'color', label: 'Colour', type: 'color', required: true },
-      {
-        key: 'hierarchy',
-        label: 'Hierarchy number (1 = always top)',
-        type: 'number',
-        required: true,
-        ph: 'e.g. 1'
-      }
+      { key: 'color', label: 'Colour', type: 'color', required: true }
     ],
-    defaults: () => ({ name: '', color: PALETTE[0], hierarchy: 1 })
+    defaults: () => ({ name: '', color: PALETTE[0] })
   },
   warehouses: {
     singular: 'warehouse',
