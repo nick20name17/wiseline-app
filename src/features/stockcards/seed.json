@@ -1,0 +1,103 @@
+{
+  "stockCards": [
+    {
+      "id": 1,
+      "pid": "TDRIP24",
+      "stockMin": 100,
+      "orderQty": 250,
+      "image": null,
+      "desc": "Drip Edge",
+      "color": "Charcoal",
+      "gauge": 24,
+      "width": 4,
+      "length": 120
+    },
+    {
+      "id": 2,
+      "pid": "TRIDGE26",
+      "stockMin": 40,
+      "orderQty": 120,
+      "image": null,
+      "desc": "Ridge Cap",
+      "color": "Barn Red",
+      "gauge": 26,
+      "width": 12,
+      "length": 120
+    },
+    {
+      "id": 3,
+      "pid": "TRAKE24",
+      "stockMin": 75,
+      "orderQty": 200,
+      "image": null,
+      "desc": "Rake Trim",
+      "color": "Bright White",
+      "gauge": 24,
+      "width": 6,
+      "length": 120
+    },
+    {
+      "id": 4,
+      "pid": "TSWB262",
+      "stockMin": 20,
+      "orderQty": 80,
+      "image": null,
+      "desc": "Sidewall Flashing",
+      "color": "Galvalume",
+      "gauge": 26,
+      "width": 10,
+      "length": 120
+    },
+    {
+      "id": 5,
+      "pid": "TVAL26",
+      "stockMin": 30,
+      "orderQty": 100,
+      "image": null,
+      "desc": "Valley",
+      "color": "Hawaiian Blue",
+      "gauge": 26,
+      "width": 16,
+      "length": 120
+    },
+    {
+      "id": 6,
+      "pid": "TGABLE26",
+      "stockMin": 60,
+      "orderQty": 150,
+      "image": null,
+      "desc": "Gable Trim",
+      "color": "White",
+      "gauge": 26,
+      "width": 8,
+      "length": 120
+    },
+    {
+      "id": 7,
+      "pid": "TDE8262",
+      "stockMin": 90,
+      "orderQty": 220,
+      "image": null,
+      "desc": "Eave Trim",
+      "color": "Charcoal",
+      "gauge": 29,
+      "width": 8,
+      "length": 120
+    },
+    {
+      "id": 8,
+      "pid": "TWCAP24",
+      "stockMin": 25,
+      "orderQty": 90,
+      "image": null,
+      "desc": "W-Valley",
+      "color": "Barn Red",
+      "gauge": 24,
+      "width": 14,
+      "length": 120
+    }
+  ],
+  "searchTerm": "",
+  "filterValue": "all",
+  "selectedIds": []
+}

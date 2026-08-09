@@ -22,6 +22,8 @@ export const CoilSchema = z.object({
   width: z.number().default(0),
   gauge: z.number().nullable().default(null),
   coilNumber: z.string().default(''),
+  /** Only the Coils page shows it, but it rides the shared record: the payload already carries it. */
+  supplier: z.string().default(''),
   /** Radial wind, left blank on a coil EBMS has only just pushed in. */
   thickness: z.number().nullable().default(null),
   linearFeet: z.number().default(0),
