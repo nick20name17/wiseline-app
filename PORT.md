@@ -22,10 +22,14 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**Shipping is done, and so is every page that had a view to port.** All five of its views are green at
-both widths, the Map included. What is left everywhere is the modals — 13 on Rollforming, several on
-Trim, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the load-assignment
-grid) and the Load builder live *only* in a modal and nothing on the board reaches them. Read
+**All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
+both widths. Next are the ten smaller pages: dashboard, coils, stockcards, warehouse, loading, driver,
+scanner, activity, settings, ebms.
+
+What is left inside the departments is the modals — 13 on Rollforming, several on Trim, four on
+Accessories, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the
+load-assignment grid) and the Load builder live *only* in a modal and nothing on the board reaches
+them. Read
 `renderScheduled` and `renderTruckExpandedGrid` together when that comes: `schedGridOrders` is
 deliberately shared by the render, Select-All and Reschedule so all three act on the same visible rows.
 
@@ -129,6 +133,13 @@ Two more things the gate is for, both from Rollforming:
   it, and the tabs kept the group they first rendered while the tables under them moved. The structural
   diff named it exactly — `lost class active` — because a state clicked the tab.
 
+- **lucide renamed an icon after the prototype pinned its copy.** `wand-2` is `wand-sparkles` now —
+  same glyph, different class, and the class is what the structural diff reads. The port writes
+  `className='lucide-wand-2'` alongside it; extra classes are tolerated, missing ones are not.
+- **Reading the clock in render costs the component its memoisation.** The release countdown called
+  `Date.now()` inline, as the prototype does inside its 5-second re-render. React Compiler refuses to
+  optimise a component that calls an impure function while rendering, and react-doctor caught it as an
+  error. `useNow()` makes the tick a value; the selector takes `now` as an argument.
 - **A counter a lambda increments loses the whole component.** Two views numbered their rows with
   `index++` inside a `.map`. React Compiler cannot lower that, bails on the function, and stops
   memoising it — react-doctor reported it as its top error. Compute the offsets before the map instead;
@@ -220,7 +231,9 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Shipping shell + Unscheduled | + its Accessories tab; 5 captures green at both widths |
 | ✅ `/shipping` — all five views | green at 1440 and 390, Map included |
 | ✅ Shipping's reachable states | 8 of them: three on Scheduled, two on Loading, three on Unscheduled |
-| ⬜ The other 11 pages | |
+| ✅ `/accessories` — all four views | green at 1440 and 390, 20 captures |
+| ✅ Accessories' reachable states | 7, incl. the split order and the package builder |
+| ⬜ The other 10 pages | |
 
 ### What Shipping still owes
 
@@ -229,6 +242,14 @@ orders, Add To Load, Reschedule, New Package — opens only from a truck card, a
 its drag-to-reorder route and Release To Loading opens only from there. The board is honest about what it
 shows, but nothing on it can be *done* until those two land. Also unopened: Completed Orders (90 days),
 Trucks Notes, the Schedule modal and the per-order notes drawer.
+
+### What Accessories still owes
+
+Its modals: the scheduling calendar (entire, partial and reschedule all open the same one), the
+location picker, the packages window and the two notes drawers. Also unwired, and deliberately: the
+packaging inputs are `readOnly`, because a quantity typed there feeds the weight box, the three gate
+buttons and Create & print — none of which exist yet, and a half-live input would be worse than a
+still one.
 
 ### What Rollforming still owes
 
@@ -252,10 +273,10 @@ time, or the next person reads a green gate and believes it.
 
 ## Order of work
 
-Trim first and slowly: it sets every pattern the other departments repeat. Rollforming and Shipping
-followed and are done to the limit of what the gate can reach. Next: Accessories, then the ten smaller
-pages — and the modals, which are now the only outstanding work on three whole departments and the one
-thing no gate currently watches.
+Trim first and slowly: it sets every pattern the other departments repeat. Rollforming, Shipping and
+Accessories followed and are all done to the limit of what the gate can reach. What is left is the ten
+smaller pages — and the modals, which are now the only outstanding work on all four departments and the
+one thing no gate currently watches.
 
 Two things the second department taught, both worth knowing before the third:
 

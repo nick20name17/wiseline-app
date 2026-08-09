@@ -213,6 +213,54 @@ export const STATES: State[] = [
     view: 'view-loading',
     name: 'day-16',
     clicks: ['ldg-daytab-2026-07-16']
+  },
+  // an order opened for a partial schedule, with its lines tickable
+  {
+    page: 'accessories',
+    view: 'view-unscheduled',
+    name: 'expanded',
+    clicks: ['uns-exp-13']
+  },
+  // the split order: its scheduled lines are locked, and its row checkbox with them
+  {
+    page: 'accessories',
+    view: 'view-unscheduled',
+    name: 'expanded-split',
+    clicks: ['uns-exp-15']
+  },
+  // picking two lines arms Schedule selected and puts the count on it
+  {
+    page: 'accessories',
+    view: 'view-unscheduled',
+    name: 'lines-picked',
+    clicks: ['uns-exp-13', 'uns-linechk-122', 'uns-linechk-123']
+  },
+  {
+    page: 'accessories',
+    view: 'view-scheduled',
+    name: 'expanded',
+    clicks: ['sch-exp-1']
+  },
+  // another prep day, which is a different set of orders
+  {
+    page: 'accessories',
+    view: 'view-scheduled',
+    name: 'day-16',
+    clicks: ['sch-daytab-2026-07-16']
+  },
+  // the package builder, with its three gates all still shut
+  {
+    page: 'accessories',
+    view: 'view-packaging',
+    name: 'expanded',
+    clicks: ['pkg-exp-1']
+  },
+  // a completed order that still holds its location, countdown and all
+  {
+    page: 'accessories',
+    view: 'view-completed',
+    name: 'expanded',
+    clicks: ['comp-exp-8']
   }
 ]
 
