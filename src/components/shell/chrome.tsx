@@ -226,3 +226,25 @@ export const Topbar = ({
     </div>
   </header>
 )
+
+/**
+ * The tools' own top bar: a two-part crumb and no search, because there is nothing on these pages to
+ * search. Scanner and the Loading station spell it identically, down to the `data-comment` values, so
+ * it lives here rather than twice.
+ */
+export const ToolsTopbar = ({ page }: { page: string }) => (
+  <header className='topbar' data-comment='topbar'>
+    <div className='crumb' data-comment='topbar-crumb'>
+      <strong data-comment='topbar-crumb-root'>Tools</strong>
+      <span className='crumb-sep' data-comment='topbar-crumb-sep'>
+        /
+      </span>
+      <span data-comment='topbar-crumb-page'>{page}</span>
+    </div>
+    <div className='topbar-right' data-comment='topbar-right'>
+      <div className='avatar' data-comment='topbar-avatar' title='John Enns'>
+        JE
+      </div>
+    </div>
+  </header>
+)

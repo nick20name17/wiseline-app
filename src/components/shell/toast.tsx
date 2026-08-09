@@ -1,3 +1,7 @@
+import { Check, CircleAlert, Info, TriangleAlert } from 'lucide-react'
+
+import type { ToastType } from './use-toast'
+
 /**
  * The page's one toast slot, a sibling of the app shell.
  *
@@ -6,13 +10,20 @@
  * from the page's structure, which is exactly the kind of change a comment anchored to it cannot
  * survive.
  */
+export const ToastIcon = ({ type }: { type?: ToastType }) => {
+  if (type === 'error') return <CircleAlert />
+  if (type === 'warning') return <TriangleAlert />
+  if (type === 'info') return <Info />
+  return <Check />
+}
+
 export const Toast = ({
   message,
   type,
   shown
 }: {
   message?: string
-  type?: 'success' | 'error' | 'warning' | 'info'
+  type?: ToastType
   shown?: boolean
 }) => (
   <div
@@ -20,7 +31,10 @@ export const Toast = ({
     id='toast'
     data-comment='toast'
   >
-    <span className='toast-ico' id='toast-ico' data-comment='toast-ico' />
+    <span className='toast-ico' id='toast-ico' data-comment='toast-ico'>
+      {/* the icon only exists once something has been said: the prototype writes it in with the message */}
+      {shown ? <ToastIcon type={type} /> : null}
+    </span>
     <span id='toast-text' data-comment='toast-text'>
       {message}
     </span>

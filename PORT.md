@@ -23,8 +23,8 @@ scripts take the origin as an argument precisely so nothing has to be killed. A 
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
 **All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
-both widths. Next are the ten smaller pages: dashboard, coils, stockcards, warehouse, loading, driver,
-scanner, activity, settings, ebms.
+both widths. The three scan tools — driver, scanner and the loading station — are done too. What is left is
+dashboard, coils, stockcards, warehouse, activity, settings and ebms.
 
 What is left inside the departments is the modals — 13 on Rollforming, several on Trim, four on
 Accessories, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the
@@ -133,6 +133,11 @@ Two more things the gate is for, both from Rollforming:
   it, and the tabs kept the group they first rendered while the tables under them moved. The structural
   diff named it exactly — `lost class active` — because a state clicked the tab.
 
+- **A toast that never shows is a missing element.** The scan tools raise one after every action, and
+  the collector only records what is on screen — so a stubbed toast cost three `data-comment` values
+  the prototype's baseline had. `useToast` wires it for real, on the prototype's own 2200ms.
+- **The scan input takes focus back after every scan.** A gun types into whatever holds focus, and the
+  focus ring is in the screenshot: leaving it off read as a 0.17% pixel difference, twice.
 - **lucide renamed an icon after the prototype pinned its copy.** `wand-2` is `wand-sparkles` now —
   same glyph, different class, and the class is what the structural diff reads. The port writes
   `className='lucide-wand-2'` alongside it; extra classes are tolerated, missing ones are not.
@@ -233,7 +238,8 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Shipping's reachable states | 8 of them: three on Scheduled, two on Loading, three on Unscheduled |
 | ✅ `/accessories` — all four views | green at 1440 and 390, 20 captures |
 | ✅ Accessories' reachable states | 7, incl. the split order and the package builder |
-| ⬜ The other 10 pages | |
+| ✅ The three scan tools | `/driver`, `/scanner`, `/loading` — green, with 5 states |
+| ⬜ The other 7 pages | dashboard, coils, stockcards, warehouse, activity, settings, ebms |
 
 ### What Shipping still owes
 
