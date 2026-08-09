@@ -25,17 +25,20 @@ describe('canonical coils', () => {
 })
 
 describe('work days', () => {
-  it('reads holidays written as objects by an older build', async () => {
+  it('reads holidays written as bare dates by an older build', async () => {
     localStorage.setItem(
       'wl_workdays_v1',
       JSON.stringify({
         weekdays: [false, true, true, true, true, true, false],
-        holidays: [{ date: '2026-07-01' }, '2026-12-25']
+        holidays: [{ date: '2026-07-01', name: 'Canada Day' }, '2026-12-25']
       })
     )
 
     const { workDays } = await import('./settings')
-    expect(workDays.get().holidays).toEqual(['2026-07-01', '2026-12-25'])
+    expect(workDays.get().holidays).toEqual([
+      { date: '2026-07-01', name: 'Canada Day' },
+      { date: '2026-12-25', name: '' }
+    ])
   })
 
   it('keeps the default week when the stored one is not seven days', async () => {

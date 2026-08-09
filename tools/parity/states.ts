@@ -345,6 +345,76 @@ export const STATES: State[] = [
     view: null,
     name: 'retried',
     clicks: ['wb-filter-failed', 'wb-retry-6']
+  },
+  // the coil sub-table: every per-coil control lives here, and nothing on the group row reaches it
+  {
+    page: 'coils',
+    view: null,
+    name: 'group-expanded',
+    clicks: ['coilg-exp-0']
+  },
+  // Low stock is the one chip that filters on a number rather than a location
+  {
+    page: 'coils',
+    view: null,
+    name: 'lowstock',
+    clicks: ['filter-chip-lowstock']
+  },
+  // a coil checked into neither department: Slinet and the sub-row controls are disabled together
+  {
+    page: 'coils',
+    view: null,
+    name: 'unassigned-expanded',
+    clicks: ['filter-chip-rollforming', 'coilg-exp-0']
+  },
+  // Print Selected is gated on a selection, so the enabled button is only reachable with one made
+  {
+    page: 'stockcards',
+    view: null,
+    name: 'selected',
+    clicks: ['stock-card-1-select']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'users',
+    clicks: ['area-tab-users']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'machines',
+    clicks: ['area-tab-machines']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'warehouses',
+    clicks: ['area-tab-warehouses']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'locationTypes',
+    clicks: ['area-tab-locationTypes']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'locations',
+    clicks: ['area-tab-locations']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'trucks',
+    clicks: ['area-tab-trucks']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'workdays',
+    clicks: ['area-tab-workdays']
   }
 ]
 
