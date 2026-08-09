@@ -1,9 +1,11 @@
+import { coilLfFromThickness, coilWeightFromLf } from '@/store/shared/coils'
 import { createStore } from '@/store/create-store'
 import { arrivalKey, forgetOccupant, releaseStamps, shippedKey } from '@/store/shared/locations'
 import { withPublishedCaps } from '@/store/shared/settings'
 
 import seed from './seed.json'
 
+import type { Coil } from '@/store/shared/coils'
 import type { Note, TrimState } from './types'
 
 /**
@@ -728,6 +730,41 @@ export const completeOrder = (orderId: number) =>
         ? { ...order, completed: true, completedDate: TODAY, completedTime: nowTime() }
         : order
     )
+  }))
+
+/* -- coils on the Slinet (N-109/121, #193) ------------------------------------------------------ */
+
+export const setCoilNote = (coilId: Coil['id'], note: string) =>
+  trimStore.set(state => ({
+    coils: state.coils.map(coil => (coil.id === coilId ? { ...coil, note } : coil))
+  }))
+
+/**
+ * #193: the operator reports the build-up on the roll, and the rest follows from it.
+ *
+ * Coil Thickness is the one measurement anyone can take without unwinding the coil, so Linear Feet and
+ * Weight are derived from it rather than asked for. Zero is not a small number here — it means the
+ * coil is spent, and the row goes to zero across the board rather than to a tiny remainder.
+ */
+export const setCoilThickness = (
+  coilId: Coil['id'],
+  thickness: number,
+  matThk: number,
+  coreOD: number
+) =>
+  trimStore.set(state => ({
+    coils: state.coils.map(coil => {
+      if (coil.id !== coilId) return coil
+      if (thickness === 0) return { ...coil, thickness: 0, linearFeet: 0, weight: 0 }
+
+      const linearFeet = coilLfFromThickness(thickness, matThk, coreOD)
+      return {
+        ...coil,
+        thickness,
+        linearFeet,
+        weight: coilWeightFromLf(linearFeet, coil.width, matThk)
+      }
+    })
   }))
 
 /* -- notes ------------------------------------------------------------------------------------- */

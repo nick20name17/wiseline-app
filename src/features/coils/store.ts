@@ -1,4 +1,14 @@
-import { canonicalCoils, type Coil } from '@/store/shared/coils'
+import {
+  canonicalCoils,
+  coilLbPerFoot,
+  coilLfFromThickness,
+  coilLfFromWeight,
+  coilThicknessFromLf,
+  coilWeightFromLf,
+  type Coil
+} from '@/store/shared/coils'
+
+export { coilLbPerFoot, coilLfFromThickness, coilLfFromWeight, coilThicknessFromLf, coilWeightFromLf }
 
 import { createStore } from '@/store/create-store'
 
@@ -422,29 +432,6 @@ export const folderSlug = (value: string) => value.toLowerCase().replace(/\s+/g,
 
 /* -- geometry (#193) -------------------------------------------------------------------------- */
 
-/**
- * A wound coil's steel fills the annulus between the core and the outer diameter, so Coil Thickness —
- * the radial build-up on the roll — is what ties Linear Feet to Material Thickness and Core OD. It
- * moves with the square root of the length, not in proportion to it, which is why the three fields
- * cross-adjust rather than scale.
- */
-const STEEL_LB_IN3 = 0.2836
-
-export const coilLbPerFoot = (width: number, matThk: number) => width * matThk * 12 * STEEL_LB_IN3
-
-export const coilThicknessFromLf = (lf: number, matThk: number, coreOD: number) =>
-  +((Math.sqrt(coreOD * coreOD + (48 * matThk * lf) / Math.PI) - coreOD) / 2).toFixed(2)
-
-export const coilLfFromThickness = (thickness: number, matThk: number, coreOD: number) => {
-  const od = coreOD + 2 * thickness
-  return Math.round((Math.PI * (od * od - coreOD * coreOD)) / (48 * matThk))
-}
-
-export const coilWeightFromLf = (lf: number, width: number, matThk: number) =>
-  Math.round(lf * coilLbPerFoot(width, matThk))
-
-export const coilLfFromWeight = (weight: number, width: number, matThk: number) =>
-  Math.round(weight / coilLbPerFoot(width, matThk))
 
 export const ADJUST_FIELDS = [
   { key: 'thickness', label: 'Coil Thickness' },

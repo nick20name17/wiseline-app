@@ -87,3 +87,6 @@ export const Keypad = ({
 )
 
 export const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '⌫']
+
+/** A measurement rather than a count, so it takes a decimal point where a quantity does not. */
+export const DIGITS_DOT = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
