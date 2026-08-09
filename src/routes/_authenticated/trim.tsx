@@ -7,17 +7,30 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar, Topbar } from '@/components/shell/chrome'
+import { ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
+import { ScheduleModal } from '@/features/trim/components/schedule-modal'
 import { Coils } from '@/features/trim/components/coils'
 import { Completed } from '@/features/trim/components/completed'
 import { Production } from '@/features/trim/components/production'
 import { Scheduled } from '@/features/trim/components/scheduled'
 import { Unscheduled } from '@/features/trim/components/unscheduled'
+import { fmtDate } from '@/features/trim/format'
 import { scheduledOrders, unscheduledOrders } from '@/features/trim/selectors'
-import { DEPARTMENT, setSearch, trimStore } from '@/features/trim/store'
+import {
+  DEPARTMENT,
+  rescheduleOrder,
+  scheduleLines,
+  scheduleOrders,
+  setPeekDay,
+  setScheduledDay,
+  setSearch,
+  trimStore
+} from '@/features/trim/store'
+import { closeConfirm, closeSchedule, confirmUnschedule, showToast, trimUi } from '@/features/trim/ui'
 
 import '@/styles/home.css'
 
@@ -54,6 +67,9 @@ function Trim() {
   // one call per value: a selector that builds an object returns a new snapshot every render, and
   // `useSyncExternalStore` reads that as "changed" forever
   const searchTerm = useStore(trimStore, state => state.searchTerm)
+  // the tab counts are derived from the orders, so the header has to hear about a scheduling change
+  const orders = useStore(trimStore, state => state.orders)
+  const ui = useStore(trimUi, current => current)
   const viewer = useViewer()
   const cutlists = useStore(trimStore, state => (state.cutlists as unknown[]).length)
   const coils = useStore(trimStore, state => (state.coils as unknown[]).length)
@@ -63,13 +79,13 @@ function Trim() {
       view: 'home',
       comment: 'tab-unscheduled',
       label: 'Unscheduled',
-      count: unscheduledOrders().length
+      count: unscheduledOrders(orders).length
     },
     {
       view: 'scheduled',
       comment: 'tab-scheduled',
       label: 'Scheduled',
-      count: scheduledOrders().length
+      count: scheduledOrders(orders).length
     },
     { view: 'production', comment: 'tab-production', label: 'Production', count: cutlists },
     { view: 'coils', comment: 'tab-coils', label: 'Coils', count: coils },
@@ -111,7 +127,33 @@ function Trim() {
           </main>
         </div>
       </div>
-      <Toast />
+
+      <ScheduleModal
+        key={ui.schedule ? `${ui.schedule.mode}-${JSON.stringify(ui.schedule)}` : 'schedule-closed'}
+        ctx={ui.schedule}
+        onClose={closeSchedule}
+        onUnschedule={orderId => {
+          const order = trimStore.get().orders.find(entry => entry.id === orderId)
+          if (order) confirmUnschedule(order.id, order.order)
+        }}
+        onPick={(ctx, iso) => {
+          if (ctx.mode === 'jump') setScheduledDay(iso)
+          else if (ctx.mode === 'peek') setPeekDay(iso)
+          else if (ctx.mode === 'reschedule') {
+            rescheduleOrder(ctx.orderId, iso)
+            showToast(`Rescheduled to ${fmtDate(iso)} — Manager edits reset`)
+          } else if (ctx.mode === 'entire') {
+            scheduleOrders(ctx.orderIds, iso)
+            showToast(`Scheduled to ${fmtDate(iso)}`)
+          } else {
+            scheduleLines(ctx.orderId, ctx.lineIds, iso)
+            showToast(`Scheduled to ${fmtDate(iso)}`)
+          }
+          closeSchedule()
+        }}
+      />
+      <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
+      <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>
   )
 }

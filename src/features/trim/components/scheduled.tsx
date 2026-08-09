@@ -29,6 +29,7 @@ import {
   totalDailyCap
 } from '../selectors'
 import { setScheduledDay, TODAY, toggleExpand, toggleRelease, trimStore } from '../store'
+import { openSchedule } from '../ui'
 import { EmptyState, NoteButton, OrderStatusPill, PriorityCell, ReviewedToggle } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -81,7 +82,12 @@ const DayTabs = ({
         </span>
       </button>
 
-      <button className='day-picker' data-comment='sch-daypicker' title='Jump to a production day'>
+      <button
+        className='day-picker'
+        data-comment='sch-daypicker'
+        title='Jump to a production day'
+        onClick={() => openSchedule({ mode: 'jump', current: isAll ? null : active })}
+      >
         <Calendar style={{ width: '15px', height: '15px' }} />
         <span className='day-picker-label' data-comment='sch-daypicker-label'>
           {isAll ? 'Pick a day' : fmtDate(active)}

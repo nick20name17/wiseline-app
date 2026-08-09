@@ -14,6 +14,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { lineDay, machineById, noteState, qtyToMake, ventedOf } from '../selectors'
 import { toggleLineSelect, trimStore } from '../store'
+import { confirmUnschedule, openSchedule } from '../ui'
 import { LineStatusPill } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -177,11 +178,27 @@ const SubHead = ({ order, ctx }: { order: Order; ctx: Context }) => {
         <span className='subhead-title' data-comment={`sch-subtitle-${order.id}`}>
           Reviewing order
         </span>
-        <button className='btn btn-sm' data-pop-anchor data-comment={`sch-reschedule-${order.id}`}>
+        <button
+          className='btn btn-sm'
+          data-pop-anchor
+          data-comment={`sch-reschedule-${order.id}`}
+          onClick={() =>
+            openSchedule({
+              mode: 'reschedule',
+              orderId: order.id,
+              order: order.order,
+              current: order.productionDate
+            })
+          }
+        >
           <Calendar style={{ width: '14px', height: '14px' }} />
           Reschedule
         </button>
-        <button className='btn btn-sm' data-comment={`sch-unschedule-${order.id}`}>
+        <button
+          className='btn btn-sm'
+          data-comment={`sch-unschedule-${order.id}`}
+          onClick={() => confirmUnschedule(order.id, order.order)}
+        >
           <CalendarX style={{ width: '14px', height: '14px' }} />
           Unschedule
         </button>
@@ -212,7 +229,21 @@ const SubHead = ({ order, ctx }: { order: Order; ctx: Context }) => {
           )}
         </span>
       </span>
-      <button className='btn btn-sm' data-comment={`uns-split-${order.id}`} disabled={!splitCount}>
+      <button
+        className='btn btn-sm'
+        data-comment={`uns-split-${order.id}`}
+        disabled={!splitCount}
+        onClick={() =>
+          openSchedule({
+            mode: 'split',
+            orderId: order.id,
+            lineIds: selectedLineIds,
+            lineCount: splitCount,
+            total: order.lineItems.length,
+            order: order.order
+          })
+        }
+      >
         <CalendarDays style={{ width: '14px', height: '14px' }} />
         Split &amp; schedule{splitCount ? ` (${splitCount})` : ''}
       </button>
