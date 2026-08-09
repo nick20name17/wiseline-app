@@ -13,6 +13,7 @@ import { Toast } from '@/components/shell/toast'
 import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
 import { Keypads } from '@/features/trim/components/keypads'
+import { CutlistCoils } from '@/features/trim/components/cutlist-coils'
 import { LocationPicker } from '@/features/trim/components/location-picker'
 import { PackagesModal } from '@/features/trim/components/packages-modal'
 import { NoteModal } from '@/features/trim/components/note-modal'
@@ -37,6 +38,7 @@ import {
 import {
   closeAlert,
   closeConfirm,
+  closeCutlistCoils,
   closeLocPicker,
   closeNotes,
   closePackages,
@@ -180,6 +182,7 @@ function Trim() {
         }}
       />
       <PackagesModal orderId={ui.packages} onClose={closePackages} />
+      <CutlistCoils gaugeColour={ui.cutlistCoils} onClose={closeCutlistCoils} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

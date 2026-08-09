@@ -19,6 +19,8 @@ export type TrimUi = {
    */
   locPicker: { orderId: number; stagedWeight: number } | null
   packages: number | null
+  /** The cutlist whose Slinet coils are open, held as its gauge/colour — that is what they match on. */
+  cutlistCoils: string | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -38,6 +40,7 @@ export const trimUi = createStore<TrimUi>({
   pad: null,
   locPicker: null,
   packages: null,
+  cutlistCoils: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -60,6 +63,9 @@ export const closeLocPicker = () => trimUi.set({ locPicker: null })
 
 export const openPackages = (packages: number) => trimUi.set({ packages })
 export const closePackages = () => trimUi.set({ packages: null })
+
+export const openCutlistCoils = (cutlistCoils: string) => trimUi.set({ cutlistCoils })
+export const closeCutlistCoils = () => trimUi.set({ cutlistCoils: null })
 
 export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
 export const closeAlert = () => trimUi.set({ alert: null })

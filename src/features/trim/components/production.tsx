@@ -52,6 +52,7 @@ import {
   askRemanFlag,
   askRemanListDone,
   closeConfirm,
+  openCutlistCoils,
   openNotes,
   openPad
 } from '../ui'
@@ -626,6 +627,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           title={
             reman.fromCutlistId ? undefined : 'Original cutlist is closed — no coils to adjust'
           }
+          onClick={() => openCutlistCoils(reman.gaugeColour)}
         >
           <Database style={{ width: '14px', height: '14px' }} />
           Cutlist Coils
@@ -1013,7 +1015,11 @@ const BatchCard = ({
         <span className='toolbar-spacer' />
 
         {isSlinet ? (
-          <button className='btn btn-sm' data-comment={`prod-coils-${batchKey}`}>
+          <button
+            className='btn btn-sm'
+            data-comment={`prod-coils-${batchKey}`}
+            onClick={() => openCutlistCoils(batch.gaugeColour)}
+          >
             <Database style={{ width: '14px', height: '14px' }} />
             Cutlist Coils
           </button>
