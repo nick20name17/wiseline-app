@@ -276,6 +276,36 @@ export const groupStepState = (items: BatchItem[], stepRank: number) => {
   return 'partial'
 }
 
+/**
+ * Everything scheduled to one day, whether or not it has been routed to a machine.
+ *
+ * This and `machineTotals` are two different populations, and the gap between them is the point: trim
+ * that has a day but no machine yet. Summing the machines instead would hide exactly the work nobody
+ * has claimed.
+ */
+export const dayScheduledTotals = (iso: string, orders = trimStore.get().orders) => {
+  let pieces = 0
+  let bends = 0
+  let stockPieces = 0
+  let stockBends = 0
+
+  for (const order of scheduledOrders(orders))
+    for (const item of order.lineItems) {
+      if (lineDay(order, item) !== iso) continue
+
+      const linePieces = qtyToMake(item)
+      const lineBendCount = lineBends(item)
+      pieces += linePieces
+      bends += lineBendCount
+      if (order.type === 'stock') {
+        stockPieces += linePieces
+        stockBends += lineBendCount
+      }
+    }
+
+  return { pieces, bends, stockPieces, stockBends }
+}
+
 /** What one machine has been given for one day — the numbers on the totals strip. */
 export const machineTotals = (machineId: number | null, iso: string, state = trimStore.get()) => {
   let pieces = 0

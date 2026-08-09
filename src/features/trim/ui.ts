@@ -31,6 +31,9 @@ export type TrimUi = {
   cutlistCoils: string | null
   /** The lines behind one consolidated Total — the rows themselves, since that is all the modal reads. */
   cutlistTotal: BatchItem[] | null
+  /** The day whose Machine Capacities report is open, and whether Allocated Stock is. */
+  machineCap: string | null
+  allocStock: boolean
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -52,6 +55,8 @@ export const trimUi = createStore<TrimUi>({
   packages: null,
   cutlistCoils: null,
   cutlistTotal: null,
+  machineCap: null,
+  allocStock: false,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -80,6 +85,12 @@ export const closeCutlistCoils = () => trimUi.set({ cutlistCoils: null })
 
 export const openCutlistTotal = (cutlistTotal: BatchItem[]) => trimUi.set({ cutlistTotal })
 export const closeCutlistTotal = () => trimUi.set({ cutlistTotal: null })
+
+export const openMachineCap = (machineCap: string) => trimUi.set({ machineCap })
+export const closeMachineCap = () => trimUi.set({ machineCap: null })
+
+export const openAllocStock = () => trimUi.set({ allocStock: true })
+export const closeAllocStock = () => trimUi.set({ allocStock: false })
 
 export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
 export const closeAlert = () => trimUi.set({ alert: null })
