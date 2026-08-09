@@ -317,6 +317,20 @@ export const STATES: State[] = [
     view: null,
     name: 'no-matches',
     clicks: ['activity-pause-btn', 'activity-dept-chip-shipping', 'activity-type-chip-coil']
+  },
+  // one location type, which rescopes every stat above the grid as well as the grid
+  {
+    page: 'warehouse',
+    view: null,
+    name: 'type-loading',
+    clicks: ['legend-chip-loading']
+  },
+  // two types at once: the legend is a set of toggles, not a single choice
+  {
+    page: 'warehouse',
+    view: null,
+    name: 'type-stock-staging',
+    clicks: ['legend-chip-stock', 'legend-chip-staging']
   }
 ]
 
