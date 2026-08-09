@@ -84,7 +84,14 @@ export const ModalHead = ({
   </div>
 )
 
-export type Confirm = { title: string; desc: string; onOk: () => void } | null
+export type Confirm = {
+  title: string
+  desc: string
+  onOk: () => void
+  /** A question whose answer is an action names it on the button — «Yes, Create Manufacturing Batch». */
+  ok?: string
+  cancel?: string
+} | null
 
 /**
  * The two-stage confirm every page shares: the same markup, a different question each time.
@@ -93,15 +100,14 @@ export type Confirm = { title: string; desc: string; onOk: () => void } | null
  * comments anchored to `confirm-title` and `confirm-ok` are about the pattern rather than any one
  * question. This keeps that.
  */
-export const ConfirmOverlay = ({
-  confirm,
-  onClose
-}: {
-  confirm: Confirm
-  onClose: () => void
-}) => (
+export const ConfirmOverlay = ({ confirm, onClose }: { confirm: Confirm; onClose: () => void }) => (
   <Overlay id='overlay-confirm' comment='overlay-confirm' open={!!confirm} onClose={onClose}>
-    <div className='modal' style={{ maxWidth: '380px' }} data-comment='confirm-modal' data-component='dialog'>
+    <div
+      className='modal'
+      style={{ maxWidth: '380px' }}
+      data-comment='confirm-modal'
+      data-component='dialog'
+    >
       <ModalHead
         comment='confirm-head'
         titleComment='confirm-title'
@@ -112,7 +118,7 @@ export const ConfirmOverlay = ({
       />
       <div className='modal-foot' data-comment='confirm-foot'>
         <button className='btn btn-ghost' data-comment='confirm-cancel' onClick={onClose}>
-          Cancel
+          {confirm?.cancel ?? 'Cancel'}
         </button>
         <button
           className='btn btn-primary'
@@ -120,7 +126,7 @@ export const ConfirmOverlay = ({
           data-comment='confirm-ok'
           onClick={() => confirm?.onOk()}
         >
-          Confirm
+          {confirm?.ok ?? 'Confirm'}
         </button>
       </div>
     </div>

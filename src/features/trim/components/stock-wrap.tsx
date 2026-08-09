@@ -2,7 +2,8 @@ import { Factory } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
-import { trimStore } from '../store'
+import { createStockWrapBatch, toggleStockWrapCheck, trimStore } from '../store'
+import { askConfirm, closeConfirm, openPad, showToast } from '../ui'
 
 import type { Order } from '../types'
 
@@ -95,7 +96,7 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
                           ? 'Include in the manufacturing batch'
                           : 'Enter a Wrapped amount first'
                       }
-                      readOnly
+                      onChange={() => toggleStockWrapCheck(item.id)}
                     />
                   )}
                 </td>
@@ -116,6 +117,7 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
                       style={{ minWidth: '56px', justifyContent: 'center' }}
                       data-comment={`swrap-wrapbtn-${key}`}
                       title='Enter what has been wrapped'
+                      onClick={() => openPad({ kind: 'wrap', orderId: order.id, lineId: item.id })}
                     >
                       {wrapped}
                     </button>
@@ -163,6 +165,25 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
             picked.length
               ? 'Push a manufacturing batch to EBMS for the checked rows'
               : 'Check at least one wrapped row'
+          }
+          onClick={() =>
+            askConfirm(
+              'Create manufacturing batch?',
+              'This will create a manufacturing batch — are you sure the amounts in the Wrapped column are correct?',
+              () => {
+                closeConfirm()
+                const finished = createStockWrapBatch(
+                  order.id,
+                  picked.map(item => item.id)
+                )
+                showToast(
+                  finished
+                    ? `Manufacturing batch pushed to EBMS · ${order.order} moved to Completed Orders`
+                    : `Manufacturing batch pushed to EBMS (C_MFG) · ${picked.length} row${picked.length > 1 ? 's' : ''}`
+                )
+              },
+              'Yes, Create Manufacturing Batch'
+            )
           }
         >
           <Factory style={{ width: '14px', height: '14px' }} />
