@@ -17,6 +17,8 @@ import { CutlistCoils } from '@/features/trim/components/cutlist-coils'
 import { CutlistTotal } from '@/features/trim/components/cutlist-total'
 import { AllocStock } from '@/features/trim/components/alloc-stock'
 import { MachineCap } from '@/features/trim/components/machine-cap'
+import { StockCardsModal } from '@/features/trim/components/stock-cards-modal'
+import { StockOrderModal } from '@/features/trim/components/stock-order-modal'
 import { LocationPicker } from '@/features/trim/components/location-picker'
 import { PackagesModal } from '@/features/trim/components/packages-modal'
 import { NoteModal } from '@/features/trim/components/note-modal'
@@ -49,6 +51,8 @@ import {
   closeNotes,
   closePackages,
   closeSchedule,
+  closeStockCards,
+  closeStockOrder,
   confirmUnschedule,
   pickLocation,
   showToast,
@@ -192,6 +196,8 @@ function Trim() {
       <CutlistTotal items={ui.cutlistTotal} onClose={closeCutlistTotal} />
       <MachineCap day={ui.machineCap} onClose={closeMachineCap} />
       <AllocStock open={ui.allocStock} onClose={closeAllocStock} />
+      <StockCardsModal open={ui.stockCards} onClose={closeStockCards} />
+      <StockOrderModal open={ui.stockOrder} onClose={closeStockOrder} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

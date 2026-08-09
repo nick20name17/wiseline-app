@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import * as z from 'zod'
 import { useState } from 'react'
 import { ChevronDown, Pencil, Plus, Printer, Search, SearchX, Trash2 } from 'lucide-react'
 
@@ -34,6 +35,8 @@ import {
 import '@/styles/stockcards.css'
 
 export const Route = createFileRoute('/_authenticated/stock-cards')({
+  // #198: the Trim board hosts this page inline, and passes the flag the way the prototype does
+  validateSearch: z.object({ embed: z.coerce.boolean().optional() }),
   component: Stockcards
 })
 
@@ -46,7 +49,8 @@ export const Route = createFileRoute('/_authenticated/stock-cards')({
  * reprinted.
  */
 function Stockcards() {
-  usePage('stockcards')
+  const { embed } = Route.useSearch()
+  usePage('stockcards', !!embed)
 
   const state = useStore(stockcardsStore, current => current)
   const viewer = useViewer()

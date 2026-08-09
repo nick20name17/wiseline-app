@@ -35,6 +35,8 @@ export type TrimUi = {
   /** The day whose Machine Capacities report is open, and whether Allocated Stock is. */
   machineCap: string | null
   allocStock: boolean
+  stockCards: boolean
+  stockOrder: boolean
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -58,6 +60,8 @@ export const trimUi = createStore<TrimUi>({
   cutlistTotal: null,
   machineCap: null,
   allocStock: false,
+  stockCards: false,
+  stockOrder: false,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -92,6 +96,12 @@ export const closeMachineCap = () => trimUi.set({ machineCap: null })
 
 export const openAllocStock = () => trimUi.set({ allocStock: true })
 export const closeAllocStock = () => trimUi.set({ allocStock: false })
+
+export const openStockCards = () => trimUi.set({ stockCards: true })
+export const closeStockCards = () => trimUi.set({ stockCards: false })
+
+export const openStockOrder = () => trimUi.set({ stockOrder: true })
+export const closeStockOrder = () => trimUi.set({ stockOrder: false })
 
 export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
 export const closeAlert = () => trimUi.set({ alert: null })
