@@ -1,6 +1,6 @@
 import { isWorkDay } from '@/store/shared/settings'
 
-import { TODAY, trimStore } from './store'
+import { RANK, TODAY, trimStore } from './store'
 
 import type { LineItem, Location, Note, Order, Priority, Reman } from './types'
 
@@ -201,17 +201,8 @@ export const completedOrders = () => {
     )
 }
 
-/** How far a line has got. Status never moves backwards, so comparing ranks is the whole gate. */
-export const RANK: Record<string, number> = {
-  not_started: 1,
-  in_progress: 2,
-  cut: 3,
-  bent: 4,
-  wrapped: 5
-}
-
-export const lineOf = (orderId: number, lineId: number) => {
-  const order = trimStore.get().orders.find(candidate => candidate.id === orderId)
+export const lineOf = (orderId: number, lineId: number, orders = trimStore.get().orders) => {
+  const order = orders.find(candidate => candidate.id === orderId)
   const item = order?.lineItems.find(candidate => candidate.id === lineId)
   return order && item ? { order, item } : null
 }
@@ -242,14 +233,17 @@ export type BatchItem = LineItem & {
  * Slinet sees every manufacturing line as one cutlist; a machine tab sees only the lines routed to
  * it, as a bendlist. Same batches either way — the difference is which lines are in them.
  */
-export const computeBatches = (machineId: number | null, isSlinet: boolean) =>
-  trimStore
-    .get()
-    .cutlists.map(cutlist => ({
+export const computeBatches = (
+  machineId: number | null,
+  isSlinet: boolean,
+  state = trimStore.get()
+) =>
+  state.cutlists
+    .map(cutlist => ({
       ...cutlist,
       items: cutlist.members
         .map(member => {
-          const found = lineOf(member.orderId, member.lineId)
+          const found = lineOf(member.orderId, member.lineId, state.orders)
           if (!found) return null
           return {
             ...found.item,
@@ -272,6 +266,9 @@ export const computeBatches = (machineId: number | null, isSlinet: boolean) =>
     )
 
 /** Whether a consolidated row has all, some or none of its lines past a station's step. */
+export { RANK }
+
+/** Whether a consolidated row has all, some or none of its lines past a station's step. */
 export const groupStepState = (items: BatchItem[], stepRank: number) => {
   const done = items.filter(item => (RANK[item.status ?? ''] || 0) >= stepRank).length
   if (done === 0) return 'none'
@@ -280,16 +277,20 @@ export const groupStepState = (items: BatchItem[], stepRank: number) => {
 }
 
 /** What one machine has been given for one day — the numbers on the totals strip. */
-export const machineTotals = (machineId: number | null, iso: string) => {
+export const machineTotals = (
+  machineId: number | null,
+  iso: string,
+  state = trimStore.get()
+) => {
   let pieces = 0
   let bends = 0
   let stockPieces = 0
   let stockBends = 0
 
-  for (const cutlist of trimStore.get().cutlists) {
+  for (const cutlist of state.cutlists) {
     if (cutlist.date !== iso) continue
     for (const member of cutlist.members) {
-      const found = lineOf(member.orderId, member.lineId)
+      const found = lineOf(member.orderId, member.lineId, state.orders)
       if (!found || found.item.machineId !== machineId) continue
       const linePieces = qtyToMake(found.item)
       const lineBendCount = lineBends(found.item)
@@ -311,16 +312,16 @@ const remanSort = (a: Reman, b: Reman) =>
   (priorityById(a.priorityId)?.hierarchy || 99) - (priorityById(b.priorityId)?.hierarchy || 99)
 
 /** #192: `done` is what flips a list from a station's active queue to its Completed tab. */
-export const remanCutlistEntries = (done: boolean) =>
-  trimStore
-    .get()
-    .remans.filter(reman => !reman.slinetDone === !done)
-    .sort(remanSort)
+export const remanCutlistEntries = (done: boolean, remans = trimStore.get().remans) =>
+  remans.filter(reman => !reman.slinetDone === !done).sort(remanSort)
 
-export const remanBendlistEntries = (machineId: number | null, done: boolean) =>
-  trimStore
-    .get()
-    .remans.filter(reman => reman.machineId === machineId && !reman.machineDone === !done)
+export const remanBendlistEntries = (
+  machineId: number | null,
+  done: boolean,
+  remans = trimStore.get().remans
+) =>
+  remans
+    .filter(reman => reman.machineId === machineId && !reman.machineDone === !done)
     .sort(remanSort)
 
 export const remanIsStock = (reman: Reman) =>

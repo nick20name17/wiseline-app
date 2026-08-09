@@ -387,6 +387,143 @@ export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
   return !!trimStore.get().orders.find(order => order.id === orderId)?.completed
 }
 
+/* -- production: cut, bent, done (N-051..056) --------------------------------------------------- */
+
+/** How far a line has got. Status never moves backwards, so comparing ranks is the whole gate. */
+export const RANK: Record<string, number> = {
+  not_started: 1,
+  in_progress: 2,
+  cut: 3,
+  bent: 4,
+  wrapped: 5
+}
+
+/**
+ * A line only ever moves forward through the stations, which is why this takes the step rather than
+ * setting it: a machine marking Bent on a line the Slinet has already cut must not undo the cut, and
+ * a line pulled from stock skips straight to wrapped or stays where it is.
+ */
+const advance = <T extends { status: string | null }>(item: T, next: string): T => {
+  if (item.status === 'wrapped') return item
+  if (item.status === 'stock') return next === 'wrapped' ? { ...item, status: 'wrapped' } : item
+  return (RANK[next] || 0) > (RANK[item.status ?? ''] || 0) ? { ...item, status: next } : item
+}
+
+const advanceLines = (
+  state: TrimState,
+  refs: { orderId: number; lineId: number }[],
+  next: string,
+  gate?: (item: TrimState['orders'][number]['lineItems'][number]) => boolean
+) => ({
+  orders: state.orders.map(order => {
+    const mine = refs.filter(ref => ref.orderId === order.id)
+    if (!mine.length) return order
+
+    return {
+      ...order,
+      lineItems: order.lineItems.map(item =>
+        mine.some(ref => ref.lineId === item.id) && (!gate || gate(item))
+          ? advance(item, next)
+          : item
+      )
+    }
+  })
+})
+
+/**
+ * N-051: the Slinet is the gateway. The first Cut on a cutlist flips the *whole* list to In Progress
+ * across every machine, because the machines downstream are now waiting on material that exists.
+ */
+export const slinetCutGroup = (batchId: string, refs: { orderId: number; lineId: number }[]) =>
+  trimStore.set(state => {
+    const batch = state.cutlists.find(candidate => candidate.id === batchId)
+    const started =
+      batch && !batch.slinetStarted
+        ? {
+            cutlists: state.cutlists.map(candidate =>
+              candidate.id === batchId ? { ...candidate, slinetStarted: true } : candidate
+            ),
+            ...advanceLines(
+              state,
+              batch.members,
+              'in_progress',
+              item => item.status === 'not_started'
+            )
+          }
+        : null
+
+    return {
+      ...started,
+      ...advanceLines(started ? { ...state, ...started } : state, refs, 'cut')
+    }
+  })
+
+/** N-055: a machine can only mark Bent once the line is past Not Started — the Slinet has to cut first. */
+export const machineCompleteGroup = (refs: { orderId: number; lineId: number }[]) =>
+  trimStore.set(state =>
+    advanceLines(state, refs, 'bent', item => !!item.status && item.status !== 'not_started')
+  )
+
+/** Reopening drops only the lines sitting *at* this station's step; anything further along stays. */
+export const revertRowComplete = (refs: { orderId: number; lineId: number }[], isSlinet: boolean) =>
+  trimStore.set(state => {
+    const step = isSlinet ? 'cut' : 'bent'
+    return {
+      orders: state.orders.map(order => {
+        const mine = refs.filter(ref => ref.orderId === order.id)
+        if (!mine.length) return order
+
+        return {
+          ...order,
+          lineItems: order.lineItems.map(item =>
+            mine.some(ref => ref.lineId === item.id) && item.status === step
+              ? { ...item, status: 'in_progress' }
+              : item
+          )
+        }
+      })
+    }
+  })
+
+/** N-056: a station signs off its whole list. `key` is 'slinet' or a machine id. */
+export const markBatchDone = (batchId: string, key: 'slinet' | number) =>
+  trimStore.set(state => ({
+    cutlists: state.cutlists.map(batch =>
+      batch.id !== batchId
+        ? batch
+        : key === 'slinet'
+          ? { ...batch, doneSlinet: true }
+          : { ...batch, doneMachines: [...(batch.doneMachines || []), key] }
+    )
+  }))
+
+/**
+ * The two halves of a remanufacture close independently, and in order.
+ *
+ * The Slinet marking the recut Cut greens the Remanufacture cell in the *machine* tab; the Wrapping
+ * tab stays orange until the machine marks the reman Bent. Reopening either half also reopens the
+ * Done that followed it — a list cannot be closed over a row that is no longer complete.
+ */
+export const setRemanFlag = (id: string, flag: 'recut' | 'bent', value: boolean) =>
+  trimStore.set(state => ({
+    remans: state.remans.map(reman =>
+      reman.id !== id
+        ? reman
+        : flag === 'recut'
+          ? { ...reman, recut: value, slinetDone: value && reman.slinetDone }
+          : { ...reman, bent: value, machineDone: value && reman.machineDone }
+    )
+  }))
+
+export const remanListDone = (id: string, which: 'slinet' | 'machine') =>
+  trimStore.set(state => ({
+    remans: state.remans.map(reman =>
+      reman.id === id
+        ? { ...reman, [which === 'slinet' ? 'slinetDone' : 'machineDone']: true }
+        : reman
+    )
+  }))
+
 /* -- notes ------------------------------------------------------------------------------------- */
 
 export const addLineNote = (orderId: number, lineId: number, note: Note) =>

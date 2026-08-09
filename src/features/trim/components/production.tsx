@@ -36,14 +36,25 @@ import {
   type BatchItem
 } from '../selectors'
 import {
+  machineCompleteGroup,
+  markBatchDone,
+  revertRowComplete,
   setActiveMachine,
   setProdListMode,
   setProdMode,
+  slinetCutGroup,
   TODAY,
   toggleBatchExpand,
   trimStore
 } from '../store'
-import { openPad } from '../ui'
+import {
+  askConfirm,
+  askRemanFlag,
+  askRemanListDone,
+  closeConfirm,
+  openNotes,
+  openPad
+} from '../ui'
 import { EmptyState } from './bits'
 import { StockMfg } from './stock-mfg'
 import { Wrapping } from './wrapping'
@@ -160,7 +171,8 @@ const DaySep = ({
 )
 
 const MachineTotals = ({ machineId }: { machineId: number | null }) => {
-  const totals = machineTotals(machineId, TODAY)
+  const state = useStore(trimStore, current => current)
+  const totals = machineTotals(machineId, TODAY, state)
   const over = totals.bends > totals.dailyMax
   const stockNote = (value: number) => (value ? ` (${value} of them from stock orders)` : '')
 
@@ -217,16 +229,19 @@ const SLINET_COLUMNS = (
   </>
 )
 
+/** N-054: ticking is silent, unticking asks — reopening a row is undoing someone's sign-off. */
 const CompleteToggle = ({
   comment,
   done,
   disabled,
-  title
+  title,
+  onToggle
 }: {
   comment: string
   done: boolean
   disabled: boolean
   title: string
+  onToggle: (toYes: boolean) => void
 }) => (
   <label className='complete-toggle' data-comment={`prod-complete-${comment}`} title={title}>
     <input
@@ -235,7 +250,7 @@ const CompleteToggle = ({
       data-comment={`prod-completechk-${comment}`}
       checked={done}
       disabled={disabled}
-      readOnly
+      onChange={() => onToggle(!done)}
     />
     <span className='complete-yn'>{done ? 'Yes' : 'No'}</span>
   </label>
@@ -269,11 +284,13 @@ const rowGroupsOf = (items: BatchItem[], isSlinet: boolean) => {
 }
 
 const BatchRows = ({
+  batchId,
   batchKey,
   items,
   isSlinet,
   stepStatus
 }: {
+  batchId: string
   batchKey: string
   items: BatchItem[]
   isSlinet: boolean
@@ -321,6 +338,8 @@ const BatchRows = ({
         </button>
       )
 
+      const refs = gitems.map(item => ({ orderId: item.orderId, lineId: item.id }))
+
       const completeCell = (
         <CompleteToggle
           comment={rowKey}
@@ -333,6 +352,20 @@ const BatchRows = ({
                 ? 'Mark this row complete'
                 : 'Waiting on Slinet cut'
           }
+          onToggle={toYes => {
+            if (toYes) return isSlinet ? slinetCutGroup(batchId, refs) : machineCompleteGroup(refs)
+
+            askConfirm(
+              'Mark this row as NOT completed?',
+              'Are you sure you want to mark this row as NOT completed?',
+              () => {
+                closeConfirm()
+                revertRowComplete(refs, isSlinet)
+              },
+              'Yes',
+              'No'
+            )
+          }}
         />
       )
 
@@ -598,6 +631,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           data-comment={`remcut-donebtn-${reman.id}`}
           disabled={!reman.recut}
           title={reman.recut ? undefined : 'Available once the recut row is Complete'}
+          onClick={() => askRemanListDone(reman.id, 'slinet')}
         >
           Done
         </button>
@@ -680,10 +714,197 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
                     className='chk'
                     data-comment={`remcut-completechk-${reman.id}`}
                     checked={reman.recut}
-                    readOnly
+                    onChange={() => askRemanFlag(reman.id, 'recut', !reman.recut)}
                   />
                   <span className='complete-yn'>{reman.recut ? 'Yes' : 'No'}</span>
                 </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The machine tab's half of a remanufacture, which is a different card from the Slinet's.
+ *
+ * Its Remanufacture cell stays orange until the Slinet marks the recut Cut, whichever tab raised the
+ * request, because a machine cannot bend material that has not been cut again yet. N-066/069: a
+ * machine-raised list shows the line's full Qty Ordered beside the reman qty; a Wrapping-raised one
+ * shows only the reman qty, since the rest of the order has already been made.
+ */
+const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
+  const expandedBatches = useStore(trimStore, state => state.expandedBatches)
+  const orders = useStore(trimStore, state => state.orders)
+  const expKey = `RM|${reman.id}`
+  const expanded = expandedBatches.includes(expKey)
+  const priority = priorityById(reman.priorityId)
+
+  const line = orders
+    .find(order => order.id === reman.orderId)
+    ?.lineItems.find(item => item.id === reman.lineId)
+  const ordered = reman.source === 'machine' ? (line?.qty ?? reman.qty) : reman.qty
+  const notes = noteState(line?.notes)
+
+  return (
+    <div
+      className={`bendlist${expanded ? ' is-expanded' : ''}`}
+      data-comment={`reman-card-${reman.id}`}
+    >
+      <div className='bendlist-head prod-head' data-comment={`reman-head-${reman.id}`}>
+        <button
+          aria-label='Toggle rows'
+          className={`expander ${expanded ? 'open' : ''}`}
+          data-comment={`reman-exp-${reman.id}`}
+          onClick={() => toggleBatchExpand(expKey)}
+        >
+          <ChevronRight style={{ width: '14px', height: '14px' }} />
+        </button>
+        <span className='bendlist-key' data-comment={`reman-key-${reman.id}`}>
+          {reman.gaugeColour}
+          {remanIsStock(reman) ? <StockIco comment={`reman-stockico-${reman.id}`} /> : null}
+        </span>
+        <span className='pri-slot' data-comment={`reman-prislot-${reman.id}`}>
+          {priority ? (
+            <span className={`pri ${priority.cls} readonly`} data-comment={`reman-pri-${reman.id}`}>
+              <span className='pri-dot' />
+              {priority.name}
+            </span>
+          ) : null}
+        </span>
+        <span className='prod-flags' data-comment={`reman-flags-${reman.id}`}>
+          <RemanCell
+            label='Remanufacture'
+            qty={reman.qty}
+            green={reman.recut}
+            comment={`reman-remc-${reman.id}`}
+            note={`requested from the ${reman.source === 'machine' ? 'Machine' : 'Wrapping'} tab${reman.recut ? '' : ' — awaiting the Slinet recut'}`}
+          />
+          <span
+            className='mono subtle'
+            data-comment={`reman-ord-${reman.id}`}
+            style={{ fontSize: '11px' }}
+          >
+            {reman.orderNo}
+          </span>
+        </span>
+        <span className='toolbar-spacer' />
+        <button
+          className='btn btn-sm'
+          data-comment={`reman-donebtn-${reman.id}`}
+          disabled={!reman.bent}
+          title={reman.bent ? undefined : 'Available once the remanufacture row is Complete'}
+          onClick={() => askRemanListDone(reman.id, 'machine')}
+        >
+          Done
+        </button>
+      </div>
+
+      {expanded ? (
+        <table
+          className='sub'
+          data-comment={`reman-table-${reman.id}`}
+          style={{ border: 'none', borderRadius: 0 }}
+        >
+          <thead>
+            <tr>
+              <th style={{ width: '54px' }}>W&quot;</th>
+              <th style={{ width: '54px' }}>L&quot;</th>
+              <th style={{ width: '74px' }}>Qty Ordered</th>
+              <th style={{ width: '72px' }}>Stock</th>
+              <th style={{ width: '96px' }}>Qty to Manufacture</th>
+              <th style={{ width: '116px' }}>ID</th>
+              <th>Description</th>
+              <th style={{ width: '80px' }}>Remanufacture</th>
+              <th style={{ width: '118px' }}>Machine</th>
+              <th style={{ width: '116px' }}>Status</th>
+              <th style={{ width: '88px' }}>Complete</th>
+              <th style={{ width: '60px' }}>Drawing</th>
+              <th style={{ width: '56px' }}>Line Item Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className={reman.bent ? 'row-complete' : ''} data-comment={`reman-row-${reman.id}`}>
+              <td className='mono' data-comment={`reman-w-${reman.id}`}>
+                {reman.width.toFixed(1)}
+              </td>
+              <td
+                className={`mono ${reman.length !== 120 ? 'len-alert' : ''}`}
+                data-comment={`reman-l-${reman.id}`}
+              >
+                {reman.length}&quot;
+              </td>
+              <td className='mono' data-comment={`reman-ordqty-${reman.id}`}>
+                {ordered}
+              </td>
+              <td className='mono' data-comment={`reman-stock-${reman.id}`}>
+                <span className='subtle'>—</span>
+              </td>
+              <td className='mono' data-comment={`reman-mfg-${reman.id}`}>
+                <b>{reman.qty}</b>
+              </td>
+              <td className='mono' data-comment={`reman-pid-${reman.id}`}>
+                {reman.productId}
+              </td>
+              <td className='trunc' data-comment={`reman-desc-${reman.id}`}>
+                {reman.description}
+              </td>
+              <td data-comment={`reman-remc-cell-${reman.id}`}>
+                <RemanCell
+                  label=''
+                  qty={reman.qty}
+                  green={reman.recut}
+                  comment={`reman-remcellbadge-${reman.id}`}
+                />
+              </td>
+              <td className='mono' data-comment={`reman-mach-${reman.id}`}>
+                {machineById(reman.machineId)?.name || '—'}
+              </td>
+              <td data-comment={`reman-st-${reman.id}`}>
+                <ProdStatusPill
+                  status={reman.recut ? 'cut' : 'in_progress'}
+                  comment={`reman-stp-${reman.id}`}
+                />
+              </td>
+              <td data-comment={`reman-complete-${reman.id}`}>
+                <label
+                  className='complete-toggle'
+                  data-comment={`reman-completelbl-${reman.id}`}
+                  title={
+                    reman.bent
+                      ? 'Marked complete — uncheck to reopen (asks first)'
+                      : 'Mark the remanufacture Bent (Complete)'
+                  }
+                >
+                  <input
+                    type='checkbox'
+                    className='chk'
+                    data-comment={`reman-completechk-${reman.id}`}
+                    checked={reman.bent}
+                    onChange={() => askRemanFlag(reman.id, 'bent', !reman.bent)}
+                  />
+                  <span className='complete-yn'>{reman.bent ? 'Yes' : 'No'}</span>
+                </label>
+              </td>
+              <td data-comment={`reman-draw-${reman.id}`}>
+                <DrawingThumb />
+              </td>
+              <td data-comment={`reman-note-${reman.id}`}>
+                {line ? (
+                  <button
+                    className={`note-btn ${notes === 'unread' ? 'has-unread' : notes === 'read' ? 'all-read' : ''}`}
+                    data-comment={`reman-notebtn-${reman.id}`}
+                    title='Line notes'
+                    onClick={() => openNotes({ orderId: reman.orderId, lineId: reman.lineId })}
+                  >
+                    <MessageSquare style={{ width: '14px', height: '14px' }} />
+                    {notes !== 'none' ? <span className='note-dot' /> : null}
+                  </button>
+                ) : (
+                  <span className='subtle'>—</span>
+                )}
               </td>
             </tr>
           </tbody>
@@ -805,6 +1026,19 @@ const BatchCard = ({
             data-comment={`prod-donebtn-${batchKey}`}
             disabled={!canDone}
             title={canDone ? undefined : 'Available once every row is Complete'}
+            onClick={() =>
+              askConfirm(
+                `Mark this ${isSlinet ? 'cutlist' : 'bendlist'} done?`,
+                // #212: coils only hang off a cutlist, so the bendlist keeps the reminder minus that clause
+                isSlinet
+                  ? 'Confirm that you have made all the necessary coil adjustments and that you are done with this cutlist.'
+                  : 'Confirm that you are done with this bendlist.',
+                () => {
+                  markBatchDone(batch.id, isSlinet ? 'slinet' : machineId!)
+                  closeConfirm()
+                }
+              )
+            }
           >
             Done
           </button>
@@ -842,6 +1076,7 @@ const BatchCard = ({
           </thead>
           <tbody>
             <BatchRows
+              batchId={batch.id}
               batchKey={batchKey}
               items={batch.items}
               isSlinet={isSlinet}
@@ -889,7 +1124,7 @@ const BatchList = ({
       out.push({
         key: `rem-${reman.id}`,
         date: reman.date,
-        node: <RemanCutlistCard reman={reman} />
+        node: isSlinet ? <RemanCutlistCard reman={reman} /> : <RemanBendlistCard reman={reman} />
       })
     }
   }
@@ -936,7 +1171,10 @@ const BatchList = ({
 }
 
 export const Production = () => {
-  const { activeMachine, prodMode, prodListMode } = useStore(trimStore, current => current)
+  // the whole state, and it is threaded into the selectors below rather than read by them: a selector
+  // that takes only primitives is one the React Compiler may answer once and never call again
+  const state = useStore(trimStore, current => current)
+  const { activeMachine, prodMode, prodListMode } = state
 
   const modeBar = (
     <div className='prodmode-bar' data-comment='prod-modebar'>
@@ -997,17 +1235,17 @@ export const Production = () => {
       </>
     )
 
-  const batches = computeBatches(activeMachine, isSlinet).filter(
+  const batches = computeBatches(activeMachine, isSlinet, state).filter(
     batch =>
       (isSlinet ? !!batch.doneSlinet : (batch.doneMachines || []).includes(activeMachine!)) ===
       doneMode
   )
   const remans = isSlinet
-    ? remanCutlistEntries(doneMode)
-    : remanBendlistEntries(activeMachine, doneMode)
+    ? remanCutlistEntries(doneMode, state.remans)
+    : remanBendlistEntries(activeMachine, doneMode, state.remans)
 
   const body = () => {
-    if (!trimStore.get().cutlists.length && !trimStore.get().remans.length)
+    if (!state.cutlists.length && !state.remans.length)
       return (
         <EmptyState
           title='No production batches yet'
