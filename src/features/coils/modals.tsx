@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { Coil } from '@/store/shared/coils'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
+import { NumberInput } from '@/components/shell/number-input'
 
 import {
   ADJUST_FIELDS,
@@ -242,18 +243,13 @@ export const AdjustModal = ({
                 <label className='field-label' data-comment='adjust-field-mt-label'>
                   Material thickness (in)
                 </label>
-                <input
-                  type='number'
-                  step='0.001'
-                  className='input mono'
-                  data-comment='adjust-field-mt-input'
+                <NumberInput
+                  comment='adjust-field-mt-input'
+                  step={0.001}
                   placeholder='e.g. 0.018'
-                  value={coil?.materialThickness ?? ''}
-                  onChange={event =>
-                    coil &&
-                    setCoilSetup(coil.id, {
-                      materialThickness: event.target.value === '' ? null : +event.target.value
-                    })
+                  value={coil?.materialThickness == null ? '' : String(coil.materialThickness)}
+                  onValueChange={next =>
+                    coil && setCoilSetup(coil.id, { materialThickness: next === '' ? null : +next })
                   }
                 />
               </div>
@@ -265,18 +261,13 @@ export const AdjustModal = ({
                 <label className='field-label' data-comment='adjust-field-od-label'>
                   Core OD (in)
                 </label>
-                <input
-                  type='number'
-                  step='0.1'
-                  className='input mono'
-                  data-comment='adjust-field-od-input'
+                <NumberInput
+                  comment='adjust-field-od-input'
+                  step={0.1}
                   placeholder='e.g. 3'
-                  value={coil?.coreOD ?? ''}
-                  onChange={event =>
-                    coil &&
-                    setCoilSetup(coil.id, {
-                      coreOD: event.target.value === '' ? null : +event.target.value
-                    })
+                  value={coil?.coreOD == null ? '' : String(coil.coreOD)}
+                  onValueChange={next =>
+                    coil && setCoilSetup(coil.id, { coreOD: next === '' ? null : +next })
                   }
                 />
               </div>
@@ -426,31 +417,29 @@ export const CoilFilterModal = ({
                 <span className='cf-between' data-comment={`coilfilter-between-${leg.key}`}>
                   Between
                 </span>
-                <input
-                  type='number'
-                  step={leg.step}
+                <NumberInput
                   className='cf-input mono'
-                  data-comment={`coilfilter-${leg.key}-min`}
-                  aria-label={`${leg.label} min`}
+                  comment={`coilfilter-${leg.key}-min`}
+                  ariaLabel={`${leg.label} min`}
+                  step={+leg.step}
                   placeholder='0'
                   value={draft[`${leg.key}Min`]}
                   disabled={all}
-                  onChange={event =>
-                    setDraft(current => ({ ...current, [`${leg.key}Min`]: event.target.value }))
+                  onValueChange={next =>
+                    setDraft(current => ({ ...current, [`${leg.key}Min`]: next }))
                   }
                 />
                 <span className='cf-amp'>&amp;</span>
-                <input
-                  type='number'
-                  step={leg.step}
+                <NumberInput
                   className='cf-input mono'
-                  data-comment={`coilfilter-${leg.key}-max`}
-                  aria-label={`${leg.label} max`}
+                  comment={`coilfilter-${leg.key}-max`}
+                  ariaLabel={`${leg.label} max`}
+                  step={+leg.step}
                   placeholder='No limit'
                   value={draft[`${leg.key}Max`]}
                   disabled={all}
-                  onChange={event =>
-                    setDraft(current => ({ ...current, [`${leg.key}Max`]: event.target.value }))
+                  onValueChange={next =>
+                    setDraft(current => ({ ...current, [`${leg.key}Max`]: next }))
                   }
                 />
                 <span className='cf-unit subtle' data-comment={`coilfilter-unit-${leg.key}`}>
