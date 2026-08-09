@@ -61,6 +61,7 @@ const ReviewedCell = ({ order }: { order: Order }) => {
  *  because an order waiting on the Slit Line legitimately appears under its own profile too. */
 const ScheduledTable = ({ orders, wrapKey }: { orders: Order[]; wrapKey: string }) => {
   const expandedIds = useStore(rollformingStore, state => state.expandedIds)
+  const locations = useStore(rollformingStore, state => state.locations)
 
   return (
     <div className='table-wrap' data-comment={`sch-wrap${wrapKey}`} style={{ overflowX: 'auto' }}>
@@ -207,7 +208,7 @@ const ScheduledTable = ({ orders, wrapKey }: { orders: Order[]; wrapKey: string 
                     </span>
                   </td>
                   <td className='mono muted' data-comment={`sch-loc-${order.id}`}>
-                    {orderLocLabel(order)}
+                    {orderLocLabel(order, locations)}
                   </td>
                   <td data-comment={`sch-note-${order.id}`}>
                     <NoteButton order={order} />
@@ -256,7 +257,7 @@ const ReleaseToolbar = ({ info }: { info: React.ReactNode }) => {
  */
 export const Scheduled = () => {
   const state = useStore(rollformingStore, current => current)
-  const days = scheduledDays()
+  const days = scheduledDays(state.orders)
 
   if (!days.length)
     return (
@@ -274,16 +275,18 @@ export const Scheduled = () => {
       ? state.scheduledDay
       : (
           days.find(day =>
-            scheduledOrdersActive().some(order => order.productionDate === day.date)
+            scheduledOrdersActive(state.orders).some(order => order.productionDate === day.date)
           ) ?? days[0]!
         ).date
 
   const searching = state.searchTerm.trim() !== ''
   const ordersFor = (group: string) =>
-    scheduledOrdersActive()
+    scheduledOrdersActive(state.orders)
       .filter(
         order =>
-          order.productionDate === active && orderMatchesSearch(order) && orderInGroup(order, group)
+          order.productionDate === active &&
+          orderMatchesSearch(order, state.searchTerm) &&
+          orderInGroup(order, group)
       )
       .sort(scheduledSort)
 
@@ -293,7 +296,7 @@ export const Scheduled = () => {
         const pct = Math.min(100, Math.round((day.lf / CAP_PER_DAY) * 100))
         const overdue =
           isOverdue(day.date) &&
-          scheduledOrdersActive().some(order => order.productionDate === day.date)
+          scheduledOrdersActive(state.orders).some(order => order.productionDate === day.date)
 
         return (
           <button

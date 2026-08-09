@@ -15,8 +15,9 @@ import { EmptyState } from './bits'
  * as done, and the column says which.
  */
 export const Completed = () => {
-  useStore(rollformingStore, state => state.orders)
-  const orders = completedOrdersList()
+  const all = useStore(rollformingStore, state => state.orders)
+  const locations = useStore(rollformingStore, state => state.locations)
+  const orders = completedOrdersList(all)
 
   if (!orders.length)
     return (
@@ -67,7 +68,7 @@ export const Completed = () => {
                 {order.customer}
               </td>
               <td className='mono muted' data-comment={`comp-loc-${order.id}`}>
-                {orderLocLabel(order)}
+                {orderLocLabel(order, locations)}
               </td>
             </tr>
           ))}

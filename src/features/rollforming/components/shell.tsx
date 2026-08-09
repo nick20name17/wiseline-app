@@ -2,7 +2,7 @@ import { History } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
-import { rollformingStore } from '../store'
+import { rollformingStore, setActor } from '../store'
 
 /**
  * Rollforming's own department bar. Trim's is a different shape — no spacer, no `tabs-row`, its own
@@ -38,7 +38,7 @@ export const defaultView = (role: string) => ROLE_VIEWS[role]?.[0] ?? 'home'
  * from the cross-page "Viewing as": moving between the stations must not tell the other departments
  * that the role changed.
  */
-const ActorBar = ({ role }: { role: string }) => {
+const ActorBar = ({ role, onNavigate }: { role: string; onNavigate: (view: string) => void }) => {
   if (!WORKER_ROLES.includes(role))
     return <div className='rf-actorbar' data-comment='rf-actorbar' style={{ display: 'none' }} />
 
@@ -52,6 +52,10 @@ const ActorBar = ({ role }: { role: string }) => {
           key={actor.id}
           className={`actor-pill ${actor.id === role ? 'active' : ''}`}
           data-comment={`actor-${actor.id}`}
+          onClick={() => {
+            setActor(actor.id)
+            onNavigate(defaultView(actor.id))
+          }}
         >
           {actor.label}
         </button>
@@ -110,7 +114,7 @@ export const DeptBar = ({
             </button>
           ))}
         </nav>
-        <ActorBar role={role} />
+        <ActorBar role={role} onNavigate={onNavigate} />
       </div>
     </div>
   )

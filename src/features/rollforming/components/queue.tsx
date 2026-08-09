@@ -48,8 +48,10 @@ const QueueRow = ({
     state => state.currentCoilByGroup[groupOf(row.profile)]
   )
   const role = useStore(rollformingStore, state => state.role)
+  const priorities = useStore(rollformingStore, state => state.priorities)
+  const suppliers = useStore(rollformingStore, state => state.suppliers)
 
-  const priority = priorityById(row.priorityId)
+  const priority = priorityById(row.priorityId, priorities)
   const waiting = row.needsSlit && !row.slitDone
   const inMachine = currentCoil?.key === row.key
   // checking a coil into the machine needs both halves of its identity, and material to roll
@@ -122,11 +124,11 @@ const QueueRow = ({
             data-comment={`q-supbtn-${key}`}
             style={{ width: '100%' }}
           >
-            {supplierName(row.supplierId)}
+            {supplierName(row.supplierId, suppliers)}
             <ChevronDown />
           </button>
         ) : (
-          supplierName(row.supplierId)
+          supplierName(row.supplierId, suppliers)
         )}
       </td>
       <td data-comment={`q-coil-${key}`}>
@@ -216,11 +218,12 @@ const QueueRow = ({
 
 /** One machine's rows, bucketed per production date — a row never moves across a date. */
 const QueueBuckets = ({ group }: { group: string }) => {
+  const state = useStore(rollformingStore, current => current)
   const slug = groupSlug(group)
 
   return (
     <>
-      {queueGroupsSorted(group).map(bucket => {
+      {queueGroupsSorted(group, state).map(bucket => {
         const bucketKey = `${slug}-${bucket.date}`
         const overdue = isOverdue(bucket.date)
 
@@ -273,11 +276,11 @@ const QueueBuckets = ({ group }: { group: string }) => {
 }
 
 export const Queue = () => {
-  const activeGroup = useStore(rollformingStore, state => state.activeGroup)
-  useStore(rollformingStore, state => state.orders)
+  const state = useStore(rollformingStore, current => current)
+  const activeGroup = state.activeGroup
 
   if (activeGroup === 'All') {
-    const sections = GROUPS.filter(group => queueGroupsSorted(group).length)
+    const sections = GROUPS.filter(group => queueGroupsSorted(group, state).length)
 
     return (
       <>
@@ -306,7 +309,7 @@ export const Queue = () => {
     )
   }
 
-  const buckets = queueGroupsSorted()
+  const buckets = queueGroupsSorted(undefined, state)
 
   return (
     <>

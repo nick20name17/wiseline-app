@@ -1,8 +1,10 @@
 import { createStore } from '@/store/create-store'
 
 import seed from './seed.json'
+import { showToast } from './ui'
 
-import type { RollformingState } from './types'
+import type { Note, RollformingState } from './types'
+import type { NoteCtx } from './components/note-modal'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
 export const TODAY = '2026-07-15'
@@ -23,6 +25,22 @@ export const setSearch = (searchTerm: string) => rollformingStore.set({ searchTe
 
 export const setActiveGroup = (activeGroup: string) => rollformingStore.set({ activeGroup })
 
+/**
+ * Switching between the three worker stations, which is not the same thing as the cross-page
+ * "Viewing as" — moving to the Slit Line must not tell the other departments the role changed.
+ *
+ * Each station lands where it works: the Slit Line Worker on his own group, the Wrapping Worker on
+ * everything, since he wraps whatever comes off any machine.
+ */
+export const setActor = (role: string) =>
+  rollformingStore.set(
+    role === 'slw'
+      ? { role, activeGroup: 'Slit Line' }
+      : role === 'ww'
+        ? { role, activeGroup: 'All' }
+        : { role }
+  )
+
 export const toggleExpand = (orderId: number) =>
   rollformingStore.set(state => ({
     expandedIds: state.expandedIds.includes(orderId)
@@ -37,10 +55,19 @@ export const toggleOrderSelect = (orderId: number) =>
       : [...state.selectedOrderIds, orderId]
   }))
 
-export const setPriority = (orderId: number, priorityId: number | null) =>
+export const setPriority = (orderId: number, priorityId: number | null) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  if (!order || order.priorityId === priorityId) return
+
   rollformingStore.set(state => ({
-    orders: state.orders.map(order => (order.id === orderId ? { ...order, priorityId } : order))
+    orders: state.orders.map(candidate =>
+      candidate.id === orderId ? { ...candidate, priorityId } : candidate
+    )
   }))
+
+  // #184: priority stays settable after release, and the Queue is derived — it regroups on its own
+  if (order.released) showToast('Priority updated · Queue regrouped')
+}
 
 /** Picking lines for a split belongs to one order at a time; a pick on another order replaces it. */
 export const toggleLineSelect = (orderId: number, lineId: number) =>
@@ -99,6 +126,30 @@ export const toggleReleaseSel = (orderId: number) =>
       return { ...order, releaseSel: on, exportSel: on ? order.exportSel : false }
     })
   }))
+
+/* -- notes ------------------------------------------------------------------------------------- */
+
+const patchNotes = (ctx: NoteCtx, fn: (notes: Note[]) => Note[]) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== ctx.orderId) return order
+      if (ctx.lineId == null) return { ...order, notes: fn(order.notes) }
+
+      return {
+        ...order,
+        lineItems: order.lineItems.map(item =>
+          item.id === ctx.lineId ? { ...item, notes: fn(item.notes ?? []) } : item
+        )
+      }
+    })
+  }))
+
+export const addNote = (ctx: NoteCtx, note: Note) => patchNotes(ctx, notes => [...notes, note])
+
+export const acknowledgeNote = (ctx: NoteCtx, noteId: number) =>
+  patchNotes(ctx, notes =>
+    notes.map(note => (note.id === noteId ? { ...note, dealt: true } : note))
+  )
 
 export const setScheduledDay = (scheduledDay: string) => rollformingStore.set({ scheduledDay })
 
