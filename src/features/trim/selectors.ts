@@ -37,11 +37,19 @@ export const lineDay = (order: Order, item: LineItem) =>
  * An order stays in Unscheduled while *any* of its lines has no day — so a split order whose remaining
  * trim has since been scheduled leaves the tab on its own (#172).
  */
-export const unscheduledOrders = () =>
-  trimStore.get().orders.filter(order => order.lineItems.some(item => !lineDay(order, item)))
+/**
+ * These take the orders rather than reading the store, deliberately.
+ *
+ * A selector with no arguments is one the React Compiler is free to call once and keep the answer —
+ * the tab counts in the header stayed on their seed values after the first order was scheduled, while
+ * the table below them was already right. Passing the list the caller is subscribed to makes the
+ * dependency real.
+ */
+export const unscheduledOrders = (orders: Order[] = trimStore.get().orders) =>
+  orders.filter(order => order.lineItems.some(item => !lineDay(order, item)))
 
-export const scheduledOrders = () =>
-  trimStore.get().orders.filter(order => order.productionDate && !order.completed)
+export const scheduledOrders = (orders: Order[] = trimStore.get().orders) =>
+  orders.filter(order => order.productionDate && !order.completed)
 
 export const priorityById = (id: number | null): Priority | null =>
   trimStore.get().priorities.find(priority => priority.id === id) ?? null

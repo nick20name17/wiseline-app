@@ -22,7 +22,15 @@ import {
   totalDailyCap,
   unscheduledOrders
 } from '../selectors'
-import { clearPeekDay, TODAY, toggleExpand, toggleOrderSelect, trimStore } from '../store'
+import {
+  bypassProduction,
+  clearPeekDay,
+  TODAY,
+  toggleExpand,
+  toggleOrderSelect,
+  trimStore
+} from '../store'
+import { askConfirm, closeConfirm, openSchedule, showToast } from '../ui'
 import { EmptyState, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -86,7 +94,12 @@ const NextDays = ({ peek }: { peek: string | null }) => {
         </div>
       ) : null}
 
-      <button className='next-day-cal' data-comment='uns-daypicker' title='Show any other day'>
+      <button
+        className='next-day-cal'
+        data-comment='uns-daypicker'
+        title='Show any other day'
+        onClick={() => openSchedule({ mode: 'peek', current: peek })}
+      >
         <Calendar style={{ width: '15px', height: '15px' }} />
         <span className='next-day-cal-label' data-comment='uns-daypicker-label'>
           {peek ? 'Another day' : 'Pick a day'}
@@ -161,13 +174,42 @@ export const Unscheduled = () => {
           className='btn'
           data-comment='uns-bypass'
           disabled={!selectedCount}
+          onClick={() => {
+            const ids = trimStore.get().selectedOrderIds
+            const orders = trimStore.get().orders.filter(order => ids.includes(order.id))
+            const label =
+              orders.length === 1 ? `order ${orders[0]!.order}` : `${orders.length} orders`
+
+            askConfirm(
+              `Bypass Production — ${label}?`,
+              'Are you sure you want this order(s) to bypass all the production tabs and go straight to the wrapping stage?',
+              () => {
+                bypassProduction(ids)
+                closeConfirm()
+                showToast(
+                  `Bypassed ${ids.length} order${ids.length > 1 ? 's' : ''} to Wrapping · Production Date ${fmtDate(TODAY)}`
+                )
+              }
+            )
+          }}
           title='Skip Slinet + Machines — straight to Wrapping (Status: Bypassed), Production Date today'
         >
           <FastForward style={{ width: '14px', height: '14px' }} />
           Bypass Production
           {selectedCount ? ` (${selectedCount})` : ''}
         </button>
-        <button className='btn btn-primary' data-comment='uns-schedule' disabled={!selectedCount}>
+        <button
+          className='btn btn-primary'
+          data-comment='uns-schedule'
+          disabled={!selectedCount}
+          onClick={() =>
+            openSchedule({
+              mode: 'entire',
+              orderIds: trimStore.get().selectedOrderIds,
+              orderCount: selectedCount
+            })
+          }
+        >
           <CalendarDays style={{ width: '14px', height: '14px' }} />
           Schedule
           {selectedCount ? ` (${selectedCount})` : ''}
