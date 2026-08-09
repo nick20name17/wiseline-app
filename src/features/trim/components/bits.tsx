@@ -8,11 +8,22 @@ import type { LineItem, Order } from '../types'
 
 /** The pieces every view of this page reuses. Each is one render function in the prototype. */
 
-export const EmptyState = ({ title, text }: { title: string; text: string }) => {
-  const key = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+export const EmptyState = ({
+  title,
+  text,
+  comment
+}: {
+  title: string
+  text: string
+  /** A caller may name the state instead: two screens can be empty for the same reason. */
+  comment?: string
+}) => {
+  const key =
+    comment ??
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
 
   return (
     <div className='table-wrap' data-comment={`empty-wrap-${key}`}>
@@ -195,3 +206,23 @@ export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean 
     </span>
   )
 }
+
+/** Drawing thumbnail (canvas 06/07). The real system links a trim profile; this is the placeholder. */
+export const DrawingThumb = () => (
+  <span className='draw-thumb' data-comment='draw-thumb' title='Drawing (placeholder)'>
+    <svg
+      width='16'
+      height='16'
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    >
+      <rect x='3' y='3' width='18' height='18' rx='2' />
+      <circle cx='9' cy='9' r='1.6' />
+      <path d='M21 15l-5-5L5 21' />
+    </svg>
+  </span>
+)

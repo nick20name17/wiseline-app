@@ -16,6 +16,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { usePopover } from '@/components/shell/pop'
+
 import { fmtDate } from '../format'
 import {
   BENDLIST_MACHINES,
@@ -38,6 +40,7 @@ import {
 import {
   machineCompleteGroup,
   markBatchDone,
+  reassignMachine,
   revertRowComplete,
   setActiveMachine,
   setProdListMode,
@@ -53,10 +56,12 @@ import {
   askRemanListDone,
   closeConfirm,
   openCutlistCoils,
+  openCutlistTotal,
   openNotes,
-  openPad
+  openPad,
+  showToast
 } from '../ui'
-import { EmptyState } from './bits'
+import { DrawingThumb, EmptyState } from './bits'
 import { StockMfg } from './stock-mfg'
 import { Wrapping } from './wrapping'
 
@@ -70,26 +75,6 @@ import type { Reman } from '../types'
 const StockIco = ({ comment, title }: { comment: string; title?: string }) => (
   <span className='stock-ico' data-comment={comment} title={title || 'Stock order'}>
     <Warehouse style={{ width: '13px', height: '13px' }} />
-  </span>
-)
-
-/** Drawing thumbnail (canvas 06/07). The real system links a trim profile; this is the placeholder. */
-const DrawingThumb = () => (
-  <span className='draw-thumb' data-comment='draw-thumb' title='Drawing (placeholder)'>
-    <svg
-      width='16'
-      height='16'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
-      <rect x='3' y='3' width='18' height='18' rx='2' />
-      <circle cx='9' cy='9' r='1.6' />
-      <path d='M21 15l-5-5L5 21' />
-    </svg>
   </span>
 )
 
@@ -296,8 +281,12 @@ const BatchRows = ({
   items: BatchItem[]
   isSlinet: boolean
   stepStatus: string
-}) => (
+}) => {
+  const { openPop, popNode } = usePopover()
+
+  return (
   <>
+    {popNode}
     {rowGroupsOf(items, isSlinet).map((group, groupIndex) => {
       const gitems = group.items
       const solo = gitems.length === 1
@@ -333,7 +322,10 @@ const BatchRows = ({
           className='total-link'
           data-comment={`prod-i-qtybtn-${rowKey}`}
           title='See orders using this size'
-          onClick={event => event.stopPropagation()}
+          onClick={event => {
+            event.stopPropagation()
+            openCutlistTotal(gitems)
+          }}
         >
           {totalQty}
         </button>
@@ -515,6 +507,23 @@ const BatchRows = ({
                     className='field-btn field-sel'
                     data-pop-anchor
                     data-comment={`prod-i-mach-${rowKey}`}
+                    onClick={event => {
+                      event.stopPropagation()
+                      openPop(
+                        event.currentTarget,
+                        trimStore
+                          .get()
+                          .machines.filter(machine => machine.id !== group.machineId)
+                          .map(machine => ({ label: machine.name, value: machine.id })),
+                        value => {
+                          reassignMachine(first.orderId, first.id, value as number)
+                          showToast(
+                            `Reassigned to ${machineById(value as number)?.name || 'machine'} · new single-item bendlist`
+                          )
+                          setActiveMachine(value as number)
+                        }
+                      )
+                    }}
                   >
                     <span>{machineById(group.machineId)?.name || '—'}</span>
                     <ChevronDown style={{ width: '13px', height: '13px' }} />
@@ -565,7 +574,8 @@ const BatchRows = ({
       )
     })}
   </>
-)
+  )
+}
 
 const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
   const expandedBatches = useStore(trimStore, state => state.expandedBatches)
