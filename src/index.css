@@ -223,3 +223,43 @@ body {
 [data-page] {
   min-height: 100%;
 }
+
+/* -- Number fields ------------------------------------------------------------------------------
+   Every number the app asks for is a stepper rather than a bare `type="number"`: the browser's own
+   spinner is invisible until hover, tiny, and absent on touch — which is most of the shop floor.
+
+   The frame is the prototype's, taken from whichever input class the call site passes (`input mono`,
+   `cf-input mono`), so these read as part of the page they are in. The field inside it is bare, and
+   the two stepper buttons sit inside that same frame. */
+.wl-numfield {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.wl-numfield-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 8px;
+  text-align: inherit;
+}
+
+.wl-numfield button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #667085);
+  cursor: pointer;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+
+.wl-numfield button:hover {
+  background: var(--surface-3, rgb(0 0 0 / 4%));
+  color: inherit;
+}

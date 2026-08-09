@@ -4,6 +4,7 @@ import { ChevronDown, Image as ImageIcon, Upload, X } from 'lucide-react'
 import { pendingStockOrders } from '@/store/shared/stock-orders'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
+import { NumberInput } from '@/components/shell/number-input'
 import { usePopover, type PopItem } from '@/components/shell/pop'
 
 import {
@@ -184,32 +185,24 @@ export const NewCardModal = ({
               <label className='field-label' data-comment='newcard-field-stockmin-label'>
                 Stock Minimum <span className='req'>*</span>
               </label>
-              <input
-                type='number'
-                min='0'
-                className='input mono'
-                data-comment='newcard-field-stockmin-input'
+              <NumberInput
+                comment='newcard-field-stockmin-input'
+                min={0}
                 placeholder='e.g. 100'
                 value={draft.stockMin}
-                onChange={event =>
-                  setDraft(current => ({ ...current, stockMin: event.target.value }))
-                }
+                onValueChange={next => setDraft(current => ({ ...current, stockMin: next }))}
               />
             </div>
             <div className='field' data-comment='newcard-field-orderqty' style={{ flex: 1 }}>
               <label className='field-label' data-comment='newcard-field-orderqty-label'>
                 Order Qty <span className='req'>*</span>
               </label>
-              <input
-                type='number'
-                min='0'
-                className='input mono'
-                data-comment='newcard-field-orderqty-input'
+              <NumberInput
+                comment='newcard-field-orderqty-input'
+                min={0}
                 placeholder='e.g. 250'
                 value={draft.orderQty}
-                onChange={event =>
-                  setDraft(current => ({ ...current, orderQty: event.target.value }))
-                }
+                onValueChange={next => setDraft(current => ({ ...current, orderQty: next }))}
               />
             </div>
           </div>
@@ -388,13 +381,11 @@ export const CreateOrderModal = ({
             <label className='field-label' data-comment='createorder-field-qty-label'>
               Order Qty <span className='req'>*</span>
             </label>
-            <input
-              type='number'
-              min='1'
-              className='input mono'
-              data-comment='createorder-field-qty-input'
+            <NumberInput
+              comment='createorder-field-qty-input'
+              min={1}
               value={qty}
-              onChange={event => setQty(event.target.value)}
+              onValueChange={setQty}
             />
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, ChevronDown, Trash2 } from 'lucide-react'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
+import { NumberInput } from '@/components/shell/number-input'
 import { usePopover } from '@/components/shell/pop'
 
 import { CONFIG, PALETTE, type Draft, type Field } from './config'
@@ -137,13 +138,11 @@ export const FormModal = ({
                 ) : null}
 
                 {field.type === 'number' ? (
-                  <input
-                    type='number'
-                    className='input mono'
-                    data-comment={`${comment}-input`}
+                  <NumberInput
+                    comment={`${comment}-input`}
                     placeholder={field.ph ?? ''}
                     value={String(value ?? '')}
-                    onChange={event => patch(field.key, parseInt(event.target.value, 10) || 0)}
+                    onValueChange={next => patch(field.key, next === '' ? 0 : Number(next))}
                   />
                 ) : null}
 
@@ -363,15 +362,12 @@ export const PkgMaxModal = ({
             <label className='field-label' data-comment='pkgmax-label'>
               Max package weight (lb)
             </label>
-            <input
-              type='number'
-              min='0'
-              className='input mono'
-              id='pkgmax-input'
-              data-comment='pkgmax-input'
+            <NumberInput
+              comment='pkgmax-input'
+              min={0}
               placeholder='e.g. 500'
               value={value}
-              onChange={event => setValue(event.target.value)}
+              onValueChange={setValue}
             />
           </div>
           <div className='field-hint' data-comment='pkgmax-hint'>
