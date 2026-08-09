@@ -11,10 +11,14 @@ import {
   Trash2
 } from 'lucide-react'
 
+import { useDatePicker } from '@/components/shell/date-picker'
+
+import type { ToastType } from '@/components/shell/use-toast'
+
 import { CONFIG, type AreaRow } from './config'
 import {
+  addHoliday,
   capUnit,
-  deleteRow,
   DEPARTMENTS,
   DOW_ABBR,
   DOW_LABELS,
@@ -28,16 +32,29 @@ import {
   type SettingsState
 } from './store'
 
-const RowActions = ({ area, id }: { area: Parameters<typeof deleteRow>[0]; id: number }) => (
+const RowActions = ({
+  id,
+  onEdit,
+  onDelete
+}: {
+  id: number
+  onEdit: (id: number) => void
+  onDelete: (id: number) => void
+}) => (
   <div className='row-actions'>
-    <button className='icon-btn' data-comment={`area-edit-${id}`} title='Edit'>
+    <button
+      className='icon-btn'
+      data-comment={`area-edit-${id}`}
+      title='Edit'
+      onClick={() => onEdit(id)}
+    >
       <Pencil style={{ width: '14px', height: '14px' }} />
     </button>
     <button
       className='icon-btn danger'
       data-comment={`area-del-${id}`}
       title='Delete'
-      onClick={() => deleteRow(area, id)}
+      onClick={() => onDelete(id)}
     >
       <Trash2 style={{ width: '14px', height: '14px' }} />
     </button>
@@ -50,7 +67,19 @@ const RowActions = ({ area, id }: { area: Parameters<typeof deleteRow>[0]; id: n
  * Priorities is the one that carries a rule rather than a shape: hierarchy *is* the row order, so the
  * rows are draggable and a drop renumbers the whole department.
  */
-export const AreaTable = ({ state, area }: { state: SettingsState; area: string }) => {
+export const AreaTable = ({
+  state,
+  area,
+  onAdd,
+  onEdit,
+  onDelete
+}: {
+  state: SettingsState
+  area: string
+  onAdd: () => void
+  onEdit: (id: number) => void
+  onDelete: (id: number) => void
+}) => {
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
 
@@ -97,7 +126,7 @@ export const AreaTable = ({ state, area }: { state: SettingsState; area: string 
           </span>
         ) : null}
         <div className='toolbar-spacer' />
-        <button className='btn btn-primary' data-comment='area-add'>
+        <button className='btn btn-primary' data-comment='area-add' onClick={onAdd}>
           <Plus style={{ width: '14px', height: '14px' }} />
           Add {config.singular}
         </button>
@@ -182,7 +211,7 @@ export const AreaTable = ({ state, area }: { state: SettingsState; area: string 
                     </td>
                   ))}
                   <td data-comment={`area-act-${row.id}`}>
-                    <RowActions area={area as Parameters<typeof deleteRow>[0]} id={row.id} />
+                    <RowActions id={row.id} onEdit={onEdit} onDelete={onDelete} />
                   </td>
                 </tr>
               ))}
@@ -194,7 +223,15 @@ export const AreaTable = ({ state, area }: { state: SettingsState; area: string 
   )
 }
 
-const MachineRow = ({ machine }: { machine: Machine }) => (
+const MachineRow = ({
+  machine,
+  onEdit,
+  onDelete
+}: {
+  machine: Machine
+  onEdit: (id: number) => void
+  onDelete: (id: number) => void
+}) => (
   <div className='mrow' data-comment={`mrow-${machine.id}`}>
     <span className='mrow-name' data-comment={`mrow-name-${machine.id}`}>
       {machine.name}
@@ -215,6 +252,10 @@ const MachineRow = ({ machine }: { machine: Machine }) => (
         data-comment={`mrow-edit-${machine.id}`}
         title='Edit'
         aria-label='Edit machine'
+        onClick={event => {
+          event.stopPropagation()
+          onEdit(machine.id)
+        }}
       >
         <Pencil style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
       </button>
@@ -225,7 +266,7 @@ const MachineRow = ({ machine }: { machine: Machine }) => (
         aria-label='Delete machine'
         onClick={event => {
           event.stopPropagation()
-          deleteRow('machines', machine.id)
+          onDelete(machine.id)
         }}
       >
         <Trash2 style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
@@ -235,7 +276,21 @@ const MachineRow = ({ machine }: { machine: Machine }) => (
 )
 
 /** Machines are grouped by department, and each group carries that department's package ceiling. */
-export const MachinesArea = ({ state }: { state: SettingsState }) => {
+export const MachinesArea = ({
+  state,
+  onAdd,
+  onEdit,
+  onDelete,
+  onPkgMax,
+  onSuppliers
+}: {
+  state: SettingsState
+  onAdd: () => void
+  onEdit: (id: number) => void
+  onDelete: (id: number) => void
+  onPkgMax: (dept: string) => void
+  onSuppliers: () => void
+}) => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   return (
@@ -245,7 +300,7 @@ export const MachinesArea = ({ state }: { state: SettingsState }) => {
           <b>{state.machines.length}</b> machines across departments
         </span>
         <div className='toolbar-spacer' />
-        <button className='btn btn-primary' data-comment='mach-add'>
+        <button className='btn btn-primary' data-comment='mach-add' onClick={onAdd}>
           <Plus style={{ width: '14px', height: '14px' }} />
           Add machine
         </button>
@@ -278,7 +333,10 @@ export const MachinesArea = ({ state }: { state: SettingsState }) => {
                 className='btn btn-sm'
                 data-comment={`mgroup-pkgmax-${safe}`}
                 title={`Max package weight for ${dept}`}
-                onClick={event => event.stopPropagation()}
+                onClick={event => {
+                  event.stopPropagation()
+                  onPkgMax(dept)
+                }}
               >
                 <Package style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
                 Max package · {state.pkgMax[dept] ? `${state.pkgMax[dept]} lb` : 'no limit'}
@@ -287,7 +345,10 @@ export const MachinesArea = ({ state }: { state: SettingsState }) => {
                 <button
                   className='btn btn-sm'
                   data-comment='mgroup-suppliers'
-                  onClick={event => event.stopPropagation()}
+                  onClick={event => {
+                    event.stopPropagation()
+                    onSuppliers()
+                  }}
                 >
                   <Database style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
                   Coil suppliers
@@ -304,11 +365,25 @@ export const MachinesArea = ({ state }: { state: SettingsState }) => {
             >
               {!list.length ? (
                 <div className='mgroup-empty' data-comment={`mgroup-empty-${safe}`}>
-                  No machines yet — <a href='#'>Add one</a>
+                  No machines yet —{' '}
+                  <a
+                    href='#'
+                    onClick={event => {
+                      event.preventDefault()
+                      onAdd()
+                    }}
+                  >
+                    Add one
+                  </a>
                 </div>
               ) : null}
               {list.map(machine => (
-                <MachineRow machine={machine} key={machine.id} />
+                <MachineRow
+                  machine={machine}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  key={machine.id}
+                />
               ))}
             </div>
           </div>
@@ -319,8 +394,29 @@ export const MachinesArea = ({ state }: { state: SettingsState }) => {
 }
 
 /** The plant calendar: which weekdays run, and the named days the shop is closed. */
-export const WorkDaysArea = ({ state }: { state: SettingsState }) => {
+export const WorkDaysArea = ({
+  state,
+  onToast
+}: {
+  state: SettingsState
+  onToast: (message: string, type?: ToastType) => void
+}) => {
   const [holidayName, setHolidayName] = useState('')
+  const [holidayDate, setHolidayDate] = useState<string | null>(null)
+  const { openPicker, pickerNode } = useDatePicker()
+
+  const add = () => {
+    const name = holidayName.trim()
+    if (!holidayDate) return onToast('Pick a date first', 'warning')
+    if (!name) return onToast('Give the holiday a name', 'warning')
+    if (state.workdays.holidays.some(holiday => holiday.date === holidayDate))
+      return onToast('That date is already a holiday', 'info')
+
+    addHoliday(holidayDate, name)
+    setHolidayName('')
+    setHolidayDate(null)
+    onToast(`Holiday added · ${name}`)
+  }
 
   const workCount = state.workdays.weekdays.filter(Boolean).length
   const holidays = state.workdays.holidays.slice().sort((a, b) => a.date.localeCompare(b.date))
@@ -352,7 +448,11 @@ export const WorkDaysArea = ({ state }: { state: SettingsState }) => {
                 aria-checked={on}
                 aria-label={DOW_LABELS[index]}
                 data-comment={`wd-pill-${index}`}
-                onClick={() => toggleWorkDay(index)}
+                onClick={() =>
+                  onToast(
+                    `${DOW_LABELS[index]} is now ${toggleWorkDay(index) ? 'a work day' : 'off'}`
+                  )
+                }
                 key={abbr}
               >
                 {abbr}
@@ -385,13 +485,24 @@ export const WorkDaysArea = ({ state }: { state: SettingsState }) => {
             value={holidayName}
             onChange={event => setHolidayName(event.target.value)}
           />
-          <button className='select-btn wd-hol-datebtn placeholder' data-comment='wd-hol-datebtn'>
+          <button
+            className={`select-btn wd-hol-datebtn${holidayDate ? '' : ' placeholder'}`}
+            data-comment='wd-hol-datebtn'
+            onClick={event =>
+              openPicker({
+                anchor: event.currentTarget,
+                selected: holidayDate,
+                isMarked: date => state.workdays.holidays.some(holiday => holiday.date === date),
+                onPick: setHolidayDate
+              })
+            }
+          >
             <Calendar style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
             <span id='wd-hol-datelabel' data-comment='wd-hol-datelabel'>
-              Pick a date
+              {holidayDate ? fmtHoliday(holidayDate) : 'Pick a date'}
             </span>
           </button>
-          <button className='btn btn-primary' data-comment='wd-hol-addbtn'>
+          <button className='btn btn-primary' data-comment='wd-hol-addbtn' onClick={add}>
             <Plus style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
             Add
           </button>
@@ -426,7 +537,10 @@ export const WorkDaysArea = ({ state }: { state: SettingsState }) => {
                   className='icon-btn danger'
                   aria-label='Remove holiday'
                   data-comment={`wd-hol-del-${holiday.date}`}
-                  onClick={() => removeHoliday(holiday.date)}
+                  onClick={() => {
+                    removeHoliday(holiday.date)
+                    onToast('Holiday removed')
+                  }}
                 >
                   <Trash2 style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
                 </button>
@@ -435,6 +549,7 @@ export const WorkDaysArea = ({ state }: { state: SettingsState }) => {
           </div>
         )}
       </section>
+      {pickerNode}
     </div>
   )
 }

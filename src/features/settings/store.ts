@@ -214,3 +214,63 @@ export const fmtHoliday = (iso: string) => {
     timeZone: 'UTC'
   }).format(new Date(Date.UTC(year, month - 1, day)))
 }
+
+let seq = 1000
+
+const publish = (area: string, rows: unknown[]) => {
+  if (area === 'machines') publishMachines(rows as Machine[])
+}
+
+export const addRow = (area: string, draft: Record<string, unknown>) =>
+  settingsStore.set(state => {
+    const id = ++seq
+    const rows = [...(state[area as keyof SettingsState] as unknown[]), { ...draft, id }]
+    publish(area, rows)
+
+    // one default warehouse: naming a new one demotes whichever held it
+    if (area === 'warehouses' && draft.isDefault)
+      return {
+        warehouses: (rows as Warehouse[]).map(warehouse => ({
+          ...warehouse,
+          isDefault: warehouse.id === id
+        }))
+      }
+
+    return { [area]: rows } as Partial<SettingsState>
+  })
+
+export const saveRow = (area: string, id: number, draft: Record<string, unknown>) =>
+  settingsStore.set(state => {
+    const rows = (state[area as keyof SettingsState] as { id: number }[]).map(row =>
+      row.id === id ? { ...row, ...draft } : row
+    )
+    publish(area, rows)
+
+    if (area === 'warehouses' && draft.isDefault)
+      return {
+        warehouses: (rows as Warehouse[]).map(warehouse => ({
+          ...warehouse,
+          isDefault: warehouse.id === id
+        }))
+      }
+
+    return { [area]: rows } as Partial<SettingsState>
+  })
+
+export const setSuppliers = (coilSuppliers: string[]) => settingsStore.set({ coilSuppliers })
+
+export const setPkgMax = (dept: string, max: number) =>
+  settingsStore.set(state => {
+    const pkgMax = { ...state.pkgMax, [dept]: max }
+    packageMaxWeights.set(pkgMax)
+    return { pkgMax }
+  })
+
+export const addHoliday = (date: string, name: string) => {
+  const current = settingsStore.get().workdays
+  if (current.holidays.some(holiday => holiday.date === date)) return
+
+  const workdays = { ...current, holidays: [...current.holidays, { date, name }] }
+  settingsStore.set({ workdays })
+  workDays.set(workdays)
+}

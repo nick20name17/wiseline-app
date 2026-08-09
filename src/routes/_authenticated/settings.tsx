@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
@@ -7,10 +8,12 @@ import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
 import { Toast } from '@/components/shell/toast'
+import { useToast } from '@/components/shell/use-toast'
 
 import { AreaTable, MachinesArea, WorkDaysArea } from '@/features/settings/areas'
-import { AREAS } from '@/features/settings/config'
-import { setArea, settingsStore } from '@/features/settings/store'
+import { AREAS, CONFIG } from '@/features/settings/config'
+import { FormModal, PkgMaxModal, SuppliersModal } from '@/features/settings/modals'
+import { deleteRow, setArea, settingsStore } from '@/features/settings/store'
 
 import '@/styles/settings.css'
 
@@ -30,6 +33,20 @@ function Settings() {
 
   const state = useStore(settingsStore, current => current)
   const viewer = useViewer()
+  const { toast, show } = useToast(2400)
+
+  const [form, setForm] = useState<{ area: string; id: number | null } | null>(null)
+  const [pkgMaxDept, setPkgMaxDept] = useState<string | null>(null)
+  const [suppliersOpen, setSuppliersOpen] = useState(false)
+
+  // the prototype asks with the browser's own confirm here, and a delete is not undoable
+  const remove = (area: string, id: number) => {
+    const label = CONFIG[area]?.singular ?? 'record'
+    if (!window.confirm(`Delete this ${label}? This can't be undone.`)) return
+
+    deleteRow(area as Parameters<typeof deleteRow>[0], id)
+    show('Deleted')
+  }
 
   const area = AREAS.find(entry => entry.key === state.activeArea)
 
@@ -87,17 +104,52 @@ function Settings() {
           <main className='content' data-comment='content'>
             <section id='view-area' className='view active' data-comment='view-area'>
               {state.activeArea === 'machines' ? (
-                <MachinesArea state={state} />
+                <MachinesArea
+                  state={state}
+                  onAdd={() => setForm({ area: 'machines', id: null })}
+                  onEdit={id => setForm({ area: 'machines', id })}
+                  onDelete={id => remove('machines', id)}
+                  onPkgMax={setPkgMaxDept}
+                  onSuppliers={() => setSuppliersOpen(true)}
+                />
               ) : state.activeArea === 'workdays' ? (
-                <WorkDaysArea state={state} />
+                <WorkDaysArea state={state} onToast={show} />
               ) : (
-                <AreaTable state={state} area={state.activeArea} />
+                <AreaTable
+                  state={state}
+                  area={state.activeArea}
+                  onAdd={() => setForm({ area: state.activeArea, id: null })}
+                  onEdit={id => setForm({ area: state.activeArea, id })}
+                  onDelete={id => remove(state.activeArea, id)}
+                />
               )}
             </section>
           </main>
         </div>
       </div>
-      <Toast />
+
+      <FormModal
+        key={form ? `${form.area}-${form.id ?? 'new'}` : 'form-closed'}
+        open={!!form}
+        area={form?.area ?? state.activeArea}
+        editingId={form?.id ?? null}
+        state={state}
+        onClose={() => setForm(null)}
+        onSaved={show}
+      />
+      <SuppliersModal
+        open={suppliersOpen}
+        suppliers={state.coilSuppliers}
+        onClose={() => setSuppliersOpen(false)}
+      />
+      <PkgMaxModal
+        key={`pkgmax-${pkgMaxDept ?? 'none'}`}
+        dept={pkgMaxDept}
+        current={pkgMaxDept ? (state.pkgMax[pkgMaxDept] ?? 0) : 0}
+        onClose={() => setPkgMaxDept(null)}
+        onSaved={show}
+      />
+      <Toast message={toast.message} type={toast.type} shown={toast.shown} />
     </>
   )
 }
