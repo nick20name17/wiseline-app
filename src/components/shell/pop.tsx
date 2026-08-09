@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check } from 'lucide-react'
 
-export type PopItem = { value: string | number; label: string }
+export type PopItem = {
+  value: string | number
+  label: string
+  /** A taken product id, say: listed so it is visible, but not pickable. */
+  disabled?: boolean
+  badge?: string
+}
 
 type PopState = {
   anchor: HTMLElement
@@ -87,16 +93,23 @@ const Pop = ({ pop, onClose }: { pop: PopState; onClose: () => void }) => {
     >
       {pop.items.map((item, index) => (
         <button
-          className={`pop-item ${item.value === pop.current ? 'selected' : ''}`}
+          className={`pop-item ${item.value === pop.current ? 'selected' : ''}${item.disabled ? ' disabled' : ''}`}
           data-comment={`dropdown-item-${index}`}
+          aria-disabled={item.disabled || undefined}
           onClick={event => {
             event.stopPropagation()
+            if (item.disabled) return
             pop.onPick(item.value as never)
             onClose()
           }}
           key={item.value}
         >
           <span>{item.label}</span>
+          {item.badge ? (
+            <span className='chip' style={{ marginLeft: 'auto' }}>
+              {item.badge}
+            </span>
+          ) : null}
           {item.value === pop.current ? <Check className='pop-check' /> : null}
         </button>
       ))}

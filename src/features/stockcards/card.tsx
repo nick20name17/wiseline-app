@@ -31,7 +31,15 @@ const ProfileSketch = () => (
 )
 
 /** The printable card itself, shown on screen and laid onto the print sheet unchanged. */
-export const StockCardFace = ({ card, ctx = 'stock-card' }: { card: StockCard; ctx?: string }) => {
+export const StockCardFace = ({
+  card,
+  ctx = 'stock-card',
+  onScan
+}: {
+  card: StockCard
+  ctx?: string
+  onScan?: () => void
+}) => {
   const prefix = `${ctx}-${card.id}`
   const print = ctx === 'print'
 
@@ -58,6 +66,7 @@ export const StockCardFace = ({ card, ctx = 'stock-card' }: { card: StockCard; c
             card={card}
             id={`${print ? 'printqr-' : 'qr-'}${card.id}`}
             comment={`${prefix}-qr`}
+            onScan={onScan}
           />
         </div>
         <div className='sc-desc' data-comment={`${prefix}-desc`}>
@@ -82,7 +91,17 @@ export const StockCardFace = ({ card, ctx = 'stock-card' }: { card: StockCard; c
   )
 }
 
-const QRFrame = ({ card, id, comment }: { card: StockCard; id: string; comment: string }) => {
+const QRFrame = ({
+  card,
+  id,
+  comment,
+  onScan
+}: {
+  card: StockCard
+  id: string
+  comment: string
+  onScan?: () => void
+}) => {
   const slot = useRef<HTMLDivElement>(null)
   const scan = !id.startsWith('printqr-')
 
@@ -108,6 +127,7 @@ const QRFrame = ({ card, id, comment }: { card: StockCard; id: string; comment: 
       data-comment={comment}
       ref={slot}
       title={scan ? 'Scan (or click) to create a stock order' : undefined}
+      onClick={scan ? onScan : undefined}
     />
   )
 }
