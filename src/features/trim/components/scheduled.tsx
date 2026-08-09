@@ -36,7 +36,7 @@ import {
   toggleRelease,
   trimStore
 } from '../store'
-import { openSchedule, showToast } from '../ui'
+import { openAllocStock, openMachineCap, openSchedule, showToast } from '../ui'
 import { EmptyState, NoteButton, OrderStatusPill, PriorityCell, ReviewedToggle } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -153,6 +153,10 @@ const DayTabs = ({
               className='day-tab-gear'
               data-comment={`sch-daytab-gear-${day.date}`}
               title='Machine Capacities report for this day'
+              onClick={event => {
+                event.stopPropagation()
+                openMachineCap(day.date)
+              }}
             >
               <Settings2 style={{ width: '13px', height: '13px' }} />
             </button>
@@ -275,7 +279,7 @@ export const Scheduled = () => {
         </span>
       ) : null}
 
-      <button className='btn' data-comment='sch-allocstock'>
+      <button className='btn' data-comment='sch-allocstock' onClick={openAllocStock}>
         <Database style={{ width: '14px', height: '14px' }} />
         Allocated Stock
       </button>
