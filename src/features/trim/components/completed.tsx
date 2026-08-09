@@ -1,6 +1,7 @@
 import { fmtDate } from '../format'
 import { completedOrders, orderLocLabel } from '../selectors'
 import { trimStore } from '../store'
+import { openCompDetail } from '../ui'
 import { EmptyState } from './bits'
 
 import { useStore } from '@/store/create-store'
@@ -42,6 +43,7 @@ export const Completed = () => {
                 className='row-order'
                 data-comment={`comp-row-${order.id}`}
                 style={{ cursor: 'pointer' }}
+                onClick={() => openCompDetail(order.id)}
               >
                 <td className='cell-num muted' data-comment={`comp-ship-${order.id}`}>
                   {order.shipDate ? fmtDate(order.shipDate) : 'N/A'}

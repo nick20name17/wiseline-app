@@ -14,6 +14,7 @@ import {
 } from './store'
 
 import type { BatchItem } from './selectors'
+import type { CoilAdjustCtx } from './components/coil-adjust'
 import type { PadCtx } from './components/keypads'
 import type { NoteCtx } from './components/note-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
@@ -37,6 +38,8 @@ export type TrimUi = {
   allocStock: boolean
   stockCards: boolean
   stockOrder: boolean
+  compDetail: number | null
+  coilAdjust: CoilAdjustCtx | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -62,6 +65,8 @@ export const trimUi = createStore<TrimUi>({
   allocStock: false,
   stockCards: false,
   stockOrder: false,
+  compDetail: null,
+  coilAdjust: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -102,6 +107,12 @@ export const closeStockCards = () => trimUi.set({ stockCards: false })
 
 export const openStockOrder = () => trimUi.set({ stockOrder: true })
 export const closeStockOrder = () => trimUi.set({ stockOrder: false })
+
+export const openCompDetail = (compDetail: number) => trimUi.set({ compDetail })
+export const closeCompDetail = () => trimUi.set({ compDetail: null })
+
+export const openCoilAdjust = (coilAdjust: CoilAdjustCtx) => trimUi.set({ coilAdjust })
+export const closeCoilAdjust = () => trimUi.set({ coilAdjust: null })
 
 export const askAlert = (title: string, desc: string) => trimUi.set({ alert: { title, desc } })
 export const closeAlert = () => trimUi.set({ alert: null })

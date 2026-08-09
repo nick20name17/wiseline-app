@@ -4,7 +4,9 @@ import { useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
-import { trimStore } from '../store'
+import { PRODUCT_CATALOG } from '../catalog'
+import { createManufacturingBatch, trimStore } from '../store'
+import { askConfirm, closeConfirm, showToast } from '../ui'
 
 type SmfgRow = { qty: string; pid: string; desc: string }
 
@@ -34,10 +36,36 @@ export const StockMfg = () => {
   const edit = (index: number, field: keyof SmfgRow, value: string) =>
     setRows(current => {
       const next = current.map((row, at) => (at === index ? { ...row, [field]: value } : row))
+
+      // same as the Create Stock Order modal: a known Product ID writes its own description
+      if (field === 'pid') {
+        const hit = PRODUCT_CATALOG[value.trim().toUpperCase()]
+        if (hit) next[index] = { ...next[index]!, desc: hit }
+      }
+
       // touching the last row is what asks for another one
       if (index === current.length - 1 && !isBlank(next[index]!)) next.push({ ...BLANK })
       return next
     })
+
+  const push = () => {
+    if (!valid.length) return
+    const plural = valid.length > 1 ? 's' : ''
+
+    askConfirm(
+      'Create manufacturing batch?',
+      `Pushes ${valid.length} stock item${plural} (${pieces} pcs) to EBMS via C_MFG.`,
+      () => {
+        closeConfirm()
+        createManufacturingBatch(valid)
+        setRows([{ ...BLANK }])
+        showToast(
+          `${valid.length} stock item${plural} → manufacturing batch (${pieces} pcs) pushed to EBMS (C_MFG)`
+        )
+      },
+      'Create Batch'
+    )
+  }
 
   const remove = (index: number) =>
     setRows(current => {
@@ -62,6 +90,7 @@ export const StockMfg = () => {
           className='btn btn-primary'
           data-comment='smfg-createbatch'
           disabled={!valid.length}
+          onClick={push}
         >
           <Upload style={{ width: '14px', height: '14px' }} />
           Create Manufacturing Batch
