@@ -24,7 +24,13 @@ is ~3–4 minutes — run it in the background and wait for `NN captures →`, d
 
 **All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
 both widths. The three scan tools — driver, scanner and the loading station — are done too. What is left is
-dashboard, coils, stockcards, warehouse, activity, settings and ebms.
+dashboard, coils, stockcards, warehouse, settings and ebms.
+
+**Activity is gated on a race, and it is worth knowing.** Its feed generates a random event every 4.5
+seconds, on both sides. Both captures land inside that first window, so both show the sixteen seeded
+rows — but a slow load on either side would put an invented row in one baseline and not the other. If
+that page ever goes red with one extra row, re-run it before believing it. Every state clicks Pause
+first, for exactly this reason.
 
 What is left inside the departments is the modals — 13 on Rollforming, several on Trim, four on
 Accessories, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the
@@ -239,7 +245,8 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ `/accessories` — all four views | green at 1440 and 390, 20 captures |
 | ✅ Accessories' reachable states | 7, incl. the split order and the package builder |
 | ✅ The three scan tools | `/driver`, `/scanner`, `/loading` — green, with 5 states |
-| ⬜ The other 7 pages | dashboard, coils, stockcards, warehouse, activity, settings, ebms |
+| ✅ `/activity` | green, with 3 states — paused, filtered, and no matches |
+| ⬜ The other 6 pages | dashboard, coils, stockcards, warehouse, settings, ebms |
 
 ### What Shipping still owes
 

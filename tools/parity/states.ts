@@ -296,6 +296,27 @@ export const STATES: State[] = [
     view: null,
     name: 'stop-delivered',
     clicks: ['foot-start', 'stop-deliver-1', 'stop-deliver-1']
+  },
+  // paused: the dot stops, the label reads Paused and the button offers Resume
+  {
+    page: 'activity',
+    view: null,
+    name: 'paused',
+    clicks: ['activity-pause-btn']
+  },
+  // one department and one event type, which between them leave a single day heading
+  {
+    page: 'activity',
+    view: null,
+    name: 'filtered',
+    clicks: ['activity-pause-btn', 'activity-dept-chip-shipping', 'activity-type-chip-shipment']
+  },
+  // a filter nothing matches, which is the only way to see this page's empty state
+  {
+    page: 'activity',
+    view: null,
+    name: 'no-matches',
+    clicks: ['activity-pause-btn', 'activity-dept-chip-shipping', 'activity-type-chip-coil']
   }
 ]
 

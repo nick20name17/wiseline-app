@@ -31,7 +31,8 @@ const NAV_OF_DEPARTMENT: Record<Exclude<Department, 'all'>, string> = {
   shipping: 'nav-shipping'
 }
 
-const ROLE_LABELS: Record<Role, string> = {
+/** The role's own name, with no department beside it — the Activity header's chip shows just this. */
+export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
   manager: 'Manager',
   worker: 'Worker',
