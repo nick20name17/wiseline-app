@@ -1,3 +1,5 @@
+import { arrivalKey, forgetOccupant, releaseStamps } from '@/store/shared/locations'
+
 import { createStore } from '@/store/create-store'
 
 import seed from './seed.json'
@@ -88,4 +90,80 @@ export const filteredLocations = (state: WarehouseState) => {
     if (query && !location.name.toLowerCase().includes(query)) return false
     return true
   })
+}
+
+/* -- the 15-minute auto-release --------------------------------------------------------------- */
+
+export const AUTO_RELEASE_MS = 15 * 60 * 1000
+export const RELEASE_CHECK_MS = 5000
+
+const stamps = releaseStamps('wh')
+
+/**
+ * When each occupant was last scanned, which is what the countdown counts from.
+ *
+ * It is stamped on first sight and kept in `localStorage`, so the fifteen minutes are real elapsed
+ * time and survive a reload — a countdown that restarted on every refresh would never release
+ * anything. The seed deliberately carries no timestamp: it would freeze one particular afternoon into
+ * the repo, and the first load is the honest moment to start counting from.
+ */
+export const lastScanAt = (locationId: number, order: string) => {
+  const key = arrivalKey(locationId, order)
+  const known = stamps.get()[key]
+  if (typeof known === 'number' && isFinite(known)) return known
+
+  const now = Date.now()
+  stamps.set({ ...stamps.get(), [key]: now })
+  return now
+}
+
+export const fmtCountdown = (msLeft: number) => {
+  const total = Math.max(0, Math.ceil(msLeft / 1000))
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
+export const isMulti = (location: Location) => orderCap(location) > 1
+
+export const selectLocation = (selectedLocationId: number | null) =>
+  warehouseStore.set({ selectedLocationId })
+
+export const removeOccupant = (locationId: number, index: number) => {
+  const location = warehouseStore.get().locations.find(entry => entry.id === locationId)
+  const removed = location?.occupants[index]
+
+  warehouseStore.set(state => ({
+    locations: state.locations.map(entry =>
+      entry.id !== locationId
+        ? entry
+        : { ...entry, occupants: entry.occupants.filter((_, at) => at !== index) }
+    )
+  }))
+
+  if (removed) forgetOccupant('wh', locationId, removed.order)
+}
+
+/** Locations whose last scan is older than the window; the caller releases them and says so. */
+export const dueForRelease = (state: WarehouseState) =>
+  state.locations.flatMap(location =>
+    location.occupants
+      .filter(occupant => Date.now() - lastScanAt(location.id, occupant.order) >= AUTO_RELEASE_MS)
+      .map(occupant => ({ location, order: occupant.order }))
+  )
+
+export const releaseOrder = (locationId: number, order: string) => {
+  warehouseStore.set(state => ({
+    locations: state.locations.map(entry =>
+      entry.id !== locationId
+        ? entry
+        : { ...entry, occupants: entry.occupants.filter(occupant => occupant.order !== order) }
+    )
+  }))
+  forgetOccupant('wh', locationId, order)
+}
+
+export const STATUS_CLASS: Record<string, string> = {
+  Wrapped: 'st-wrapped',
+  'Ready to Ship': 'st-inprogress',
+  Stock: 'st-stock',
+  Staged: 'st-stock'
 }
