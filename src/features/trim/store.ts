@@ -1,8 +1,9 @@
-import { coilLfFromThickness, coilWeightFromLf } from '@/store/shared/coils'
+import { canonicalCoils, coilLfFromThickness, coilWeightFromLf } from '@/store/shared/coils'
 import { createStore } from '@/store/create-store'
 import { arrivalKey, forgetOccupant, releaseStamps, shippedKey } from '@/store/shared/locations'
 import { withPublishedCaps } from '@/store/shared/settings'
 
+import { PRODUCT_CATALOG } from './catalog'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
@@ -388,6 +389,26 @@ export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
   })
 
   return !!trimStore.get().orders.find(order => order.id === orderId)?.completed
+}
+
+/** Extra pieces typed on the Stock Manufacturing tab — no order behind them, hence `orderNo: null`. */
+export const createManufacturingBatch = (rows: { qty: number; pid: string; desc: string }[]) => {
+  const stamp = nowTime()
+  const at = Date.now()
+
+  trimStore.set(state => ({
+    stockBatches: [
+      ...rows.map((row, index) => ({
+        id: `SB${at}-${index}`,
+        orderNo: null,
+        ts: stamp,
+        pid: row.pid,
+        desc: row.desc || PRODUCT_CATALOG[row.pid.toUpperCase()] || '—',
+        qty: row.qty
+      })),
+      ...(state.stockBatches as unknown[])
+    ]
+  }))
 }
 
 /* -- stock orders (N-012/013/014, item 12) ------------------------------------------------------ */
@@ -952,12 +973,60 @@ export const completeOrder = (orderId: number) =>
 
 /* -- coils on the Slinet (N-109/121, #193) ------------------------------------------------------ */
 
-export const toggleSlinet = (coilId: Coil['id']) =>
+/**
+ * Push one coil's changed fields into the shared inventory (N-117).
+ *
+ * Trim keeps its own copy of the coil list, so an edit made here is invisible to the Coils page and to
+ * Rollforming until it is mirrored across. It matches on Coil # rather than id because the two lists
+ * are seeded separately, and it writes only the fields Trim can change — the rest belong to whoever
+ * received the coil.
+ */
+const syncCoilToCanonical = (coilNumber: string) => {
+  if (!coilNumber) return
+
+  const canonical = canonicalCoils.get()
+  if (!canonical) return
+
+  const mine = trimStore.get().coils.find(coil => coil.coilNumber === coilNumber)
+  if (!mine) return
+
+  let matched = false
+  const merged = canonical.map(coil => {
+    if (coil.coilNumber !== coilNumber) return coil
+    matched = true
+    return {
+      ...coil,
+      thickness: mine.thickness,
+      linearFeet: mine.linearFeet,
+      weight: mine.weight,
+      materialThickness: mine.materialThickness,
+      coreOD: mine.coreOD,
+      locTrim: mine.locTrim,
+      locRollforming: mine.locRollforming,
+      slinetIn: mine.slinetIn,
+      note: mine.note
+    }
+  })
+
+  if (matched) canonicalCoils.set(merged)
+}
+
+const removeCoilFromCanonical = (coilNumber: string) => {
+  const canonical = canonicalCoils.get()
+  if (canonical) canonicalCoils.set(canonical.filter(coil => coil.coilNumber !== coilNumber))
+}
+
+const coilNumberOf = (coilId: Coil['id']) =>
+  trimStore.get().coils.find(coil => coil.id === coilId)?.coilNumber ?? ''
+
+export const toggleSlinet = (coilId: Coil['id']) => {
   trimStore.set(state => ({
     coils: state.coils.map(coil =>
       coil.id === coilId ? { ...coil, slinetIn: !coil.slinetIn } : coil
     )
   }))
+  syncCoilToCanonical(coilNumberOf(coilId))
+}
 
 /**
  * N-117: the coil inventory is shared, but a coil is checked into one department at a time.
@@ -966,7 +1035,7 @@ export const toggleSlinet = (coilId: Coil['id']) =>
  * boxes be ticked would let two departments plan around the same steel. Taking a coil out of Trim also
  * takes it off the Slinet, because the Slinet is a machine in Trim.
  */
-export const toggleCoilLocation = (coilId: Coil['id'], flag: 'locTrim' | 'locRollforming') =>
+export const toggleCoilLocation = (coilId: Coil['id'], flag: 'locTrim' | 'locRollforming') => {
   trimStore.set(state => {
     const target = state.coils.find(coil => coil.id === coilId)
     if (!target) return {}
@@ -986,11 +1055,15 @@ export const toggleCoilLocation = (coilId: Coil['id'], flag: 'locTrim' | 'locRol
       )
     }
   })
+  syncCoilToCanonical(coilNumberOf(coilId))
+}
 
-export const setCoilNote = (coilId: Coil['id'], note: string) =>
+export const setCoilNote = (coilId: Coil['id'], note: string) => {
   trimStore.set(state => ({
     coils: state.coils.map(coil => (coil.id === coilId ? { ...coil, note } : coil))
   }))
+  syncCoilToCanonical(coilNumberOf(coilId))
+}
 
 /**
  * #193: the operator reports the build-up on the roll, and the rest follows from it.
@@ -1004,7 +1077,7 @@ export const setCoilThickness = (
   thickness: number,
   matThk: number,
   coreOD: number
-) =>
+) => {
   trimStore.set(state => ({
     coils: state.coils.map(coil => {
       if (coil.id !== coilId) return coil
@@ -1019,6 +1092,32 @@ export const setCoilThickness = (
       }
     })
   }))
+  syncCoilToCanonical(coilNumberOf(coilId))
+}
+
+/** #193's Apply: the three cross-adjusted numbers, plus the geometry they were solved with. */
+export const adjustCoil = (
+  coilId: Coil['id'],
+  patch: {
+    thickness: number
+    linearFeet: number
+    weight: number
+    materialThickness: number
+    coreOD: number
+  }
+) => {
+  trimStore.set(state => ({
+    coils: state.coils.map(coil => (coil.id === coilId ? { ...coil, ...patch } : coil))
+  }))
+  syncCoilToCanonical(coilNumberOf(coilId))
+}
+
+/** A coil entered as 0 is spent: it leaves both lists rather than sitting at zero feet. */
+export const depleteCoil = (coilId: Coil['id']) => {
+  const coilNumber = coilNumberOf(coilId)
+  trimStore.set(state => ({ coils: state.coils.filter(coil => coil.id !== coilId) }))
+  removeCoilFromCanonical(coilNumber)
+}
 
 /* -- notes ------------------------------------------------------------------------------------- */
 

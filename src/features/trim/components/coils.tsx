@@ -17,7 +17,7 @@ import { setCoilFilterFor } from '@/store/shared/settings'
 import { CoilFilterModal } from '@/features/coils/modals'
 
 import { DEPARTMENT, setCoilNote, toggleSlinet, trimStore } from '../store'
-import { requestCoilLocation, showToast } from '../ui'
+import { openCoilAdjust, requestCoilLocation, showToast } from '../ui'
 import { EmptyState } from './bits'
 
 import type { Coil } from '@/store/shared/coils'
@@ -63,6 +63,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
             className='mono lot-adjust'
             data-comment={`coil-thickness-${coil.id}`}
             title='Click to open the Coil Adjustment window'
+            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'thickness' })}
           >
             {coil.thickness != null ? coil.thickness : <span className='subtle'>—</span>}
           </td>
@@ -70,6 +71,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
             className='mono lot-adjust'
             data-comment={`coil-linearFeet-${coil.id}`}
             title='Click to open the Coil Adjustment window'
+            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'linearFeet' })}
           >
             {coil.linearFeet.toLocaleString()}
           </td>
@@ -77,6 +79,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
             className='mono lot-adjust'
             data-comment={`coil-weight-${coil.id}`}
             title='Click to open the Coil Adjustment window'
+            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'weight' })}
           >
             {coil.weight.toLocaleString()}
           </td>
@@ -367,7 +370,9 @@ export const Coils = () => {
           setFolder('all')
           setFilterOpen(false)
           showToast(
-            coilFilterActive(next) ? 'Coil filter applied' : 'Coil filter cleared — showing all folders'
+            coilFilterActive(next)
+              ? 'Coil filter applied'
+              : 'Coil filter cleared — showing all folders'
           )
         }}
       />
