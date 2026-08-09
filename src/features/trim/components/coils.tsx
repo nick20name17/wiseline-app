@@ -12,7 +12,12 @@ import {
   rfEligible,
   slinetEligible
 } from '../coil-filter'
-import { trimStore } from '../store'
+import { setCoilFilterFor } from '@/store/shared/settings'
+
+import { CoilFilterModal } from '@/features/coils/modals'
+
+import { DEPARTMENT, setCoilNote, toggleSlinet, trimStore } from '../store'
+import { requestCoilLocation, showToast } from '../ui'
 import { EmptyState } from './bits'
 
 import type { Coil } from '@/store/shared/coils'
@@ -82,12 +87,12 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
               data-comment={`coil-locrf-${coil.id}`}
               checked={coil.locRollforming}
               disabled={!rfEligible(coil)}
+              onChange={() => requestCoilLocation(coil, 'locRollforming')}
               title={
                 rfEligible(coil)
                   ? undefined
                   : 'Coil is mounted in the Slinet — take it off the Slinet first'
               }
-              readOnly
             />
           </td>
           <td data-comment={`coil-loctrimcell-${coil.id}`}>
@@ -96,7 +101,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
               className='chk'
               data-comment={`coil-loctrim-${coil.id}`}
               checked={coil.locTrim}
-              readOnly
+              onChange={() => requestCoilLocation(coil, 'locTrim')}
             />
           </td>
           <td data-comment={`coil-slinetcell-${coil.id}`}>
@@ -106,10 +111,10 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
               data-comment={`coil-slinet-${coil.id}`}
               checked={coil.slinetIn}
               disabled={!slinetEligible(coil)}
+              onChange={() => toggleSlinet(coil.id)}
               title={
                 slinetEligible(coil) ? undefined : 'Needs the coil in Trim and a Coil Thickness'
               }
-              readOnly
             />
           </td>
           <td data-comment={`coil-notecell-${coil.id}`}>
@@ -118,7 +123,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
               data-comment={`coil-note-${coil.id}`}
               value={coil.note}
               placeholder='Add note…'
-              readOnly
+              onChange={event => setCoilNote(coil.id, event.target.value)}
             />
           </td>
         </tr>
@@ -140,7 +145,9 @@ export const Coils = () => {
   const [folder, setFolder] = useState('all')
   const [query, setQuery] = useState('')
 
-  const filter = loadCoilFilter()
+  // seeded from the department's saved filter, then held here: applying it has to redraw the folders
+  const [filter, setFilter] = useState(loadCoilFilter)
+  const [filterOpen, setFilterOpen] = useState(false)
   // he sees the filter and works within it, but cannot set it
   const managersFilter = trimStore.get().role === 'worker'
 
@@ -222,7 +229,11 @@ export const Coils = () => {
         ))}
         <span className='toolbar-spacer' />
         {managersFilter ? null : (
-          <button className='btn btn-primary btn-sm' data-comment='coils-filter-btn'>
+          <button
+            className='btn btn-primary btn-sm'
+            data-comment='coils-filter-btn'
+            onClick={() => setFilterOpen(true)}
+          >
             <SlidersHorizontal style={{ width: '14px', height: '14px' }} />
             Coil Filter
           </button>
@@ -344,6 +355,22 @@ export const Coils = () => {
           </table>
         </div>
       )}
+
+      <CoilFilterModal
+        open={filterOpen}
+        filter={filter}
+        onClose={() => setFilterOpen(false)}
+        onApply={next => {
+          setFilter(next)
+          // #209: the filter outlives the session — the Worker inherits whatever the Manager set
+          setCoilFilterFor(DEPARTMENT, next)
+          setFolder('all')
+          setFilterOpen(false)
+          showToast(
+            coilFilterActive(next) ? 'Coil filter applied' : 'Coil filter cleared — showing all folders'
+          )
+        }}
+      />
     </>
   )
 }

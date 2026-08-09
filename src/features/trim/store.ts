@@ -887,6 +887,41 @@ export const completeOrder = (orderId: number) =>
 
 /* -- coils on the Slinet (N-109/121, #193) ------------------------------------------------------ */
 
+export const toggleSlinet = (coilId: Coil['id']) =>
+  trimStore.set(state => ({
+    coils: state.coils.map(coil =>
+      coil.id === coilId ? { ...coil, slinetIn: !coil.slinetIn } : coil
+    )
+  }))
+
+/**
+ * N-117: the coil inventory is shared, but a coil is checked into one department at a time.
+ *
+ * Ticking Trim clears Rollforming and the other way round — a coil is in one place, and letting both
+ * boxes be ticked would let two departments plan around the same steel. Taking a coil out of Trim also
+ * takes it off the Slinet, because the Slinet is a machine in Trim.
+ */
+export const toggleCoilLocation = (coilId: Coil['id'], flag: 'locTrim' | 'locRollforming') =>
+  trimStore.set(state => {
+    const target = state.coils.find(coil => coil.id === coilId)
+    if (!target) return {}
+
+    const other = flag === 'locTrim' ? 'locRollforming' : 'locTrim'
+
+    return {
+      coils: state.coils.map(coil =>
+        coil.id !== coilId
+          ? coil
+          : {
+              ...coil,
+              [flag]: !target[flag],
+              [other]: false,
+              slinetIn: flag === 'locTrim' && target.locTrim ? false : coil.slinetIn
+            }
+      )
+    }
+  })
+
 export const setCoilNote = (coilId: Coil['id'], note: string) =>
   trimStore.set(state => ({
     coils: state.coils.map(coil => (coil.id === coilId ? { ...coil, note } : coil))
