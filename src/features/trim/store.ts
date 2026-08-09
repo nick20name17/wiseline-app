@@ -1,4 +1,5 @@
 import { createStore } from '@/store/create-store'
+import { arrivalKey, forgetOccupant, releaseStamps, shippedKey } from '@/store/shared/locations'
 import { withPublishedCaps } from '@/store/shared/settings'
 
 import seed from './seed.json'
@@ -521,6 +522,211 @@ export const remanListDone = (id: string, which: 'slinet' | 'machine') =>
       reman.id === id
         ? { ...reman, [which === 'slinet' ? 'slinetDone' : 'machineDone']: true }
         : reman
+    )
+  }))
+
+/* -- wrapping: locations and packages (N-081..095) ---------------------------------------------- */
+
+/** Trim is department 01, and that is the first field of every barcode it prints. */
+const DEPT_CODE = '01'
+
+const stampArrival = (locationId: number, orderId: number, at: number) => {
+  const store = releaseStamps('trim')
+  const next = { ...store.get() }
+  delete next[shippedKey(locationId, orderId)]
+  next[arrivalKey(locationId, orderId)] = at
+  store.set(next)
+}
+
+export const assignLocation = (orderId: number, locationId: number) => {
+  const at = Date.now()
+
+  trimStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id === orderId
+        ? { ...order, locationIds: [...(order.locationIds ?? []), locationId] }
+        : order
+    ),
+    locations: state.locations.map(location =>
+      location.id === locationId
+        ? {
+            ...location,
+            occupants: [...(location.occupants ?? []), { orderId, weight: 0, lastScanAt: at }]
+          }
+        : location
+    )
+  }))
+
+  stampArrival(locationId, orderId, at)
+}
+
+export const removeLocation = (orderId: number, locationId: number) => {
+  trimStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id === orderId
+        ? { ...order, locationIds: (order.locationIds ?? []).filter(id => id !== locationId) }
+        : order
+    ),
+    locations: state.locations.map(location =>
+      location.id === locationId
+        ? {
+            ...location,
+            occupants: (location.occupants ?? []).filter(occupant => occupant.orderId !== orderId)
+          }
+        : location
+    )
+  }))
+
+  forgetOccupant('trim', locationId, orderId)
+}
+
+/**
+ * N-088/089: one package off the staged quantities, onto the order's active location.
+ *
+ * The weight is the trims', never typed. Each line records where it stood before, so deleting the
+ * package can put it back; a line whose whole quantity is now wrapped flips to Wrapped on its own.
+ */
+export const createPackage = (
+  orderId: number,
+  locationId: number,
+  staged: { lineId: number; qty: number }[],
+  weight: number
+) => {
+  const state = trimStore.get()
+  const order = state.orders.find(candidate => candidate.id === orderId)
+  const location = state.locations.find(candidate => candidate.id === locationId)
+  if (!order || !location || !staged.length) return null
+
+  const seq = (order.pkgSeq ?? 0) + 1
+  const barcode = `${DEPT_CODE}-${order.order}-${String(seq).padStart(2, '0')}`
+
+  const lines = staged.map(entry => {
+    const item = order.lineItems.find(candidate => candidate.id === entry.lineId)!
+    return {
+      lineId: entry.lineId,
+      qty: entry.qty,
+      prevStatus: item.status || 'bent',
+      prevWrapped: item.wrapped || 0
+    }
+  })
+
+  const pkg = {
+    barcode,
+    seq,
+    contents: lines
+      .map(
+        line =>
+          `${line.qty} × ${order.lineItems.find(item => item.id === line.lineId)?.productId ?? ''}`
+      )
+      .join(', '),
+    locId: locationId,
+    locName: location.code,
+    qty: lines.reduce((sum, line) => sum + line.qty, 0),
+    weight,
+    deleted: false,
+    lines
+  }
+
+  const at = Date.now()
+  const isNewOccupant = !(location.occupants ?? []).some(occupant => occupant.orderId === orderId)
+
+  trimStore.set(current => ({
+    orders: current.orders.map(candidate =>
+      candidate.id !== orderId
+        ? candidate
+        : {
+            ...candidate,
+            pkgSeq: seq,
+            packages: [...(candidate.packages ?? []), pkg],
+            lineItems: candidate.lineItems.map(item => {
+              const line = lines.find(entry => entry.lineId === item.id)
+              if (!line) return item
+
+              const wrapped = (item.wrapped || 0) + line.qty
+              return { ...item, wrapped, status: wrapped >= item.qty ? 'wrapped' : line.prevStatus }
+            })
+          }
+    ),
+    locations: current.locations.map(candidate => {
+      if (candidate.id !== locationId) return candidate
+
+      const occupants = candidate.occupants ?? []
+      return {
+        ...candidate,
+        occupants: occupants.some(occupant => occupant.orderId === orderId)
+          ? occupants.map(occupant =>
+              occupant.orderId === orderId
+                ? { ...occupant, weight: occupant.weight + weight }
+                : occupant
+            )
+          : [...occupants, { orderId, weight, lastScanAt: at }]
+      }
+    })
+  }))
+
+  if (isNewOccupant) stampArrival(locationId, orderId, at)
+
+  return pkg
+}
+
+/**
+ * §6.2 / N-095: a soft delete. The barcode is tombstoned rather than dropped, because the label is
+ * already printed and scanning it has to report a deleted package rather than an unknown one. The
+ * pieces go back to Wrapping, and an order that had completed reopens.
+ */
+export const deletePackage = (orderId: number, barcode: string) =>
+  trimStore.set(state => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    const pkg = order?.packages?.find(candidate => candidate.barcode === barcode)
+    if (!order || !pkg || pkg.deleted) return {}
+
+    return {
+      orders: state.orders.map(candidate =>
+        candidate.id !== orderId
+          ? candidate
+          : {
+              ...candidate,
+              completed: false,
+              packages: (candidate.packages ?? []).map(entry =>
+                entry.barcode === barcode ? { ...entry, deleted: true } : entry
+              ),
+              lineItems: candidate.lineItems.map(item => {
+                const line = pkg.lines.find(entry => entry.lineId === item.id)
+                if (!line) return item
+
+                const wrapped = Math.max(0, (item.wrapped || 0) - line.qty)
+                return {
+                  ...item,
+                  wrapped,
+                  status: wrapped >= item.qty ? item.status : line.prevStatus || 'bent'
+                }
+              })
+            }
+      ),
+      locations: !pkg.locId
+        ? state.locations
+        : state.locations.map(location =>
+            location.id !== pkg.locId
+              ? location
+              : {
+                  ...location,
+                  occupants: (location.occupants ?? []).map(occupant =>
+                    occupant.orderId === orderId
+                      ? { ...occupant, weight: Math.max(0, occupant.weight - pkg.weight) }
+                      : occupant
+                  )
+                }
+          )
+    }
+  })
+
+/** N-073: everything wrapped, so the order leaves the floor as one final C_MFG batch. */
+export const completeOrder = (orderId: number) =>
+  trimStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id === orderId
+        ? { ...order, completed: true, completedDate: TODAY, completedTime: nowTime() }
+        : order
     )
   }))
 

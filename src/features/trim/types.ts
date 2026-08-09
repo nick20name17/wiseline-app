@@ -67,14 +67,26 @@ export type Order = {
   notes: Note[]
   lineItems: LineItem[]
   locationIds?: number[]
-  packages?: {
-    lineId: number
-    qty: number
-    seq?: number
-    barcode?: string
-    locId?: number | null
-    deleted?: boolean
-  }[]
+  /** Package numbers never reuse: a barcode is printed on a label that may already be on a truck. */
+  pkgSeq?: number
+  packages?: Package[]
+}
+
+/**
+ * A printed label. `lines` is what it holds and what it took: deleting the package has to put each
+ * line back where it was, and a line split across several packages must only give back this one's
+ * share.
+ */
+export type Package = {
+  barcode: string
+  seq: number
+  contents: string
+  locId: number | null
+  locName: string
+  qty: number
+  weight: number
+  deleted: boolean
+  lines: { lineId: number; qty: number; prevStatus: string; prevWrapped: number }[]
 }
 
 export type Occupant = {

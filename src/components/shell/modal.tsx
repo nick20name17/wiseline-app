@@ -84,6 +84,42 @@ export const ModalHead = ({
   </div>
 )
 
+export type Alert = { title: string; desc: string } | null
+
+/**
+ * A statement, not a question — one OK button and no way to say no.
+ *
+ * It is a separate modal from the confirm because it has a separate job: the confirm asks whether to
+ * do something, this one reports that something cannot be done. Giving it a Cancel would offer a
+ * choice that does not exist.
+ */
+export const AlertOverlay = ({ alert, onClose }: { alert: Alert; onClose: () => void }) => (
+  <Overlay id='overlay-alert' comment='overlay-alert' open={!!alert} onClose={onClose}>
+    <div
+      className='modal'
+      style={{ maxWidth: '400px' }}
+      data-comment='alert-modal'
+      data-component='dialog'
+    >
+      <div className='modal-head' data-comment='alert-head'>
+        <div data-comment='alert-head-text'>
+          <div className='modal-title' id='alert-title' data-comment='alert-title'>
+            {alert?.title ?? 'Notice'}
+          </div>
+          <div className='modal-desc' id='alert-desc' data-comment='alert-desc'>
+            {alert?.desc}
+          </div>
+        </div>
+      </div>
+      <div className='modal-foot' data-comment='alert-foot'>
+        <button className='btn btn-primary' id='alert-ok' data-comment='alert-ok' onClick={onClose}>
+          OK
+        </button>
+      </div>
+    </div>
+  </Overlay>
+)
+
 export type Confirm = {
   title: string
   desc: string
