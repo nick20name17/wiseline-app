@@ -390,6 +390,71 @@ export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
   return !!trimStore.get().orders.find(order => order.id === orderId)?.completed
 }
 
+/* -- stock orders (N-012/013/014, item 12) ------------------------------------------------------ */
+
+const numFromOrderNo = (orderNo: string) => Number(/(\d+)$/.exec(orderNo)?.[1] ?? 0)
+
+/**
+ * Stock order numbers continue past whatever the seed and the Stock Cards page already used.
+ *
+ * A number that came in from a QR intake is already on a card somewhere, so the counter starts above
+ * the highest one in the store rather than at a fixed base — otherwise the first order a worker
+ * creates by hand would collide with one that already exists.
+ */
+let stockSeq = 1000
+
+const bumpStockSeq = (orders: TrimState['orders']) => {
+  for (const order of orders)
+    if (order.type === 'stock') stockSeq = Math.max(stockSeq, numFromOrderNo(order.order))
+}
+
+bumpStockSeq(trimStore.get().orders)
+
+let lineSeq = 100000
+
+export const createStockOrder = (rows: { qty: number; pid: string; desc: string }[]) => {
+  stockSeq += 1
+  const number = `S${String(stockSeq).padStart(4, '0')}`
+
+  trimStore.set(state => ({
+    orders: [
+      {
+        id: Date.now(),
+        order: number,
+        type: 'stock' as const,
+        customer: 'Stock',
+        entryDate: TODAY,
+        shipDate: null,
+        priorityId: null,
+        reviewed: false,
+        released: false,
+        productionDate: null,
+        isSplit: false,
+        notes: [],
+        lineItems: rows.map(row => ({
+          id: (lineSeq += 1),
+          qty: row.qty,
+          productId: row.pid,
+          description: row.desc,
+          gaugeColour: '26ga Charcoal',
+          width: 12.0,
+          length: 120,
+          machineId: null,
+          fromStock: 0,
+          wrapped: 0,
+          status: null,
+          vented: 0,
+          scheduledDate: null,
+          notes: []
+        }))
+      },
+      ...state.orders
+    ]
+  }))
+
+  return number
+}
+
 /* -- the Manager's review pass (N-026, N-030, N-037, N-105, N-113, item 165) -------------------- */
 
 /** Item 165: Description and Width are the Manager's to correct, up until the order is released. */

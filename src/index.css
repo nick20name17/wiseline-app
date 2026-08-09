@@ -224,6 +224,14 @@ body {
   min-height: 100%;
 }
 
+/* #198: an embedded page is hosted in a frame, and a frame paints its own document behind whatever it
+   holds. The ported rules make the mount point transparent; the document above it is outside their
+   reach, so the modal's surface only shows through once these two are transparent as well. */
+html:has(#root.is-embed),
+html:has(#root.is-embed) body {
+  background: transparent;
+}
+
 /* -- Number fields ------------------------------------------------------------------------------
    Every number the app asks for is a stepper rather than a bare `type="number"`: the browser's own
    spinner is invisible until hover, tiny, and absent on touch — which is most of the shop floor.

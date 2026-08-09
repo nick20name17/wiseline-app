@@ -30,7 +30,14 @@ import {
   toggleOrderSelect,
   trimStore
 } from '../store'
-import { askConfirm, closeConfirm, openSchedule, showToast } from '../ui'
+import {
+  askConfirm,
+  closeConfirm,
+  openSchedule,
+  openStockCards,
+  openStockOrder,
+  showToast
+} from '../ui'
 import { EmptyState, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -162,11 +169,13 @@ export const Unscheduled = () => {
 
         <div className='toolbar-spacer' />
 
-        <button className='btn' data-comment='uns-stock-cards' title='Stock Cards (QR pull sheets)'>
+        <button className='btn' data-comment='uns-stock-cards'
+          onClick={openStockCards} title='Stock Cards (QR pull sheets)'>
           <QrCode style={{ width: '14px', height: '14px' }} />
           Stock Cards
         </button>
-        <button className='btn' data-comment='uns-create-stock'>
+        <button className='btn' data-comment='uns-create-stock'
+          onClick={openStockOrder}>
           <Plus style={{ width: '14px', height: '14px' }} />
           Create stock order
         </button>

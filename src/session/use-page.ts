@@ -8,14 +8,18 @@ import { useEffect } from 'react'
  * element is one of the things being selected. `#root` is also the port's `<body>`: it holds exactly
  * what the prototype's body held, which is what makes the two comparable at all.
  */
-export const usePage = (page: string) => {
+export const usePage = (page: string, embedded = false) => {
   useEffect(() => {
     const root = document.getElementById('root')
     if (!root) return
 
     root.dataset.page = page
+    // #198: a department page hosting this one inline wants the cards, not a second app around them
+    root.classList.toggle('is-embed', embedded)
+
     return () => {
       delete root.dataset.page
+      root.classList.remove('is-embed')
     }
-  }, [page])
+  }, [page, embedded])
 }
