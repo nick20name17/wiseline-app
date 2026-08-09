@@ -1,0 +1,440 @@
+{
+  "activeWarehouse": "All",
+  "activeTypes": [],
+  "search": "",
+  "selectedLocationId": null,
+  "locations": [
+    {
+      "id": 1,
+      "name": "206",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 2000,
+      "occupants": [
+        {
+          "order": "338014",
+          "dept": "Trim",
+          "weight": 700,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338021",
+          "dept": "Trim",
+          "weight": 500,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 2,
+      "name": "310",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 1500,
+      "occupants": [
+        {
+          "order": "338003",
+          "dept": "Trim",
+          "weight": 420,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338010",
+          "dept": "Trim",
+          "weight": 380,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338017",
+          "dept": "Accessories",
+          "weight": 350,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338022",
+          "dept": "Trim",
+          "weight": 300,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 4
+    },
+    {
+      "id": 3,
+      "name": "312",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 900,
+      "occupants": [
+        {
+          "order": "338005",
+          "dept": "Trim",
+          "weight": 300,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 1
+    },
+    {
+      "id": 4,
+      "name": "118",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 1200,
+      "occupants": [],
+      "maxOrders": 1
+    },
+    {
+      "id": 5,
+      "name": "205",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 1000,
+      "occupants": [
+        {
+          "order": "338030",
+          "dept": "Trim",
+          "weight": 560,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338031",
+          "dept": "Trim",
+          "weight": 520,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 4
+    },
+    {
+      "id": 6,
+      "name": "210",
+      "type": "Wrapping",
+      "warehouse": "Main Building",
+      "maxWeight": 1400,
+      "occupants": [
+        {
+          "order": "338033",
+          "dept": "Trim",
+          "weight": 500,
+          "status": "Wrapped"
+        },
+        {
+          "order": "338034",
+          "dept": "Accessories",
+          "weight": 450,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 7,
+      "name": "401",
+      "type": "Loading",
+      "warehouse": "Main Building",
+      "maxWeight": 5000,
+      "occupants": [
+        {
+          "order": "338040",
+          "dept": "Shipping",
+          "weight": 1200,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338041",
+          "dept": "Shipping",
+          "weight": 1100,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338042",
+          "dept": "Trim",
+          "weight": 800,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 5
+    },
+    {
+      "id": 8,
+      "name": "402",
+      "type": "Loading",
+      "warehouse": "Main Building",
+      "maxWeight": 4000,
+      "occupants": [
+        {
+          "order": "338050",
+          "dept": "Shipping",
+          "weight": 1600,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338051",
+          "dept": "Shipping",
+          "weight": 1500,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338052",
+          "dept": "Accessories",
+          "weight": 1100,
+          "status": "Ready to Ship"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 9,
+      "name": "405",
+      "type": "Loading",
+      "warehouse": "Main Building",
+      "maxWeight": 3500,
+      "occupants": [
+        {
+          "order": "338060",
+          "dept": "Shipping",
+          "weight": 1400,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338061",
+          "dept": "Trim",
+          "weight": 1200,
+          "status": "Wrapped"
+        }
+      ],
+      "maxOrders": 4
+    },
+    {
+      "id": 10,
+      "name": "410",
+      "type": "Loading",
+      "warehouse": "Main Building",
+      "maxWeight": 4500,
+      "occupants": [],
+      "maxOrders": 1
+    },
+    {
+      "id": 11,
+      "name": "415",
+      "type": "Loading",
+      "warehouse": "Main Building",
+      "maxWeight": 3000,
+      "occupants": [
+        {
+          "order": "338070",
+          "dept": "Shipping",
+          "weight": 1500,
+          "status": "Ready to Ship"
+        },
+        {
+          "order": "338071",
+          "dept": "Shipping",
+          "weight": 1400,
+          "status": "Ready to Ship"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 12,
+      "name": "501",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 6000,
+      "occupants": [
+        {
+          "order": "338080",
+          "dept": "Accessories",
+          "weight": 1100,
+          "status": "Stock"
+        },
+        {
+          "order": "338081",
+          "dept": "Trim",
+          "weight": 900,
+          "status": "Stock"
+        }
+      ],
+      "maxOrders": 4
+    },
+    {
+      "id": 13,
+      "name": "505",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 5000,
+      "occupants": [
+        {
+          "order": "338090",
+          "dept": "Accessories",
+          "weight": 2000,
+          "status": "Stock"
+        },
+        {
+          "order": "338091",
+          "dept": "Trim",
+          "weight": 1900,
+          "status": "Stock"
+        },
+        {
+          "order": "338092",
+          "dept": "Accessories",
+          "weight": 1500,
+          "status": "Stock"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 14,
+      "name": "510",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 4000,
+      "occupants": [],
+      "maxOrders": 1
+    },
+    {
+      "id": 15,
+      "name": "515",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 3000,
+      "occupants": [
+        {
+          "order": "338100",
+          "dept": "Trim",
+          "weight": 2000,
+          "status": "Stock"
+        }
+      ],
+      "maxOrders": 1
+    },
+    {
+      "id": 16,
+      "name": "520",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 7000,
+      "occupants": [
+        {
+          "order": "338101",
+          "dept": "Accessories",
+          "weight": 2600,
+          "status": "Stock"
+        },
+        {
+          "order": "338102",
+          "dept": "Trim",
+          "weight": 2200,
+          "status": "Stock"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 17,
+      "name": "525",
+      "type": "Stock",
+      "warehouse": "Yard",
+      "maxWeight": 2500,
+      "occupants": [
+        {
+          "order": "338103",
+          "dept": "Accessories",
+          "weight": 1900,
+          "status": "Stock"
+        }
+      ],
+      "maxOrders": 1
+    },
+    {
+      "id": 18,
+      "name": "601",
+      "type": "Staging",
+      "warehouse": "Yard",
+      "maxWeight": 3000,
+      "occupants": [
+        {
+          "order": "338110",
+          "dept": "Trim",
+          "weight": 1400,
+          "status": "Staged"
+        },
+        {
+          "order": "338111",
+          "dept": "Shipping",
+          "weight": 1300,
+          "status": "Staged"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 19,
+      "name": "605",
+      "type": "Staging",
+      "warehouse": "Yard",
+      "maxWeight": 2500,
+      "occupants": [],
+      "maxOrders": 1
+    },
+    {
+      "id": 20,
+      "name": "610",
+      "type": "Staging",
+      "warehouse": "Yard",
+      "maxWeight": 4000,
+      "occupants": [
+        {
+          "order": "338112",
+          "dept": "Accessories",
+          "weight": 1200,
+          "status": "Staged"
+        }
+      ],
+      "maxOrders": 1
+    },
+    {
+      "id": 21,
+      "name": "615",
+      "type": "Staging",
+      "warehouse": "Yard",
+      "maxWeight": 3500,
+      "occupants": [
+        {
+          "order": "338113",
+          "dept": "Trim",
+          "weight": 1900,
+          "status": "Staged"
+        },
+        {
+          "order": "338114",
+          "dept": "Shipping",
+          "weight": 1700,
+          "status": "Staged"
+        }
+      ],
+      "maxOrders": 3
+    },
+    {
+      "id": 22,
+      "name": "620",
+      "type": "Staging",
+      "warehouse": "Yard",
+      "maxWeight": 2000,
+      "occupants": [
+        {
+          "order": "338115",
+          "dept": "Trim",
+          "weight": 900,
+          "status": "Staged"
+        }
+      ],
+      "maxOrders": 1
+    }
+  ]
+}

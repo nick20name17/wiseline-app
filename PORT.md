@@ -24,7 +24,7 @@ is ~3–4 minutes — run it in the background and wait for `NN captures →`, d
 
 **All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
 both widths. The three scan tools — driver, scanner and the loading station — are done too. What is left is
-dashboard, coils, stockcards, warehouse, settings and ebms.
+coils, stockcards, settings and ebms.
 
 **Activity is gated on a race, and it is worth knowing.** Its feed generates a random event every 4.5
 seconds, on both sides. Both captures land inside that first window, so both show the sixteen seeded
@@ -246,7 +246,8 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Accessories' reachable states | 7, incl. the split order and the package builder |
 | ✅ The three scan tools | `/driver`, `/scanner`, `/loading` — green, with 5 states |
 | ✅ `/activity` | green, with 3 states — paused, filtered, and no matches |
-| ⬜ The other 6 pages | dashboard, coils, stockcards, warehouse, settings, ebms |
+| ✅ `/dashboard` and `/warehouse` | green, warehouse with 2 legend states |
+| ⬜ The other 4 pages | coils, stockcards, settings, ebms |
 
 ### What Shipping still owes
 
