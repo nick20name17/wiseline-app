@@ -163,9 +163,7 @@ export const rescheduleOrder = (orderId: number, iso: string) =>
             priorityId: null,
             reviewed: false,
             isSplit: false,
-            lineItems: order.lineItems.map(item =>
-              resetManagerEdits(item, { scheduledDate: iso })
-            )
+            lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: iso }))
           }
         : order
     )
@@ -181,9 +179,7 @@ export const unscheduleOrder = (orderId: number) =>
             isSplit: false,
             reviewed: false,
             priorityId: null,
-            lineItems: order.lineItems.map(item =>
-              resetManagerEdits(item, { scheduledDate: null })
-            )
+            lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: null }))
           }
         : order
     )
@@ -213,6 +209,183 @@ export const bypassProduction = (orderIds: number[]) =>
   }))
 
 export const setPeekDay = (peekDay: string | null) => trimStore.set({ peekDay })
+
+/* -- quantities typed on the floor (N-061..072, #185) ------------------------------------------ */
+
+const patchLine = (
+  state: TrimState,
+  orderId: number,
+  lineId: number,
+  patch: (item: TrimState['orders'][number]['lineItems'][number]) => object
+) => ({
+  orders: state.orders.map(order =>
+    order.id === orderId
+      ? {
+          ...order,
+          lineItems: order.lineItems.map(item =>
+            item.id === lineId ? { ...item, ...patch(item) } : item
+          )
+        }
+      : order
+  )
+})
+
+/** N-071/072: what a worker pulls from stock instead of making. Never more than the order asked for. */
+export const setFromStock = (orderId: number, lineId: number, value: number) =>
+  trimStore.set(state =>
+    patchLine(state, orderId, lineId, item => ({
+      fromStock: Math.max(0, Math.min(item.qty, Number.isNaN(value) ? 0 : value))
+    }))
+  )
+
+/** Only what is not already in a manufacturing batch is still wrappable. */
+export const wrapMax = (item: { qty: number; qtyManufactured?: number }) =>
+  Math.max(0, item.qty - (item.qtyManufactured || 0))
+
+/**
+ * #185: dropping the wrapped count back to zero also drops the row out of the batch selection —
+ * a row with nothing wrapped has nothing to push.
+ */
+export const setWrapped = (orderId: number, lineId: number, value: number) =>
+  trimStore.set(state => ({
+    ...patchLine(state, orderId, lineId, () => ({ wrapped: value })),
+    stockWrapChecked:
+      value > 0 ? state.stockWrapChecked : state.stockWrapChecked.filter(id => id !== lineId)
+  }))
+
+/**
+ * A remanufacture request fans out into two lists that inherit the line's date, colour, priority and
+ * machine: a recut cutlist for the Slinet and a bendlist for the machine. One record holds both, and
+ * its two flags are the two gates the colour of the Remanufacture column reads.
+ *
+ * A machine-raised request also pulls the line out of the bendlist it is in (N-061); one raised from
+ * Wrapping leaves it where it is, because it is already cut and bent and only needs remaking.
+ */
+export const addReman = (
+  source: 'machine' | 'wrapping',
+  orderId: number,
+  lineId: number,
+  qty: number
+) =>
+  trimStore.set(state => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    const item = order?.lineItems.find(candidate => candidate.id === lineId)
+    if (!order || !item || qty < 1 || qty > item.qty) return {}
+
+    const from = state.cutlists.find(cutlist =>
+      cutlist.members.some(member => member.orderId === orderId && member.lineId === lineId)
+    )
+
+    return {
+      remans: [
+        ...state.remans,
+        {
+          id: `R${Date.now()}`,
+          orderId,
+          lineId,
+          orderNo: order.order,
+          productId: item.productId,
+          description: item.description,
+          gaugeColour: item.gaugeColour,
+          width: item.width,
+          length: item.length,
+          qty,
+          machineId: item.machineId as number,
+          priorityId: order.priorityId,
+          date: order.productionDate as string,
+          source,
+          fromCutlistId: from ? from.id : null,
+          recut: false,
+          bent: false,
+          slinetDone: false,
+          machineDone: false
+        }
+      ],
+      cutlists:
+        source === 'machine'
+          ? state.cutlists.map(cutlist => ({
+              ...cutlist,
+              members: cutlist.members.filter(
+                member => !(member.orderId === orderId && member.lineId === lineId)
+              )
+            }))
+          : state.cutlists
+    }
+  })
+
+export const toggleStockWrapCheck = (lineId: number) =>
+  trimStore.set(state => ({
+    stockWrapChecked: state.stockWrapChecked.includes(lineId)
+      ? state.stockWrapChecked.filter(id => id !== lineId)
+      : [...state.stockWrapChecked, lineId]
+  }))
+
+const nowTime = () =>
+  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+
+/**
+ * #185: pushing the ticked rows to EBMS as one manufacturing batch.
+ *
+ * Wrapped moves into Qty. Manufactured and resets, because the pieces have left the wrapping bench.
+ * Once every row of the order is fully manufactured the stock order has nothing left to make, so it
+ * leaves Wrapping for Completed Orders — returned here rather than watched for, so the caller can say
+ * which of the two things happened.
+ */
+export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
+  const stamp = nowTime()
+
+  trimStore.set(state => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    if (!order) return {}
+
+    const picked = order.lineItems.filter(item => lineIds.includes(item.id))
+
+    const orders = state.orders.map(candidate => {
+      if (candidate.id !== orderId) return candidate
+
+      const lineItems = candidate.lineItems.map(item => {
+        if (!lineIds.includes(item.id)) return item
+        const made = (item.qtyManufactured || 0) + (item.wrapped || 0)
+        return {
+          ...item,
+          qtyManufactured: made,
+          wrapped: 0,
+          status: made >= item.qty ? 'wrapped' : item.status
+        }
+      })
+
+      const allBatched = lineItems.every(item => (item.qtyManufactured || 0) >= item.qty)
+      return allBatched
+        ? {
+            ...candidate,
+            lineItems,
+            completed: true,
+            completedDate: TODAY,
+            completedTime: stamp
+          }
+        : { ...candidate, lineItems }
+    })
+
+    return {
+      orders,
+      stockWrapChecked: state.stockWrapChecked.filter(id => !lineIds.includes(id)),
+      // newest first — the same order the Stock Manufacturing history reads in
+      stockBatches: [
+        ...picked.map(item => ({
+          id: `swb-${item.id}-${Date.now()}`,
+          ts: stamp,
+          pid: item.productId,
+          desc: item.description,
+          qty: item.wrapped || 0,
+          orderNo: order.order
+        })),
+        ...(state.stockBatches as unknown[])
+      ]
+    }
+  })
+
+  return !!trimStore.get().orders.find(order => order.id === orderId)?.completed
+}
 
 /* -- notes ------------------------------------------------------------------------------------- */
 

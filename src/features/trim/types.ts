@@ -116,6 +116,8 @@ export type TrimState = {
    * function; here it has to be state something re-renders on, and the store is where state lives.
    */
   expandedBatches: string[]
+  /** Rows of a stock order's wrapping window ticked for the next manufacturing batch (#185). */
+  stockWrapChecked: number[]
   [key: string]: unknown
 }
 

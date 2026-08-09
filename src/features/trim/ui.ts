@@ -5,12 +5,14 @@ import { createStore } from '@/store/create-store'
 
 import { unscheduleOrder } from './store'
 
+import type { PadCtx } from './components/keypads'
 import type { NoteCtx } from './components/note-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
 
 export type TrimUi = {
   schedule: ScheduleCtx | null
   note: NoteCtx | null
+  pad: PadCtx | null
   confirm: Confirm
   toast: { message: string; type: ToastType; shown: boolean }
 }
@@ -26,6 +28,7 @@ export type TrimUi = {
 export const trimUi = createStore<TrimUi>({
   schedule: null,
   note: null,
+  pad: null,
   confirm: null,
   toast: { message: '', type: 'success', shown: false }
 })
@@ -33,11 +36,24 @@ export const trimUi = createStore<TrimUi>({
 export const openNotes = (note: NoteCtx) => trimUi.set({ note })
 export const closeNotes = () => trimUi.set({ note: null })
 
+export const closePad = () => trimUi.set({ pad: null })
+
+/** Stock is locked once the line is wrapped or the order is complete — say so rather than open a pad. */
+export const openPad = (pad: PadCtx) => {
+  if (pad.kind === 'stock' && pad.locked) return showToast('Stock is locked — line already wrapped')
+  trimUi.set({ pad })
+}
+
 export const openSchedule = (schedule: ScheduleCtx) => trimUi.set({ schedule })
 export const closeSchedule = () => trimUi.set({ schedule: null })
 
-export const askConfirm = (title: string, desc: string, onOk: () => void) =>
-  trimUi.set({ confirm: { title, desc, onOk } })
+export const askConfirm = (
+  title: string,
+  desc: string,
+  onOk: () => void,
+  ok?: string,
+  cancel?: string
+) => trimUi.set({ confirm: { title, desc, onOk, ok, cancel } })
 
 export const closeConfirm = () => trimUi.set({ confirm: null })
 

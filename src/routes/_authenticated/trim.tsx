@@ -12,6 +12,7 @@ import { Toast } from '@/components/shell/toast'
 
 import { DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
+import { Keypads } from '@/features/trim/components/keypads'
 import { NoteModal } from '@/features/trim/components/note-modal'
 import { ScheduleModal } from '@/features/trim/components/schedule-modal'
 import { Coils } from '@/features/trim/components/coils'
@@ -161,6 +162,7 @@ function Trim() {
         }}
       />
       <NoteModal ctx={ui.note} onClose={closeNotes} />
+      <Keypads />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>

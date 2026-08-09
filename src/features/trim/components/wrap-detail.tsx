@@ -23,6 +23,7 @@ import {
   wrapLeftOf
 } from '../selectors'
 import { DEPARTMENT, trimStore } from '../store'
+import { openPad } from '../ui'
 import { StockWrapWindow } from './stock-wrap'
 
 import type { LineItem, Order } from '../types'
@@ -253,6 +254,14 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                     disabled={stockLocked}
                     title={stockLocked ? 'Locked — line already wrapped' : undefined}
                     data-comment={`wrap-stockbtn-${key}`}
+                    onClick={() =>
+                      openPad({
+                        kind: 'stock',
+                        orderId: order.id,
+                        lineId: item.id,
+                        locked: !!stockLocked
+                      })
+                    }
                   >
                     {item.fromStock || 0}
                   </button>
@@ -291,6 +300,14 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                       className='btn btn-sm btn-ghost rem-btn'
                       title='Remanufacture'
                       data-comment={`wrap-rem-${key}`}
+                      onClick={() =>
+                        openPad({
+                          kind: 'reman',
+                          source: 'wrapping',
+                          orderId: order.id,
+                          lineId: item.id
+                        })
+                      }
                     >
                       <RefreshCw style={{ width: '14px', height: '14px' }} />
                     </button>

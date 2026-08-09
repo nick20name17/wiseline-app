@@ -43,6 +43,7 @@ import {
   toggleBatchExpand,
   trimStore
 } from '../store'
+import { openPad } from '../ui'
 import { EmptyState } from './bits'
 import { StockMfg } from './stock-mfg'
 import { Wrapping } from './wrapping'
@@ -408,6 +409,15 @@ const BatchRows = ({
                     className='field-btn'
                     style={{ minWidth: '52px', justifyContent: 'center' }}
                     data-comment={`prod-stockbtn-${rowKey}`}
+                    onClick={event => {
+                      event.stopPropagation()
+                      openPad({
+                        kind: 'stock',
+                        orderId: first.orderId,
+                        lineId: first.id,
+                        locked: first.status === 'wrapped'
+                      })
+                    }}
                   >
                     {first.fromStock || 0}
                   </button>
@@ -437,6 +447,15 @@ const BatchRows = ({
                       className='btn btn-sm btn-ghost rem-btn'
                       title='Remanufacture'
                       data-comment={`prod-i-rem-${rowKey}`}
+                      onClick={event => {
+                        event.stopPropagation()
+                        openPad({
+                          kind: 'reman',
+                          source: 'machine',
+                          orderId: first.orderId,
+                          lineId: first.id
+                        })
+                      }}
                     >
                       <RefreshCw style={{ width: '14px', height: '14px' }} />
                     </button>
