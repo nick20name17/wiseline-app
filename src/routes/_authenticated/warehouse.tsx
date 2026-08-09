@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { ChevronDown, Inbox, Lock, Search, TriangleAlert } from 'lucide-react'
 
 import { viewingAsLabel } from '@/session/nav-visibility'
@@ -7,10 +8,15 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { usePopover } from '@/components/shell/pop'
 import { Toast } from '@/components/shell/toast'
+import { useToast } from '@/components/shell/use-toast'
+
+import { LocationDetail } from '@/features/warehouse/detail'
 
 import {
   barColor,
+  dueForRelease,
   filteredLocations,
   fmtN,
   isFull,
@@ -19,7 +25,11 @@ import {
   occPct,
   orderCap,
   orderCount,
+  releaseOrder,
+  RELEASE_CHECK_MS,
+  selectLocation,
   setSearch,
+  setWarehouse,
   toggleType,
   TYPES,
   typeColor,
@@ -45,6 +55,23 @@ function Warehouse() {
 
   const state = useStore(warehouseStore, current => current)
   const viewer = useViewer()
+  const { toast, show } = useToast(2600)
+  const { openPop, popNode } = usePopover()
+
+  // the release is real elapsed time, so it has to fire on its own rather than on the next click
+  useEffect(() => {
+    const timer = setInterval(() => {
+      dueForRelease(warehouseStore.get()).forEach(({ location, order }) => {
+        releaseOrder(location.id, order)
+        show(`Location ${location.name} auto-released — 15 min since last scan`)
+      })
+    }, RELEASE_CHECK_MS)
+
+    return () => clearInterval(timer)
+  }, [show])
+
+  const selected =
+    state.locations.find(location => location.id === state.selectedLocationId) ?? null
 
   const rows = filteredLocations(state)
   const occupied = rows.filter(location => orderCount(location) > 0).length
@@ -87,7 +114,24 @@ function Warehouse() {
                 </p>
               </div>
               <div className='wh-controls' data-comment='wh-controls'>
-                <button className='select-btn' data-pop-anchor data-comment='wh-warehouse-select'>
+                <button
+                  className='select-btn'
+                  data-pop-anchor
+                  data-comment='wh-warehouse-select'
+                  onClick={event => {
+                    event.stopPropagation()
+                    openPop<string>(
+                      event.currentTarget,
+                      [
+                        { label: 'All Buildings', value: 'All' },
+                        { label: 'Main Building', value: 'Main Building' },
+                        { label: 'Yard', value: 'Yard' }
+                      ],
+                      setWarehouse,
+                      state.activeWarehouse
+                    )
+                  }}
+                >
                   <span id='wh-warehouse-label' data-comment='wh-warehouse-label'>
                     {state.activeWarehouse === 'All' ? 'All Buildings' : state.activeWarehouse}
                   </span>
@@ -198,6 +242,7 @@ function Warehouse() {
                     <button
                       className={`wh-tile${empty ? ' is-empty' : ''}${closed ? ' is-full' : ''}${over ? ' is-over' : ''}`}
                       data-comment={key}
+                      onClick={() => selectLocation(location.id)}
                       key={location.id}
                     >
                       {over ? (
@@ -249,7 +294,10 @@ function Warehouse() {
           </main>
         </div>
       </div>
-      <Toast />
+
+      <LocationDetail location={selected} onClose={() => selectLocation(null)} />
+      {popNode}
+      <Toast message={toast.message} type={toast.type} shown={toast.shown} />
     </>
   )
 }
