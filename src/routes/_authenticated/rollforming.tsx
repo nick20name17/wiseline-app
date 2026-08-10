@@ -27,11 +27,15 @@ import {
   scheduledOrdersActive,
   unscheduledOrders
 } from '@/features/rollforming/selectors'
+import { AssignModal } from '@/features/rollforming/components/assign'
+import { CoilPickModal } from '@/features/rollforming/components/coil-pick'
 import { MaterialRequestModal } from '@/features/rollforming/components/material-request'
 import { NoteModal } from '@/features/rollforming/components/note-modal'
 import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
 import {
   closeAlert,
+  closeAssign,
+  closeCoilPick,
   closeConfirm,
   closeMaterialRequest,
   closeNotes,
@@ -145,6 +149,19 @@ function Rollforming() {
       </div>
       <NoteModal ctx={ui.note} onClose={closeNotes} />
       <MaterialRequestModal open={ui.mreq} onClose={closeMaterialRequest} />
+      {/* keyed per opening: the form's fields start from the unit that was picked */}
+      <AssignModal
+        key={
+          ui.assign
+            ? `${ui.assign.orderId}:${ui.assign.units
+                .map(unit => `${unit.lineId}.${unit.coilIdx}`)
+                .join(',')}`
+            : 'assign'
+        }
+        ctx={ui.assign}
+        onClose={closeAssign}
+      />
+      <CoilPickModal ctx={ui.coilPick} onClose={closeCoilPick} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

@@ -3,11 +3,17 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
+import { rollformingStore } from './store'
+
+import type { AssignCtx } from './components/assign'
+import type { CoilPickCtx } from './components/coil-pick'
 import type { NoteCtx } from './components/note-modal'
 
 export type RollformingUi = {
   note: NoteCtx | null
   mreq: boolean
+  assign: AssignCtx | null
+  coilPick: CoilPickCtx | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -21,6 +27,8 @@ export type RollformingUi = {
 export const rollformingUi = createStore<RollformingUi>({
   note: null,
   mreq: false,
+  assign: null,
+  coilPick: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -31,6 +39,27 @@ export const closeNotes = () => rollformingUi.set({ note: null })
 
 export const openMaterialRequest = () => rollformingUi.set({ mreq: true })
 export const closeMaterialRequest = () => rollformingUi.set({ mreq: false })
+
+export const openAssign = (assign: AssignCtx) => rollformingUi.set({ assign })
+export const closeAssign = () => rollformingUi.set({ assign: null })
+
+/** The toolbar's two buttons assign whatever units are ticked; only the title differs. */
+export const openBulkAssign = (orderId: number, asCutlist: boolean) => {
+  const ctx = rollformingStore.get().selectedCoilCtx
+  if (!ctx || ctx.orderId !== orderId) return
+
+  openAssign({
+    orderId,
+    units: ctx.units.map(unit => {
+      const [lineId, coilIdx] = unit.split(':')
+      return { lineId: Number(lineId), coilIdx: Number(coilIdx) }
+    }),
+    asCutlist
+  })
+}
+
+export const openCoilPick = (coilPick: CoilPickCtx) => rollformingUi.set({ coilPick })
+export const closeCoilPick = () => rollformingUi.set({ coilPick: null })
 
 export const askConfirm = (
   title: string,

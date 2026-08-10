@@ -191,6 +191,81 @@ export const createMaterialRequest = (form: {
   return number
 }
 
+/* -- coil assignment ----------------------------------------------------------------------------- */
+
+/** One Supplier and one Coil Number across every unit picked, and the selection is spent. */
+export const assignUnits = (
+  orderId: number,
+  units: { lineId: number; coilIdx: number }[],
+  supplierId: number | null,
+  coilNumber: string
+) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id !== orderId
+        ? order
+        : {
+            ...order,
+            lineItems: order.lineItems.map(item => {
+              const indexes = units
+                .filter(unit => unit.lineId === item.id)
+                .map(unit => unit.coilIdx)
+              if (!indexes.length) return item
+
+              return {
+                ...item,
+                coils: item.coils.map((coil, index) =>
+                  indexes.includes(index) ? { ...coil, supplierId, coilNumber } : coil
+                )
+              }
+            })
+          }
+    ),
+    selectedCoilCtx: null
+  }))
+
+/**
+ * A unit either rolls off a coil that exists or waits for one to be slit, and the two are exclusive:
+ * sending it to the Slit Line drops whatever coil it had been given, because that coil is not the one
+ * it will roll off. Stock units have no slit decision — they are not being rolled.
+ */
+export const toggleNeedsSlit = (orderId: number, lineId: number, coilIdx: number) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id !== orderId
+        ? order
+        : {
+            ...order,
+            lineItems: order.lineItems.map(item =>
+              item.id !== lineId
+                ? item
+                : {
+                    ...item,
+                    coils: item.coils.map((coil, index) => {
+                      if (index !== coilIdx || coil.stock) return coil
+                      const needsSlit = !coil.needsSlit
+                      return {
+                        ...coil,
+                        needsSlit,
+                        slitDone: false,
+                        supplierId: needsSlit ? null : coil.supplierId,
+                        coilNumber: needsSlit ? '' : coil.coilNumber
+                      }
+                    })
+                  }
+            )
+          }
+    )
+  }))
+
+/** Remembered rather than only written to the clipboard: the paste button is the reliable path. */
+export const copyCoilNumber = (coilNumber: string) => {
+  if (!coilNumber) return
+  void navigator.clipboard?.writeText(coilNumber).catch(() => {})
+  rollformingStore.set({ copiedCoilNumber: coilNumber })
+  showToast(`Copied Coil Number ${coilNumber}`)
+}
+
 /* -- notes ------------------------------------------------------------------------------------- */
 
 const patchNotes = (ctx: NoteCtx, fn: (notes: Note[]) => Note[]) =>
