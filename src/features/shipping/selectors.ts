@@ -209,6 +209,22 @@ export const loadStatusCls = (status: LoadStatus | '') => STATUS_CLASSES[status]
  * anchored to `uns-li-1-2` keeps meaning the same row. FNV-1a, ported digit for digit — a different
  * hash is different data.
  */
+/**
+ * Which department made the canonical demo orders. Everything else is Trim.
+ *
+ * A barcode is `<dept>-<order>-<seq>`, and the other screens scan exactly that string — so a package
+ * created here has to be numbered the way the department that built it would have numbered it.
+ */
+const ORDER_DEPT: Record<string, string> = {
+  '330618': '01',
+  '330630': '01',
+  '330622': '02',
+  '330633': '01'
+}
+
+export const barcodeFor = (order: string, seq: number) =>
+  `${ORDER_DEPT[order] ?? '01'}-${order}-${String(seq).padStart(2, '0')}`
+
 export const pkgHash = (order: string, index: number) => {
   let n = 2166136261
   const source = `${order}:${index}`

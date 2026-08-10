@@ -2,11 +2,12 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
-import { unscheduledOrders } from './selectors'
+import { schedGridOrders, unscheduledOrders } from './selectors'
 import { shippingStore } from './store'
 
 import type { CalCtx } from './components/calendar-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
+import type { NewPkgCtx } from './components/new-package'
 import type { TruckCtx } from './components/sched-truck'
 
 export type ShippingUi = {
@@ -15,6 +16,9 @@ export type ShippingUi = {
   truckNotes: boolean
   schedTruck: TruckCtx | null
   schedule: ScheduleCtx | null
+  newPkg: NewPkgCtx | null
+  /** The order whose Add-qty is being typed on the keypad. */
+  newPkgKp: number | null
   cal: CalCtx | null
   /** Bumped on every open, so the picker's mount site can key a fresh month grid off it. */
   calSeq: number
@@ -30,6 +34,8 @@ export const shippingUi = createStore<ShippingUi>({
   truckNotes: false,
   schedTruck: null,
   schedule: null,
+  newPkg: null,
+  newPkgKp: null,
   cal: null,
   calSeq: 0,
   toast: { message: '', type: 'success', shown: false }
@@ -60,6 +66,37 @@ export const openScheduleForSelection = () => {
   )
   if (orderIds.length) openSchedule({ orderIds })
 }
+
+/** Every ticked row starts at one package to add — the common case is one, and nought means no row. */
+export const openNewPackage = (truckId: number, activeDay: string) => {
+  const state = shippingStore.get()
+  const rows = schedGridOrders(truckId, activeDay, state)
+  const orderIds = state.selScheduled.filter(id => rows.some(order => order.id === id))
+  if (!orderIds.length) return
+
+  shippingUi.set({
+    newPkg: { orderIds, qty: Object.fromEntries(orderIds.map(id => [id, 1])) }
+  })
+}
+
+export const closeNewPackage = () => shippingUi.set({ newPkg: null })
+
+export const openNewPkgKeypad = (orderId: number) => shippingUi.set({ newPkgKp: orderId })
+export const closeNewPkgKeypad = () => shippingUi.set({ newPkgKp: null })
+
+/** Ninety-nine is the keypad's ceiling; a run bigger than that is a different conversation. */
+export const setNewPkgQty = (orderId: number, qty: number) =>
+  shippingUi.set(state =>
+    state.newPkg
+      ? {
+          newPkg: {
+            ...state.newPkg,
+            qty: { ...state.newPkg.qty, [orderId]: Math.max(0, Math.min(99, qty)) }
+          },
+          newPkgKp: null
+        }
+      : {}
+  )
 
 export const openCalendar = (cal: CalCtx) =>
   shippingUi.set(state => ({ cal, calSeq: state.calSeq + 1 }))

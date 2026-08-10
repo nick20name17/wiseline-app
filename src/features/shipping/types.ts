@@ -45,6 +45,9 @@ export type Load = {
   deliveryTerm: string
   loadUnloadTime: string
   vehicle: string
+  /** The real model's aggregates, written whenever the status is recomputed from the orders. */
+  is_loaded?: boolean
+  is_shipped?: boolean
 }
 
 export type Order = {

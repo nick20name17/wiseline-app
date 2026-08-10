@@ -1,10 +1,10 @@
 import { createStore } from '@/store/create-store'
 import { patchLoadSequence } from '@/store/shared/shipping'
 
-import { loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
+import { barcodeFor, loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
 import seed from './seed.json'
 
-import type { Load, Order, ShippingState } from './types'
+import type { Load, LoadStatus, Order, ShippingState } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
 export const TODAY = '2026-07-14'
@@ -186,6 +186,89 @@ export const addToLoad = (truckId: number, date: string) => {
 
   syncLoadSequence(newId)
   return orderIds.length
+}
+
+/**
+ * A load's status is not set, it is *derived* from the orders on it — the real model computes it from
+ * the `is_loaded` / `is_shipped` aggregates, and this mirrors that. An unreleased load is left alone:
+ * it has not entered the cascade yet.
+ */
+export const recomputeLoad = (loadId: number) =>
+  shippingStore.set(state => {
+    const load = state.loads.find(entry => entry.id === loadId)
+    if (!load || load.status === 'unreleased') return {}
+
+    const orders = load.orderIds.map(id => state.orders.find(order => order.id === id))
+    let status: LoadStatus
+    let isLoaded = false
+    let isShipped = false
+
+    if (orders.every(order => order?.status === 'delivered')) {
+      status = 'shipped'
+      isLoaded = true
+      isShipped = true
+    } else if (
+      orders.some(order => order?.status === 'shipping' || order?.status === 'delivered')
+    ) {
+      status = 'shipping'
+      isLoaded = true
+    } else if (orders.every(order => order?.status === 'loaded' || order?.status === 'delivered')) {
+      status = 'loaded'
+      isLoaded = true
+    } else if (orders.every(order => order?.status === 'notstarted')) status = 'notstarted'
+    else status = 'loading'
+
+    return {
+      loads: state.loads.map(entry =>
+        entry.id === loadId
+          ? { ...entry, status, is_loaded: isLoaded, is_shipped: isShipped }
+          : entry
+      )
+    }
+  })
+
+export const recomputeLoadFor = (orderId: number) => {
+  const order = orderById(orderId)
+  if (order?.loadId) recomputeLoad(order.loadId)
+}
+
+/**
+ * Extra packages on orders already on a truck's day, with their labels printed.
+ *
+ * A new package is not loaded yet, so an order that had been fully loaded drops back to `loading` —
+ * but an order still blank (its load unreleased) stays blank: there is no cascade to fall back through.
+ */
+export const createNewPackages = (entries: { orderId: number; qty: number }[]) => {
+  const wanted = entries.filter(entry => entry.qty > 0)
+  if (!wanted.length) return []
+
+  const barcodes: string[] = []
+
+  shippingStore.set(state => ({
+    orders: state.orders.map(order => {
+      const entry = wanted.find(candidate => candidate.orderId === order.id)
+      if (!entry) return order
+
+      for (let index = 0; index < entry.qty; index++)
+        barcodes.push(barcodeFor(order.order, order.packages.length + index + 1))
+
+      const packages = [
+        ...order.packages,
+        ...Array.from({ length: entry.qty }, () => ({ loaded: false }))
+      ]
+
+      let status = order.status
+      if (status !== '') {
+        const loaded = packages.filter(pkg => pkg.loaded).length
+        status = loaded === 0 ? 'notstarted' : loaded === packages.length ? 'loaded' : 'loading'
+      }
+
+      return { ...order, packages, status }
+    })
+  }))
+
+  for (const entry of wanted) recomputeLoadFor(entry.orderId)
+  return barcodes
 }
 
 /** The delivery order, published for the driver under the key the other screens know the load by. */
