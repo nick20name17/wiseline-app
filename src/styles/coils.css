@@ -35,7 +35,7 @@
                 --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
             }
 
-            [data-page="coils"], [data-page="coils"] { height: 100%; }
+            [data-page="coils"] { height: 100%; }
             [data-page="coils"] {
                 font-family: var(--font-ui);
                 background: var(--bg);

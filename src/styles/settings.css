@@ -34,7 +34,7 @@
                 --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
             }
 
-            [data-page="settings"], [data-page="settings"] { height: 100%; }
+            [data-page="settings"] { height: 100%; }
             [data-page="settings"] {
                 font-family: var(--font-ui);
                 background: var(--bg);

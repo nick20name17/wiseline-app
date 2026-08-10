@@ -34,7 +34,7 @@
                 --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
             }
 
-            [data-page="stockcards"], [data-page="stockcards"] { height: 100%; }
+            [data-page="stockcards"] { height: 100%; }
             [data-page="stockcards"] {
                 font-family: var(--font-ui);
                 background: var(--bg);
@@ -304,8 +304,8 @@
                8-1/2" x 11" paper — 2 across x 4 down, so a full sheet holds 8 cards to cut apart. */
             @media print {
                 @page { size: letter portrait; margin: 0.4in; }
-                [data-page="stockcards"].is-printing-cards, [data-page="stockcards"].is-printing-cards body { background: #fff; }
-                [data-page="stockcards"].is-printing-cards body > *:not(#print-sheet) { display: none !important; }
+                [data-page="stockcards"].is-printing-cards { background: #fff; }
+                [data-page="stockcards"].is-printing-cards > *:not(#print-sheet) { display: none !important; }
                 [data-page="stockcards"].is-printing-cards #print-sheet {
                     display: grid !important; grid-template-columns: repeat(2, 3.25in); gap: 0.1in; justify-content: center;
                 }
@@ -363,7 +363,7 @@
             [data-page="stockcards"] .search,[data-page="stockcards"] .input,[data-page="stockcards"] .field-input,[data-page="stockcards"] .field-btn,[data-page="stockcards"] .due-filter,[data-page="stockcards"] .select-btn{height:30px}
             [data-page="stockcards"] .empty{padding-top:16px;padding-bottom:16px}
             /* #198: embedded inside a department page — no sidebar / topbar / dept header, no page background */
-            [data-page="stockcards"].is-embed,[data-page="stockcards"].is-embed body{background:transparent}
+            [data-page="stockcards"].is-embed{background:transparent}
             [data-page="stockcards"].is-embed .sidebar,[data-page="stockcards"].is-embed .topbar,[data-page="stockcards"].is-embed .dept-bar,[data-page="stockcards"].is-embed .wl-role-fab{display:none}
             [data-page="stockcards"].is-embed .app{display:block;min-height:0}
             [data-page="stockcards"].is-embed .main{margin:0;min-height:0}

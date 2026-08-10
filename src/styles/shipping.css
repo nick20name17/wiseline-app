@@ -11,7 +11,7 @@
                 --font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;
                 --r-sm:6px;--r-md:9px;--r-lg:13px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 6px 24px rgba(20,24,31,.1);--shadow-lg:0 16px 48px rgba(20,24,31,.18)
             }
-            [data-page="shipping"],[data-page="shipping"]{height:100%}
+            [data-page="shipping"]{height:100%}
             [data-page="shipping"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
             [data-page="shipping"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
             [data-page="shipping"] .muted{color:var(--text-muted)}[data-page="shipping"] .subtle{color:var(--text-subtle)}

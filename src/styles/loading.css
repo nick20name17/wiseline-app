@@ -3,7 +3,7 @@
             [data-page="loading"] button i, [data-page="loading"] button svg, [data-page="loading"] a i, [data-page="loading"] a svg, [data-page="loading"] [onclick] i, [data-page="loading"] [onclick] svg { pointer-events: none; }
             [data-page="loading"] *,[data-page="loading"] *::before,[data-page="loading"] *::after{box-sizing:border-box;margin:0;padding:0}
             [data-page="loading"]{--bg:#f5f6f8;--surface:#fff;--surface-2:#fbfcfd;--surface-3:#f2f4f7;--border:#e7eaef;--border-strong:#d6dbe2;--text:#14181f;--text-muted: #344054;--text-subtle: #475467;--accent:#3b5bdb;--accent-hover:#2f49bd;--accent-soft:#eef1fe;--accent-border:#c8d2f7;--success:#0f7a54;--success-soft:#e4f5ee;--warn:#b5760a;--warn-soft:#fbf1df;--danger:#c4362f;--danger-soft:#fbebea;--font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;--r-sm:6px;--r-md:9px;--r-lg:13px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 6px 24px rgba(20,24,31,.1);--shadow-lg:0 16px 48px rgba(20,24,31,.18)}
-            [data-page="loading"],[data-page="loading"]{height:100%}
+            [data-page="loading"]{height:100%}
             [data-page="loading"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
             [data-page="loading"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
             [data-page="loading"] ::-webkit-scrollbar{width:10px;height:10px}[data-page="loading"] ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid var(--bg)}

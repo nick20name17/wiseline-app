@@ -35,7 +35,7 @@
                 --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
             }
 
-            [data-page="warehouse"], [data-page="warehouse"] { height: 100%; }
+            [data-page="warehouse"] { height: 100%; }
             [data-page="warehouse"] {
                 font-family: var(--font-ui);
                 background: var(--bg);

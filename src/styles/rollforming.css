@@ -12,7 +12,7 @@
                 --font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;
                 --r-sm:6px;--r-md:9px;--r-lg:13px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 6px 24px rgba(20,24,31,.1);--shadow-lg:0 16px 48px rgba(20,24,31,.18);
             }
-            [data-page="rollforming"],[data-page="rollforming"]{height:100%}
+            [data-page="rollforming"]{height:100%}
             [data-page="rollforming"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
             [data-page="rollforming"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
             [data-page="rollforming"] ::-webkit-scrollbar{width:10px;height:10px}[data-page="rollforming"] ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid var(--bg)}

@@ -154,10 +154,12 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
               className='btn btn-primary'
               data-comment='mcap-print'
               onClick={() => {
-                // the print sheet drops the app chrome; the class is what the print stylesheet keys on
-                document.documentElement.classList.add('is-printing-report')
+                // the print sheet drops the app chrome; the class goes beside `data-page`, which the
+                // print stylesheet is scoped to — on `#root`, the port's stand-in for the body
+                const root = document.getElementById('root')
+                root?.classList.add('is-printing-report')
                 const cleanup = () => {
-                  document.documentElement.classList.remove('is-printing-report')
+                  root?.classList.remove('is-printing-report')
                   window.removeEventListener('afterprint', cleanup)
                 }
                 window.addEventListener('afterprint', cleanup)
