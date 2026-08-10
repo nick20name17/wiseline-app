@@ -6,8 +6,6 @@ import { useStore } from '@/store/create-store'
 
 import { ConfirmOverlay, type Confirm } from '@/components/shell/modal'
 import { usePopover, type PopItem } from '@/components/shell/pop'
-import { Toast } from '@/components/shell/toast'
-import { useToast } from '@/components/shell/use-toast'
 
 import { StockCardFace } from './card'
 import { CreateOrderModal, NewCardModal } from './modals'
@@ -33,10 +31,13 @@ import {
  * prototype hosts it in an `<iframe>` because there it is a second HTML document and there is no other
  * way; a second document here would mean a second copy of every store, which is how a card scanned in
  * the dialog would fail to be the same card.
+ *
+ * The toast belongs to whoever is showing the panel, not to the panel: the prototype keeps one per
+ * document, as the last child of its body, and a second one inside a dialog would be two toasts on one
+ * page — and a `data-comment` the baseline does not have at that depth.
  */
-export const StockCardsPanel = () => {
+export const StockCardsPanel = ({ show }: { show: (message: string) => void }) => {
   const state = useStore(stockcardsStore, current => current)
-  const { toast, show } = useToast(2400)
   const { openPop, popNode } = usePopover()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -224,13 +225,15 @@ export const StockCardsPanel = () => {
         )}
       </section>
 
-      {/* The sheet prints eight cards to a page and is hidden on screen. It hangs off `#root` rather than
-          off this panel because the print stylesheet hides everything beside it, and «beside» has to mean
-          the app — which, in the dialog, this panel is a long way inside of. */}
+      {/* The sheet prints eight cards to a page and is hidden on screen. It hangs off `#root`, where the
+          prototype keeps it as a child of its body, rather than off this panel: the print stylesheet hides
+          everything beside it, and «beside» has to mean the app — which, in the dialog, this panel is a
+          long way inside of. The page scope goes on a wrapper *within* the sheet, so the sheet itself
+          stays the direct child the prototype has. */}
       {root
         ? createPortal(
-            <div className='wl-stockcards-host wl-print-host' data-page='stockcards'>
-              <div id='print-sheet' data-comment='print-sheet'>
+            <div id='print-sheet' data-comment='print-sheet'>
+              <div className='wl-stockcards-host wl-print-cards' data-page='stockcards'>
                 {printing.map(card => (
                   <StockCardFace card={card} ctx='print' key={card.id} />
                 ))}
@@ -256,7 +259,6 @@ export const StockCardsPanel = () => {
       />
       <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} />
       {popNode}
-      <Toast message={toast.message} type={toast.type} shown={toast.shown} />
     </>
   )
 }

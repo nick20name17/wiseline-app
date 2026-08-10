@@ -2,6 +2,8 @@ import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { StockCardsPanel } from '@/features/stockcards/panel'
 
+import { showToast } from '../ui'
+
 /**
  * The Stock Cards screen, hosted inside the Trim board (#198).
  *
@@ -28,7 +30,7 @@ export const StockCardsModal = ({ open, onClose }: { open: boolean; onClose: () 
       />
       <div className='modal-body stockcards-body' data-comment='stockcards-body'>
         <div className='wl-stockcards-host wl-stockcards-panel' data-page='stockcards'>
-          {open ? <StockCardsPanel /> : null}
+          {open ? <StockCardsPanel show={showToast} /> : null}
         </div>
       </div>
     </div>
