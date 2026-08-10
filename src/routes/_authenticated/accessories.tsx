@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
 
@@ -17,6 +18,7 @@ import { DeptBar } from '@/features/accessories/components/shell'
 import { Unscheduled } from '@/features/accessories/components/unscheduled'
 import {
   completedOrdersList,
+  dueForRelease,
   scheduledOrders,
   unscheduledOrders
 } from '@/features/accessories/selectors'
@@ -24,7 +26,12 @@ import { CalendarModal } from '@/features/accessories/components/calendar-modal'
 import { LocationPicker } from '@/features/accessories/components/location-picker'
 import { NoteModal } from '@/features/accessories/components/note-modal'
 import { PackagesModal } from '@/features/accessories/components/packages-modal'
-import { accessoriesStore, DEPARTMENT, setSearch } from '@/features/accessories/store'
+import {
+  accessoriesStore,
+  DEPARTMENT,
+  removeLocation,
+  setSearch
+} from '@/features/accessories/store'
 import {
   accessoriesUi,
   closeAlert,
@@ -32,8 +39,11 @@ import {
   closeLocationPicker,
   closeNotes,
   closePackages,
-  closeSchedule
+  closeSchedule,
+  showToast
 } from '@/features/accessories/ui'
+
+import { RELEASE_CHECK_MS } from '@/features/accessories/use-now'
 
 import '@/styles/accessories.css'
 
@@ -72,6 +82,18 @@ function Accessories() {
     packaging: scheduledOrders(state.orders).length,
     completed: completedOrdersList(state.orders).length
   }
+
+  // the release is real elapsed time, so it has to fire on its own rather than on the next click
+  useEffect(() => {
+    const timer = setInterval(() => {
+      for (const { locationId, orderId, code } of dueForRelease()) {
+        removeLocation(orderId, locationId)
+        showToast(`Location ${code} auto-released — 15 min since last scan`)
+      }
+    }, RELEASE_CHECK_MS)
+
+    return () => clearInterval(timer)
+  }, [])
 
   const go = (next: string) =>
     void navigate({ search: { view: ViewSchema.catch('unscheduled').parse(next) } })
