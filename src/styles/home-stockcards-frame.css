@@ -1,0 +1,16 @@
+/* Port-owned, hand-written, and kept out of `home.css`, which `tools/port/extract-css.ts` regenerates.
+   The companion to `stockcards-embed.css` — the same window, seen from the Trim side.
+
+   The frame carried its own border, radius and surface, which drew a second box inside a dialog that
+   already has one: a rounded rectangle around the cards with a hairline between it and the dialog's edge.
+   A hosted page is not a widget on the page; it is the page. So the frame is invisible and spans the
+   dialog, and the gutter is the embedded page's own (see the padding there). */
+[data-page='home'] .stockcards-frame {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+[data-page='home'] .stockcards-body {
+  padding: 0;
+}

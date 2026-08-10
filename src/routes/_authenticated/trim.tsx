@@ -67,6 +67,8 @@ import {
 } from '@/features/trim/ui'
 
 import '@/styles/home.css'
+// after the page's own sheet: the hosted Stock Cards window, seen from this side — see the file's note
+import '@/styles/home-stockcards-frame.css'
 
 /**
  * The prototype's six `.view` sections become one search param.
