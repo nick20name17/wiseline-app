@@ -134,6 +134,12 @@ export const wrappedQtyOf = (order: Order, lineId: number) =>
     .filter(pkg => pkg.locId != null)
     .reduce((total, pkg) => total + pkg.qty, 0)
 
+/** What one package weighs, which is what a location's occupant slot is holding for this order. */
+export const pkgWeightOf = (order: Order, pkg: { lineId: number; qty: number }) => {
+  const item = order.lineItems.find(candidate => candidate.id === pkg.lineId)
+  return item ? pkg.qty * unitWeight(item) : 0
+}
+
 export const leftToPackage = (order: Order, item: LineItem) =>
   item.qty - packagedQtyOf(order, item.id)
 

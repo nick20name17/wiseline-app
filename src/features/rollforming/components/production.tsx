@@ -14,6 +14,7 @@ import {
   supplierName
 } from '../selectors'
 import { rollformingStore } from '../store'
+import { openPackage, openSeePackages } from '../ui'
 import { EmptyState, GroupTabs, LineNoteButton, PriorityCell, StatusPill } from './bits'
 
 import type { Order } from '../types'
@@ -86,12 +87,20 @@ const ProductionRun = ({ order, index }: { order: Order; index: number }) => {
         ) : null}
         <span className='toolbar-spacer' />
         {packageCount ? (
-          <button className='btn btn-sm' data-comment={`prod-seepkg-${index}`}>
+          <button
+            className='btn btn-sm'
+            data-comment={`prod-seepkg-${index}`}
+            onClick={() => openSeePackages(order.id)}
+          >
             <Package style={{ width: '14px', height: '14px' }} />
             See packages ({packageCount})
           </button>
         ) : null}
-        <button className='btn btn-sm btn-primary' data-comment={`prod-createpkg-${index}`}>
+        <button
+          className='btn btn-sm btn-primary'
+          data-comment={`prod-createpkg-${index}`}
+          onClick={() => openPackage(order.id)}
+        >
           <Box style={{ width: '14px', height: '14px' }} />
           Create Package
         </button>

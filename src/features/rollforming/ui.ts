@@ -7,6 +7,7 @@ import { rollformingStore } from './store'
 
 import type { AssignCtx } from './components/assign'
 import type { CoilPickCtx } from './components/coil-pick'
+import type { PadCtx } from './components/keypad'
 import type { LotPickCtx } from './components/lot-pick'
 import type { NoteCtx } from './components/note-modal'
 
@@ -16,6 +17,9 @@ export type RollformingUi = {
   assign: AssignCtx | null
   coilPick: CoilPickCtx | null
   lotPick: LotPickCtx | null
+  pad: PadCtx | null
+  pkg: number | null
+  seePkg: number | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -32,6 +36,9 @@ export const rollformingUi = createStore<RollformingUi>({
   assign: null,
   coilPick: null,
   lotPick: null,
+  pad: null,
+  pkg: null,
+  seePkg: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -66,6 +73,15 @@ export const closeCoilPick = () => rollformingUi.set({ coilPick: null })
 
 export const openLotPick = (lotPick: LotPickCtx) => rollformingUi.set({ lotPick })
 export const closeLotPick = () => rollformingUi.set({ lotPick: null })
+
+export const openPad = (pad: PadCtx) => rollformingUi.set({ pad })
+export const closePad = () => rollformingUi.set({ pad: null })
+
+export const openPackage = (pkg: number) => rollformingUi.set({ pkg })
+export const closePackage = () => rollformingUi.set({ pkg: null })
+
+export const openSeePackages = (seePkg: number) => rollformingUi.set({ seePkg })
+export const closeSeePackages = () => rollformingUi.set({ seePkg: null })
 
 export const askConfirm = (
   title: string,
