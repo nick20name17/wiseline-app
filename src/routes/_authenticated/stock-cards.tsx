@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, Pencil, Plus, Printer, Search, SearchX, Trash2 } from 'lucide-react'
 
 import { viewingAsLabel } from '@/session/nav-visibility'
@@ -61,6 +61,7 @@ function Stockcards() {
   const [editing, setEditing] = useState<StockCard | null>(null)
   const [scanned, setScanned] = useState<StockCard | null>(null)
   const [confirm, setConfirm] = useState<Confirm>(null)
+  const [printing, setPrinting] = useState<StockCard[]>([])
 
   const cards = visibleCards(state)
   const total = state.stockCards.length
@@ -90,8 +91,33 @@ function Stockcards() {
   // the sheet the prototype builds is the cards themselves, laid out by print CSS
   const printSelected = () => {
     if (!selected) return
-    window.print()
+    setPrinting(state.stockCards.filter(card => state.selectedIds.includes(card.id)))
   }
+
+  // printing has to wait for the sheet — and its QRs — to be on the page, so it happens after the commit
+  useEffect(() => {
+    if (!printing.length) return
+
+    const root = document.getElementById('root')
+    root?.classList.add('is-printing-cards')
+
+    const done = () => {
+      root?.classList.remove('is-printing-cards')
+      setPrinting([])
+      // afterprint also fires on cancel, so the toast claims only what is known: it reached the dialog
+      show(
+        `${printing.length} ${printing.length === 1 ? 'card' : 'cards'} sent to the print dialog`
+      )
+    }
+
+    window.addEventListener('afterprint', done, { once: true })
+    window.print()
+
+    return () => {
+      window.removeEventListener('afterprint', done)
+      root?.classList.remove('is-printing-cards')
+    }
+  }, [printing, show])
 
   return (
     <>
@@ -260,8 +286,12 @@ function Stockcards() {
         </div>
       </div>
 
-      {/* filled by Print Selected, one card per page; hidden on screen */}
-      <div id='print-sheet' data-comment='print-sheet' />
+      {/* filled by Print Selected, eight cards per sheet; hidden on screen */}
+      <div id='print-sheet' data-comment='print-sheet'>
+        {printing.map(card => (
+          <StockCardFace card={card} ctx='print' key={card.id} />
+        ))}
+      </div>
 
       <NewCardModal
         key={formOpen ? `form-${editing?.id ?? 'new'}` : 'form-closed'}
@@ -271,7 +301,12 @@ function Stockcards() {
         onClose={() => setFormOpen(false)}
         onSaved={show}
       />
-      <CreateOrderModal key={`order-${scanned?.id ?? 'none'}`} card={scanned} onClose={() => setScanned(null)} onCreated={show} />
+      <CreateOrderModal
+        key={`order-${scanned?.id ?? 'none'}`}
+        card={scanned}
+        onClose={() => setScanned(null)}
+        onCreated={show}
+      />
       <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} />
       {popNode}
       <Toast message={toast.message} type={toast.type} shown={toast.shown} />

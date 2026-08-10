@@ -60,7 +60,6 @@
                 /* Breakpoints reference: sm 640 · md 768 · lg 1024 · xl 1280 */
             }
 
-            [data-page="home"],
             [data-page="home"] {
                 height: 100%;
             }
@@ -2120,7 +2119,7 @@
                anywhere else in Trim must still print the page it is looking at. */
             @media print {
                 @page { size: letter portrait; margin: 0.5in; }
-                [data-page="home"].is-printing-report body > *:not(#overlay-machinecap) { display: none !important; }
+                [data-page="home"].is-printing-report > *:not(#overlay-machinecap) { display: none !important; }
                 [data-page="home"].is-printing-report #overlay-machinecap { position: static; display: block !important; padding: 0; background: none; }
                 [data-page="home"].is-printing-report #overlay-machinecap .modal { max-width: none; width: 100%; border: none; border-radius: 0; box-shadow: none; }
                 [data-page="home"] .mcap-print-hide, [data-page="home"] .modal-x { display: none !important; }

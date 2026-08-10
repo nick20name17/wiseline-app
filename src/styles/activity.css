@@ -33,7 +33,7 @@
                 --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
             }
 
-            [data-page="activity"], [data-page="activity"] { height: 100%; }
+            [data-page="activity"] { height: 100%; }
             [data-page="activity"] {
                 font-family: var(--font-ui);
                 background: var(--bg);

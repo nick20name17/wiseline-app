@@ -22,6 +22,21 @@ const SKIP_AT_RULES = new Set([
   'charset'
 ])
 
+/**
+ * `html.is-printing-cards body > *` anchors at the root twice: the port's page attribute already stands
+ * for the prototype's `body`, so the second step has nothing left to match and the whole rule is dead —
+ * which is how both print stylesheets came across silently doing nothing.
+ */
+const dropStrandedBody = (sel: selectorParser.Selector) => {
+  sel.each(node => {
+    if (node.type !== 'tag' || node.value !== 'body' || node === sel.first) return
+
+    const before = node.prev()
+    node.remove()
+    if (before?.type === 'combinator' && before.value === ' ') before.remove()
+  })
+}
+
 export const scopeCss = (css: string, page: string) => {
   const scope = `[data-page="${page}"]`
 
@@ -34,10 +49,12 @@ export const scopeCss = (css: string, page: string) => {
         // `body .card` and `:root .card` are already anchored at the root — replace, don't nest
         if (first && ROOT_SELECTORS.has(String(first).trim())) {
           first.replaceWith(selectorParser.attribute({ attribute: `data-page="${page}"` } as never))
+          dropStrandedBody(sel)
           return
         }
         sel.prepend(selectorParser.combinator({ value: ' ' }))
         sel.prepend(selectorParser.attribute({ attribute: `data-page="${page}"` } as never))
+        dropStrandedBody(sel)
       })
     }).processSync(selector)
   }
@@ -47,7 +64,7 @@ export const scopeCss = (css: string, page: string) => {
   root.walkRules((rule: Rule) => {
     const parent = rule.parent
     if (parent?.type === 'atrule' && SKIP_AT_RULES.has((parent as { name: string }).name)) return
-    rule.selectors = rule.selectors.map(prefix)
+    rule.selectors = [...new Set(rule.selectors.map(prefix))]
   })
 
   return root.toString()
