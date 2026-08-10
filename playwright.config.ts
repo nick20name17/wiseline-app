@@ -28,7 +28,14 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `bunx vite dev --port ${PORT} --strictPort`,
+    /**
+     * The built app, not the dev server. Four workers hitting a cold `vite dev` at once made it
+     * re-optimize its deps mid-run, and a module request that fails while the page is mounting takes
+     * the role plumbing with it: the boards then rendered whoever they were seeded as, so the same
+     * three specs failed in parallel and passed with `--workers=1`. A build has nothing left to
+     * discover, and it is what the review portal serves anyway.
+     */
+    command: `bunx vite build && bunx vite preview --port ${PORT} --strictPort`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000

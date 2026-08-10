@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 
+import { DEPARTMENT_PAGE, landingFor, landingSearchFor } from '@/session/landing'
 import { ROLE_LABELS } from '@/session/nav-visibility'
 import { departmentsFor, isScoped, viewerStore, type Department, type Role } from '@/session/viewer'
 
@@ -13,30 +14,6 @@ const DEPARTMENT_LABELS: Record<Department, string> = {
   accessories: 'Accessories',
   shipping: 'Shipping'
 }
-
-/** Where a department scoped viewer belongs, and what «All departments» falls back to per role. */
-export const DEPARTMENT_PAGE: Record<Exclude<Department, 'all'>, string> = {
-  trim: '/trim',
-  rollforming: '/rollforming',
-  accessories: '/accessories',
-  shipping: '/shipping'
-}
-
-const LANDING: Record<Role, string> = {
-  admin: '/dashboard',
-  manager: '/dashboard',
-  worker: '/trim',
-  shipping: '/shipping',
-  driver: '/driver'
-}
-
-/** A Worker lands on the floor rather than on the board, which for Trim means Production. */
-const LANDING_SEARCH: Record<string, Record<string, string> | undefined> = {
-  worker: { view: 'production' }
-}
-
-const landingFor = (role: Role, department: Department) =>
-  isScoped(role) && department !== 'all' ? DEPARTMENT_PAGE[department] : LANDING[role]
 
 type Anchor = { left: number; bottom: number; minWidth: number }
 
@@ -75,7 +52,7 @@ export const RoleMenu = ({ anchor, onClose }: { anchor: Anchor; onClose: () => v
     const kept =
       next === 'worker' && department === 'shipping' ? 'all' : (department satisfies Department)
     viewerStore.set({ role: next, department: kept })
-    go(landingFor(next, kept), isScoped(next) && kept !== 'all' ? undefined : LANDING_SEARCH[next])
+    go(landingFor(next, kept), landingSearchFor(next, kept))
   }
 
   const pickDepartment = (next: Department) => {

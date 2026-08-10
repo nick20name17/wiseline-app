@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
-import { DEPARTMENT_PAGE } from '@/components/shell/role-menu'
+import { DEPARTMENT_PAGE } from '@/session/landing'
 import { isScoped, viewerStore } from '@/session/viewer'
 
 /**

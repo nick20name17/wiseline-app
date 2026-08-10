@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Lock, Mail } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
+import { landingFor, landingSearchFor } from '@/session/landing'
 import { usePage } from '@/session/use-page'
 
 import { departmentsFor, isScoped, viewerStore, type Department, type Role } from '@/session/viewer'
@@ -10,8 +11,12 @@ import '@/styles/login.css'
 
 export const Route = createFileRoute('/sign-in')({
   beforeLoad: () => {
-    if (viewerStore.get())
-      throw redirect({ to: landingFor(viewerStore.get()!.role, viewerStore.get()!.department) })
+    const viewer = viewerStore.get()
+    if (!viewer) return
+
+    const to = landingFor(viewer.role, viewer.department)
+    const search = landingSearchFor(viewer.role, viewer.department)
+    throw redirect(search ? { to, search } : { to })
   },
   component: SignIn
 })
@@ -32,25 +37,6 @@ const DEPARTMENT_LABELS: Record<Department, string> = {
   shipping: 'Shipping'
 }
 
-/** Where each role starts, and the department override — both straight from the prototype. */
-const LANDING: Record<Role, string> = {
-  admin: '/dashboard',
-  manager: '/dashboard',
-  worker: '/trim',
-  shipping: '/shipping',
-  driver: '/driver'
-}
-
-const DEPARTMENT_LANDING: Record<Exclude<Department, 'all'>, string> = {
-  trim: '/trim',
-  rollforming: '/rollforming',
-  accessories: '/accessories',
-  shipping: '/shipping'
-}
-
-const landingFor = (role: Role, department: Department) =>
-  isScoped(role) && department !== 'all' ? DEPARTMENT_LANDING[department] : LANDING[role]
-
 function SignIn() {
   usePage('login')
 
@@ -68,7 +54,10 @@ function SignIn() {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     viewerStore.set({ role, department })
-    void navigate({ to: landingFor(role, department) })
+
+    const to = landingFor(role, department)
+    const search = landingSearchFor(role, department)
+    void navigate(search ? { to, search } : { to })
   }
 
   return (
