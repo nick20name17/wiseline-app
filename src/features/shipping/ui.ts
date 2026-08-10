@@ -15,6 +15,8 @@ export type ShippingUi = {
   note: number | null
   truckNotes: boolean
   schedTruck: TruckCtx | null
+  /** The load whose Details / Route detail is open. */
+  load: number | null
   schedule: ScheduleCtx | null
   newPkg: NewPkgCtx | null
   /** The order whose Add-qty is being typed on the keypad. */
@@ -33,6 +35,7 @@ export const shippingUi = createStore<ShippingUi>({
   note: null,
   truckNotes: false,
   schedTruck: null,
+  load: null,
   schedule: null,
   newPkg: null,
   newPkgKp: null,
@@ -54,6 +57,9 @@ export const openSchedTruck = (schedTruck: TruckCtx) => {
 }
 
 export const closeSchedTruck = () => shippingUi.set({ schedTruck: null })
+
+export const openLoadModal = (load: number) => shippingUi.set({ load })
+export const closeLoadModal = () => shippingUi.set({ load: null })
 
 export const openSchedule = (schedule: ScheduleCtx) => shippingUi.set({ schedule })
 export const closeSchedule = () => shippingUi.set({ schedule: null })

@@ -1,5 +1,5 @@
 import { createStore } from '@/store/create-store'
-import { patchLoadSequence } from '@/store/shared/shipping'
+import { patchLoadSequence, patchLoadStatus, patchOrderStatus } from '@/store/shared/shipping'
 
 import { barcodeFor, loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
 import seed from './seed.json'
@@ -129,13 +129,8 @@ export const toggleSelectAllScheduled = (truckId: number, activeDay: string) => 
   })
 }
 
-/** Collapsing a truck card keeps the selection — the orders picked there are still the ones wanted. */
-export const toggleExpTruck = (truckId: number) =>
-  shippingStore.set(state => ({
-    expTruck: state.expTruck === truckId ? null : truckId,
-    loadFilter: null
-  }))
-
+/** `expTruck` is which truck's detail is focused; the prototype's inline-expand toggle for it is dead
+ * code there, since the card became a modal, so it is not ported. */
 export const setLoadFilter = (loadId: number, truckId: number) =>
   shippingStore.set(state => ({
     expTruck: truckId,
@@ -269,6 +264,78 @@ export const createNewPackages = (entries: { orderId: number; qty: number }[]) =
 
   for (const entry of wanted) recomputeLoadFor(entry.orderId)
   return barcodes
+}
+
+const patchLoad = (loadId: number, fields: Partial<Load>) =>
+  shippingStore.set(state => ({
+    loads: state.loads.map(load => (load.id === loadId ? { ...load, ...fields } : load))
+  }))
+
+export const setLoadTerm = (loadId: number, deliveryTerm: string) =>
+  patchLoad(loadId, { deliveryTerm })
+
+export const setLoadVehicle = (loadId: number, vehicle: string) => patchLoad(loadId, { vehicle })
+
+/** A stop dropped onto another takes that place, pushing the rest down — the prototype's splice order. */
+export const moveStopTo = (loadId: number, from: number, to: number) => {
+  const load = loadById(loadId)
+  if (!load || from === to) return
+
+  const sequence = [...load.sequence]
+  const [moved] = sequence.splice(from, 1)
+  if (moved === undefined) return
+  sequence.splice(to, 0, moved)
+
+  patchLoad(loadId, { sequence })
+  syncLoadSequence(loadId)
+}
+
+/** The arrow buttons swap with the neighbour rather than splicing — one step, not a re-insert. */
+export const moveStopBy = (loadId: number, index: number, direction: number) => {
+  const load = loadById(loadId)
+  if (!load) return
+
+  const target = index + direction
+  if (target < 0 || target >= load.sequence.length) return
+
+  const sequence = [...load.sequence]
+  const a = sequence[index] as number
+  const b = sequence[target] as number
+  sequence[index] = b
+  sequence[target] = a
+
+  patchLoad(loadId, { sequence })
+  syncLoadSequence(loadId)
+}
+
+/**
+ * Release To Loading hands the load to the warehouse at `Not Started`.
+ *
+ * It advances from there as packages are scanned onto the truck, which happens on the Loading station's
+ * screen — so the statuses go into the cross-page slice too, or the scanner would not know the load
+ * exists.
+ */
+export const releaseToLoading = (loadId: number) => {
+  const load = loadById(loadId)
+  if (!load || load.status !== 'unreleased') return false
+
+  shippingStore.set(state => ({
+    loads: state.loads.map(entry =>
+      entry.id === loadId ? { ...entry, status: 'notstarted' as LoadStatus } : entry
+    ),
+    orders: state.orders.map(order =>
+      load.orderIds.includes(order.id) ? { ...order, status: 'notstarted' as LoadStatus } : order
+    )
+  }))
+
+  const key = loadKeyForLoad(load)
+  if (key) patchLoadStatus(key, 'notstarted')
+  for (const orderId of load.orderIds) {
+    const order = orderById(orderId)
+    if (order) patchOrderStatus(order.order, 'notstarted')
+  }
+
+  return true
 }
 
 /** The delivery order, published for the driver under the key the other screens know the load by. */

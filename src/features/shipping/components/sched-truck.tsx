@@ -25,7 +25,7 @@ import {
   toggleSchedSel,
   toggleSelectAllScheduled
 } from '../store'
-import { openNewPackage, openSchedule, showToast } from '../ui'
+import { openLoadModal, openNewPackage, openSchedule, showToast } from '../ui'
 import {
   EmptyState,
   ExpandRow,
@@ -99,7 +99,11 @@ const TruckGrid = ({ truckId, activeDay }: { truckId: number; activeDay: string 
           >
             Clear filter
           </button>
-          <button className='btn btn-primary btn-sm' data-comment={`sch-openload-${truckId}`}>
+          <button
+            className='btn btn-primary btn-sm'
+            data-comment={`sch-openload-${truckId}`}
+            onClick={() => openLoadModal(filteredLoad.id)}
+          >
             <ArrowRight style={{ width: '14px', height: '14px' }} />
             Open Load · Route &amp; Release
           </button>
