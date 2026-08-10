@@ -167,7 +167,7 @@ export const NotePreviewRow = ({
 }
 
 /** The order's contents. The totals row is the order's own weight and length, not the lines' sum. */
-const LineItemsTable = ({ order, ctx }: { order: Order; ctx: string }) => {
+export const LineItemsTable = ({ order, ctx }: { order: Order; ctx: string }) => {
   const items = lineMeta(order)
 
   return (
