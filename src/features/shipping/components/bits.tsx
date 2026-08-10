@@ -2,8 +2,11 @@ import { Inbox, List, MapPin, MessageSquare, Truck } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { usePopover } from '@/components/shell/pop'
+
 import { lineMeta, loadStatusCls, loadStatusLabel, noteState, priorityById } from '../selectors'
-import { shippingStore } from '../store'
+import { setPriority, shippingStore } from '../store'
+import { openOrderNotes } from '../ui'
 
 import type { Order } from '../types'
 
@@ -39,18 +42,41 @@ export const EmptyState = ({
 /** Priority is the Manager's and the Shipping Manager's; Workers and Drivers read it and work to it. */
 export const PriorityCell = ({ order }: { order: Order }) => {
   const role = useStore(shippingStore, state => state.role)
+  const priorities = useStore(shippingStore, state => state.priorities)
+  const { openPop, popNode } = usePopover()
   const readOnly = role === 'worker'
-  const priority = priorityById(order.priorityId)
+  const priority = priorityById(order.priorityId, priorities)
 
   return (
-    <button
-      className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
-      {...(readOnly ? { title: 'Manager or Shipping Manager only' } : { 'data-pop-anchor': true })}
-      data-comment={`pri-${order.id}`}
-    >
-      <span className='pri-dot' />
-      {priority ? priority.name : readOnly ? 'No priority' : 'Set priority'}
-    </button>
+    <>
+      <button
+        className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
+        {...(readOnly
+          ? { title: 'Manager or Shipping Manager only' }
+          : { 'data-pop-anchor': true })}
+        data-comment={`pri-${order.id}`}
+        onClick={
+          readOnly
+            ? undefined
+            : event => {
+                event.stopPropagation()
+                openPop<number>(
+                  event.currentTarget,
+                  [
+                    ...priorities.map(entry => ({ label: entry.name, value: entry.id })),
+                    { label: 'No priority', value: 0 }
+                  ],
+                  value => setPriority(order.id, value || null),
+                  order.priorityId ?? 0
+                )
+              }
+        }
+      >
+        <span className='pri-dot' />
+        {priority ? priority.name : readOnly ? 'No priority' : 'Set priority'}
+      </button>
+      {popNode}
+    </>
   )
 }
 
@@ -61,7 +87,10 @@ export const NotesButton = ({ order }: { order: Order }) => {
     <button
       className={`note-btn ${state === 'unread' ? 'has-unread' : state === 'read' ? 'all-read' : ''}`}
       data-comment={`notes-${order.id}`}
-      onClick={event => event.stopPropagation()}
+      onClick={event => {
+        event.stopPropagation()
+        openOrderNotes(order.id)
+      }}
       title='Order notes'
     >
       <MessageSquare style={{ width: '14px', height: '14px' }} />
@@ -125,6 +154,7 @@ export const NotePreviewRow = ({
         <button
           className={`note-peek ${unread ? 'unread' : ''}`}
           data-comment={`${ctx}-notepeek-${order.id}`}
+          onClick={() => openOrderNotes(order.id)}
         >
           <MessageSquare style={{ width: '14px', height: '14px' }} />
           <span className='np-txt'>

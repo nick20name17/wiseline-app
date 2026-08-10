@@ -2,7 +2,7 @@ import { createStore } from '@/store/create-store'
 
 import seed from './seed.json'
 
-import type { ShippingState } from './types'
+import type { Order, ShippingState } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
 export const TODAY = '2026-07-14'
@@ -62,4 +62,38 @@ export const setLoadingDay = (day: string) => shippingStore.set({ loadingDay: da
 export const setPriority = (orderId: number, priorityId: number | null) =>
   shippingStore.set(state => ({
     orders: state.orders.map(order => (order.id === orderId ? { ...order, priorityId } : order))
+  }))
+
+const patchOrder = (orderId: number, patch: (order: Order) => Order) =>
+  shippingStore.set(state => ({
+    orders: state.orders.map(order => (order.id === orderId ? patch(order) : order))
+  }))
+
+/** Dealt-with is a toggle, not a one-way flag: a note can be reopened once it turns out it was not. */
+export const toggleOrderNote = (orderId: number, noteId: number) =>
+  patchOrder(orderId, order => ({
+    ...order,
+    notes: order.notes.map(note => (note.id === noteId ? { ...note, dealt: !note.dealt } : note))
+  }))
+
+/** A note the dispatcher writes here is already dealt with — they are the one dealing with it. */
+export const addOrderNote = (orderId: number, body: string) =>
+  patchOrder(orderId, order => ({
+    ...order,
+    notes: [
+      ...order.notes,
+      {
+        id: order.notes.reduce((highest, note) => Math.max(highest, note.id), 0) + 1,
+        author: 'Shipping Manager',
+        email: 'dispatch@wiseline.ca',
+        ts: 'Just now',
+        body,
+        dealt: true
+      }
+    ]
+  }))
+
+export const setTruckNotes = (truckId: number, notes: string) =>
+  shippingStore.set(state => ({
+    trucks: state.trucks.map(truck => (truck.id === truckId ? { ...truck, notes } : truck))
   }))
