@@ -25,11 +25,14 @@ import {
   supplierName
 } from '../selectors'
 import {
+  copyCoilNumber,
   rollformingStore,
   toggleCoilUnitSelect,
   toggleLineSelect,
+  toggleNeedsSlit,
   toggleSortByProductId
 } from '../store'
+import { openAssign, openBulkAssign } from '../ui'
 import { LineNoteButton } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -197,7 +200,10 @@ const CoilUnitTable = ({ order, item, ctx }: { order: Order; item: LineItem; ctx
                           className='icon-btn'
                           title='Copy Coil Number'
                           data-comment={`${ctx}-copycn-${item.id}-${index}`}
-                          onClick={event => event.stopPropagation()}
+                          onClick={event => {
+                            event.stopPropagation()
+                            copyCoilNumber(coil.coilNumber)
+                          }}
                         >
                           <Copy style={{ width: '14px', height: '14px' }} />
                         </button>
@@ -214,6 +220,7 @@ const CoilUnitTable = ({ order, item, ctx }: { order: Order; item: LineItem; ctx
                     className='icon-btn'
                     title={coil.needsSlit ? 'Needs Slit Line first' : 'Rolls off existing coil'}
                     data-comment={`${ctx}-slitbtn-${item.id}-${index}`}
+                    onClick={() => toggleNeedsSlit(order.id, item.id, index)}
                   >
                     {coil.needsSlit ? (
                       <Scissors
@@ -236,6 +243,13 @@ const CoilUnitTable = ({ order, item, ctx }: { order: Order; item: LineItem; ctx
                   <button
                     className='btn btn-sm'
                     data-comment={`${ctx}-assignact-${item.id}-${index}`}
+                    onClick={() =>
+                      openAssign({
+                        orderId: order.id,
+                        units: [{ lineId: item.id, coilIdx: index }],
+                        asCutlist: false
+                      })
+                    }
                   >
                     Assign
                   </button>
@@ -304,6 +318,7 @@ const LineToolbar = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: 
         className='btn btn-sm'
         data-comment={`${ctx}-assign-${item.id}`}
         disabled={!selectedForProfile}
+        onClick={() => openBulkAssign(order.id, false)}
       >
         Select Supplier / Coil Number{selectedForProfile ? ` (${selectedForProfile})` : ''}
       </button>
@@ -311,6 +326,7 @@ const LineToolbar = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: 
         className='btn btn-sm'
         data-comment={`${ctx}-cutlist-${item.id}`}
         disabled={!selectedForProfile}
+        onClick={() => openBulkAssign(order.id, true)}
       >
         Create Cutlist
       </button>
