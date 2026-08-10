@@ -104,8 +104,13 @@ export type Occupant = {
 export type Location = {
   id: number
   code: string
+  /** Warehouse number and department, which together with the code's first character place the cell. */
+  wh: number
+  dept: string
+  maxWeight: number
+  /** A cell that takes more than one order at a time — the Multi-Order model. */
+  maxOrders?: number
   occupants?: Occupant[]
-  [key: string]: unknown
 }
 
 /**

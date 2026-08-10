@@ -1,6 +1,6 @@
 import { rollformingStore, TODAY } from './store'
 
-import type { CoilUnit, LineItem, Order, Priority } from './types'
+import type { CoilUnit, LineItem, Location, Order, Priority } from './types'
 
 /**
  * Everything derived, under the prototype's own names, so its knowledge base still describes this code.
@@ -197,6 +197,76 @@ export const orderLocLabel = (order: Order, locations = rollformingStore.get().l
     )
   ]
   return ids.length ? ids.map(id => locName(id, locations)).join(', ') : '—'
+}
+
+/* -- warehouse locations -------------------------------------------------------------------------- */
+
+const locOccupants = (location: Location) => location.occupants ?? []
+
+export const locCurrentWeight = (location: Location) =>
+  locOccupants(location).reduce((sum, occupant) => sum + occupant.weight, 0)
+
+export const locOccupantCount = (location: Location) => locOccupants(location).length
+
+export const isMultiLocation = (location: Location) => (location.maxOrders || 1) > 1
+
+export const isLocationOverWeight = (location: Location) =>
+  locCurrentWeight(location) > location.maxWeight
+
+/**
+ * A single-order cell is full the moment anything sits on it. A multi-order cell fills by count or by
+ * weight, whichever runs out first — a bay with room for four orders is still full at its weight.
+ */
+export const isLocationFull = (location: Location) =>
+  isMultiLocation(location)
+    ? locOccupantCount(location) >= (location.maxOrders || 1) ||
+      locCurrentWeight(location) >= location.maxWeight
+    : locOccupantCount(location) >= 1
+
+/** Where an order is, oldest scan first — which is what makes "the earlier ones" a meaningful set. */
+export const orderOccupiedLocs = (orderId: number, locations = rollformingStore.get().locations) =>
+  locations
+    .flatMap(location => {
+      const occupant = locOccupants(location).find(entry => entry.orderId === orderId)
+      return occupant ? [{ id: location.id, ts: occupant.lastScanAt || 0 }] : []
+    })
+    .sort((a, b) => a.ts - b.ts)
+
+/** Every location of this order except the one filled last: finished, so do not add packages there. */
+export const isLocationLockedForOrder = (
+  orderId: number,
+  locationId: number,
+  locations = rollformingStore.get().locations
+) => {
+  const occupied = orderOccupiedLocs(orderId, locations)
+  const at = occupied.findIndex(entry => entry.id === locationId)
+  return at !== -1 && at !== occupied.length - 1
+}
+
+/** The columns of each department's grid: a code's first character says what kind of cell it is. */
+export const LOC_SCHEMES: Record<string, { prefix: string; label: string }[]> = {
+  Trim: [
+    { prefix: '1', label: '1 of 1' },
+    { prefix: '2', label: 'Wooden' },
+    { prefix: '3', label: 'Small' },
+    { prefix: '4', label: 'Medium' },
+    { prefix: '5', label: 'Large' },
+    { prefix: '6', label: 'Long' }
+  ],
+  Rollforming: [
+    { prefix: 'A', label: 'Rack' },
+    { prefix: 'B', label: 'Cart' },
+    { prefix: 'C', label: 'Lumber' },
+    { prefix: 'D', label: 'Lumber' },
+    { prefix: 'E', label: 'Long' }
+  ],
+  Accessories: [
+    { prefix: 'F', label: 'Rack' },
+    { prefix: 'G', label: 'Cart' },
+    { prefix: 'H', label: 'Lumber' },
+    { prefix: 'I', label: 'Lumber' },
+    { prefix: 'J', label: 'Long' }
+  ]
 }
 
 export const scheduledDays = (orders = rollformingStore.get().orders) => {
