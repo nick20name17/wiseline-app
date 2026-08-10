@@ -176,6 +176,28 @@ export const effectiveScanTs = (order: Order, now: number) => {
 
 export const AUTO_RELEASE_MS = 15 * 60 * 1000
 
+/**
+ * Which occupants have run out their fifteen minutes.
+ *
+ * Only an order whose countdown has actually started counts — `effectiveScanTs` returns null while the
+ * location is held until shipped, and that is not "overdue since the epoch".
+ */
+export const dueForRelease = (state = accessoriesStore.get(), now = Date.now()) => {
+  const due: { locationId: number; orderId: number; code: string }[] = []
+
+  for (const location of state.locations)
+    for (const occupant of location.occupants) {
+      const order = state.orders.find(entry => entry.id === occupant.orderId)
+      if (!order) continue
+
+      const last = effectiveScanTs(order, now)
+      if (last !== null && now - last >= AUTO_RELEASE_MS)
+        due.push({ locationId: location.id, orderId: occupant.orderId, code: location.code })
+    }
+
+  return due
+}
+
 export const fmtCountdown = (msLeft: number) => {
   const total = Math.max(0, Math.ceil(msLeft / 1000))
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
