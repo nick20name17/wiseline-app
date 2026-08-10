@@ -37,8 +37,21 @@ const dropStrandedBody = (sel: selectorParser.Selector) => {
   })
 }
 
-export const scopeCss = (css: string, page: string) => {
-  const scope = `[data-page="${page}"]`
+/**
+ * `hostClass` emits a second, stronger copy of a page's sheet for the case where that page is *hosted
+ * inside another one* — Stock Cards in Trim's dialog. Both pages then have rules for `.btn`, `.toolbar`
+ * and forty-one other shared classes, all at the same specificity, so which one wins would come down to
+ * the order the two chunks happened to load in — i.e. on where the viewer had been before. A class in
+ * front of the attribute settles it by specificity instead, whatever the order.
+ */
+export const scopeCss = (css: string, page: string, hostClass?: string) => {
+  const scope = `${hostClass ? `.${hostClass}` : ''}[data-page="${page}"]`
+
+  const anchor = () => {
+    const attribute = selectorParser.attribute({ attribute: `data-page="${page}"` } as never)
+    if (!hostClass) return [attribute]
+    return [selectorParser.className({ value: hostClass } as never), attribute]
+  }
 
   const prefix = (selector: string) => {
     if (ROOT_SELECTORS.has(selector.trim())) return scope
@@ -48,12 +61,14 @@ export const scopeCss = (css: string, page: string) => {
         const first = sel.first
         // `body .card` and `:root .card` are already anchored at the root — replace, don't nest
         if (first && ROOT_SELECTORS.has(String(first).trim())) {
-          first.replaceWith(selectorParser.attribute({ attribute: `data-page="${page}"` } as never))
+          const [head, ...rest] = anchor()
+          first.replaceWith(head!)
+          for (const node of rest) head!.parent?.insertAfter(head!, node)
           dropStrandedBody(sel)
           return
         }
         sel.prepend(selectorParser.combinator({ value: ' ' }))
-        sel.prepend(selectorParser.attribute({ attribute: `data-page="${page}"` } as never))
+        for (const node of anchor().reverse()) sel.prepend(node)
         dropStrandedBody(sel)
       })
     }).processSync(selector)

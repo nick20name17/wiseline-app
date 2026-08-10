@@ -12,6 +12,7 @@ import {
   Waypoints
 } from 'lucide-react'
 
+import { useGoto } from '@/session/goto'
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -70,6 +71,8 @@ const PipelinePart = ({
 )
 
 const DeptCard = ({ dept }: { dept: Dept }) => {
+  const goto = useGoto()
+
   const pct = Math.round((dept.load / dept.cap) * 100)
   const cls = capClass(pct)
 
@@ -133,9 +136,7 @@ const DeptCard = ({ dept }: { dept: Dept }) => {
         <button
           className='dcard-open'
           data-comment={`dcard-${dept.key}-open`}
-          onClick={() => {
-            window.location.href = dept.href
-          }}
+          onClick={() => goto(dept.href)}
         >
           Open
           <ArrowRight />
@@ -157,6 +158,7 @@ function Dashboard() {
 
   const state = useStore(dashboardStore, current => current)
   const viewer = useViewer()
+  const goto = useGoto()
 
   const term = state.searchTerm.trim().toLowerCase()
   const rows = state.dueOrders.filter(
@@ -325,9 +327,7 @@ function Dashboard() {
                           <tr
                             className={`due-row${order.overdue ? ' overdue' : ''}`}
                             data-comment={`due-row-${order.id}`}
-                            onClick={() => {
-                              window.location.href = deepLink(order)
-                            }}
+                            onClick={() => goto(deepLink(order))}
                             key={order.id}
                           >
                             <td className='mono-cell' data-comment={`due-cell-order-${order.id}`}>

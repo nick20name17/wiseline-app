@@ -14,6 +14,7 @@ import {
 
 import { useEffect } from 'react'
 
+import { useGoto } from '@/session/goto'
 import { ROLE_LABELS, viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -55,46 +56,48 @@ const TypeIcon = ({ type }: { type: string }) => {
   return <CircleDot />
 }
 
-const FeedRow = ({ event, flash }: { event: Event; flash: boolean }) => (
-  <div
-    className={`feed-row${flash ? ' flash' : ''}`}
-    data-comment={`activity-row-${event.id}`}
-    style={{ cursor: 'pointer' }}
-    onClick={() => {
-      window.location.href = DEPT_HREF[event.dept] ?? '/dashboard'
-    }}
-  >
-    <span
-      className={`feed-badge ${TYPE_CLASS[event.type]}`}
-      data-comment={`activity-badge-${event.id}`}
+const FeedRow = ({ event, flash }: { event: Event; flash: boolean }) => {
+  const goto = useGoto()
+
+  return (
+    <div
+      className={`feed-row${flash ? ' flash' : ''}`}
+      data-comment={`activity-row-${event.id}`}
+      style={{ cursor: 'pointer' }}
+      onClick={() => goto(DEPT_HREF[event.dept] ?? '/dashboard')}
     >
-      <TypeIcon type={event.type} />
-    </span>
-    <div className='feed-main' data-comment={`activity-main-${event.id}`}>
-      <div className='feed-line' data-comment={`activity-line-${event.id}`}>
-        <b data-comment={`activity-actor-${event.id}`}>{event.actor}</b>{' '}
-        <span data-comment={`activity-action-${event.id}`}>{event.action}</span>
-      </div>
-      <div className='feed-meta' data-comment={`activity-meta-${event.id}`}>
-        <span className='feed-dept-chip' data-comment={`activity-dept-tag-${event.id}`}>
-          {event.dept}
-        </span>
-        {event.targets.map((target, index) => (
-          <span
-            className='feed-pill mono'
-            data-comment={`activity-pill-${event.id}-${index}`}
-            key={target}
-          >
-            {target}
+      <span
+        className={`feed-badge ${TYPE_CLASS[event.type]}`}
+        data-comment={`activity-badge-${event.id}`}
+      >
+        <TypeIcon type={event.type} />
+      </span>
+      <div className='feed-main' data-comment={`activity-main-${event.id}`}>
+        <div className='feed-line' data-comment={`activity-line-${event.id}`}>
+          <b data-comment={`activity-actor-${event.id}`}>{event.actor}</b>{' '}
+          <span data-comment={`activity-action-${event.id}`}>{event.action}</span>
+        </div>
+        <div className='feed-meta' data-comment={`activity-meta-${event.id}`}>
+          <span className='feed-dept-chip' data-comment={`activity-dept-tag-${event.id}`}>
+            {event.dept}
           </span>
-        ))}
+          {event.targets.map((target, index) => (
+            <span
+              className='feed-pill mono'
+              data-comment={`activity-pill-${event.id}-${index}`}
+              key={target}
+            >
+              {target}
+            </span>
+          ))}
+        </div>
       </div>
+      <span className='feed-time mono' data-comment={`activity-time-${event.id}`}>
+        {relLabel(event)}
+      </span>
     </div>
-    <span className='feed-time mono' data-comment={`activity-time-${event.id}`}>
-      {relLabel(event)}
-    </span>
-  </div>
-)
+  )
+}
 
 /**
  * Every production event, as it happens, across all four departments.

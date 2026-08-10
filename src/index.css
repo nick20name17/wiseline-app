@@ -224,12 +224,25 @@ body {
   min-height: 100%;
 }
 
-/* #198: an embedded page is hosted in a frame, and a frame paints its own document behind whatever it
-   holds. The ported rules make the mount point transparent; the document above it is outside their
-   reach, so the modal's surface only shows through once these two are transparent as well. */
-html:has(#root.is-embed),
-html:has(#root.is-embed) body {
-  background: transparent;
+/* The sheet of stock cards prints the same whether it was selected on the Stock Cards page or in the
+   dialog Trim hosts, so these rules key on the print host rather than on which page it sits inside — the
+   page's own copy of them can only see its own page. `!important` answers the page's own `!important`,
+   and the id is what outranks it: the host is a child of `#root` that the page's rule would hide. */
+@media print {
+  #root.is-printing-cards > *:not(.wl-print-host) {
+    display: none !important;
+  }
+
+  #root.is-printing-cards > .wl-print-host {
+    display: block !important;
+  }
+
+  #root.is-printing-cards .wl-print-host #print-sheet {
+    display: grid !important;
+    grid-template-columns: repeat(2, 3.25in);
+    gap: 0.1in;
+    justify-content: center;
+  }
 }
 
 /* -- Number fields ------------------------------------------------------------------------------

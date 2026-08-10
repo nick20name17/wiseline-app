@@ -27,6 +27,12 @@ if (!demoDir) {
   process.exit(1)
 }
 
+/**
+ * Pages another page mounts inline, and the class that marks where. Each gets a second sheet scoped
+ * under that class, so its rules outrank the host's for the classes both define — see `scope.ts`.
+ */
+const HOSTED: Record<string, string> = { stockcards: 'wl-stockcards-host' }
+
 const outDir = join(import.meta.dir, '..', '..', 'src', 'styles')
 await mkdir(outDir, { recursive: true })
 
@@ -41,4 +47,10 @@ for (const file of files) {
   const page = file.replace(/\.html$/, '')
   await writeFile(join(outDir, `${page}.css`), `${scopeCss(css, page)}\n`)
   console.log(`${page}.css — ${(css.length / 1024).toFixed(1)} kB`)
+
+  const hostClass = HOSTED[page]
+  if (!hostClass) continue
+
+  await writeFile(join(outDir, `${page}.hosted.css`), `${scopeCss(css, page, hostClass)}\n`)
+  console.log(`${page}.hosted.css — under .${hostClass}`)
 }
