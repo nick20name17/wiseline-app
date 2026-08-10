@@ -25,7 +25,7 @@ import {
   priorityById
 } from '../selectors'
 import { markDelivered, setPriority, shippingStore } from '../store'
-import { openOrderNotes } from '../ui'
+import { openMapDetail, openOrderNotes } from '../ui'
 
 import type { Order } from '../types'
 
@@ -122,7 +122,10 @@ export const MapButton = ({ order }: { order: Order }) => (
   <button
     className='map-btn'
     data-comment={`map-${order.id}`}
-    onClick={event => event.stopPropagation()}
+    onClick={event => {
+      event.stopPropagation()
+      openMapDetail(order.id)
+    }}
     title='View on map'
   >
     <MapPin style={{ width: '14px', height: '14px' }} />

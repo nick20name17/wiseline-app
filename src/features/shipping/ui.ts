@@ -15,6 +15,9 @@ export type ShippingUi = {
   /** The order whose note thread is open. */
   note: number | null
   truckNotes: boolean
+  completed: boolean
+  /** The order shown on its own map. */
+  mapDetail: number | null
   schedTruck: TruckCtx | null
   loadTruck: LoadTruckCtx | null
   /** The load whose Details / Route detail is open. */
@@ -36,6 +39,8 @@ export type ShippingUi = {
 export const shippingUi = createStore<ShippingUi>({
   note: null,
   truckNotes: false,
+  completed: false,
+  mapDetail: null,
   schedTruck: null,
   loadTruck: null,
   load: null,
@@ -49,6 +54,12 @@ export const shippingUi = createStore<ShippingUi>({
 
 export const openOrderNotes = (note: number) => shippingUi.set({ note })
 export const closeOrderNotes = () => shippingUi.set({ note: null })
+
+export const openCompleted = () => shippingUi.set({ completed: true })
+export const closeCompleted = () => shippingUi.set({ completed: false })
+
+export const openMapDetail = (mapDetail: number) => shippingUi.set({ mapDetail })
+export const closeMapDetail = () => shippingUi.set({ mapDetail: null })
 
 export const openTruckNotes = () => shippingUi.set({ truckNotes: true })
 export const closeTruckNotes = () => shippingUi.set({ truckNotes: false })
