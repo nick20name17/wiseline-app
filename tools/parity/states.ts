@@ -18,6 +18,12 @@ export type State = {
   name: string
   /** `data-comment` values to click, in order. */
   clicks: string[]
+  /**
+   * Who is looking. Defaults to the Manager every other capture uses; `worker` is the only other one
+   * worth recording, because it is the role the boards actually hide things from — and until a state
+   * asked for it, every worker-only rule in the app was outside all three axes of the gate.
+   */
+  role?: 'manager' | 'worker'
 }
 
 export const STATES: State[] = [
@@ -415,6 +421,325 @@ export const STATES: State[] = [
     view: 'view-area',
     name: 'workdays',
     clicks: ['area-tab-workdays']
+  },
+
+  /* -- the Worker's own screens ------------------------------------------------------------------
+     A board reads its role from «Viewing as», and these are what it hides: Trim and Rollforming drop
+     tabs, priority and notes go read-only, and Rollforming grows a bar for its three stations. None of
+     it was inside the gate until these five states, because every other capture is a Manager. */
+  {
+    page: 'home',
+    view: 'view-production',
+    name: 'as-worker',
+    clicks: [],
+    role: 'worker'
+  },
+  {
+    page: 'home',
+    view: 'view-coils',
+    name: 'as-worker',
+    clicks: [],
+    role: 'worker'
+  },
+  {
+    page: 'rollforming',
+    view: 'view-production',
+    name: 'as-worker',
+    clicks: [],
+    role: 'worker'
+  },
+  {
+    page: 'rollforming',
+    view: 'view-queue',
+    name: 'as-worker-slitline',
+    clicks: ['actor-slw'],
+    role: 'worker'
+  },
+  {
+    // Packaging is the only view a Worker has here, the way Production is on Trim
+    page: 'accessories',
+    view: 'view-packaging',
+    name: 'as-worker',
+    clicks: [],
+    role: 'worker'
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'as-worker',
+    clicks: [],
+    role: 'worker'
+  },
+
+  /* -- one state per modal ----------------------------------------------------------------------
+     A modal is `display: none` until it opens and `collect.ts` records only what is visible, so every
+     anchor inside one sat outside all three axes — 875 of the prototype's 1408. The paths below were
+     derived by `discover-modals.ts` against the prototype; the last few are hand-walked, because their
+     triggers are the ones that script refuses to click. */
+  {
+    page: 'accessories',
+    view: 'view-unscheduled',
+    name: 'modal-dropdown',
+    clicks: ['pri-13']
+  },
+  {
+    page: 'accessories',
+    view: 'view-unscheduled',
+    name: 'modal-note',
+    clicks: ['note-btn-13']
+  },
+  {
+    page: 'accessories',
+    view: 'view-scheduled',
+    name: 'modal-calendar',
+    clicks: ['sch-exp-1', 'sch-reschedule-1']
+  },
+  {
+    page: 'accessories',
+    view: 'view-packaging',
+    name: 'modal-locpicker',
+    // «Select location» is disabled until a package has something in it, hence the auto-fill first
+    clicks: ['pkg-exp-1', 'autofill-101', 'selectloc-1']
+  },
+  {
+    page: 'accessories',
+    view: 'view-completed',
+    name: 'modal-alert',
+    clicks: ['comp-exp-9', 'loctag-9-126']
+  },
+  {
+    page: 'accessories',
+    view: 'view-completed',
+    name: 'modal-packages',
+    clicks: ['comp-exp-9', 'comp-seepkg-9']
+  },
+  {
+    page: 'coils',
+    view: null,
+    name: 'modal-coilfilter',
+    clicks: ['coils-filter-btn']
+  },
+  {
+    page: 'coils',
+    view: null,
+    name: 'modal-adjust',
+    clicks: ['coilg-exp-0', 'coil-adjust-3']
+  },
+  {
+    page: 'home',
+    view: 'view-home',
+    name: 'modal-calendar',
+    clicks: ['uns-daypicker']
+  },
+  {
+    page: 'home',
+    view: 'view-home',
+    name: 'modal-stockcards',
+    clicks: ['uns-stock-cards']
+  },
+  {
+    page: 'home',
+    view: 'view-home',
+    name: 'modal-stock',
+    clicks: ['uns-create-stock']
+  },
+  {
+    page: 'home',
+    view: 'view-home',
+    name: 'modal-dropdown',
+    clicks: ['priority-1']
+  },
+  {
+    page: 'home',
+    view: 'view-home',
+    name: 'modal-note',
+    clicks: ['note-btn-1']
+  },
+  {
+    page: 'home',
+    view: 'view-scheduled',
+    name: 'modal-machinecap',
+    clicks: ['sch-daytab-gear-2026-07-09']
+  },
+  {
+    page: 'home',
+    view: 'view-scheduled',
+    name: 'modal-allocstock',
+    clicks: ['sch-allocstock']
+  },
+  {
+    page: 'home',
+    view: 'view-coils',
+    name: 'modal-coilfilter',
+    clicks: ['coils-filter-btn']
+  },
+  {
+    page: 'home',
+    view: 'view-coils',
+    name: 'modal-cadjust',
+    clicks: ['coilg-exp-0', 'coil-thickness-3']
+  },
+  {
+    page: 'home',
+    view: 'view-completed',
+    name: 'modal-compdetail',
+    clicks: ['comp-row-11']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-home',
+    name: 'modal-mreq',
+    clicks: ['uns-mreq']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-home',
+    name: 'modal-kp',
+    clicks: ['uns-exp-1', 'uns-stockchk-108']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-production',
+    name: 'modal-note',
+    clicks: ['prod-linote-0-0']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'modal-calendar',
+    clicks: ['sch-exp-7', 'sch-reschedule-7']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-scheduled',
+    name: 'modal-assign',
+    clicks: ['sch-exp-7', 'sch-unitstockchk-115-0']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-production',
+    name: 'modal-pkg',
+    clicks: ['prod-createpkg-0']
+  },
+  {
+    page: 'rollforming',
+    view: 'view-completed',
+    name: 'modal-completed-detail',
+    clicks: ['comp-row-9']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'modal-form',
+    clicks: ['area-add']
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'modal-trucknotes',
+    clicks: ['uns-trucknotes']
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'modal-mapdetail',
+    clicks: ['map-6']
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'modal-notes',
+    clicks: ['notes-6']
+  },
+  {
+    page: 'shipping',
+    view: 'view-loading',
+    name: 'modal-loadtruck',
+    clicks: ['ldg-truckhead-101-2026-07-13']
+  },
+  {
+    page: 'stockcards',
+    view: null,
+    name: 'modal-dropdown',
+    clicks: ['stock-filter-btn']
+  },
+  {
+    page: 'stockcards',
+    view: null,
+    name: 'modal-newcard',
+    clicks: ['stock-new-btn']
+  },
+  {
+    page: 'stockcards',
+    view: null,
+    name: 'modal-createorder',
+    clicks: ['stock-card-1-qr']
+  },
+  {
+    page: 'warehouse',
+    view: null,
+    name: 'modal-dropdown',
+    clicks: ['wh-warehouse-select']
+  },
+  {
+    page: 'warehouse',
+    view: null,
+    name: 'modal-detail',
+    clicks: ['wh-tile-1']
+  },
+  {
+    page: 'coils',
+    view: null,
+    name: 'modal-usage',
+    clicks: ['coilg-total-0']
+  },
+  {
+    page: 'coils',
+    view: null,
+    name: 'modal-confirm',
+    clicks: ['coilg-exp-0', 'coil-deplete-3']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'modal-pkgmax',
+    clicks: ['area-tab-machines', 'mgroup-pkgmax-Trim']
+  },
+  {
+    page: 'settings',
+    view: 'view-area',
+    name: 'modal-suppliers',
+    clicks: ['area-tab-machines', 'mgroup-suppliers']
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'modal-schedule',
+    clicks: ['uns-chk-6', 'uns-schedule']
+  },
+  {
+    page: 'shipping',
+    view: 'view-scheduled',
+    name: 'modal-schedtruck',
+    clicks: ['sch-truck-101-all']
+  },
+  {
+    page: 'shipping',
+    view: 'view-loading',
+    name: 'modal-load',
+    clicks: ['ldg-loadpill-1']
+  },
+  {
+    page: 'shipping',
+    view: 'view-unscheduled',
+    name: 'modal-completed',
+    clicks: ['uns-completed']
+  },
+  {
+    page: 'stockcards',
+    view: null,
+    name: 'modal-confirm',
+    clicks: ['stock-card-1-delete']
   }
 ]
 

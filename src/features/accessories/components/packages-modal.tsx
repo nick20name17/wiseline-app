@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Printer, Trash2 } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
@@ -32,14 +33,15 @@ const LabelCard = ({ order, pkg }: { order: Order; pkg: Package }) => (
       const item = order.items.find(entry => entry.id === line.itemId)
 
       return (
-        <div key={line.itemId}>
+        // a Fragment, not a div: the prototype writes the two lines straight into the card
+        <Fragment key={line.itemId}>
           <div className='label-desc' data-comment={`lbl-desc-${pkg.seq}`}>
             {item ? item.description : line.productId}
           </div>
           <div className='label-qty' data-comment={`lbl-qty-${pkg.seq}`}>
             {line.qty} - {line.productId}
           </div>
-        </div>
+        </Fragment>
       )
     })}
     <div className='label-weight'>Weight: {pkg.weight.toFixed(1)} lbs.</div>

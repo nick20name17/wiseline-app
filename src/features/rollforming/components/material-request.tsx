@@ -123,8 +123,8 @@ export const MaterialRequestModal = ({ open, onClose }: { open: boolean; onClose
                   openPop<number>(
                     event.currentTarget,
                     [
-                      ...priorities.map(entry => ({ label: entry.name, value: entry.id })),
-                      { label: 'No priority', value: 0 }
+                      ...priorities.map(entry => ({ label: entry.name, value: entry.id, dot: `var(--${entry.cls})` })),
+                      { label: 'No priority', value: 0, dot: 'var(--text-subtle)' }
                     ],
                     value => setForm(current => ({ ...current, priorityId: value || null })),
                     form.priorityId ?? 0

@@ -7,6 +7,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { completedOrdersList } from '../selectors'
 import { accessoriesStore, toggleExpand } from '../store'
+import { openLocationPicker, openPackages } from '../ui'
 import { DetailField, EmptyState } from './bits'
 import { LocTags } from './locations'
 
@@ -84,12 +85,26 @@ const Subrow = ({ order }: { order: Order }) => (
         </table>
 
         <div className='pkgbuilder' data-comment={`comp-pkgbuilder-${order.id}`}>
-          <button className='btn' data-comment={`comp-selectloc-${order.id}`}>
+          <button
+            className='btn'
+            data-comment={`comp-selectloc-${order.id}`}
+            onClick={event => {
+              event.stopPropagation()
+              openLocationPicker(order.id)
+            }}
+          >
             <MapPin style={{ width: '14px', height: '14px' }} />
             Manage location
           </button>
           {order.packages.length ? (
-            <button className='btn' data-comment={`comp-seepkg-${order.id}`}>
+            <button
+              className='btn'
+              data-comment={`comp-seepkg-${order.id}`}
+              onClick={event => {
+                event.stopPropagation()
+                openPackages(order.id)
+              }}
+            >
               <Package style={{ width: '14px', height: '14px' }} />
               See packages
             </button>

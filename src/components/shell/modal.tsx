@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 import type { ReactNode } from 'react'
@@ -11,6 +12,11 @@ import type { ReactNode } from 'react'
  * happens to be open when the page is read.
  *
  * Clicking the backdrop and pressing Escape both close it, as they do there.
+ *
+ * It is portalled to `#root` — the port's stand-in for the prototype's `<body>` — because that is where
+ * the prototype keeps every overlay: a sibling of the app, not a descendant of the view that opened it.
+ * Rendered in place it still *looked* right, being `position: fixed`, and the gate said `body: 3 children
+ * became 2` the first time a state opened one.
  */
 export const Overlay = ({
   id,
@@ -35,7 +41,8 @@ export const Overlay = ({
     return () => document.removeEventListener('keydown', escaped)
   }, [open, onClose])
 
-  return (
+  const root = document.getElementById('root')
+  const overlay = (
     <div
       className={`overlay${open ? ' is-open' : ''}`}
       id={id}
@@ -47,6 +54,8 @@ export const Overlay = ({
       {children}
     </div>
   )
+
+  return root ? createPortal(overlay, root) : overlay
 }
 
 export const ModalHead = ({

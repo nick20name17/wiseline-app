@@ -75,11 +75,16 @@ not descend into it. That is the only place the gate looks away, and it is one l
 
 Three checks decide whether a page is done. They are mechanical; nothing is judged by eye.
 
-| Gate | Catches | Budget |
-| --- | --- | --- |
-| `data-comment` parity | a lost or renamed element — i.e. a review comment that can no longer be placed | exact |
-| structural diff | a hierarchy change a screenshot cannot show | first difference wins |
-| pixel diff | everything else | 0.1% |
+| Gate | Catches | Budget | Verdict |
+| --- | --- | --- | --- |
+| `data-comment` parity | a lost or renamed element — i.e. a review comment that can no longer be placed | exact | `✗`, fatal |
+| structural diff | a hierarchy change a screenshot cannot show | first difference wins | `✗`, fatal |
+| pixel diff | everything else | 0.1% | `⚠`, reported |
+
+**The pixel diff reports; it does not decide.** A percentage cannot tell a moved element from a map tile
+that had not arrived, and the two axes above are the ones a review comment actually depends on — so a
+screen that drifts past the budget prints `⚠` with the number and the run still passes. Do not stop
+reading it: all three cascade bugs in this file were found by that number and by nothing else.
 
 Both viewports every time: 1440 and 390.
 
@@ -87,10 +92,17 @@ A capture refuses to be recorded under a page the browser is not on: one run fil
 captures under the name of the page before them, and a mislabelled baseline compares two real screens
 against each other and reports nothing at all.
 
-The first two are the ones that must hold: they are the behaviour and the anchors, and a comment lands or
-does not. The pixel diff is a net, not a specification — it is how the three cascade bugs below were
-found, none of which was visible by eye. When it is the only one red and the cause is understood and
-cosmetic, say so and move on; do not spend a day on a sub-pixel.
+### Two things the gate could not see, and now can
+
+**Modals.** A modal is `display: none` until it opens and `collect.ts` records only what is visible, so
+every anchor inside one was outside all three axes — 875 of the prototype's 1408 literal anchors, most of
+them modal contents. `tools/parity/discover-modals.ts` finds the click that opens each one by trying them
+against the prototype, and prints the `states.ts` entries; it never clicks a name that reads like an
+action, so the few confirms and alerts are written by hand.
+
+**The Worker.** Every other capture is a Manager, which says nothing about the screens a board hides from
+a Worker. A state can now name a `role`, and `capture.ts` keeps a second browser context for it — an init
+script belongs to a context, which is why it is a context and not a `localStorage` call.
 
 ### Screens the default capture cannot reach
 

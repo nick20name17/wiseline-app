@@ -377,6 +377,8 @@ function Coils() {
 
       <UsageModal coil={usageCoil} onClose={() => setUsageOf(null)} />
       <AdjustModal
+        // keyed on the coil, so the keypad opens showing that coil's thickness rather than the last one's
+        key={`adjust-${adjustId ?? 'none'}`}
         coil={adjusting}
         onClose={() => setAdjustId(null)}
         onConfirm={question =>

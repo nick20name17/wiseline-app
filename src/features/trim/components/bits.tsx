@@ -1,7 +1,11 @@
 import { Inbox, MessageSquare } from 'lucide-react'
 
+import { useStore } from '@/store/create-store'
+
+import { usePopover } from '@/components/shell/pop'
+
 import { lineStatus, noteState, priorityById, productionStatus } from '../selectors'
-import { trimStore } from '../store'
+import { setPriority, trimStore } from '../store'
 import { openNotes, requestToggleReviewed } from '../ui'
 
 import type { LineItem, Order } from '../types'
@@ -40,26 +44,49 @@ export const EmptyState = ({
  * A Worker sees the priority and works to it but cannot set it (N-057). Releasing an order no longer
  * locks it either (#184) — a Manager can re-prioritise work already on the floor.
  */
-export const PriorityCell = ({
-  order,
-  onOpen
-}: {
-  order: Order
-  onOpen?: (event: React.MouseEvent, order: Order) => void
-}) => {
+export const PriorityCell = ({ order }: { order: Order }) => {
   const priority = priorityById(order.priorityId)
-  const readOnly = trimStore.get().role === 'worker'
+  // `useStore`, not `get()`: a read in render subscribes to nothing, so the cell never turned read-only
+  const role = useStore(trimStore, current => current.role)
+  const priorities = useStore(trimStore, current => current.priorities)
+  // the list opens from the cell itself, as it does on the other three boards; it used to take an
+  // `onOpen` that no caller passed, which made the Manager's own priority control a button that did
+  // nothing — and no capture could see it, because no state had ever opened the list
+  const { openPop, popNode } = usePopover()
+  const readOnly = role === 'worker'
 
   return (
-    <button
-      data-comment={`priority-${order.id}`}
-      className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
-      data-pop-anchor
-      onClick={readOnly ? undefined : event => onOpen?.(event, order)}
-    >
-      <span className='pri-dot' />
-      {priority ? priority.name : 'Set priority'}
-    </button>
+    <>
+      <button
+        data-comment={`priority-${order.id}`}
+        className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
+        data-pop-anchor
+        onClick={
+          readOnly
+            ? undefined
+            : event => {
+                event.stopPropagation()
+                openPop<number>(
+                  event.currentTarget,
+                  [
+                    ...priorities.map(entry => ({
+                      label: entry.name,
+                      value: entry.id,
+                      dot: `var(--${entry.cls})`
+                    })),
+                    { label: 'No priority', value: 0, dot: 'var(--text-subtle)' }
+                  ],
+                  value => setPriority(order.id, value || null),
+                  order.priorityId ?? 0
+                )
+              }
+        }
+      >
+        <span className='pri-dot' />
+        {priority ? priority.name : 'Set priority'}
+      </button>
+      {popNode}
+    </>
   )
 }
 

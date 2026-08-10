@@ -8,6 +8,8 @@ export type PopItem = {
   /** A taken product id, say: listed so it is visible, but not pickable. */
   disabled?: boolean
   badge?: string
+  /** A colour swatch before the label — what a priority list is read by before its name. */
+  dot?: string
 }
 
 type PopState = {
@@ -104,6 +106,7 @@ const Pop = ({ pop, onClose }: { pop: PopState; onClose: () => void }) => {
           }}
           key={item.value}
         >
+          {item.dot ? <span className='pri-dot' style={{ background: item.dot }} /> : null}
           <span>{item.label}</span>
           {item.badge ? (
             <span className='chip' style={{ marginLeft: 'auto' }}>

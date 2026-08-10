@@ -119,7 +119,8 @@ export const AdjustModal = ({
   onConfirm: (question: { title: string; desc: string; onOk: () => void }) => void
 }) => {
   const [field, setField] = useState<AdjustField>('thickness')
-  const [value, setValue] = useState('')
+  // the window opens on Coil Thickness showing what it currently is, not on an empty keypad
+  const [value, setValue] = useState(() => (coil?.thickness != null ? String(coil.thickness) : ''))
 
   const matThk = coil?.materialThickness ?? NaN
   const coreOD = coil?.coreOD ?? NaN

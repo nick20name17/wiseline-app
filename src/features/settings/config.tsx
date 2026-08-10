@@ -101,14 +101,25 @@ export const CONFIG: Record<string, AreaConfig> = {
         render: (row: Priority) => <span className='hier'>{row.hierarchy}</span>
       }
     ],
-    // no hierarchy field: a new priority lands at the bottom and is dragged to where it belongs,
-    // which is the same gesture that reorders the rest — asking for a number as well would let the
-    // two disagree
+    /**
+     * The Hierarchy number is asked for, even though the rows can also be dragged.
+     *
+     * The port left it out on the reasoning that a new priority can land at the bottom and be dragged
+     * to where it belongs, and that asking for a number as well lets the two disagree. The prototype
+     * asks — `hierarchy`, required, «1 = always top» — and it is the specification, so it asks here too.
+     */
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, ph: 'e.g. Now' },
-      { key: 'color', label: 'Colour', type: 'color', required: true }
+      { key: 'color', label: 'Colour', type: 'color', required: true },
+      {
+        key: 'hierarchy',
+        label: 'Hierarchy number (1 = always top)',
+        type: 'number',
+        required: true,
+        ph: 'e.g. 1'
+      }
     ],
-    defaults: () => ({ name: '', color: PALETTE[0] })
+    defaults: () => ({ name: '', color: PALETTE[0], hierarchy: 1 })
   },
   warehouses: {
     singular: 'warehouse',
@@ -212,7 +223,13 @@ export const CONFIG: Record<string, AreaConfig> = {
       }
     ],
     fields: [
-      { key: 'name', label: 'Name (globally unique)', type: 'text', required: true, ph: 'e.g. 206' },
+      {
+        key: 'name',
+        label: 'Name (globally unique)',
+        type: 'text',
+        required: true,
+        ph: 'e.g. 206'
+      },
       {
         key: 'warehouseId',
         label: 'Warehouse',
@@ -234,7 +251,13 @@ export const CONFIG: Record<string, AreaConfig> = {
             )
             .map(type => ({ value: type.id, label: type.name }))
       },
-      { key: 'maxWeight', label: 'Max weight (lb)', type: 'number', required: true, ph: 'e.g. 2000' },
+      {
+        key: 'maxWeight',
+        label: 'Max weight (lb)',
+        type: 'number',
+        required: true,
+        ph: 'e.g. 2000'
+      },
       { key: 'multiOrder', label: 'Multi-order location', type: 'toggle' },
       {
         key: 'numOrders',
@@ -256,7 +279,9 @@ export const CONFIG: Record<string, AreaConfig> = {
     }),
     // a location number is written on the floor, so it has to mean one place across every warehouse
     validate: (draft, editingId, state) => {
-      const name = String(draft.name ?? '').trim().toLowerCase()
+      const name = String(draft.name ?? '')
+        .trim()
+        .toLowerCase()
       const dup = state.locations.some(
         location => location.id !== editingId && location.name.trim().toLowerCase() === name
       )
@@ -335,7 +360,13 @@ export const CONFIG: Record<string, AreaConfig> = {
     fields: [
       { key: 'name', label: 'Name', type: 'text', required: true, ph: 'e.g. Unit 12' },
       { key: 'plate', label: 'Plate', type: 'text', ph: 'e.g. AK-2231' },
-      { key: 'maxWeight', label: 'Max weight (lb)', type: 'number', required: true, ph: 'e.g. 18000' }
+      {
+        key: 'maxWeight',
+        label: 'Max weight (lb)',
+        type: 'number',
+        required: true,
+        ph: 'e.g. 18000'
+      }
     ],
     defaults: () => ({ name: '', plate: '', maxWeight: 15000 })
   },
