@@ -276,22 +276,37 @@ export const SuppliersModal = ({
           onClose={onClose}
         />
         <div className='modal-body' id='suppliers-body' data-comment='suppliers-body'>
-          {suppliers.map((supplier, index) => (
-            <div className='mrow' data-comment={`supplier-row-${index}`} key={supplier}>
-              <span className='mrow-name' data-comment={`supplier-name-${index}`}>
-                {supplier}
-              </span>
-              <span className='toolbar-spacer' />
-              <button
-                className='icon-btn danger'
-                aria-label='Remove supplier'
-                data-comment={`supplier-del-${index}`}
-                onClick={() => setSuppliers(suppliers.filter(other => other !== supplier))}
+          <div
+            className='checklist'
+            data-comment='suppliers-list'
+            style={{ flexDirection: 'column', alignItems: 'stretch' }}
+          >
+            {suppliers.map((supplier, index) => (
+              <div
+                className='mrow'
+                data-comment={`supplier-row-${index}`}
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-sm)',
+                  marginBottom: '6px'
+                }}
+                key={supplier}
               >
-                <Trash2 style={{ width: '14px', height: '14px' }} />
-              </button>
-            </div>
-          ))}
+                <span className='mrow-name' data-comment={`supplier-name-${index}`}>
+                  {supplier}
+                </span>
+                <span className='toolbar-spacer' />
+                <button
+                  className='icon-btn danger'
+                  aria-label='Remove supplier'
+                  data-comment={`supplier-del-${index}`}
+                  onClick={() => setSuppliers(suppliers.filter(other => other !== supplier))}
+                >
+                  <Trash2 style={{ width: '14px', height: '14px' }} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
         <div className='modal-foot' data-comment='suppliers-foot'>
           <input

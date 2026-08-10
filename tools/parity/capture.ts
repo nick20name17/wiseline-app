@@ -83,7 +83,19 @@ const walk = async (browserPage: BrowserPage, clicks: string[]) => {
   for (const comment of clicks) {
     const target = browserPage.locator(`[data-comment="${comment}"]`).first()
     if (!(await target.count())) return comment
-    await target.click()
+
+    /**
+     * A click that cannot land is the same news as an anchor that is not there, and it must be reported
+     * the same way. It used to throw: one state pointed at a button that is `disabled` until a package
+     * has been built, and Playwright's thirty-second wait for it took a four-minute recording of every
+     * other screen down with it.
+     */
+    const landed = await target
+      .click({ timeout: 3000 })
+      .then(() => true)
+      .catch(() => false)
+    if (!landed) return `${comment} (unclickable)`
+
     await browserPage.waitForTimeout(250)
   }
   return null
@@ -107,6 +119,20 @@ for (const viewport of VIEWPORTS) {
   })
 
   /**
+   * The second person worth recording. A board reads its own role from «Viewing as», so a Manager's
+   * capture says nothing about the screens a Worker gets: narrower tab strips, read-only priority and
+   * notes, Rollforming's station bar. Its own context, because the role is set by an init script and
+   * an init script belongs to a context.
+   */
+  const workerContext = await browser.newContext({
+    viewport: { width: viewport.width, height: viewport.height }
+  })
+  await workerContext.addInitScript(() => {
+    localStorage.setItem('wl_role', 'worker')
+    localStorage.setItem('wl_dept', 'all')
+  })
+
+  /**
    * The one page that has to be looked at signed out — the port sends a signed-in viewer straight
    * past it. A second context rather than clearing storage, because the init script above runs again
    * on every navigation and would put the viewer back.
@@ -117,6 +143,10 @@ for (const viewport of VIEWPORTS) {
 
   const signedInPage = await context.newPage()
   const signedOutPage = await signedOutContext.newPage()
+  const workerPage = await workerContext.newPage()
+
+  /** Pages a state has left clicked-on; only a state clicks, so only a state pays for a reload. */
+  const dirty = new Set<BrowserPage>()
 
   for (const page of PAGES) {
     const name = pageName(page)
@@ -138,13 +168,22 @@ for (const viewport of VIEWPORTS) {
      * state leaves the page dirty, and only a dirty page has to be paid for with a reload: the
      * fifteen pages that have no states navigate exactly as often as they did before.
      */
-    let dirty = false
-
-    const open = async (view: string | null) => {
-      if (dirty) await browserPage.goto(url, { waitUntil: 'networkidle' })
-      dirty = false
+    /**
+     * Which pages a state has clicked on, per page rather than one flag for all of them.
+     *
+     * One flag was wrong the moment a state could run as somebody else: a Worker's state, recorded on its
+     * own page, cleared the flag the Manager's page had set — so the next Manager state inherited an
+     * expanded row. The prototype kept it, because a view change there is `navigate()` in the same
+     * document; the port dropped it, because a view change there is a URL. The two then disagreed about a
+     * screen neither of them was wrong about.
+     */
+    const open = async (view: string | null, on: BrowserPage = browserPage) => {
+      if (dirty.has(on) || on !== browserPage) {
+        await on.goto(url, { waitUntil: 'networkidle' })
+        dirty.delete(on)
+      }
       if (!view) return
-      await showView(browserPage, view, page)
+      await showView(on, view, page)
       // the prototype's view transition is 400ms, and a screenshot mid-fade is not a baseline
       await browserPage.waitForTimeout(600)
     }
@@ -152,7 +191,7 @@ for (const viewport of VIEWPORTS) {
     for (const view of views.length ? views : [null]) {
       await open(view)
 
-      const record = async (stateName: string | null) => {
+      const record = async (stateName: string | null, on: BrowserPage = browserPage) => {
         /**
          * Which page the browser is actually on, checked against the one being recorded.
          *
@@ -160,18 +199,37 @@ for (const viewport of VIEWPORTS) {
          * content was right and every label was wrong, so the gate compared real screens against
          * each other's baselines and said nothing. A baseline is only worth having if a mislabelled
          * one is impossible, and the browser already knows the answer.
+         *
+         * A disagreement skips the capture rather than ending the run: whatever went wrong, the other
+         * two hundred screens are still worth recording, and the gate reports a missing one as `⋯`.
          */
-        const here = await browserPage.evaluate(() => location.pathname)
+        const here = await on.evaluate(() => ({
+          path: location.pathname,
+          view: document.querySelector('.view.active')?.id ?? null
+        }))
         const expected = side === 'demo' ? `/${page.demo}` : page.route
-        if (here !== expected)
-          throw new Error(
-            `recording ${name} but the browser is on ${here}, not ${expected} — baseline would be mislabelled`
+        if (here.path !== expected) {
+          console.warn(
+            `skip ${name}__${view ?? 'page'}${stateName ? `+${stateName}` : ''} @ ${viewport.name} — on ${here.path}, expected ${expected}`
           )
+          return false
+        }
 
-        const collected = (await browserPage.evaluate(collectSource)) as Pick<
-          Capture,
-          'comments' | 'tree'
-        >
+        /**
+         * And the same question one level down: is this the view being recorded?
+         *
+         * A role can refuse one. Accessories gives a Worker nothing above Packaging, so a state that
+         * asked for Unscheduled as a Worker was answered with Packaging — and filed under the name of the
+         * screen nobody was looking at, 138 anchors deep. The path check could not see it.
+         */
+        if (view && here.view && here.view !== view) {
+          console.warn(
+            `skip ${name}__${view}${stateName ? `+${stateName}` : ''} @ ${viewport.name} — ${here.view} is on screen, not ${view}`
+          )
+          return false
+        }
+
+        const collected = (await on.evaluate(collectSource)) as Pick<Capture, 'comments' | 'tree'>
         // `page`, not a stringified null: a page with no views still has states worth naming
         const viewKey = stateName ? `${view ?? 'page'}+${stateName}` : view
         captures.push({ page: name, view: viewKey, viewport: viewport.name, ...collected })
@@ -184,39 +242,42 @@ for (const viewport of VIEWPORTS) {
          * wound back before the shot, on both sides, so the screenshot compares what was rendered
          * rather than which build destroys more of its DOM.
          */
-        await browserPage.evaluate(() => {
+        await on.evaluate(() => {
           for (const element of document.querySelectorAll('*'))
             if (element.scrollLeft) element.scrollLeft = 0
         })
 
         const shot = [name, viewKey ?? 'page', viewport.name].join('__')
         await mkdir(join(outputDir, 'shots'), { recursive: true })
-        await browserPage.screenshot({
+        await on.screenshot({
           path: join(outputDir, 'shots', `${shot}.png`),
           fullPage: true,
           animations: 'disabled'
         })
         console.log(`${shot}: ${collected.comments.length} data-comment`)
+        return true
       }
 
       await record(null)
 
       for (const state of statesFor(name, view)) {
-        await open(view)
+        const on = state.role === 'worker' ? workerPage : browserPage
+        await open(view, on)
 
-        dirty = true
-        const missed = await walk(browserPage, state.clicks)
+        dirty.add(on)
+        const missed = await walk(on, state.clicks)
         if (missed) {
           console.warn(`skip ${name}__${view}+${state.name} @ ${viewport.name} — no ${missed}`)
           continue
         }
-        await record(state.name)
+        await record(state.name, on)
       }
     }
   }
 
   await context.close()
   await signedOutContext.close()
+  await workerContext.close()
 }
 
 await browser.close()

@@ -32,13 +32,22 @@ export type Capture = {
 export const collectSource = `(${((ignoredTags: string[]) => {
   const skip = new Set(ignoredTags)
 
-  const ownText = (element: Element) =>
-    Array.from(element.childNodes)
+  const ownText = (element: Element) => {
+    const text = Array.from(element.childNodes)
       .filter(node => node.nodeType === 3)
       .map(node => node.textContent ?? '')
       .join('')
       .replace(/\s+/g, ' ')
       .trim()
+
+    /**
+     * A countdown is the clock, not the build. Warehouse shows how long a location has left before it
+     * frees itself, and the two sides are recorded minutes apart — «Auto-releases in 14:55» against
+     * «15:01» is a true statement about when each screenshot was taken and nothing about the port. The
+     * digits go; that the element is there, says this, and sits here does not.
+     */
+    return element.classList.contains('countdown') ? text.replace(/\d+:\d\d/g, '—:——') : text
+  }
 
   const visible = (element: Element) => {
     const style = getComputedStyle(element)

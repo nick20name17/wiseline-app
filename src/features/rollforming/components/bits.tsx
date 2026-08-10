@@ -91,8 +91,8 @@ export const PriorityCell = ({ order, readOnly }: { order: Order; readOnly?: boo
                 openPop<number>(
                   event.currentTarget,
                   [
-                    ...priorities.map(entry => ({ label: entry.name, value: entry.id })),
-                    { label: 'No priority', value: 0 }
+                    ...priorities.map(entry => ({ label: entry.name, value: entry.id, dot: `var(--${entry.cls})` })),
+                    { label: 'No priority', value: 0, dot: 'var(--text-subtle)' }
                   ],
                   value => setPriority(order.id, value || null),
                   order.priorityId ?? 0

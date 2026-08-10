@@ -144,15 +144,21 @@ type CoilGroup = {
 }
 
 export const Coils = () => {
-  const { coils, expandedCoilGroups } = useStore(trimStore, current => current)
+  const { coils, expandedCoilGroups, role } = useStore(trimStore, current => current)
   const [folder, setFolder] = useState('all')
   const [query, setQuery] = useState('')
 
   // seeded from the department's saved filter, then held here: applying it has to redraw the folders
   const [filter, setFilter] = useState(loadCoilFilter)
   const [filterOpen, setFilterOpen] = useState(false)
-  // he sees the filter and works within it, but cannot set it
-  const managersFilter = trimStore.get().role === 'worker'
+  /**
+   * He sees the filter and works within it, but cannot set it.
+   *
+   * Read through `useStore` and not `trimStore.get()`: a `get()` in render subscribes to nothing, so the
+   * button stayed on screen for a Worker — and the React Compiler, seeing no reactive input, is free to
+   * compute it once and never again.
+   */
+  const managersFilter = role === 'worker'
 
   if (!coils.length)
     return (

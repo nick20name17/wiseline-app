@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
 
@@ -15,7 +15,7 @@ import { Toast } from '@/components/shell/toast'
 import { Completed } from '@/features/accessories/components/completed'
 import { Packaging } from '@/features/accessories/components/packaging'
 import { Scheduled } from '@/features/accessories/components/scheduled'
-import { DeptBar } from '@/features/accessories/components/shell'
+import { canAccess, defaultView, DeptBar } from '@/features/accessories/components/shell'
 import { Unscheduled } from '@/features/accessories/components/unscheduled'
 import {
   completedOrdersList,
@@ -78,6 +78,15 @@ function Accessories() {
   const ui = useStore(accessoriesUi, current => current)
   const viewer = useViewer()
 
+  // the role changing can strand the viewer on a tab it no longer sees — as on Trim and Rollforming
+  const applied = useRef<string | null>(null)
+  useEffect(() => {
+    if (applied.current === state.role) return
+    applied.current = state.role
+    if (!canAccess(view, state.role))
+      void navigate({ search: { view: defaultView(state.role) as View } })
+  }, [state.role, view, navigate])
+
   // Packaging lists the same scheduled orders the Scheduled tab groups by day, so both counts are one
   const counts: Record<View, number> = {
     unscheduled: unscheduledOrders(state.orders).length,
@@ -122,6 +131,7 @@ function Accessories() {
           <DeptBar
             tabs={TABS.map(tab => ({ view: tab, label: VIEW_LABELS[tab], count: counts[tab] }))}
             activeView={view}
+            role={state.role}
             onNavigate={go}
           />
 
