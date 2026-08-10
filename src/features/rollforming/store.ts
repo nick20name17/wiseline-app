@@ -4,7 +4,16 @@ import { buildLineItem } from './line-item'
 import seed from './seed.json'
 import { showToast } from './ui'
 
-import { groupOf, queueGroups, queueGroupsSorted, supplierName } from './selectors'
+import { patchPackage } from '@/store/shared/shipping'
+
+import {
+  groupOf,
+  pkgWeightOf,
+  queueGroups,
+  queueGroupsSorted,
+  stockGateOk,
+  supplierName
+} from './selectors'
 
 import type { CoilUnit, Note, Order, RollformingState } from './types'
 import type { NoteCtx } from './components/note-modal'
@@ -17,6 +26,15 @@ export const DEPARTMENT = 'Rollforming'
 
 /** Production date capacity, in linear feet. */
 export const CAP_PER_DAY = 6000
+
+/**
+ * Soft package weight limit, in pounds.
+ *
+ * Local rather than the shared `wl_pkgmax_v1` Settings value that Trim and Accessories read: the
+ * prototype's Rollforming page hardcodes its own, and a steel panel bundle is nothing like a box of
+ * trim, so the number a Manager sets for Trim must not govern this screen.
+ */
+export const MAX_PKG_WEIGHT = 1400
 
 /**
  * `seed.json` is the prototype's own `store.get()`, dumped rather than retyped — see
@@ -191,6 +209,161 @@ export const createMaterialRequest = (form: {
 
   rollformingStore.set(state => ({ orders: [order, ...state.orders] }))
   return number
+}
+
+/* -- stock ---------------------------------------------------------------------------------------- */
+
+/**
+ * How many of a line's pieces come off the shelf. The count is kept, but what it means is which units
+ * carry `stock` — the tail ones, matching the canvas — so the two never disagree. A unit that becomes
+ * stock loses any slit request with it: it is not being rolled at all.
+ */
+export const setLineFromStock = (orderId: number, lineId: number, fromStock: number) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id !== orderId
+        ? order
+        : {
+            ...order,
+            lineItems: order.lineItems.map(item => {
+              if (item.id !== lineId) return item
+
+              const count = Math.max(0, Math.min(item.qty, fromStock))
+              const firstStockIdx = item.qty - count
+
+              return {
+                ...item,
+                fromStock: count,
+                coils: Array.from({ length: item.qty }, (_, index): CoilUnit => {
+                  const current =
+                    item.coils[index] ??
+                    ({
+                      supplierId: null,
+                      coilNumber: '',
+                      needsSlit: false,
+                      slitDone: false,
+                      workerAssigned: false,
+                      stock: false
+                    } as CoilUnit)
+
+                  return index >= firstStockIdx
+                    ? { ...current, stock: true, needsSlit: false, slitDone: false }
+                    : { ...current, stock: false }
+                })
+              }
+            })
+          }
+    )
+  }))
+
+/** Returns whether the unit was turned on, so the caller can ask *which* stock coil is being used. */
+export const toggleUnitStock = (orderId: number, lineId: number, coilIdx: number) => {
+  if (!stockGateOk(orderId)) return false
+  let turnedOn = false
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id !== orderId
+        ? order
+        : {
+            ...order,
+            lineItems: order.lineItems.map(item => {
+              if (item.id !== lineId) return item
+
+              const coils = item.coils.map((coil, index) => {
+                if (index !== coilIdx) return coil
+                if (coil.stock) return { ...coil, stock: false }
+                turnedOn = true
+                return { ...coil, stock: true, needsSlit: false, slitDone: false }
+              })
+
+              return { ...item, coils, fromStock: coils.filter(coil => coil.stock).length }
+            })
+          }
+    )
+  }))
+
+  return turnedOn
+}
+
+/* -- packages ------------------------------------------------------------------------------------- */
+
+/**
+ * One package per line that had a quantity typed. Sequence numbers never reuse and never reset: the
+ * barcode is printed on a label that may already be on a truck.
+ */
+export const createPackages = (orderId: number, lines: [number, number][]) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== orderId) return order
+
+      let seq = (order.packages || []).reduce((highest, pkg) => Math.max(highest, pkg.seq), 0)
+      const created = lines.map(([lineId, qty]) => {
+        seq += 1
+        return {
+          seq,
+          barcode: `02-${order.order}-${String(seq).padStart(2, '0')}`,
+          lineId,
+          qty,
+          locId: null,
+          customer: order.customer,
+          order: order.order,
+          po: `PO-${5000 + order.id}`
+        }
+      })
+
+      return { ...order, packages: [...(order.packages || []), ...created] }
+    })
+  }))
+
+/**
+ * Deleting a package puts its pieces back into Left To Package and invalidates the barcode.
+ *
+ * The package row itself is kept and flagged: the label exists in the world, so a later scan in
+ * Shipping has to be able to say it was deleted rather than that it was never printed. The weight it
+ * was holding is released from its location's occupant slot, and the slot itself goes if nothing else
+ * of this order is still there.
+ */
+export const deletePackage = (orderId: number, seq: number) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  const pkg = order?.packages.find(candidate => candidate.seq === seq)
+  if (!order || !pkg || pkg.deleted) return
+
+  const released = pkgWeightOf(order, pkg)
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(candidate =>
+      candidate.id !== orderId
+        ? candidate
+        : {
+            ...candidate,
+            packages: candidate.packages.map(entry =>
+              entry.seq === seq ? { ...entry, deleted: true, locId: null } : entry
+            )
+          }
+    ),
+    locations: pkg.locId
+      ? state.locations.map(location => {
+          if (location.id !== pkg.locId) return location
+
+          const stillThere = order.packages.some(
+            entry => entry.seq !== seq && entry.locId === pkg.locId && !entry.deleted
+          )
+          const occupants = stillThere
+            ? (location.occupants ?? []).map(occupant =>
+                occupant.orderId === orderId
+                  ? { ...occupant, weight: Math.max(0, occupant.weight - released) }
+                  : occupant
+              )
+            : (location.occupants ?? []).filter(occupant => occupant.orderId !== orderId)
+
+          return { ...location, occupants }
+        })
+      : state.locations
+  }))
+
+  patchPackage(pkg.barcode, { deleted: true })
+  showToast('Package deleted · barcode invalidated · status reverted')
 }
 
 /* -- coil assignment ----------------------------------------------------------------------------- */

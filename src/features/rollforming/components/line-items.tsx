@@ -27,12 +27,14 @@ import {
 import {
   copyCoilNumber,
   rollformingStore,
+  setLineFromStock,
+  toggleUnitStock,
   toggleCoilUnitSelect,
   toggleLineSelect,
   toggleNeedsSlit,
   toggleSortByProductId
 } from '../store'
-import { openAssign, openBulkAssign } from '../ui'
+import { openAssign, openBulkAssign, openPad, openSeePackages, showToast } from '../ui'
 import { LineNoteButton } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -55,6 +57,26 @@ type Ctx = 'uns' | 'sch'
  * becomes a read-only roll-up of those ticks and says nothing at all when none are ticked. Either way a
  * Material Request never has one: it *is* the raw coil.
  */
+/** Ticked on: ask how many. Ticked off: the whole line goes back to being made. */
+const toggleLineStock = (order: Order, item: LineItem) => {
+  if (!stockGateOk(order.id)) return
+
+  if ((item.fromStock || 0) > 0) {
+    setLineFromStock(order.id, item.id, 0)
+    showToast(`Stock cleared for ${item.profile} — full Qty To Produce restored`)
+    return
+  }
+
+  openPad({
+    kind: 'stock',
+    orderId: order.id,
+    lineId: item.id,
+    profile: item.profile,
+    max: item.qty,
+    value: item.fromStock || 0
+  })
+}
+
 const StockControl = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: Ctx }) => {
   const role = useStore(rollformingStore, state => state.role)
   if (order.originType === 'material_request') return null
@@ -88,7 +110,7 @@ const StockControl = ({ order, item, ctx }: { order: Order; item: LineItem; ctx:
         data-comment={`${ctx}-stockchk-${item.id}`}
         checked={!!fromStock}
         disabled={order.released || role === 'worker'}
-        onChange={() => {}}
+        onChange={() => toggleLineStock(order, item)}
       />
       <span className='switch-hint' data-comment={`${ctx}-stocklabel-${item.id}`}>
         {summary || 'Stock'}
@@ -164,7 +186,15 @@ const CoilUnitTable = ({ order, item, ctx }: { order: Order; item: LineItem; ctx
                     data-comment={`${ctx}-unitstockchk-${item.id}-${index}`}
                     checked={coil.stock}
                     title='Take this coil from Stock — opens Select Supplier / Coil Number'
-                    onChange={() => {}}
+                    onChange={() => {
+                      // the Manager records *which* stock coil is being consumed, so a tick asks
+                      if (toggleUnitStock(order.id, item.id, index))
+                        openAssign({
+                          orderId: order.id,
+                          units: [{ lineId: item.id, coilIdx: index }],
+                          asCutlist: false
+                        })
+                    }}
                   />
                 ) : coil.stock ? (
                   <Check style={{ width: '14px', height: '14px', color: 'var(--success)' }} />
@@ -297,7 +327,11 @@ const LineToolbar = ({ order, item, ctx }: { order: Order; item: LineItem; ctx: 
     return (
       <>
         <span className='toolbar-spacer' />
-        <button className='btn btn-sm' data-comment={`${ctx}-seepkg-${item.id}`}>
+        <button
+          className='btn btn-sm'
+          data-comment={`${ctx}-seepkg-${item.id}`}
+          onClick={() => openSeePackages(order.id)}
+        >
           <Package style={{ width: '14px', height: '14px' }} />
           See Packages
         </button>

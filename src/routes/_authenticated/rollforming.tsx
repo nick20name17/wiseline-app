@@ -29,7 +29,10 @@ import {
 } from '@/features/rollforming/selectors'
 import { AssignModal } from '@/features/rollforming/components/assign'
 import { CoilPickModal } from '@/features/rollforming/components/coil-pick'
+import { RfKeypad } from '@/features/rollforming/components/keypad'
 import { LotPickModal } from '@/features/rollforming/components/lot-pick'
+import { PackageModal } from '@/features/rollforming/components/package-modal'
+import { SeePackagesModal } from '@/features/rollforming/components/see-packages'
 import { MaterialRequestModal } from '@/features/rollforming/components/material-request'
 import { NoteModal } from '@/features/rollforming/components/note-modal'
 import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
@@ -40,6 +43,8 @@ import {
   closeConfirm,
   closeLotPick,
   closeMaterialRequest,
+  closePackage,
+  closeSeePackages,
   closeNotes,
   rollformingUi
 } from '@/features/rollforming/ui'
@@ -165,6 +170,10 @@ function Rollforming() {
       />
       <CoilPickModal ctx={ui.coilPick} onClose={closeCoilPick} />
       <LotPickModal ctx={ui.lotPick} onClose={closeLotPick} />
+      <PackageModal orderId={ui.pkg} onClose={closePackage} />
+      <SeePackagesModal orderId={ui.seePkg} onClose={closeSeePackages} />
+      {/* keyed per opening, so the pad starts on the value the row already carries */}
+      <RfKeypad key={ui.pad ? `${ui.pad.kind}-${ui.pad.lineId}` : 'kp'} ctx={ui.pad} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
