@@ -20,9 +20,16 @@ import {
   scheduledOrders,
   unscheduledOrders
 } from '@/features/accessories/selectors'
+import { CalendarModal } from '@/features/accessories/components/calendar-modal'
 import { NoteModal } from '@/features/accessories/components/note-modal'
 import { accessoriesStore, DEPARTMENT, setSearch } from '@/features/accessories/store'
-import { accessoriesUi, closeAlert, closeConfirm, closeNotes } from '@/features/accessories/ui'
+import {
+  accessoriesUi,
+  closeAlert,
+  closeConfirm,
+  closeNotes,
+  closeSchedule
+} from '@/features/accessories/ui'
 
 import '@/styles/accessories.css'
 
@@ -100,6 +107,12 @@ function Accessories() {
         </div>
       </div>
       <NoteModal ctx={ui.note} onClose={closeNotes} />
+      {/* keyed per opening: a reschedule starts on the day the order already has */}
+      <CalendarModal
+        key={ui.schedule ? JSON.stringify(ui.schedule) : 'cal'}
+        ctx={ui.schedule}
+        onClose={closeSchedule}
+      />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

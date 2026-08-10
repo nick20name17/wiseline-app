@@ -7,6 +7,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { matchesSearch, truckDisplay, unscheduledOrders } from '../selectors'
 import { accessoriesStore, toggleExpand, toggleLineSelect, toggleOrderSelect } from '../store'
+import { openScheduleEntire, openScheduleSplit } from '../ui'
 import {
   EmptyState,
   LineNoteButton,
@@ -37,6 +38,7 @@ const Subrow = ({ order }: { order: Order }) => {
               className='btn btn-sm'
               data-comment={`uns-split-${order.id}`}
               disabled={!splitCount}
+              onClick={() => openScheduleSplit(order.id)}
             >
               <Split style={{ width: '14px', height: '14px' }} />
               Schedule selected{splitCount ? ` (${splitCount})` : ''}
@@ -116,7 +118,12 @@ export const Unscheduled = () => {
           )}
         </span>
         <div className='toolbar-spacer' />
-        <button className='btn btn-primary' data-comment='uns-schedule' disabled={!selCount}>
+        <button
+          className='btn btn-primary'
+          data-comment='uns-schedule'
+          disabled={!selCount}
+          onClick={openScheduleEntire}
+        >
           <CalendarDays style={{ width: '14px', height: '14px' }} />
           Set Prep Date{selCount ? ` (${selCount})` : ''}
         </button>
