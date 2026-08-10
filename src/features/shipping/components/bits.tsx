@@ -1,11 +1,30 @@
-import { Inbox, List, MapPin, MessageSquare, Truck } from 'lucide-react'
+import {
+  Check,
+  Circle,
+  CircleCheck,
+  Inbox,
+  List,
+  Lock,
+  MapPin,
+  MessageSquare,
+  Package,
+  Truck
+} from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
 import { usePopover } from '@/components/shell/pop'
 
-import { lineMeta, loadStatusCls, loadStatusLabel, noteState, priorityById } from '../selectors'
-import { setPriority, shippingStore } from '../store'
+import {
+  barcodeFor,
+  lineMeta,
+  loadStatusCls,
+  loadStatusLabel,
+  noteState,
+  pkgMeta,
+  priorityById
+} from '../selectors'
+import { markDelivered, setPriority, shippingStore } from '../store'
 import { openOrderNotes } from '../ui'
 
 import type { Order } from '../types'
@@ -219,6 +238,115 @@ export const LineItemsTable = ({ order, ctx }: { order: Order; ctx: string }) =>
         </tfoot>
       </table>
     </>
+  )
+}
+
+/**
+ * How the order is packed, shown when a Loading row is expanded.
+ *
+ * Read-only: the ticks come from the warehouse scanning packages at the Loading station, not from
+ * anyone clicking here, and once the load is en route the column heading turns into a padlock to say
+ * that what went on the truck is now settled. `Mark Delivered` is the one thing this view can do.
+ */
+export const PackageExpandRow = ({
+  order,
+  ctx,
+  colSpan
+}: {
+  order: Order
+  ctx: string
+  colSpan: number
+}) => {
+  const locked = order.status === 'shipping' || order.status === 'delivered'
+  const packages = pkgMeta(order)
+
+  return (
+    <tr className='subrow' data-comment={`${ctx}-pkgsubrow-${order.id}`}>
+      <td colSpan={colSpan}>
+        <div className='subwrap' data-comment={`${ctx}-pkgsubwrap-${order.id}`}>
+          <div
+            data-comment={`${ctx}-pkgcap-${order.id}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '11px',
+              color: 'var(--text-subtle)',
+              padding: '2px 2px 6px 2px'
+            }}
+          >
+            <Package style={{ width: '14px', height: '14px' }} />
+            {locked
+              ? 'Packages that were loaded onto the truck — locked once the load is en route'
+              : 'Packages load as the warehouse scans them at the Loading station — read-only overview'}
+          </div>
+          <table className='pkg-table' data-comment={`${ctx}-pkgtable-${order.id}`}>
+            <thead>
+              <tr>
+                <th className='pkg-chkcell'>
+                  {locked ? <Lock style={{ width: '14px', height: '14px' }} /> : 'Load'}
+                </th>
+                <th>Package</th>
+                <th>Type</th>
+                <th>Contents</th>
+                <th className='num'>Pcs</th>
+                <th className='num'>Weight</th>
+                <th className='num'>Longest</th>
+              </tr>
+            </thead>
+            <tbody data-comment={`${ctx}-pkgtbody-${order.id}`}>
+              {packages.map((meta, index) => (
+                <tr
+                  className={meta.loaded ? 'is-loaded' : ''}
+                  data-comment={`${ctx}-pkg-${order.id}-${index}`}
+                  key={index}
+                >
+                  <td className='pkg-chkcell'>
+                    <span
+                      className={`pkg-status ${meta.loaded ? 'is-loaded' : ''}`}
+                      data-comment={`${ctx}-pkgstatus-${order.id}-${index}`}
+                      title={meta.loaded ? 'Loaded onto the truck' : 'Not yet loaded'}
+                    >
+                      {meta.loaded ? (
+                        <CircleCheck style={{ width: '14px', height: '14px' }} />
+                      ) : (
+                        <Circle style={{ width: '14px', height: '14px' }} />
+                      )}
+                    </span>
+                  </td>
+                  <td>
+                    <span className='pkg-name'>Package {index + 1}</span>
+                    <span className='pkg-bc' data-comment={`${ctx}-pkgbc-${order.id}-${index}`}>
+                      {barcodeFor(order.order, index + 1)}
+                    </span>
+                  </td>
+                  <td>{meta.type}</td>
+                  <td>{meta.contents}</td>
+                  <td className='num'>{meta.pcs}</td>
+                  <td className='num'>{meta.weight.toLocaleString('en-US')} lb</td>
+                  <td className='num'>{meta.length}&quot;</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {order.status === 'shipping' ? (
+            <button
+              className='btn btn-primary btn-sm'
+              data-comment={`${ctx}-deliver-${order.id}`}
+              onClick={() => markDelivered(order.id)}
+            >
+              <Check style={{ width: '14px', height: '14px' }} />
+              Mark Delivered
+            </button>
+          ) : order.status === 'delivered' ? (
+            <span className='status ss-delivered' data-comment={`${ctx}-delivered-${order.id}`}>
+              <span className='st-dot' />
+              Delivered
+            </span>
+          ) : null}
+        </div>
+      </td>
+    </tr>
   )
 }
 

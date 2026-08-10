@@ -237,6 +237,78 @@ export const pkgHash = (order: string, index: number) => {
   return n
 }
 
+const PKG_TYPES = ['Bundle', 'Skid', 'Crate']
+
+const PKG_CONTENTS = [
+  'Roof panels',
+  'Wall panels',
+  'Trim & flashing',
+  'Ridge cap',
+  'Gutter & downpipe',
+  'Fasteners & closures'
+]
+
+export type PkgMeta = {
+  type: string
+  contents: string
+  pcs: number
+  length: number
+  weight: number
+  loaded: boolean
+}
+
+/** How the order is packed, as against what is in it — one row per package the warehouse scans. */
+export const pkgMeta = (order: Order): PkgMeta[] => {
+  const count = order.packages.length
+  const out: PkgMeta[] = []
+  let accumulated = 0
+
+  for (let index = 0; index < count; index++) {
+    const hash = pkgHash(order.order, index)
+    const length =
+      index === 0
+        ? order.longestLength
+        : Math.max(24, Math.round(order.longestLength * (0.45 + (hash % 45) / 100)))
+
+    let weight: number
+    if (index < count - 1) {
+      weight = Math.max(50, Math.round((order.weight / count) * (0.75 + (hash % 50) / 100)))
+      accumulated += weight
+    } else {
+      // the last package carries the remainder, so the column sums to the order's weight
+      weight = Math.max(50, order.weight - accumulated)
+    }
+
+    out.push({
+      type: PKG_TYPES[hash % PKG_TYPES.length] as string,
+      contents: PKG_CONTENTS[Math.floor(hash / 7) % PKG_CONTENTS.length] as string,
+      pcs: 4 + (hash % 37),
+      length,
+      weight,
+      loaded: !!order.packages[index]?.loaded
+    })
+  }
+
+  return out
+}
+
+/** Ninety days of delivered orders, most recently shipped first. */
+export const completedOrders = (orders = shippingStore.get().orders) => {
+  const [year = 0, month = 1, day = 1] = TODAY.split('-').map(Number)
+  const cutoff = Date.UTC(year, month - 1, day) - 90 * 86400000
+
+  return orders
+    .filter(order => {
+      if (order.status !== 'delivered' || !order.shipDate) return false
+      const [y = 0, m = 1, d = 1] = order.shipDate.split('-').map(Number)
+      return Date.UTC(y, m - 1, d) >= cutoff
+    })
+    .sort((a, b) => (b.shipDate || '').localeCompare(a.shipDate || ''))
+}
+
+export const loadOverdue = (load: Load) =>
+  isPast(load.date) && load.status !== 'shipped' && load.status !== 'delivered'
+
 const LINE_PRODUCTS = [
   { id: 'PROOF26', desc: 'Roof Panel' },
   { id: 'PWALL26', desc: 'Wall Panel' },

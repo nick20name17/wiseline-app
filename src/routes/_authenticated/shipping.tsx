@@ -17,6 +17,7 @@ import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
 import { CalendarModal } from '@/features/shipping/components/calendar-modal'
 import { LoadModal } from '@/features/shipping/components/load-modal'
+import { LoadTruckModal } from '@/features/shipping/components/load-truck'
 import { NewPackageModal, NewPkgKeypad } from '@/features/shipping/components/new-package'
 import { NoteModal } from '@/features/shipping/components/note-modal'
 import { SchedTruckModal } from '@/features/shipping/components/sched-truck'
@@ -27,6 +28,7 @@ import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shippi
 import {
   closeCalendar,
   closeLoadModal,
+  closeLoadTruck,
   closeNewPackage,
   closeNewPkgKeypad,
   closeOrderNotes,
@@ -170,6 +172,7 @@ function Shipping() {
       <NoteModal orderId={ui.note} onClose={closeOrderNotes} />
       <TruckNotesModal open={ui.truckNotes} onClose={closeTruckNotes} />
       <SchedTruckModal ctx={ui.schedTruck} onClose={closeSchedTruck} />
+      <LoadTruckModal ctx={ui.loadTruck} onClose={closeLoadTruck} />
       {/* keyed per opening: each starts on Details with nothing expanded */}
       <LoadModal key={`load-${ui.load ?? 'none'}`} loadId={ui.load} onClose={closeLoadModal} />
       <NewPackageModal ctx={ui.newPkg} onClose={closeNewPackage} />

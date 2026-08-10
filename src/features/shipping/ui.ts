@@ -8,6 +8,7 @@ import { shippingStore } from './store'
 import type { CalCtx } from './components/calendar-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
 import type { NewPkgCtx } from './components/new-package'
+import type { LoadTruckCtx } from './components/load-truck'
 import type { TruckCtx } from './components/sched-truck'
 
 export type ShippingUi = {
@@ -15,6 +16,7 @@ export type ShippingUi = {
   note: number | null
   truckNotes: boolean
   schedTruck: TruckCtx | null
+  loadTruck: LoadTruckCtx | null
   /** The load whose Details / Route detail is open. */
   load: number | null
   schedule: ScheduleCtx | null
@@ -35,6 +37,7 @@ export const shippingUi = createStore<ShippingUi>({
   note: null,
   truckNotes: false,
   schedTruck: null,
+  loadTruck: null,
   load: null,
   schedule: null,
   newPkg: null,
@@ -57,6 +60,14 @@ export const openSchedTruck = (schedTruck: TruckCtx) => {
 }
 
 export const closeSchedTruck = () => shippingUi.set({ schedTruck: null })
+
+/** The Loading board's truck detail always starts By Truck, as the prototype's does. */
+export const openLoadTruck = (loadTruck: LoadTruckCtx) => {
+  shippingStore.set({ loadingSubTab: 'truck' })
+  shippingUi.set({ loadTruck })
+}
+
+export const closeLoadTruck = () => shippingUi.set({ loadTruck: null })
 
 export const openLoadModal = (load: number) => shippingUi.set({ load })
 export const closeLoadModal = () => shippingUi.set({ load: null })

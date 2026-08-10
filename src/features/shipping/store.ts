@@ -1,5 +1,10 @@
 import { createStore } from '@/store/create-store'
-import { patchLoadSequence, patchLoadStatus, patchOrderStatus } from '@/store/shared/shipping'
+import {
+  patchLoadSequence,
+  patchLoadStatus,
+  patchOrderStatus,
+  patchPackage
+} from '@/store/shared/shipping'
 
 import { barcodeFor, loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
 import seed from './seed.json'
@@ -336,6 +341,73 @@ export const releaseToLoading = (loadId: number) => {
   }
 
   return true
+}
+
+export const setLoadingSubTab = (loadingSubTab: string) => shippingStore.set({ loadingSubTab })
+
+export const toggleLoadingRowExpand = (key: number | string) =>
+  shippingStore.set(state => ({
+    expLoadingRows: state.expLoadingRows.includes(key)
+      ? state.expLoadingRows.filter(id => id !== key)
+      : [...state.expLoadingRows, key]
+  }))
+
+/**
+ * The truck pulls out: the load goes En Route and every stop on it with it.
+ *
+ * A stop already delivered is left alone — the seed has loads that ran partly yesterday — and the
+ * statuses go into the shared slice so the driver's screen and the warehouse agree on where it is.
+ */
+export const driverLeftWarehouse = (loadId: number) => {
+  const load = loadById(loadId)
+  if (!load || load.status !== 'loaded') return false
+
+  shippingStore.set(state => ({
+    loads: state.loads.map(entry =>
+      entry.id === loadId ? { ...entry, status: 'shipping' as LoadStatus, is_loaded: true } : entry
+    ),
+    orders: state.orders.map(order =>
+      load.orderIds.includes(order.id) && order.status !== 'delivered'
+        ? { ...order, status: 'shipping' as LoadStatus }
+        : order
+    )
+  }))
+
+  const key = loadKeyForLoad(load)
+  if (key) patchLoadStatus(key, 'shipping')
+  for (const orderId of load.orderIds) {
+    const order = orderById(orderId)
+    if (order && order.status !== 'delivered') patchOrderStatus(order.order, 'shipping')
+  }
+
+  return true
+}
+
+/**
+ * A stop signed for. Its packages are marked loaded *and* delivered — the driver cannot have handed
+ * over a package that never went on the truck, and the warehouse's release countdown reads that flag.
+ */
+export const markDelivered = (orderId: number) => {
+  shippingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id === orderId ? { ...order, status: 'delivered' as LoadStatus } : order
+    )
+  }))
+  recomputeLoadFor(orderId)
+
+  const order = orderById(orderId)
+  if (!order) return
+
+  patchOrderStatus(order.order, 'delivered')
+  order.packages.forEach((_, index) =>
+    patchPackage(barcodeFor(order.order, index + 1), { loaded: true, delivered: true })
+  )
+
+  if (order.loadId) {
+    const load = loadById(order.loadId)
+    const key = load && loadKeyForLoad(load)
+    if (key && load) patchLoadStatus(key, load.status)
+  }
 }
 
 /** The delivery order, published for the driver under the key the other screens know the load by. */
