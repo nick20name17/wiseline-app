@@ -3,11 +3,12 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
-import { rollformingStore } from './store'
+import { rollformingStore, setReviewed } from './store'
 
 import type { AssignCtx } from './components/assign'
 import type { CoilPickCtx } from './components/coil-pick'
 import type { PadCtx } from './components/keypad'
+import type { ScheduleCtx } from './components/calendar-modal'
 import type { LocCtx } from './components/location-picker'
 import type { LotPickCtx } from './components/lot-pick'
 import type { NoteCtx } from './components/note-modal'
@@ -22,6 +23,7 @@ export type RollformingUi = {
   pkg: number | null
   seePkg: number | null
   loc: LocCtx | null
+  schedule: ScheduleCtx | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -42,6 +44,7 @@ export const rollformingUi = createStore<RollformingUi>({
   pkg: null,
   seePkg: null,
   loc: null,
+  schedule: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -88,6 +91,23 @@ export const closeSeePackages = () => rollformingUi.set({ seePkg: null })
 
 export const openLocationPicker = (loc: LocCtx) => rollformingUi.set({ loc })
 export const closeLocationPicker = () => rollformingUi.set({ loc: null })
+
+export const openSchedule = (schedule: ScheduleCtx) => rollformingUi.set({ schedule })
+export const closeSchedule = () => rollformingUi.set({ schedule: null })
+
+/** Turning Reviewed off costs the order its place in Export/Release, so only that direction asks. */
+export const requestToggleReviewed = (order: { id: number; order: string; reviewed: boolean }) => {
+  if (!order.reviewed) return setReviewed(order.id, true)
+
+  askConfirm(
+    'Turn off Reviewed?',
+    `Order ${order.order} will no longer be selectable for Export / Release To Production.`,
+    () => {
+      setReviewed(order.id, false)
+      closeConfirm()
+    }
+  )
+}
 
 export const askConfirm = (
   title: string,

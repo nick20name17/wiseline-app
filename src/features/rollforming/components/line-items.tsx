@@ -34,7 +34,14 @@ import {
   toggleNeedsSlit,
   toggleSortByProductId
 } from '../store'
-import { openAssign, openBulkAssign, openPad, openSeePackages, showToast } from '../ui'
+import {
+  openAssign,
+  openBulkAssign,
+  openPad,
+  openSchedule,
+  openSeePackages,
+  showToast
+} from '../ui'
 import { LineNoteButton } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -397,6 +404,15 @@ export const LineItemsSubrow = ({
                 className='btn btn-sm'
                 data-comment={`${ctx}-split-${order.id}`}
                 disabled={!splitCount}
+                onClick={() =>
+                  openSchedule({
+                    mode: 'split',
+                    orderId: order.id,
+                    lineIds: selectedLineIds,
+                    order: order.order,
+                    total: order.lineItems.length
+                  })
+                }
               >
                 <Split style={{ width: '14px', height: '14px' }} />
                 Split order{splitCount ? ` (${splitCount})` : ''}
@@ -414,6 +430,15 @@ export const LineItemsSubrow = ({
                   className='btn btn-sm'
                   data-pop-anchor
                   data-comment={`sch-reschedule-${order.id}`}
+                  onClick={event => {
+                    event.stopPropagation()
+                    openSchedule({
+                      mode: 'reschedule',
+                      orderId: order.id,
+                      order: order.order,
+                      current: order.productionDate
+                    })
+                  }}
                 >
                   <Calendar style={{ width: '14px', height: '14px' }} />
                   Reschedule / Unschedule
