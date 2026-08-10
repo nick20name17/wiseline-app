@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { Construction, MessageSquare, Search } from 'lucide-react'
 import * as z from 'zod'
@@ -41,6 +42,7 @@ import {
   closeTruckNotes,
   shippingUi
 } from '@/features/shipping/ui'
+import { hydrateFromShared } from '@/features/shipping/hydrate'
 import { useTableShadows } from '@/features/shipping/use-table-shadows'
 
 import '@/styles/shipping.css'
@@ -115,6 +117,22 @@ function Shipping() {
   const state = useStore(shippingStore, current => current)
   const ui = useStore(shippingUi, current => current)
   const viewer = useViewer()
+
+  /**
+   * Read what the other screens have done, and listen for them doing more.
+   *
+   * The prototype re-runs this after every render; here it is mount plus the `storage` event, which is
+   * the only way a sibling page can change the slice while this one is open.
+   */
+  useEffect(() => {
+    hydrateFromShared()
+
+    const changed = (event: StorageEvent) => {
+      if (event.key === 'wl_ship_state_v1') hydrateFromShared()
+    }
+    window.addEventListener('storage', changed)
+    return () => window.removeEventListener('storage', changed)
+  }, [])
 
   const go = (next: string) =>
     void navigate({ search: { view: ViewSchema.catch('unscheduled').parse(next) } })

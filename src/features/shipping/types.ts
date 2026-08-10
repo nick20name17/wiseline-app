@@ -70,7 +70,7 @@ export type Order = {
   truckId: number | null
   loadId: number | null
   status: LoadStatus | ''
-  packages: { loaded: boolean }[]
+  packages: { loaded: boolean; delivered?: boolean }[]
   notes: Note[]
 }
 
