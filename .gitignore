@@ -38,5 +38,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# port captures are regenerated; the demo baseline is committed
-parity/port/
+# Both sides of the parity gate are regenerated from the prototype and the port; committing the
+# baseline cost 120 MB of screenshots and one 800k-line JSON per capture.
+parity/
