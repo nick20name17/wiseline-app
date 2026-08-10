@@ -9,6 +9,7 @@ import {
 import { barcodeFor, loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
 import seed from './seed.json'
 
+import type { DeptRole } from '@/session/dept-role'
 import type { Load, LoadStatus, Order, ShippingState } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
@@ -24,6 +25,9 @@ export const DEPARTMENT = 'Shipping'
 export const shippingStore = createStore<ShippingState>(seed as unknown as ShippingState)
 
 export const setSearch = (search: string) => shippingStore.set({ search })
+
+/** Follows the sidebar's «Viewing as» — see `useDeptRole`. */
+export const setDeptRole = (role: DeptRole) => shippingStore.set({ role })
 
 /** The per-truck grid's own search, which narrows only that grid. */
 export const setSchSearch = (schSearch: string) => shippingStore.set({ schSearch })

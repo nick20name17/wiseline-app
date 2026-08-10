@@ -4,6 +4,7 @@ import { patchPackage } from '@/store/shared/shipping'
 
 import seed from './seed.json'
 
+import type { DeptRole } from '@/session/dept-role'
 import type { AccessoriesState, LineItem, Note, Package } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
@@ -15,6 +16,9 @@ export const DEPARTMENT = 'Accessories'
 export const accessoriesStore = createStore<AccessoriesState>(seed as unknown as AccessoriesState)
 
 export const setSearch = (search: string) => accessoriesStore.set({ search })
+
+/** Follows the sidebar's «Viewing as» — see `useDeptRole`. */
+export const setDeptRole = (role: DeptRole) => accessoriesStore.set({ role })
 
 export const toggleExpand = (orderId: number) =>
   accessoriesStore.set(state => ({

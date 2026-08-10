@@ -7,6 +7,7 @@ import { PRODUCT_CATALOG } from './catalog'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
+import type { DeptRole } from '@/session/dept-role'
 import type { Note, TrimState } from './types'
 
 /**
@@ -31,6 +32,9 @@ export const trimStore = createStore<TrimState>({
 })
 
 export const setSearch = (searchTerm: string) => trimStore.set({ searchTerm })
+
+/** Follows the sidebar's «Viewing as» — see `useDeptRole`. */
+export const setDeptRole = (role: DeptRole) => trimStore.set({ role })
 
 export const toggleExpand = (orderId: number) =>
   trimStore.set(state => ({

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
 
+import { useDeptRole } from '@/session/dept-role'
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -30,6 +31,7 @@ import {
   accessoriesStore,
   DEPARTMENT,
   removeLocation,
+  setDeptRole,
   setSearch
 } from '@/features/accessories/store'
 import {
@@ -67,6 +69,7 @@ export const Route = createFileRoute('/_authenticated/accessories')({
 
 function Accessories() {
   usePage('accessories')
+  useDeptRole(setDeptRole)
 
   const { view } = Route.useSearch()
   const navigate = Route.useNavigate()
