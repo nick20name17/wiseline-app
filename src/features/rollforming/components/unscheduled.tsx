@@ -13,6 +13,7 @@ import {
   unscheduledOrders
 } from '../selectors'
 import { rollformingStore, toggleExpand, toggleOrderSelect } from '../store'
+import { openMaterialRequest } from '../ui'
 import { EmptyState, GroupTabs, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -44,7 +45,7 @@ export const Unscheduled = () => {
           )}
         </span>
         <div className='toolbar-spacer' />
-        <button className='btn' data-comment='uns-mreq'>
+        <button className='btn' data-comment='uns-mreq' onClick={openMaterialRequest}>
           <Plus style={{ width: '14px', height: '14px' }} />
           New Material Request
         </button>
