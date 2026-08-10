@@ -56,7 +56,7 @@ export const ShipMap = () => {
 
   const counts: Partial<Record<MapCat, number>> = {}
   for (const order of orders) {
-    if (!orderMatchesSearch(order)) continue
+    if (!orderMatchesSearch(order, search)) continue
     const cat = orderMapCat(order)
     counts[cat] = (counts[cat] ?? 0) + 1
   }
@@ -85,7 +85,7 @@ export const ShipMap = () => {
     markers.current = []
 
     for (const order of orders) {
-      if (!orderMatchesSearch(order)) continue
+      if (!orderMatchesSearch(order, search)) continue
       const cat = orderMapCat(order)
       if (!active.has(cat)) continue
       const coords = coordsOf(order)

@@ -58,10 +58,11 @@ const iso = (year: number, month: number, day: number) =>
  */
 const SchedCalendar = ({ active }: { active: string }) => {
   const { month, year } = useStore(schedCalStore, state => state)
-  useStore(shippingStore, state => state.orders)
+  const orders = useStore(shippingStore, state => state.orders)
+  const loads = useStore(shippingStore, state => state.loads)
 
   const scheduled = new Set(
-    scheduledOrders()
+    scheduledOrders(orders, loads)
       .map(order => order.shipDate)
       .filter(Boolean)
   )
@@ -104,7 +105,7 @@ const SchedCalendar = ({ active }: { active: string }) => {
           const cls = [
             date === TODAY ? 'today' : '',
             isSched ? 'scheduled' : '',
-            dateOverdue(date) ? 'overdue' : '',
+            dateOverdue(date, orders) ? 'overdue' : '',
             date === active ? 'selected' : ''
           ].join(' ')
 
@@ -137,11 +138,14 @@ const SchedCalendar = ({ active }: { active: string }) => {
 
 /** One truck's day: what is on it, what it can carry, and what is not yet on a Load. */
 const TruckCard = ({ truckId, active }: { truckId: number; active: string }) => {
-  const truck = truckById(truckId)
+  const allOrders = useStore(shippingStore, state => state.orders)
+  const allLoads = useStore(shippingStore, state => state.loads)
+  const trucks = useStore(shippingStore, state => state.trucks)
+  const truck = truckById(truckId, trucks)
   if (!truck) return null
 
-  const scope =
-    active === 'all' ? scheduledOrders() : scheduledOrders().filter(o => o.shipDate === active)
+  const all = scheduledOrders(allOrders, allLoads)
+  const scope = active === 'all' ? all : all.filter(o => o.shipDate === active)
   const orders = scope.filter(order => order.truckId === truckId)
   const delivery = orders.filter(order => !order.pickup)
   const pickups = orders.filter(order => order.pickup)
@@ -159,15 +163,13 @@ const TruckCard = ({ truckId, active }: { truckId: number; active: string }) => 
   const delZero = unassignedDel.length === 0
   const pickZero = unassignedPick.length === 0
 
-  const loadsHere = shippingStore
-    .get()
-    .loads.filter(
-      load =>
-        load.truckId === truckId &&
-        load.status === 'unreleased' &&
-        (active === 'all' || load.date === active) &&
-        orders.some(order => order.loadId === load.id)
-    )
+  const loadsHere = allLoads.filter(
+    load =>
+      load.truckId === truckId &&
+      load.status === 'unreleased' &&
+      (active === 'all' || load.date === active) &&
+      orders.some(order => order.loadId === load.id)
+  )
 
   const capPct = Math.min(
     100,
@@ -260,7 +262,8 @@ const TruckCard = ({ truckId, active }: { truckId: number; active: string }) => 
           {loadsHere.map(load => (
             <span className='loadpill' data-comment={`sch-loadpill-${load.id}`} key={load.id}>
               <span className='loadpill-dot ss-dot-unreleased' />
-              {loadLabel(load)} · {loadWeight(load).toLocaleString('en-US')} lb · Unreleased
+              {loadLabel(load, allLoads)} · {loadWeight(load, allOrders).toLocaleString('en-US')} lb
+              · Unreleased
             </span>
           ))}
         </div>
@@ -278,9 +281,11 @@ const TruckCard = ({ truckId, active }: { truckId: number; active: string }) => 
 export const Scheduled = () => {
   const scheduledDay = useStore(shippingStore, state => state.scheduledDay)
   const calOpen = useStore(schedCalStore, state => state.open)
-  useStore(shippingStore, state => state.orders)
+  const orders = useStore(shippingStore, state => state.orders)
+  const loads = useStore(shippingStore, state => state.loads)
+  const trucks = useStore(shippingStore, state => state.trucks)
 
-  const days = schedDays()
+  const days = schedDays(orders, loads)
   const active =
     scheduledDay !== 'all' && !days.some(day => day.date === scheduledDay)
       ? (days[0]?.date ?? 'all')
@@ -301,8 +306,8 @@ export const Scheduled = () => {
     return () => document.removeEventListener('click', onClick)
   }, [calOpen])
 
-  const scope =
-    active === 'all' ? scheduledOrders() : scheduledOrders().filter(o => o.shipDate === active)
+  const all = scheduledOrders(orders, loads)
+  const scope = active === 'all' ? all : all.filter(o => o.shipDate === active)
 
   return (
     <>
@@ -332,7 +337,7 @@ export const Scheduled = () => {
           <span className='day-tab-date'>All Scheduled Orders</span>
         </button>
         {days.map(day => {
-          const overdue = dateOverdue(day.date)
+          const overdue = dateOverdue(day.date, orders)
 
           return (
             <button
@@ -361,9 +366,8 @@ export const Scheduled = () => {
         />
       ) : (
         <div className='board' data-comment='sch-board'>
-          {shippingStore
-            .get()
-            .trucks.map(truck => truck.id)
+          {trucks
+            .map(truck => truck.id)
             .sort((a, b) => a - b)
             .map(truckId => (
               <TruckCard truckId={truckId} active={active} key={truckId} />

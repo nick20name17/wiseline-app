@@ -7,6 +7,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { orderMatchesSearch, sortByPriority, unscheduledOrders } from '../selectors'
 import { shippingStore, toggleUnschedExpand, toggleUnschedSel } from '../store'
+import { openTruckNotes } from '../ui'
 import {
   EmptyState,
   ExpandRow,
@@ -28,7 +29,10 @@ const COLUMNS = 14
  */
 export const Unscheduled = () => {
   const state = useStore(shippingStore, current => current)
-  const rows = sortByPriority(unscheduledOrders().filter(orderMatchesSearch))
+  const rows = sortByPriority(
+    unscheduledOrders(state.orders).filter(order => orderMatchesSearch(order, state.search)),
+    state.priorities
+  )
   const selectedCount = state.selUnscheduled.filter(id =>
     rows.some(order => order.id === id)
   ).length
@@ -52,7 +56,7 @@ export const Unscheduled = () => {
           <History style={{ width: '14px', height: '14px' }} />
           Completed orders · past 90 days
         </button>
-        <button className='btn btn-ghost' data-comment='uns-trucknotes'>
+        <button className='btn btn-ghost' data-comment='uns-trucknotes' onClick={openTruckNotes}>
           <NotebookPen style={{ width: '14px', height: '14px' }} />
           Trucks Notes
         </button>

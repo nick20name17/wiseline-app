@@ -25,10 +25,11 @@ import { EmptyState } from './bits'
 export const Loading = () => {
   const loadingDay = useStore(shippingStore, state => state.loadingDay)
   const search = useStore(shippingStore, state => state.search)
-  useStore(shippingStore, state => state.loads)
-  useStore(shippingStore, state => state.orders)
+  const loads = useStore(shippingStore, state => state.loads)
+  const orders = useStore(shippingStore, state => state.orders)
+  const trucks = useStore(shippingStore, state => state.trucks)
 
-  const days = loadingDays()
+  const days = loadingDays(loads)
   const active =
     !loadingDay || !days.some(day => day.date === loadingDay) ? (days[0]?.date ?? null) : loadingDay
 
@@ -42,14 +43,14 @@ export const Loading = () => {
     )
 
   const query = search.trim().toLowerCase()
-  const loadsToday = loadingLoads()
+  const loadsToday = loadingLoads(loads)
     .filter(load => load.date === active)
     .filter(
       load =>
         !query ||
         load.orderIds.some(id => {
-          const order = orderById(id)
-          return order && orderMatchesSearch(order)
+          const order = orderById(id, orders)
+          return order && orderMatchesSearch(order, search)
         })
     )
   const truckIds = [...new Set(loadsToday.map(load => load.truckId))].sort((a, b) => a - b)
@@ -66,7 +67,7 @@ export const Loading = () => {
 
       <div className='day-tabs' data-comment='ldg-daytabs'>
         {days.map(day => {
-          const overdue = dateOverdue(day.date)
+          const overdue = dateOverdue(day.date, orders)
 
           return (
             <button
@@ -89,10 +90,10 @@ export const Loading = () => {
 
       <div className='board' data-comment='ldg-board'>
         {truckIds.map(truckId => {
-          const truck = truckById(truckId)
+          const truck = truckById(truckId, trucks)
           if (!truck) return null
 
-          const overdue = truckOverdue(truckId, active)
+          const overdue = truckOverdue(truckId, active, orders)
           const loadsForTruck = loadsToday.filter(load => load.truckId === truckId)
           const key = `${truckId}-${active}`
 
@@ -131,8 +132,8 @@ export const Loading = () => {
                 {loadsForTruck.map(load => (
                   <span className='loadpill' data-comment={`ldg-loadpill-${load.id}`} key={load.id}>
                     <span className={`loadpill-dot ss-dot-${load.status}`} />
-                    {loadLabel(load)} · {loadWeight(load).toLocaleString('en-US')} lb ·{' '}
-                    {loadStatusLabel(load.status)}
+                    {loadLabel(load, loads)} · {loadWeight(load, orders).toLocaleString('en-US')} lb
+                    · {loadStatusLabel(load.status)}
                   </span>
                 ))}
               </div>

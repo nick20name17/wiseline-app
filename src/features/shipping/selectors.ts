@@ -2,46 +2,63 @@ import { shippingStore, TODAY } from './store'
 
 import type { Load, LoadStatus, Order, Priority } from './types'
 
-/** Everything derived, under the prototype's own names, so its knowledge base still describes this code. */
+/**
+ * Everything derived, under the prototype's own names, so its knowledge base still describes this code.
+ *
+ * A selector that reads the store takes what it reads as a trailing argument, defaulted to the live
+ * value. The React Compiler keys a derived value on the reactive inputs it can *see*, and a call that
+ * reaches into the store on its own shows it none — the board would answer once and then freeze on
+ * stale rows. Components pass the slice they subscribed to; the default is for callers outside render.
+ */
 
-export const orderById = (id: number) => shippingStore.get().orders.find(order => order.id === id)
+export const orderById = (id: number | null, orders = shippingStore.get().orders) =>
+  orders.find(order => order.id === id)
 
-export const loadById = (id: number | null) =>
-  shippingStore.get().loads.find(load => load.id === id)
+export const loadById = (id: number | null, loads = shippingStore.get().loads) =>
+  loads.find(load => load.id === id)
 
-export const truckById = (id: number | null) =>
-  shippingStore.get().trucks.find(truck => truck.id === id)
+export const truckById = (id: number | null, trucks = shippingStore.get().trucks) =>
+  trucks.find(truck => truck.id === id)
 
-export const priorityById = (id: number | null): Priority | null =>
-  shippingStore.get().priorities.find(priority => priority.id === id) ?? null
+export const priorityById = (
+  id: number | null,
+  priorities = shippingStore.get().priorities
+): Priority | null => priorities.find(priority => priority.id === id) ?? null
 
 export const isPast = (iso: string | null) => !!iso && iso < TODAY
 
 export const orderOverdue = (order: Order) => isPast(order.shipDate) && order.status !== 'delivered'
 
-export const ordersOn = (date: string) =>
-  shippingStore.get().orders.filter(order => order.shipDate === date)
+export const ordersOn = (date: string, orders = shippingStore.get().orders) =>
+  orders.filter(order => order.shipDate === date)
 
 /** A day is overdue while anything shipping that day is past and still undelivered. */
-export const dateOverdue = (date: string) =>
-  isPast(date) && ordersOn(date).some(order => order.status !== 'delivered')
+export const dateOverdue = (date: string, orders = shippingStore.get().orders) =>
+  isPast(date) && ordersOn(date, orders).some(order => order.status !== 'delivered')
 
-export const unscheduledOrders = () => shippingStore.get().orders.filter(order => !order.shipDate)
+export const unscheduledOrders = (orders = shippingStore.get().orders) =>
+  orders.filter(order => !order.shipDate)
 
 /**
  * Scheduled holds an order until its load is released to Loading — an unreleased load is still the
  * Manager's to change, so its orders keep showing here.
  */
-export const scheduledOrders = () =>
-  shippingStore
-    .get()
-    .orders.filter(
-      order => order.shipDate && (!order.loadId || loadById(order.loadId)?.status === 'unreleased')
-    )
+export const scheduledOrders = (
+  orders = shippingStore.get().orders,
+  loads = shippingStore.get().loads
+) =>
+  orders.filter(
+    order =>
+      order.shipDate && (!order.loadId || loadById(order.loadId, loads)?.status === 'unreleased')
+  )
 
 /** Release To Loading puts a load in the Loading window at once; only unreleased ones are held back. */
-export const loadingLoads = () =>
-  shippingStore.get().loads.filter(load => load.status !== 'unreleased')
+export const loadingLoads = (loads = shippingStore.get().loads) =>
+  loads.filter(load => load.status !== 'unreleased')
+
+/** A truck already out on the road cannot be given another load. */
+export const truckHasEnRouteLoad = (truckId: number, loads = shippingStore.get().loads) =>
+  loads.some(load => load.truckId === truckId && load.status === 'shipping')
 
 export const sumWeight = (orders: Order[]) => orders.reduce((total, o) => total + o.weight, 0)
 
@@ -49,32 +66,36 @@ export const longestOf = (orders: Order[]) =>
   orders.reduce((longest, o) => Math.max(longest, o.longestLength || 0), 0)
 
 /** Priority first, and an order with none sorts last rather than first. */
-export const sortByPriority = (orders: Order[]) =>
+export const sortByPriority = (orders: Order[], priorities = shippingStore.get().priorities) =>
   orders
     .slice()
     .sort(
       (a, b) =>
-        (priorityById(a.priorityId)?.hierarchy ?? 999) -
-        (priorityById(b.priorityId)?.hierarchy ?? 999)
+        (priorityById(a.priorityId, priorities)?.hierarchy ?? 999) -
+        (priorityById(b.priorityId, priorities)?.hierarchy ?? 999)
     )
 
-export const loadWeight = (load: Load) =>
-  load.orderIds.reduce((total, id) => total + (orderById(id)?.weight ?? 0), 0)
+export const loadWeight = (load: Load, orders = shippingStore.get().orders) =>
+  load.orderIds.reduce((total, id) => total + (orderById(id, orders)?.weight ?? 0), 0)
 
 /** A load is labelled by its position among its truck's loads, so L-1 is that truck's first. */
-export const loadLabel = (load: Load) => {
-  const same = shippingStore
-    .get()
-    .loads.filter(other => other.truckId === load.truckId)
-    .sort((a, b) => a.id - b.id)
+export const loadLabel = (load: Load, loads = shippingStore.get().loads) => {
+  const same = loads.filter(other => other.truckId === load.truckId).sort((a, b) => a.id - b.id)
   return `L-${same.findIndex(other => other.id === load.id) + 1}`
 }
 
+/** A new load is named for the one after its truck's last. */
+export const nextLoadLabel = (truckId: number, loads = shippingStore.get().loads) =>
+  `L-${loads.filter(load => load.truckId === truckId).length + 1}`
+
 /** The days the board offers, each with how many orders ship on it. */
-export const schedDays = () => {
+export const schedDays = (
+  orders = shippingStore.get().orders,
+  loads = shippingStore.get().loads
+) => {
   const days = new Map<string, { date: string; count: number }>()
 
-  for (const order of scheduledOrders()) {
+  for (const order of scheduledOrders(orders, loads)) {
     if (!order.shipDate) continue
     const day = days.get(order.shipDate) ?? { date: order.shipDate, count: 0 }
     day.count++
@@ -85,10 +106,10 @@ export const schedDays = () => {
 }
 
 /** The days the Loading board offers, each with how many loads run on it. */
-export const loadingDays = () => {
+export const loadingDays = (loads = shippingStore.get().loads) => {
   const days = new Map<string, { date: string; count: number }>()
 
-  for (const load of loadingLoads()) {
+  for (const load of loadingLoads(loads)) {
     const day = days.get(load.date) ?? { date: load.date, count: 0 }
     day.count++
     days.set(load.date, day)
@@ -97,9 +118,9 @@ export const loadingDays = () => {
   return [...days.values()].sort((a, b) => a.date.localeCompare(b.date))
 }
 
-export const truckOverdue = (truckId: number, date: string) =>
+export const truckOverdue = (truckId: number, date: string, orders = shippingStore.get().orders) =>
   isPast(date) &&
-  ordersOn(date)
+  ordersOn(date, orders)
     .filter(order => order.truckId === truckId)
     .some(order => order.status !== 'delivered')
 
@@ -108,8 +129,8 @@ export const noteState = (notes: { dealt: boolean }[] | undefined) => {
   return notes.some(note => !note.dealt) ? 'unread' : 'read'
 }
 
-export const orderMatchesSearch = (order: Order) => {
-  const query = shippingStore.get().search.trim().toLowerCase()
+export const orderMatchesSearch = (order: Order, search = shippingStore.get().search) => {
+  const query = search.trim().toLowerCase()
   if (!query) return true
   return [order.order, order.customer, order.address, order.city].some(value =>
     String(value ?? '')
