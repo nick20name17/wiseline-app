@@ -1,8 +1,10 @@
 import { createStore } from '@/store/create-store'
+import { patchLoadSequence } from '@/store/shared/shipping'
 
+import { loadById, loadKeyForLoad, orderById, schedGridOrders } from './selectors'
 import seed from './seed.json'
 
-import type { Order, ShippingState } from './types'
+import type { Load, Order, ShippingState } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
 export const TODAY = '2026-07-14'
@@ -17,6 +19,9 @@ export const DEPARTMENT = 'Shipping'
 export const shippingStore = createStore<ShippingState>(seed as unknown as ShippingState)
 
 export const setSearch = (search: string) => shippingStore.set({ search })
+
+/** The per-truck grid's own search, which narrows only that grid. */
+export const setSchSearch = (schSearch: string) => shippingStore.set({ schSearch })
 
 export const toggleNotesExpanded = () =>
   shippingStore.set(state => ({ notesExpanded: !state.notesExpanded }))
@@ -92,6 +97,113 @@ export const addOrderNote = (orderId: number, body: string) =>
       }
     ]
   }))
+
+export const toggleSchedSel = (orderId: number) =>
+  shippingStore.set(state => ({
+    selScheduled: state.selScheduled.includes(orderId)
+      ? state.selScheduled.filter(id => id !== orderId)
+      : [...state.selScheduled, orderId]
+  }))
+
+export const toggleSchedRowExpand = (orderId: number) =>
+  shippingStore.set(state => ({
+    expScheduledRows: state.expScheduledRows.includes(orderId)
+      ? state.expScheduledRows.filter(id => id !== orderId)
+      : [...state.expScheduledRows, orderId]
+  }))
+
+/** Only orders not yet on a Load can be ticked, so Select All reaches only those. */
+export const toggleSelectAllScheduled = (truckId: number, activeDay: string) => {
+  const ids = schedGridOrders(truckId, activeDay)
+    .filter(order => !order.loadId)
+    .map(order => order.id)
+  if (!ids.length) return
+
+  shippingStore.set(state => {
+    const allSelected = ids.every(id => state.selScheduled.includes(id))
+    return {
+      selScheduled: allSelected
+        ? state.selScheduled.filter(id => !ids.includes(id))
+        : [...new Set([...state.selScheduled, ...ids])]
+    }
+  })
+}
+
+/** Collapsing a truck card keeps the selection — the orders picked there are still the ones wanted. */
+export const toggleExpTruck = (truckId: number) =>
+  shippingStore.set(state => ({
+    expTruck: state.expTruck === truckId ? null : truckId,
+    loadFilter: null
+  }))
+
+export const setLoadFilter = (loadId: number, truckId: number) =>
+  shippingStore.set(state => ({
+    expTruck: truckId,
+    loadFilter: state.loadFilter === loadId ? null : loadId,
+    selScheduled: []
+  }))
+
+/**
+ * A new Load out of what is ticked, and the delivery order it starts with.
+ *
+ * `sequence` starts as the order the rows were in; the Load modal is where it gets dragged into the
+ * order the driver drives. The cross-page slice is told about it at once, because the driver screen
+ * reads that sequence and not this store.
+ */
+export const addToLoad = (truckId: number, date: string) => {
+  const state = shippingStore.get()
+  const orderIds = state.selScheduled.filter(id => {
+    const order = orderById(id, state.orders)
+    return order && order.truckId === truckId && !order.loadId && order.shipDate === date
+  })
+  if (!orderIds.length) return 0
+
+  const newId = state.nextLoadId
+
+  shippingStore.set(current => {
+    const same = current.loads.filter(load => load.truckId === truckId).length
+    const newLoad: Load = {
+      id: newId,
+      truckId,
+      date,
+      status: 'unreleased',
+      orderIds: [...orderIds],
+      sequence: [...orderIds],
+      deliveryTerm: 'Prepaid',
+      loadUnloadTime: '—',
+      vehicle: `Unit ${truckId}-${String.fromCharCode(65 + same)}`
+    }
+
+    return {
+      loads: [...current.loads, newLoad],
+      orders: current.orders.map(order =>
+        orderIds.includes(order.id) ? { ...order, loadId: newId } : order
+      ),
+      selScheduled: current.selScheduled.filter(id => !orderIds.includes(id)),
+      nextLoadId: current.nextLoadId + 1
+    }
+  })
+
+  syncLoadSequence(newId)
+  return orderIds.length
+}
+
+/** The delivery order, published for the driver under the key the other screens know the load by. */
+export const syncLoadSequence = (loadId: number) => {
+  const state = shippingStore.get()
+  const load = loadById(loadId, state.loads)
+  if (!load) return
+
+  const key = loadKeyForLoad(load, state.loads)
+  if (!key) return
+
+  patchLoadSequence(
+    key,
+    load.sequence
+      .map(id => orderById(id, state.orders)?.order)
+      .filter((orderNumber): orderNumber is string => !!orderNumber)
+  )
+}
 
 /**
  * A ship date and a truck for every order the modal was opened with.

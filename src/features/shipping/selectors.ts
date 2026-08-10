@@ -56,6 +56,32 @@ export const scheduledOrders = (
 export const loadingLoads = (loads = shippingStore.get().loads) =>
   loads.filter(load => load.status !== 'unreleased')
 
+/**
+ * The rows one truck's grid shows for one day.
+ *
+ * Render, Select All, Reschedule and Add To Load all go through here, so all four act on exactly the
+ * rows on screen — a Select All that took orders the search had hidden would build the wrong Load.
+ */
+export const schedGridOrders = (
+  truckId: number,
+  activeDay: string,
+  state = shippingStore.get()
+) => {
+  let orders = scheduledOrders(state.orders, state.loads).filter(
+    order => order.truckId === truckId && (activeDay === 'all' || order.shipDate === activeDay)
+  )
+  if (state.loadFilter) orders = orders.filter(order => order.loadId === state.loadFilter)
+  orders = orders.filter(order => orderMatchesSearch(order, state.search))
+
+  const query = (state.schSearch || '').trim().toLowerCase()
+  if (query)
+    orders = orders.filter(order =>
+      [order.order, order.customer].some(value => String(value).toLowerCase().includes(query))
+    )
+
+  return sortByPriority(orders, state.priorities)
+}
+
 /** A truck already out on the road cannot be given another load. */
 export const truckHasEnRouteLoad = (truckId: number, loads = shippingStore.get().loads) =>
   loads.some(load => load.truckId === truckId && load.status === 'shipping')
@@ -82,6 +108,18 @@ export const loadWeight = (load: Load, orders = shippingStore.get().orders) =>
 export const loadLabel = (load: Load, loads = shippingStore.get().loads) => {
   const same = loads.filter(other => other.truckId === load.truckId).sort((a, b) => a.id - b.id)
   return `L-${same.findIndex(other => other.id === load.id) + 1}`
+}
+
+/**
+ * The key the cross-page slice files a load under — `truck101-load2`.
+ *
+ * It is the load's position among its truck's loads, not its id: the other screens know a load by
+ * where it sits in that truck's day, and an id is this page's private business.
+ */
+export const loadKeyForLoad = (load: Load, loads = shippingStore.get().loads) => {
+  const same = loads.filter(other => other.truckId === load.truckId).sort((a, b) => a.id - b.id)
+  const index = same.findIndex(other => other.id === load.id)
+  return index < 0 ? null : `truck${load.truckId}-load${index + 1}`
 }
 
 /** A new load is named for the one after its truck's last. */

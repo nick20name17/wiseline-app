@@ -7,11 +7,13 @@ import { shippingStore } from './store'
 
 import type { CalCtx } from './components/calendar-modal'
 import type { ScheduleCtx } from './components/schedule-modal'
+import type { TruckCtx } from './components/sched-truck'
 
 export type ShippingUi = {
   /** The order whose note thread is open. */
   note: number | null
   truckNotes: boolean
+  schedTruck: TruckCtx | null
   schedule: ScheduleCtx | null
   cal: CalCtx | null
   /** Bumped on every open, so the picker's mount site can key a fresh month grid off it. */
@@ -26,6 +28,7 @@ export type ShippingUi = {
 export const shippingUi = createStore<ShippingUi>({
   note: null,
   truckNotes: false,
+  schedTruck: null,
   schedule: null,
   cal: null,
   calSeq: 0,
@@ -37,6 +40,14 @@ export const closeOrderNotes = () => shippingUi.set({ note: null })
 
 export const openTruckNotes = () => shippingUi.set({ truckNotes: true })
 export const closeTruckNotes = () => shippingUi.set({ truckNotes: false })
+
+/** Opening a truck's detail focuses the board on it and starts from a clean selection. */
+export const openSchedTruck = (schedTruck: TruckCtx) => {
+  shippingStore.set({ expTruck: schedTruck.truckId, loadFilter: null, selScheduled: [] })
+  shippingUi.set({ schedTruck })
+}
+
+export const closeSchedTruck = () => shippingUi.set({ schedTruck: null })
 
 export const openSchedule = (schedule: ScheduleCtx) => shippingUi.set({ schedule })
 export const closeSchedule = () => shippingUi.set({ schedule: null })

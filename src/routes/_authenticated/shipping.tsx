@@ -17,6 +17,7 @@ import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
 import { CalendarModal } from '@/features/shipping/components/calendar-modal'
 import { NoteModal } from '@/features/shipping/components/note-modal'
+import { SchedTruckModal } from '@/features/shipping/components/sched-truck'
 import { ScheduleModal } from '@/features/shipping/components/schedule-modal'
 import { TruckNotesModal } from '@/features/shipping/components/truck-notes'
 import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shipping/selectors'
@@ -24,6 +25,7 @@ import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shippi
 import {
   closeCalendar,
   closeOrderNotes,
+  closeSchedTruck,
   closeSchedule,
   closeTruckNotes,
   shippingUi
@@ -162,6 +164,7 @@ function Shipping() {
       </div>
       <NoteModal orderId={ui.note} onClose={closeOrderNotes} />
       <TruckNotesModal open={ui.truckNotes} onClose={closeTruckNotes} />
+      <SchedTruckModal ctx={ui.schedTruck} onClose={closeSchedTruck} />
       {/* both keyed per opening: each starts with no date and no truck picked */}
       <ScheduleModal
         key={ui.schedule ? `sched-${ui.schedule.orderIds.join(',')}` : 'sched'}

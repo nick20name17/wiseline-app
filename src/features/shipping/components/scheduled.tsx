@@ -30,6 +30,7 @@ import {
   toggleSchedCal,
   TODAY
 } from '../store'
+import { openSchedTruck } from '../ui'
 import { EmptyState } from './bits'
 
 const MONTHS = [
@@ -184,6 +185,7 @@ const TruckCard = ({ truckId, active }: { truckId: number; active: string }) => 
         data-comment={`sch-truckhead-${key}`}
         style={{ cursor: 'pointer' }}
         title='Open truck detail'
+        onClick={() => openSchedTruck({ truckId, date: active })}
       >
         <div>
           <div className='truck-name' data-comment={`sch-truckname-${key}`}>
