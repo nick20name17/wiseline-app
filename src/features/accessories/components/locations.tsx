@@ -11,6 +11,7 @@ import {
 import { useStore } from '@/store/create-store'
 
 import { accessoriesStore } from '../store'
+import { requestRemoveLocation } from '../ui'
 import { useNow } from '../use-now'
 
 import type { Order } from '../types'
@@ -68,6 +69,10 @@ export const LocTags = ({ order }: { order: Order }) => {
               className={`loc-tag ${cls}`}
               data-comment={`loctag-${order.id}-${id}`}
               title={hint}
+              onClick={event => {
+                event.stopPropagation()
+                requestRemoveLocation(order.id, id)
+              }}
             >
               {location.code}
             </button>

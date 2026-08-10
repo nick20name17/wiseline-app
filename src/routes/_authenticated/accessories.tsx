@@ -21,13 +21,17 @@ import {
   unscheduledOrders
 } from '@/features/accessories/selectors'
 import { CalendarModal } from '@/features/accessories/components/calendar-modal'
+import { LocationPicker } from '@/features/accessories/components/location-picker'
 import { NoteModal } from '@/features/accessories/components/note-modal'
+import { PackagesModal } from '@/features/accessories/components/packages-modal'
 import { accessoriesStore, DEPARTMENT, setSearch } from '@/features/accessories/store'
 import {
   accessoriesUi,
   closeAlert,
   closeConfirm,
+  closeLocationPicker,
   closeNotes,
+  closePackages,
   closeSchedule
 } from '@/features/accessories/ui'
 
@@ -113,6 +117,13 @@ function Accessories() {
         ctx={ui.schedule}
         onClose={closeSchedule}
       />
+      {/* keyed per opening: the grid starts on Warehouse #1 / Accessories every time */}
+      <LocationPicker
+        key={`loc-${ui.locPicker ?? 'none'}`}
+        orderId={ui.locPicker}
+        onClose={closeLocationPicker}
+      />
+      <PackagesModal orderId={ui.packages} onClose={closePackages} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

@@ -12,7 +12,15 @@ import {
   stagedWeight,
   truckDisplay
 } from '../selectors'
-import { accessoriesStore, toggleExpand } from '../store'
+import {
+  accessoriesStore,
+  autoFillLine,
+  clearPackaging,
+  setMaxPkgWeight,
+  setPackaging,
+  toggleExpand
+} from '../store'
+import { createAndPrint, openLocationPicker, openPackages, requestOrderComplete } from '../ui'
 import {
   DateSepRow,
   DetailField,
@@ -42,7 +50,7 @@ const OVERDUE_BADGE_STYLE = {
  * diff compares, so the port states the prototype's name rather than letting the rename read as a
  * missing icon.
  */
-const PackagingCell = ({ item }: { item: LineItem }) => {
+const PackagingCell = ({ item, orderId }: { item: LineItem; orderId: number }) => {
   if (item.leftToPackage === 0)
     return (
       <div className='pack-cell' data-comment={`packcell-${item.id}`}>
@@ -75,13 +83,16 @@ const PackagingCell = ({ item }: { item: LineItem }) => {
         value={item.packaging || ''}
         placeholder='0'
         data-comment={`packinput-${item.id}`}
-        readOnly
+        onChange={event => setPackaging(orderId, item.id, event.target.value)}
       />
       <button
         className='btn btn-sm'
         style={{ gap: '5px' }}
         data-comment={`autofill-${item.id}`}
         title={filled ? 'Clear packaging' : 'Auto fill — package all remaining'}
+        onClick={() =>
+          filled ? clearPackaging(orderId, item.id) : autoFillLine(orderId, item.id)
+        }
       >
         {filled ? (
           <X style={{ width: '14px', height: '14px' }} />
@@ -175,7 +186,7 @@ const Subrow = ({ order }: { order: Order }) => {
                     {item.leftToPackage}
                   </td>
                   <td data-comment={`li-packaging-${item.id}`}>
-                    <PackagingCell item={item} />
+                    <PackagingCell item={item} orderId={order.id} />
                   </td>
                   <td data-comment={`li-status-${item.id}`}>
                     <ItemStatusPill item={item} />
@@ -216,14 +227,19 @@ const Subrow = ({ order }: { order: Order }) => {
                 value={order.maxPkgWeight}
                 placeholder='15'
                 data-comment={`maxw-input-${order.id}`}
-                readOnly
+                onChange={event => setMaxPkgWeight(order.id, event.target.value)}
               />
               <span data-comment={`maxw-unit-${order.id}`} className='muted'>
                 lb
               </span>
             </label>
             <div className='toolbar-spacer' />
-            <button className='btn' data-comment={`selectloc-${order.id}`} disabled={!canSelectLoc}>
+            <button
+              className='btn'
+              data-comment={`selectloc-${order.id}`}
+              disabled={!canSelectLoc}
+              onClick={() => openLocationPicker(order.id)}
+            >
               <MapPin style={{ width: '14px', height: '14px' }} />
               Select location
             </button>
@@ -231,12 +247,17 @@ const Subrow = ({ order }: { order: Order }) => {
               className='btn btn-primary'
               data-comment={`createprint-${order.id}`}
               disabled={!canCreate}
+              onClick={() => createAndPrint(order.id)}
             >
               <Printer style={{ width: '14px', height: '14px' }} />
               Create &amp; print
             </button>
             {livePackages.length ? (
-              <button className='btn' data-comment={`seepkg-${order.id}`}>
+              <button
+                className='btn'
+                data-comment={`seepkg-${order.id}`}
+                onClick={() => openPackages(order.id)}
+              >
                 <Package style={{ width: '14px', height: '14px' }} />
                 See packages ({livePackages.length})
               </button>
@@ -245,6 +266,7 @@ const Subrow = ({ order }: { order: Order }) => {
               className='btn btn-primary'
               data-comment={`ordercomplete-${order.id}`}
               disabled={!livePackages.length}
+              onClick={() => requestOrderComplete(order.id)}
             >
               Order complete
             </button>
