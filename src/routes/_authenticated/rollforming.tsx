@@ -30,6 +30,7 @@ import {
 import { AssignModal } from '@/features/rollforming/components/assign'
 import { CoilPickModal } from '@/features/rollforming/components/coil-pick'
 import { RfKeypad } from '@/features/rollforming/components/keypad'
+import { LocationPicker } from '@/features/rollforming/components/location-picker'
 import { LotPickModal } from '@/features/rollforming/components/lot-pick'
 import { PackageModal } from '@/features/rollforming/components/package-modal'
 import { SeePackagesModal } from '@/features/rollforming/components/see-packages'
@@ -41,6 +42,7 @@ import {
   closeAssign,
   closeCoilPick,
   closeConfirm,
+  closeLocationPicker,
   closeLotPick,
   closeMaterialRequest,
   closePackage,
@@ -172,6 +174,7 @@ function Rollforming() {
       <LotPickModal ctx={ui.lotPick} onClose={closeLotPick} />
       <PackageModal orderId={ui.pkg} onClose={closePackage} />
       <SeePackagesModal orderId={ui.seePkg} onClose={closeSeePackages} />
+      <LocationPicker ctx={ui.loc} onClose={closeLocationPicker} />
       {/* keyed per opening, so the pad starts on the value the row already carries */}
       <RfKeypad key={ui.pad ? `${ui.pad.kind}-${ui.pad.lineId}` : 'kp'} ctx={ui.pad} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />

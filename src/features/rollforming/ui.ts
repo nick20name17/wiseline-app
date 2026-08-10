@@ -8,6 +8,7 @@ import { rollformingStore } from './store'
 import type { AssignCtx } from './components/assign'
 import type { CoilPickCtx } from './components/coil-pick'
 import type { PadCtx } from './components/keypad'
+import type { LocCtx } from './components/location-picker'
 import type { LotPickCtx } from './components/lot-pick'
 import type { NoteCtx } from './components/note-modal'
 
@@ -20,6 +21,7 @@ export type RollformingUi = {
   pad: PadCtx | null
   pkg: number | null
   seePkg: number | null
+  loc: LocCtx | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -39,6 +41,7 @@ export const rollformingUi = createStore<RollformingUi>({
   pad: null,
   pkg: null,
   seePkg: null,
+  loc: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -82,6 +85,9 @@ export const closePackage = () => rollformingUi.set({ pkg: null })
 
 export const openSeePackages = (seePkg: number) => rollformingUi.set({ seePkg })
 export const closeSeePackages = () => rollformingUi.set({ seePkg: null })
+
+export const openLocationPicker = (loc: LocCtx) => rollformingUi.set({ loc })
+export const closeLocationPicker = () => rollformingUi.set({ loc: null })
 
 export const askConfirm = (
   title: string,

@@ -4,10 +4,18 @@ import { buildLineItem } from './line-item'
 import seed from './seed.json'
 import { showToast } from './ui'
 
+import {
+  arrivalKey,
+  forgetOccupant,
+  releaseStamps,
+  shippedKey
+} from '@/store/shared/locations'
 import { patchPackage } from '@/store/shared/shipping'
 
 import {
   groupOf,
+  isFullyWrapped,
+  locName,
   pkgWeightOf,
   queueGroups,
   queueGroupsSorted,
@@ -15,7 +23,7 @@ import {
   supplierName
 } from './selectors'
 
-import type { CoilUnit, Note, Order, RollformingState } from './types'
+import type { CoilUnit, Location, Note, Order, RollformingState } from './types'
 import type { NoteCtx } from './components/note-modal'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
@@ -364,6 +372,150 @@ export const deletePackage = (orderId: number, seq: number) => {
 
   patchPackage(pkg.barcode, { deleted: true })
   showToast('Package deleted · barcode invalidated · status reverted')
+}
+
+/* -- locations ------------------------------------------------------------------------------------ */
+
+/** Rollforming's own release-stamp scope: every department numbers its locations from 1. */
+const LOC_SCOPE = 'rf' as const
+
+/** Occupant weight in a cell after a package joins or leaves it. */
+const withoutOccupant = (location: Location, orderId: number, weight: number, keep: boolean) => ({
+  ...location,
+  occupants: keep
+    ? (location.occupants ?? []).map(occupant =>
+        occupant.orderId === orderId
+          ? { ...occupant, weight: Math.max(0, occupant.weight - weight) }
+          : occupant
+      )
+    : (location.occupants ?? []).filter(occupant => occupant.orderId !== orderId)
+})
+
+/**
+ * A package gets a Location — which is also how an order finishes.
+ *
+ * Weight follows the package: it leaves the cell it came from and joins the one it lands in, and the
+ * old occupant slot goes if no other package of this order is still there. The arrival stamp is what
+ * the 15-minute auto-release counts from, so it is written fresh here.
+ *
+ * Once every piece has a location the order is complete, stamped at this moment rather than watched
+ * for — this is when it became true.
+ */
+export const assignPackageToLocation = (orderId: number, seq: number, locationId: number) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  const pkg = order?.packages.find(candidate => candidate.seq === seq)
+  if (!order || !pkg) return
+
+  const weight = pkgWeightOf(order, pkg)
+  const previous = pkg.locId
+  const scannedAt = Date.now()
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(candidate =>
+      candidate.id !== orderId
+        ? candidate
+        : {
+            ...candidate,
+            packages: candidate.packages.map(entry =>
+              entry.seq === seq ? { ...entry, locId: locationId } : entry
+            )
+          }
+    ),
+    locations: state.locations.map(location => {
+      if (location.id === previous && previous !== locationId)
+        return withoutOccupant(
+          location,
+          orderId,
+          weight,
+          order.packages.some(
+            entry => entry.seq !== seq && entry.locId === previous && !entry.deleted
+          )
+        )
+
+      if (location.id === locationId) {
+        const occupants = location.occupants ?? []
+        return {
+          ...location,
+          occupants: occupants.some(occupant => occupant.orderId === orderId)
+            ? occupants.map(occupant =>
+                occupant.orderId === orderId
+                  ? { ...occupant, weight: occupant.weight + weight, lastScanAt: scannedAt }
+                  : occupant
+              )
+            : [...occupants, { orderId, weight, lastScanAt: scannedAt }]
+        }
+      }
+
+      return location
+    })
+  }))
+
+  const stamps = releaseStamps(LOC_SCOPE)
+  const next = { ...stamps.get() }
+  delete next[shippedKey(locationId, orderId)]
+  next[arrivalKey(locationId, orderId)] = scannedAt
+  stamps.set(next)
+
+  if (previous && previous !== locationId) {
+    const old = rollformingStore.get().locations.find(location => location.id === previous)
+    if (!(old?.occupants ?? []).some(occupant => occupant.orderId === orderId))
+      forgetOccupant(LOC_SCOPE, previous, orderId)
+  }
+
+  const updated = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  const code = locName(locationId)
+
+  if (updated && isFullyWrapped(updated) && !updated.completedAt) {
+    rollformingStore.set(state => ({
+      orders: state.orders.map(candidate =>
+        candidate.id === orderId
+          ? { ...candidate, completedAt: new Date().toISOString() }
+          : candidate
+      )
+    }))
+    return showToast(`Package ${pkg.barcode} → ${code} · order complete`)
+  }
+
+  showToast(`Package ${pkg.barcode} → ${code}`)
+}
+
+export const removePackageLocation = (orderId: number, seq: number, locationId: number) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  const pkg = order?.packages.find(candidate => candidate.seq === seq)
+  if (!order || !pkg) return
+
+  const weight = pkgWeightOf(order, pkg)
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(candidate =>
+      candidate.id !== orderId
+        ? candidate
+        : {
+            ...candidate,
+            packages: candidate.packages.map(entry =>
+              entry.seq === seq ? { ...entry, locId: null } : entry
+            )
+          }
+    ),
+    locations: state.locations.map(location =>
+      location.id !== locationId
+        ? location
+        : withoutOccupant(
+            location,
+            orderId,
+            weight,
+            order.packages.some(
+              entry => entry.seq !== seq && entry.locId === locationId && !entry.deleted
+            )
+          )
+    )
+  }))
+
+  const still = rollformingStore.get().locations.find(location => location.id === locationId)
+  if (!(still?.occupants ?? []).some(occupant => occupant.orderId === orderId))
+    forgetOccupant(LOC_SCOPE, locationId, orderId)
+
+  showToast(`Location ${locName(locationId)} removed`)
 }
 
 /* -- coil assignment ----------------------------------------------------------------------------- */

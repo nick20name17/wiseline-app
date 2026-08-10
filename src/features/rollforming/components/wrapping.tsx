@@ -4,6 +4,7 @@ import { useStore } from '@/store/create-store'
 
 import { isOverdue, locName, rollCoils, supplierName, wrappingOrders } from '../selectors'
 import { rollformingStore } from '../store'
+import { openLocationPicker, showToast } from '../ui'
 import { EmptyState, GroupTabs } from './bits'
 
 /**
@@ -123,6 +124,7 @@ export const Wrapping = () => {
                               className='field-btn'
                               data-pop-anchor
                               data-comment={`wrap-selectloc-${index}-${row}`}
+                              onClick={() => openLocationPicker({ orderId: order.id, seq: pkg.seq })}
                             >
                               Select Location
                               <ChevronDown />
@@ -132,6 +134,7 @@ export const Wrapping = () => {
                             className='icon-btn'
                             title='Reprint label'
                             data-comment={`wrap-reprint-${index}-${row}`}
+                            onClick={() => showToast(`Reprinted label ${pkg.barcode}`)}
                           >
                             <Printer style={{ width: '14px', height: '14px' }} />
                           </button>
