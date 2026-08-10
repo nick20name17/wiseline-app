@@ -27,12 +27,21 @@ scan tools (driver, scanner, loading station), and Coils, Stock Cards, Settings,
 EBMS, Warehouse and the sign-in. Every view green at both widths, modals included, with the one
 exemption below.
 
-**One screen deliberately differs, and it is the only one.** Stock Cards hosted in Trim's frame
-(`src/styles/stockcards-embed.css`): the page's own `.is-embed` rules make `.app` a block, which breaks
-the flex column it scrolls in, so `.content` grew past the frame and the frame clipped it — the last row
-of cards could not be reached at any window size. The column is restored and the sheet is centred; the
-card itself keeps its printed size, and the standing page is untouched, so the gate still compares it.
-The prototype has the same bug; this is the one place the port does not copy it.
+**Port the requirement, not the mechanism.** The prototype is fifteen documents, so it hosts one page
+inside another with an `<iframe>` and moves between them with `location.href`. Both came across literally
+once, and both were wrong here: two documents mean two copies of every store — a card scanned in Trim's
+Stock Cards dialog could only reach Trim through `localStorage`, and nothing was listening — while
+`location.href` throws the SPA away and re-seeds it on every click. Stock Cards is now
+`StockCardsPanel`, mounted by its own route and by Trim's dialog (the prototype's own note asks for
+exactly that), and the four `location.href` jumps go through `useGoto`. Nothing in `src` frames a page
+any more; if something needs to, that is the moment to ask why.
+
+Hosting one page inside another puts two scoped stylesheets in one document, and 43 of the 142 class
+names they share are defined differently on each — `.btn`, `.toolbar`, `.modal`, `.toast`. Order would
+decide, and per-route CSS chunks make order depend on where the viewer had been. So `extract-css.ts`
+emits a second sheet for a hosted page (`stockcards.hosted.css`) scoped under `.wl-stockcards-host`,
+which wins on specificity instead. `HOSTED` in that script is the list; add to it if another page ever
+gets hosted.
 
 **The gate captures as one person.** `capture.ts` sets `wl_role = 'manager'`, so every worker screen —
 Trim's and Rollforming's narrowed tab strips, read-only priority and notes, Rollforming's station bar —

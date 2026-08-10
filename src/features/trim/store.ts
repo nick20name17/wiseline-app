@@ -1,6 +1,7 @@
 import { canonicalCoils, coilLfFromThickness, coilWeightFromLf } from '@/store/shared/coils'
 import { createStore } from '@/store/create-store'
 import { arrivalKey, forgetOccupant, releaseStamps, shippedKey } from '@/store/shared/locations'
+import { unclaimedStockOrders, type PendingStockOrder } from '@/store/shared/stock-orders'
 import { withPublishedCaps } from '@/store/shared/settings'
 
 import { PRODUCT_CATALOG } from './catalog'
@@ -436,6 +437,60 @@ const bumpStockSeq = (orders: TrimState['orders']) => {
 bumpStockSeq(trimStore.get().orders)
 
 let lineSeq = 100000
+
+/** A thin pending record from the Stock Cards screen, as a Trim order of this store's own shape. */
+const orderFromPending = (pending: PendingStockOrder) => ({
+  id: 8000000 + numFromOrderNo(pending.orderNo),
+  order: pending.orderNo,
+  type: 'stock' as const,
+  customer: 'Stock',
+  entryDate: pending.entryDate ?? TODAY,
+  shipDate: null,
+  priorityId: null,
+  reviewed: false,
+  released: false,
+  productionDate: null,
+  isSplit: false,
+  notes: [],
+  lineItems: [
+    {
+      id: (lineSeq += 1),
+      qty: pending.qty ?? 1,
+      productId: pending.pid ?? '',
+      description: pending.desc ?? '',
+      gaugeColour: pending.gaugeColour ?? '26ga Charcoal',
+      width: pending.width ?? 12,
+      length: pending.length ?? 120,
+      machineId: null,
+      fromStock: 0,
+      wrapped: 0,
+      status: null,
+      vented: 0,
+      scheduledDate: null,
+      notes: []
+    }
+  ]
+})
+
+/**
+ * Item 7: a card scanned in the Stock Cards window becomes an order here.
+ *
+ * The two screens share nothing but `wl_orders_pending_v1`, so this is the whole of the handover, and it
+ * has to run in three places: on arrival, on a `storage` event (the window is its own document, so a
+ * scan there fires one here), and when that window closes — a write from *this* document fires no event
+ * at all. Merging by order number is what keeps a re-run from adding the same card twice.
+ */
+export const hydrateStockOrders = () => {
+  const orders = trimStore.get().orders
+  const fresh = unclaimedStockOrders(orders.map(order => order.order))
+  if (!fresh.length) return
+
+  const added = fresh.map(orderFromPending)
+  bumpStockSeq(added as unknown as TrimState['orders'])
+  trimStore.set(state => ({ orders: [...added, ...state.orders] as TrimState['orders'] }))
+}
+
+hydrateStockOrders()
 
 export const createStockOrder = (rows: { qty: number; pid: string; desc: string }[]) => {
   stockSeq += 1

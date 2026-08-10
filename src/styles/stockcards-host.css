@@ -1,0 +1,29 @@
+/* The seam where Trim hosts the Stock Cards screen (#198) — port-owned and hand-written, so it is kept
+   out of both generated sheets. `stockcards.hosted.css` supplies the screen's own rules under this same
+   class; what is left is the box they sit in.
+
+   The dialog is the page header, so the panel needs no chrome of its own: what it does need is somewhere
+   to scroll, since eight cards are taller than any dialog, and a gutter, since the screen's own padding
+   belongs to a `.content` that is not rendered here. */
+.wl-stockcards-panel[data-page='stockcards'] {
+  display: block;
+  min-height: 0;
+  max-height: min(72vh, 780px);
+  overflow: auto;
+  padding: 16px 20px 20px;
+  /* the page's own background belongs to a page; in a dialog the surface underneath is the dialog's */
+  background: transparent;
+}
+
+/* Toolbar and sheet share one column — three cards wide, which is what the dialog fits — so their edges
+   line up instead of the toolbar spanning a width the cards do not reach. */
+.wl-stockcards-panel[data-page='stockcards'] .toolbar,
+.wl-stockcards-panel[data-page='stockcards'] #stock-grid-wrap {
+  max-width: calc(3 * 3.25in + 2 * 22px);
+  margin-inline: auto;
+}
+
+/* The gutter is the host's, so the dialog body does not add a second one. */
+[data-page='home'] .stockcards-body {
+  padding: 0;
+}

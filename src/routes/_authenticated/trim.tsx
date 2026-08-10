@@ -36,6 +36,7 @@ import { fmtDate } from '@/features/trim/format'
 import { scheduledOrders, unscheduledOrders } from '@/features/trim/selectors'
 import {
   DEPARTMENT,
+  hydrateStockOrders,
   rescheduleOrder,
   scheduleLines,
   scheduleOrders,
@@ -67,8 +68,9 @@ import {
 } from '@/features/trim/ui'
 
 import '@/styles/home.css'
-// after the page's own sheet: the hosted Stock Cards window, seen from this side — see the file's note
-import '@/styles/home-stockcards-frame.css'
+// the hosted Stock Cards screen: its own rules, scoped under the host class, then the seam itself
+import '@/styles/stockcards.hosted.css'
+import '@/styles/stockcards-host.css'
 
 /**
  * The prototype's six `.view` sections become one search param.
@@ -121,6 +123,16 @@ function Trim() {
     applied.current = role
     if (!canAccess(view, role)) void navigate({ search: { view: defaultView(role) as View } })
   }, [role, view, navigate])
+
+  // item 7: cards scanned into stock orders arrive with the board, and again when another tab scans one
+  useEffect(() => {
+    hydrateStockOrders()
+    const changed = (event: StorageEvent) => {
+      if (event.key === 'wl_orders_pending_v1') hydrateStockOrders()
+    }
+    window.addEventListener('storage', changed)
+    return () => window.removeEventListener('storage', changed)
+  }, [])
 
   const tabs = [
     {
@@ -224,7 +236,14 @@ function Trim() {
       <CutlistTotal items={ui.cutlistTotal} onClose={closeCutlistTotal} />
       <MachineCap day={ui.machineCap} onClose={closeMachineCap} />
       <AllocStock open={ui.allocStock} onClose={closeAllocStock} />
-      <StockCardsModal open={ui.stockCards} onClose={closeStockCards} />
+      <StockCardsModal
+        open={ui.stockCards}
+        onClose={() => {
+          closeStockCards()
+          // the panel writes from this same document, which fires no storage event of its own
+          hydrateStockOrders()
+        }}
+      />
       <StockOrderModal open={ui.stockOrder} onClose={closeStockOrder} />
       <CompletedDetail orderId={ui.compDetail} onClose={closeCompDetail} />
       <CoilAdjust ctx={ui.coilAdjust} onClose={closeCoilAdjust} />
