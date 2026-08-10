@@ -78,7 +78,7 @@ const Subrow = ({ order }: { order: Order }) => {
                     </span>
                   ) : null}
                 </div>
-                <LineNoteButton item={item} commentKey={`uns-linote-${item.id}`} />
+                <LineNoteButton item={item} orderId={order.id} commentKey={`uns-linote-${item.id}`} />
               </div>
             )
           })}
@@ -96,7 +96,7 @@ const Subrow = ({ order }: { order: Order }) => {
  */
 export const Unscheduled = () => {
   const state = useStore(accessoriesStore, current => current)
-  const rows = unscheduledOrders().filter(matchesSearch)
+  const rows = unscheduledOrders(state.orders).filter(order => matchesSearch(order, state.search))
   const selCount = state.selectedOrderIds.filter(id =>
     rows.some(order => order.id === id && !order.isSplit)
   ).length

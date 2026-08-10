@@ -8,6 +8,9 @@ import {
   locCurrentWeight,
   stagedWeight
 } from '../selectors'
+import { useStore } from '@/store/create-store'
+
+import { accessoriesStore } from '../store'
 import { useNow } from '../use-now'
 
 import type { Order } from '../types'
@@ -22,6 +25,7 @@ import type { Order } from '../types'
  */
 export const LocTags = ({ order }: { order: Order }) => {
   const now = useNow()
+  const locations = useStore(accessoriesStore, state => state.locations)
   const ids = order.locationIds ?? []
   if (!ids.length)
     return (
@@ -35,7 +39,7 @@ export const LocTags = ({ order }: { order: Order }) => {
   return (
     <>
       {ids.map(id => {
-        const location = locById(id)
+        const location = locById(id, locations)
         if (!location) return null
 
         const locked = isLocationLockedForOrder(order, id)

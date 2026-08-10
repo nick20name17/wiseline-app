@@ -2,7 +2,7 @@ import { createStore } from '@/store/create-store'
 
 import seed from './seed.json'
 
-import type { AccessoriesState } from './types'
+import type { AccessoriesState, Note } from './types'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
 export const TODAY = '2026-07-15'
@@ -47,3 +47,41 @@ export const setPriority = (orderId: number, priorityId: number | null) =>
   accessoriesStore.set(state => ({
     orders: state.orders.map(order => (order.id === orderId ? { ...order, priorityId } : order))
   }))
+
+const patchNotes = (
+  ctx: { orderId: number; lineId: number | null },
+  patch: (notes: Note[]) => Note[]
+) =>
+  accessoriesStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== ctx.orderId) return order
+      if (ctx.lineId != null)
+        return {
+          ...order,
+          items: order.items.map(item =>
+            item.id === ctx.lineId ? { ...item, notes: patch(item.notes) } : item
+          )
+        }
+      return { ...order, orderNotes: patch(order.orderNotes) }
+    })
+  }))
+
+export const acknowledgeNote = (ctx: { orderId: number; lineId: number | null }, noteId: number) =>
+  patchNotes(ctx, notes =>
+    notes.map(note => (note.id === noteId ? { ...note, dealt: true } : note))
+  )
+
+/** Only line items take replies — an order's notes are EBMS's, and this app does not write there. */
+export const addLineNote = (orderId: number, lineId: number, body: string, author: string) =>
+  patchNotes({ orderId, lineId }, notes => [
+    ...notes,
+    {
+      id: Date.now(),
+      author,
+      email: 'you@wiseline.app',
+      ts: 'just now',
+      body,
+      dealt: false,
+      source: 'app'
+    }
+  ])

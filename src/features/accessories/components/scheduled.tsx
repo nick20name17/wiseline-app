@@ -99,7 +99,7 @@ const Subrow = ({ order }: { order: Order }) => {
                     {item.description}
                   </td>
                   <td data-comment={`sch-linotes-${item.id}`}>
-                    <LineNoteButton item={item} commentKey={`sch-linote-${item.id}`} />
+                    <LineNoteButton item={item} orderId={order.id} commentKey={`sch-linote-${item.id}`} />
                   </td>
                 </tr>
               ))}
@@ -114,7 +114,7 @@ const Subrow = ({ order }: { order: Order }) => {
 /** The Manager's scheduling view: scheduled orders grouped by the day they are prepped for. */
 export const Scheduled = () => {
   const state = useStore(accessoriesStore, current => current)
-  const days = scheduledDays()
+  const days = scheduledDays(state.orders)
 
   if (!days.length)
     return (
@@ -130,9 +130,9 @@ export const Scheduled = () => {
       ? (days[0]?.date as string)
       : state.scheduledDay
 
-  const dayOrders = scheduledOrders()
-    .filter(order => order.prepDate === active && matchesSearch(order))
-    .sort(scheduledSort)
+  const dayOrders = scheduledOrders(state.orders)
+    .filter(order => order.prepDate === active && matchesSearch(order, state.search))
+    .sort(scheduledSort(state.priorities))
 
   return (
     <>

@@ -187,7 +187,7 @@ const Subrow = ({ order }: { order: Order }) => {
                     {item.description}
                   </td>
                   <td data-comment={`li-notes-${item.id}`}>
-                    <LineNoteButton item={item} commentKey={`li-notebtn-${item.id}`} />
+                    <LineNoteButton item={item} orderId={order.id} commentKey={`li-notebtn-${item.id}`} />
                   </td>
                 </tr>
               ))}
@@ -257,10 +257,10 @@ const Subrow = ({ order }: { order: Order }) => {
 
 /** The worker's flat list, sorted by Prep Date and broken by day. */
 export const Packaging = () => {
-  const expandedIds = useStore(accessoriesStore, state => state.expandedIds)
-  useStore(accessoriesStore, state => state.orders)
+  const state = useStore(accessoriesStore, current => current)
+  const expandedIds = state.expandedIds
 
-  const rows = sortedActive()
+  const rows = sortedActive(state)
   const overdueCount = rows.filter(isOverdue).length
 
   return (

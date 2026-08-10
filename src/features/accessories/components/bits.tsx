@@ -2,9 +2,12 @@ import { Inbox, MessageSquare, Package, Truck } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { usePopover } from '@/components/shell/pop'
+
 import { fmtDate } from '../format'
 import { itemStatus, noteState, orderPkgStatus, priorityById, STATUS_MAP } from '../selectors'
-import { accessoriesStore } from '../store'
+import { accessoriesStore, setPriority } from '../store'
+import { openNotes } from '../ui'
 
 import type { LineItem, Order } from '../types'
 
@@ -40,18 +43,39 @@ export const EmptyState = ({
 /** Priority is the Manager's; a Worker reads it and works to it. */
 export const PriorityCell = ({ order }: { order: Order }) => {
   const role = useStore(accessoriesStore, state => state.role)
+  const priorities = useStore(accessoriesStore, state => state.priorities)
+  const { openPop, popNode } = usePopover()
   const readOnly = role === 'worker'
-  const priority = priorityById(order.priorityId)
+  const priority = priorityById(order.priorityId, priorities)
 
   return (
-    <button
-      className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
-      {...(readOnly ? {} : { 'data-pop-anchor': true })}
-      data-comment={`pri-${order.id}`}
-    >
-      <span className='pri-dot' />
-      {priority ? priority.name : 'No priority'}
-    </button>
+    <>
+      <button
+        className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
+        {...(readOnly ? {} : { 'data-pop-anchor': true })}
+        data-comment={`pri-${order.id}`}
+        onClick={
+          readOnly
+            ? undefined
+            : event => {
+                event.stopPropagation()
+                openPop<number>(
+                  event.currentTarget,
+                  [
+                    ...priorities.map(entry => ({ label: entry.name, value: entry.id })),
+                    { label: 'No priority', value: 0 }
+                  ],
+                  value => setPriority(order.id, value || null),
+                  order.priorityId ?? 0
+                )
+              }
+        }
+      >
+        <span className='pri-dot' />
+        {priority ? priority.name : 'No priority'}
+      </button>
+      {popNode}
+    </>
   )
 }
 
@@ -79,6 +103,10 @@ export const OrderNoteButton = ({ order }: { order: Order }) => {
       className={`note-btn ${noteClass(state)}`}
       data-comment={`note-btn-${order.id}`}
       title='Order notes'
+      onClick={event => {
+        event.stopPropagation()
+        openNotes({ orderId: order.id, lineId: null })
+      }}
     >
       <MessageSquare style={{ width: '14px', height: '14px' }} />
       {state !== 'none' ? <span className='note-dot' /> : null}
@@ -91,7 +119,15 @@ export const OrderNoteButton = ({ order }: { order: Order }) => {
  * `li-notebtn-<id>` while the scheduling views name it `<ctx>-linote-<id>` — and the anchor is what a
  * review comment is pinned to, so it cannot be regularised.
  */
-export const LineNoteButton = ({ item, commentKey }: { item: LineItem; commentKey: string }) => {
+export const LineNoteButton = ({
+  item,
+  orderId,
+  commentKey
+}: {
+  item: LineItem
+  orderId: number
+  commentKey: string
+}) => {
   const state = noteState(item.notes)
 
   return (
@@ -99,6 +135,10 @@ export const LineNoteButton = ({ item, commentKey }: { item: LineItem; commentKe
       className={`note-btn ${noteClass(state)}`}
       data-comment={commentKey}
       title='Line item notes'
+      onClick={event => {
+        event.stopPropagation()
+        openNotes({ orderId, lineId: item.id })
+      }}
     >
       <MessageSquare style={{ width: '14px', height: '14px' }} />
       {state !== 'none' ? <span className='note-dot' /> : null}

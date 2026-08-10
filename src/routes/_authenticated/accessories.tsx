@@ -7,6 +7,7 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar, Topbar } from '@/components/shell/chrome'
+import { AlertOverlay, ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
 import { Completed } from '@/features/accessories/components/completed'
@@ -19,7 +20,9 @@ import {
   scheduledOrders,
   unscheduledOrders
 } from '@/features/accessories/selectors'
+import { NoteModal } from '@/features/accessories/components/note-modal'
 import { accessoriesStore, DEPARTMENT, setSearch } from '@/features/accessories/store'
+import { accessoriesUi, closeAlert, closeConfirm, closeNotes } from '@/features/accessories/ui'
 
 import '@/styles/accessories.css'
 
@@ -46,16 +49,17 @@ function Accessories() {
 
   const { view } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const search = useStore(accessoriesStore, state => state.search)
-  useStore(accessoriesStore, state => state.orders)
+  // the tab counts read the whole board, so this one subscribes to all of it
+  const state = useStore(accessoriesStore, current => current)
+  const ui = useStore(accessoriesUi, current => current)
   const viewer = useViewer()
 
   // Packaging lists the same scheduled orders the Scheduled tab groups by day, so both counts are one
   const counts: Record<View, number> = {
-    unscheduled: unscheduledOrders().length,
-    scheduled: scheduledOrders().length,
-    packaging: scheduledOrders().length,
-    completed: completedOrdersList().length
+    unscheduled: unscheduledOrders(state.orders).length,
+    scheduled: scheduledOrders(state.orders).length,
+    packaging: scheduledOrders(state.orders).length,
+    completed: completedOrdersList(state.orders).length
   }
 
   const go = (next: string) =>
@@ -75,7 +79,7 @@ function Accessories() {
           <Topbar
             department={DEPARTMENT}
             tab={VIEW_LABELS[view]}
-            search={search}
+            search={state.search}
             placeholder='Search orders, customers'
             onSearch={setSearch}
           />
@@ -95,7 +99,10 @@ function Accessories() {
           </main>
         </div>
       </div>
-      <Toast />
+      <NoteModal ctx={ui.note} onClose={closeNotes} />
+      <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
+      <AlertOverlay alert={ui.alert} onClose={closeAlert} />
+      <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>
   )
 }
