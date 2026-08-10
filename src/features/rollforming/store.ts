@@ -1,9 +1,10 @@
 import { createStore } from '@/store/create-store'
 
+import { buildLineItem } from './line-item'
 import seed from './seed.json'
 import { showToast } from './ui'
 
-import type { Note, RollformingState } from './types'
+import type { Note, Order, RollformingState } from './types'
 import type { NoteCtx } from './components/note-modal'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
@@ -126,6 +127,69 @@ export const toggleReleaseSel = (orderId: number) =>
       return { ...order, releaseSel: on, exportSel: on ? order.exportSel : false }
     })
   }))
+
+/* -- material requests --------------------------------------------------------------------------- */
+
+let requestSeq = 411
+
+/**
+ * Order origin #2: raw coil a Rollforming machine is asking for.
+ *
+ * It carries no customer, no ship date and no salesman, because nobody bought it — the machine needs
+ * material. That is also why it never splits: there is one line and one coil behind it.
+ */
+export const createMaterialRequest = (form: {
+  profile: string
+  gauge: string
+  thickness: string
+  color: string
+  width: string
+  linearFeet: string
+  priorityId: number | null
+  supplierId: number | null
+}) => {
+  requestSeq += 1
+  const number = `MR-704${requestSeq % 100}`
+
+  const order: Order = {
+    id: Date.now(),
+    order: number,
+    originType: 'material_request',
+    requestedBy: 'Material Request from Rollformer',
+    customer: '—',
+    entryDate: TODAY,
+    shipDate: null,
+    priorityId: form.priorityId,
+    reviewed: false,
+    released: false,
+    exported: false,
+    productionDate: null,
+    isSplit: false,
+    notes: [],
+    lineItems: [
+      buildLineItem({
+        profile: form.profile,
+        gauge: Number.parseFloat(form.gauge) || 26,
+        thickness: Number.parseFloat(form.thickness) || 0.018,
+        width: Number.parseFloat(form.width) || 40,
+        color: form.color,
+        qty: 1,
+        length: null,
+        linearFeet: Number.parseInt(form.linearFeet, 10) || 1000,
+        coilPreset: [{ supplierId: form.supplierId, coilNumber: '' }]
+      })
+    ],
+    packages: [],
+    address: '',
+    city: '',
+    po: '',
+    salesman: '',
+    shipVia: ''
+  }
+
+  rollformingStore.set(state => ({ orders: [order, ...state.orders] }))
+  return number
+}
 
 /* -- notes ------------------------------------------------------------------------------------- */
 

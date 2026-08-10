@@ -7,6 +7,7 @@ import type { NoteCtx } from './components/note-modal'
 
 export type RollformingUi = {
   note: NoteCtx | null
+  mreq: boolean
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -19,6 +20,7 @@ export type RollformingUi = {
  */
 export const rollformingUi = createStore<RollformingUi>({
   note: null,
+  mreq: false,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -26,6 +28,9 @@ export const rollformingUi = createStore<RollformingUi>({
 
 export const openNotes = (note: NoteCtx) => rollformingUi.set({ note })
 export const closeNotes = () => rollformingUi.set({ note: null })
+
+export const openMaterialRequest = () => rollformingUi.set({ mreq: true })
+export const closeMaterialRequest = () => rollformingUi.set({ mreq: false })
 
 export const askConfirm = (
   title: string,

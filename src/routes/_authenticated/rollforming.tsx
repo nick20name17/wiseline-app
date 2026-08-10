@@ -27,9 +27,16 @@ import {
   scheduledOrdersActive,
   unscheduledOrders
 } from '@/features/rollforming/selectors'
+import { MaterialRequestModal } from '@/features/rollforming/components/material-request'
 import { NoteModal } from '@/features/rollforming/components/note-modal'
 import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
-import { closeAlert, closeConfirm, closeNotes, rollformingUi } from '@/features/rollforming/ui'
+import {
+  closeAlert,
+  closeConfirm,
+  closeMaterialRequest,
+  closeNotes,
+  rollformingUi
+} from '@/features/rollforming/ui'
 
 import '@/styles/rollforming.css'
 
@@ -137,6 +144,7 @@ function Rollforming() {
         </div>
       </div>
       <NoteModal ctx={ui.note} onClose={closeNotes} />
+      <MaterialRequestModal open={ui.mreq} onClose={closeMaterialRequest} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
