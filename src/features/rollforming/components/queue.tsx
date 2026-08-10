@@ -15,9 +15,26 @@ import {
   supplierName,
   type QueueGroup
 } from '../selectors'
-import { rollformingStore } from '../store'
+import { usePopover } from '@/components/shell/pop'
+
+import {
+  completeSlitLine,
+  copyCoilNumber,
+  reorderQueue,
+  rollformingStore,
+  setQueueCoilNumber,
+  setQueueSupplier,
+  toggleCoilInMachine
+} from '../store'
+import { openCoilPick, openLotPick } from '../ui'
 import { EmptyState, GroupTabs } from './bits'
 import { CoilPanel } from './production'
+
+/**
+ * Which row is being dragged. Module-level because a drag starts in one row and finishes in another,
+ * exactly as the prototype keeps it.
+ */
+const drag: { current: { date: string; key: string } | null } = { current: null }
 
 /**
  * The Queue: every unit of released work, combined into one row wherever production date, colour,
@@ -33,6 +50,7 @@ const QueueRow = ({
   bucketKey,
   index,
   date,
+  group,
   overdue,
   firstOfBucket
 }: {
@@ -40,6 +58,7 @@ const QueueRow = ({
   bucketKey: string
   index: number
   date: string
+  group: string
   overdue: boolean
   firstOfBucket: boolean
 }) => {
@@ -57,9 +76,47 @@ const QueueRow = ({
   // checking a coil into the machine needs both halves of its identity, and material to roll
   const canCheckIn = !waiting && !!row.supplierId && !!row.coilNumber
   const key = `${bucketKey}-${index}`
+  const { openPop, popNode } = usePopover()
+
+  const pickSupplier = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    openPop<number>(
+      event.currentTarget,
+      [
+        { label: 'Undefined', value: 0 },
+        ...suppliers.map(entry => ({ label: entry.name, value: entry.id }))
+      ],
+      value => setQueueSupplier(row.key, value || null),
+      row.supplierId ?? 0
+    )
+  }
+
+  const pickCoilNumber = () =>
+    openCoilPick({
+      mode: 'queue',
+      color: row.color,
+      gauge: row.gauge,
+      onPick: number => setQueueCoilNumber(row.key, number)
+    })
 
   return (
-    <tr className={overdue ? 'overdue' : ''} data-comment={`q-row-${key}`}>
+    <tr
+      className={overdue ? 'overdue' : ''}
+      data-comment={`q-row-${key}`}
+      onDragOver={event => {
+        if (drag.current?.date !== date) return
+        event.preventDefault()
+        event.currentTarget.classList.add('li-dragover')
+      }}
+      onDragLeave={event => event.currentTarget.classList.remove('li-dragover')}
+      onDrop={event => {
+        event.preventDefault()
+        event.currentTarget.classList.remove('li-dragover')
+        const dragged = drag.current
+        drag.current = null
+        if (dragged?.date === date) reorderQueue(date, dragged.key, row.key, group)
+      }}
+    >
       <td data-comment={`q-inmach-${key}`}>
         {waiting ? null : (
           <input
@@ -68,7 +125,7 @@ const QueueRow = ({
             data-comment={`q-inmachchk-${key}`}
             checked={inMachine}
             disabled={!canCheckIn}
-            onChange={() => {}}
+            onChange={() => toggleCoilInMachine(row.key)}
           />
         )}
       </td>
@@ -113,6 +170,7 @@ const QueueRow = ({
             data-pop-anchor
             data-comment={`q-supbtn-${key}`}
             style={{ width: '100%' }}
+            onClick={pickSupplier}
           >
             Undefined
             <ChevronDown />
@@ -123,6 +181,7 @@ const QueueRow = ({
             data-pop-anchor
             data-comment={`q-supbtn-${key}`}
             style={{ width: '100%' }}
+            onClick={pickSupplier}
           >
             {supplierName(row.supplierId, suppliers)}
             <ChevronDown />
@@ -130,6 +189,8 @@ const QueueRow = ({
         ) : (
           supplierName(row.supplierId, suppliers)
         )}
+        {/* portalled out of here, so it adds no cell of its own */}
+        {popNode}
       </td>
       <td data-comment={`q-coil-${key}`}>
         {waiting ? (
@@ -137,6 +198,7 @@ const QueueRow = ({
             className='lock-tag'
             title='Click to mark slit complete'
             data-comment={`q-slitcomplete-${key}`}
+            onClick={() => completeSlitLine(row.key)}
           >
             <Clock style={{ width: '14px', height: '14px' }} />
             waiting...
@@ -148,6 +210,7 @@ const QueueRow = ({
             disabled={!row.supplierId}
             title={row.supplierId ? undefined : 'Choose a Supplier first'}
             style={{ width: '100%' }}
+            onClick={pickCoilNumber}
           >
             Undefined
             <ChevronDown />
@@ -159,6 +222,7 @@ const QueueRow = ({
                 className='q-coil-editable'
                 title='Click to change Coil Number'
                 data-comment={`q-coilbtn-${key}`}
+                onClick={pickCoilNumber}
               >
                 {row.coilNumber}
               </button>
@@ -168,10 +232,27 @@ const QueueRow = ({
                 {row.coilNumber}
               </span>
             )}{' '}
-            <button className='icon-btn' title='Copy Coil Number' data-comment={`q-copycn-${key}`}>
+            <button
+              className='icon-btn'
+              title='Copy Coil Number'
+              data-comment={`q-copycn-${key}`}
+              onClick={() => copyCoilNumber(row.coilNumber)}
+            >
               <Copy style={{ width: '14px', height: '14px' }} />
             </button>{' '}
-            <button className='icon-btn' title='Lot Numbers' data-comment={`q-lotbtn-${key}`}>
+            <button
+              className='icon-btn'
+              title='Lot Numbers'
+              data-comment={`q-lotbtn-${key}`}
+              onClick={() =>
+                openLotPick({
+                  groupKey: row.key,
+                  color: row.color,
+                  gauge: row.gauge,
+                  coilNumber: row.coilNumber
+                })
+              }
+            >
               <Search style={{ width: '14px', height: '14px' }} />
             </button>
           </>
@@ -207,6 +288,17 @@ const QueueRow = ({
             draggable
             title='Drag to reorder within this Production Date'
             data-comment={`q-drag-${key}`}
+            onDragStart={event => {
+              drag.current = { date, key: row.key }
+              event.dataTransfer.effectAllowed = 'move'
+              event.dataTransfer.setData('text/plain', row.key)
+            }}
+            onDragEnd={() => {
+              drag.current = null
+              document
+                .querySelectorAll('.li-dragover')
+                .forEach(element => element.classList.remove('li-dragover'))
+            }}
           >
             <GripVertical style={{ width: '14px', height: '14px' }} />
           </span>
@@ -262,6 +354,7 @@ const QueueBuckets = ({ group }: { group: string }) => {
                     bucketKey={bucketKey}
                     index={index}
                     date={bucket.date}
+                    group={group}
                     overdue={overdue}
                     firstOfBucket={index === 0}
                   />

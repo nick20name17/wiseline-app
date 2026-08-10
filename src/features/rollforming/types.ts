@@ -31,6 +31,8 @@ export type CoilUnit = {
   /** Set when the Worker filled in a Supplier/Coil Number the Manager left Undefined. */
   workerAssigned: boolean
   stock: boolean
+  /** Written only when a Lot Number was picked into the Coil Number field. */
+  lotNumber?: string
 }
 
 export type LineItem = {

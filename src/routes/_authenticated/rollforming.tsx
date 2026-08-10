@@ -29,6 +29,7 @@ import {
 } from '@/features/rollforming/selectors'
 import { AssignModal } from '@/features/rollforming/components/assign'
 import { CoilPickModal } from '@/features/rollforming/components/coil-pick'
+import { LotPickModal } from '@/features/rollforming/components/lot-pick'
 import { MaterialRequestModal } from '@/features/rollforming/components/material-request'
 import { NoteModal } from '@/features/rollforming/components/note-modal'
 import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
@@ -37,6 +38,7 @@ import {
   closeAssign,
   closeCoilPick,
   closeConfirm,
+  closeLotPick,
   closeMaterialRequest,
   closeNotes,
   rollformingUi
@@ -162,6 +164,7 @@ function Rollforming() {
         onClose={closeAssign}
       />
       <CoilPickModal ctx={ui.coilPick} onClose={closeCoilPick} />
+      <LotPickModal ctx={ui.lotPick} onClose={closeLotPick} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
