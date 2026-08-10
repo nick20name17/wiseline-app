@@ -15,11 +15,19 @@ import { Loading } from '@/features/shipping/components/loading'
 import { ShipMap } from '@/features/shipping/components/map'
 import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
+import { CalendarModal } from '@/features/shipping/components/calendar-modal'
 import { NoteModal } from '@/features/shipping/components/note-modal'
+import { ScheduleModal } from '@/features/shipping/components/schedule-modal'
 import { TruckNotesModal } from '@/features/shipping/components/truck-notes'
 import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shipping/selectors'
 import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shipping/store'
-import { closeOrderNotes, closeTruckNotes, shippingUi } from '@/features/shipping/ui'
+import {
+  closeCalendar,
+  closeOrderNotes,
+  closeSchedule,
+  closeTruckNotes,
+  shippingUi
+} from '@/features/shipping/ui'
 import { useTableShadows } from '@/features/shipping/use-table-shadows'
 
 import '@/styles/shipping.css'
@@ -154,6 +162,13 @@ function Shipping() {
       </div>
       <NoteModal orderId={ui.note} onClose={closeOrderNotes} />
       <TruckNotesModal open={ui.truckNotes} onClose={closeTruckNotes} />
+      {/* both keyed per opening: each starts with no date and no truck picked */}
+      <ScheduleModal
+        key={ui.schedule ? `sched-${ui.schedule.orderIds.join(',')}` : 'sched'}
+        ctx={ui.schedule}
+        onClose={closeSchedule}
+      />
+      <CalendarModal key={`cal-${ui.calSeq}`} ctx={ui.cal} onClose={closeCalendar} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />
     </>
   )

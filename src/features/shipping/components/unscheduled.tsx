@@ -7,7 +7,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate } from '../format'
 import { orderMatchesSearch, sortByPriority, unscheduledOrders } from '../selectors'
 import { shippingStore, toggleUnschedExpand, toggleUnschedSel } from '../store'
-import { openTruckNotes } from '../ui'
+import { openScheduleForSelection, openTruckNotes } from '../ui'
 import {
   EmptyState,
   ExpandRow,
@@ -60,7 +60,12 @@ export const Unscheduled = () => {
           <NotebookPen style={{ width: '14px', height: '14px' }} />
           Trucks Notes
         </button>
-        <button className='btn btn-primary' data-comment='uns-schedule' disabled={!selectedCount}>
+        <button
+          className='btn btn-primary'
+          data-comment='uns-schedule'
+          disabled={!selectedCount}
+          onClick={openScheduleForSelection}
+        >
           <CalendarDays style={{ width: '14px', height: '14px' }} />
           Schedule{selectedCount ? ` (${selectedCount})` : ''}
         </button>

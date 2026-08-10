@@ -93,6 +93,21 @@ export const addOrderNote = (orderId: number, body: string) =>
     ]
   }))
 
+/**
+ * A ship date and a truck for every order the modal was opened with.
+ *
+ * Both selection lists are cleared, not only the one that opened it: the same modal serves the
+ * Unscheduled flow and the Reschedule flow off the Scheduled grid, and either list may hold these ids.
+ */
+export const applySchedule = (orderIds: number[], truckId: number, shipDate: string) =>
+  shippingStore.set(state => ({
+    orders: state.orders.map(order =>
+      orderIds.includes(order.id) ? { ...order, shipDate, truckId } : order
+    ),
+    selUnscheduled: state.selUnscheduled.filter(id => !orderIds.includes(id)),
+    selScheduled: state.selScheduled.filter(id => !orderIds.includes(id))
+  }))
+
 export const setTruckNotes = (truckId: number, notes: string) =>
   shippingStore.set(state => ({
     trucks: state.trucks.map(truck => (truck.id === truckId ? { ...truck, notes } : truck))
