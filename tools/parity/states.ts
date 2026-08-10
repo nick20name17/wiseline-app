@@ -721,13 +721,7 @@ export const STATES: State[] = [
     page: 'shipping',
     view: 'view-scheduled',
     name: 'modal-schedtruck',
-    clicks: ['sch-truck-101-all']
-  },
-  {
-    page: 'shipping',
-    view: 'view-loading',
-    name: 'modal-load',
-    clicks: ['ldg-loadpill-1']
+    clicks: ['sch-truckhead-101-all']
   },
   {
     page: 'shipping',
