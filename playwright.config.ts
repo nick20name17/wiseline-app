@@ -1,6 +1,17 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = 5173
+/**
+ * The behaviour gate, beside the parity gate.
+ *
+ * `tools/parity` proves the port *looks* and *reads* like the prototype: the same anchors, the same
+ * tree, on every screen a state can reach. It says nothing about what a click does — and every defect
+ * found on the day these were written was a control that existed and did nothing. That is this file's
+ * job: the flows that carry an order across the four boards, asserted on state rather than on pixels.
+ *
+ * Port 5175 rather than the 5173 Vite defaults to: another project on this machine holds that one, and
+ * a suite that fights for a port fails for the wrong reason.
+ */
+const PORT = 5175
 const baseURL = `http://localhost:${PORT}`
 
 export default defineConfig({
@@ -11,14 +22,15 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL,
-    trace: 'off',
-    screenshot: 'off',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
     video: 'off'
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'bun run dev',
+    command: `bunx vite dev --port ${PORT} --strictPort`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000
   }
 })

@@ -270,6 +270,26 @@ for (const viewport of VIEWPORTS) {
           console.warn(`skip ${name}__${view}+${state.name} @ ${viewport.name} — no ${missed}`)
           continue
         }
+
+        /**
+         * A state named for a modal has to have opened one.
+         *
+         * Two of them clicked a real element that opens nothing — the card instead of its head, a load
+         * pill that is not the way in — and recorded the plain board under the name of a window. Both
+         * sides did the same thing, so the gate compared them and passed: a state that lies about which
+         * screen it took is worse than one that fails, because it reads as coverage.
+         */
+        if (state.name.startsWith('modal-')) {
+          const opened = await on.evaluate(
+            () => document.querySelectorAll('.overlay.is-open, .pop, .dp-pop').length
+          )
+          if (!opened) {
+            console.warn(
+              `skip ${name}__${view ?? 'page'}+${state.name} @ ${viewport.name} — nothing opened`
+            )
+            continue
+          }
+        }
         await record(state.name, on)
       }
     }
