@@ -27,6 +27,19 @@ scan tools (driver, scanner, loading station), and Coils, Stock Cards, Settings,
 EBMS, Warehouse and the sign-in. Every view green at both widths, modals included, with the one
 exemption below.
 
+**One screen deliberately differs, and it is the only one.** Stock Cards hosted in Trim's frame
+(`src/styles/stockcards-embed.css`): the page's own `.is-embed` rules make `.app` a block, which breaks
+the flex column it scrolls in, so `.content` grew past the frame and the frame clipped it — the last row
+of cards could not be reached at any window size. The column is restored and the sheet is centred; the
+card itself keeps its printed size, and the standing page is untouched, so the gate still compares it.
+The prototype has the same bug; this is the one place the port does not copy it.
+
+**The gate captures as one person.** `capture.ts` sets `wl_role = 'manager'`, so every worker screen —
+Trim's and Rollforming's narrowed tab strips, read-only priority and notes, Rollforming's station bar —
+is outside all three gates and has to be checked by hand against the prototype at the same role. A
+board's own role comes from the sidebar's «Viewing as» (`src/session/dept-role.ts`, the prototype's
+`wlOnRole`): worker and driver read as `worker`, everyone else as `manager`.
+
 Two things printing taught late, since neither gate can see a print stylesheet. The port's `#root`
 stands in for the prototype's `<body>`, so a rule that anchors at the root *twice* —
 `html.is-printing-cards body > *` — had a step left over that could never match, and both print

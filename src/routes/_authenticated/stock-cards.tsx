@@ -33,6 +33,8 @@ import {
 } from '@/features/stockcards/store'
 
 import '@/styles/stockcards.css'
+// after the page's own sheet, and only ever active under `.is-embed` — see the file's own note
+import '@/styles/stockcards-embed.css'
 
 export const Route = createFileRoute('/_authenticated/stock-cards')({
   // #198: the Trim board hosts this page inline, and passes the flag the way the prototype does
