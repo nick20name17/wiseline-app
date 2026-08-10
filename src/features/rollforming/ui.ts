@@ -24,6 +24,7 @@ export type RollformingUi = {
   seePkg: number | null
   loc: LocCtx | null
   schedule: ScheduleCtx | null
+  compDetail: number | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -45,6 +46,7 @@ export const rollformingUi = createStore<RollformingUi>({
   seePkg: null,
   loc: null,
   schedule: null,
+  compDetail: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -94,6 +96,9 @@ export const closeLocationPicker = () => rollformingUi.set({ loc: null })
 
 export const openSchedule = (schedule: ScheduleCtx) => rollformingUi.set({ schedule })
 export const closeSchedule = () => rollformingUi.set({ schedule: null })
+
+export const openCompletedDetail = (compDetail: number) => rollformingUi.set({ compDetail })
+export const closeCompletedDetail = () => rollformingUi.set({ compDetail: null })
 
 /** Turning Reviewed off costs the order its place in Export/Release, so only that direction asks. */
 export const requestToggleReviewed = (order: { id: number; order: string; reviewed: boolean }) => {

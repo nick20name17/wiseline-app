@@ -5,6 +5,7 @@ import { useStore } from '@/store/create-store'
 import { fmtDate, fmtDateTime } from '../format'
 import { completedOrdersList, isFullyWrapped, orderLocLabel } from '../selectors'
 import { rollformingStore } from '../store'
+import { openCompletedDetail } from '../ui'
 import { EmptyState } from './bits'
 
 /**
@@ -42,7 +43,12 @@ export const Completed = () => {
         </thead>
         <tbody data-comment='comp-tbody'>
           {orders.map(order => (
-            <tr key={order.id} className='row-order' data-comment={`comp-row-${order.id}`}>
+            <tr
+              key={order.id}
+              className='row-order'
+              data-comment={`comp-row-${order.id}`}
+              onClick={() => openCompletedDetail(order.id)}
+            >
               <td className='cell-num muted' data-comment={`comp-ship-${order.id}`}>
                 {order.shipDate ? fmtDate(order.shipDate) : '—'}
               </td>
