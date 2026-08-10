@@ -22,9 +22,16 @@ Port 5199 rather than the 5173 in `package.json`: another project on this machin
 scripts take the origin as an argument precisely so nothing has to be killed. A full capture of one side
 is ~3–4 minutes — run it in the background and wait for `NN captures →`, do not poll it.
 
-**All four departments are done** — Trim, Rollforming, Shipping and Accessories, every view green at
-both widths. The three scan tools — driver, scanner and the loading station — are done too. What is left is
-coils, stockcards and settings.
+**Every page is across** — the four departments (Trim, Rollforming, Shipping, Accessories), the three
+scan tools (driver, scanner, loading station), and Coils, Stock Cards, Settings, Dashboard, Activity,
+EBMS, Warehouse and the sign-in. Every view green at both widths, modals included, with the one
+exemption below.
+
+Two things printing taught late, since neither gate can see a print stylesheet. The port's `#root`
+stands in for the prototype's `<body>`, so a rule that anchors at the root *twice* —
+`html.is-printing-cards body > *` — had a step left over that could never match, and both print
+sheets were dead; `scope.ts` now drops it. And the class those rules key on goes on `#root`, beside
+`data-page`, not on `documentElement`.
 
 **Activity is gated on a race, and it is worth knowing.** Its feed generates a random event every 4.5
 seconds, on both sides. Both captures land inside that first window, so both show the sixteen seeded
@@ -32,12 +39,10 @@ rows — but a slow load on either side would put an invented row in one baselin
 that page ever goes red with one extra row, re-run it before believing it. Every state clicks Pause
 first, for exactly this reason.
 
-What is left inside the departments is the modals — 13 on Rollforming, several on Trim, four on
-Accessories, and on Shipping the two that matter most, because `renderTruckExpandedGrid` (the
-load-assignment grid) and the Load builder live *only* in a modal and nothing on the board reaches
-them. Read
-`renderScheduled` and `renderTruckExpandedGrid` together when that comes: `schedGridOrders` is
-deliberately shared by the render, Select-All and Reschedule so all three act on the same visible rows.
+**Shipping's board does not reach its own two most important screens.** `renderTruckExpandedGrid` (the
+load-assignment grid) and the Load builder live *only* in a modal, so read `renderScheduled` and
+`renderTruckExpandedGrid` together before touching either: `schedGridOrders` is deliberately shared by
+the render, Select-All and Reschedule so all three act on the same visible rows.
 
 **The Map is gated, with one honest exemption.** Its pins, legend and counts are the port's own work and
 are compared like anything else. The OpenStreetMap tiles under them are not: how many have arrived when

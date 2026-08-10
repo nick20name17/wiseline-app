@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Construction, MessageSquare, Search } from 'lucide-react'
 import * as z from 'zod'
 
+import { useDeptRole } from '@/session/dept-role'
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -27,7 +28,12 @@ import { SchedTruckModal } from '@/features/shipping/components/sched-truck'
 import { ScheduleModal } from '@/features/shipping/components/schedule-modal'
 import { TruckNotesModal } from '@/features/shipping/components/truck-notes'
 import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shipping/selectors'
-import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shipping/store'
+import {
+  setDeptRole,
+  setSearch,
+  shippingStore,
+  toggleNotesExpanded
+} from '@/features/shipping/store'
 import {
   closeCalendar,
   closeCompleted,
@@ -110,6 +116,7 @@ const Topbar = ({ tab, search, notesOn }: { tab: string; search: string; notesOn
 function Shipping() {
   usePage('shipping')
   useTableShadows()
+  useDeptRole(setDeptRole)
 
   const { view } = Route.useSearch()
   const navigate = Route.useNavigate()

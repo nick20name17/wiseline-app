@@ -8,6 +8,19 @@ import { History } from 'lucide-react'
  * a spacer, a `tabs-row` and its own `data-comment` names, so it keeps its own copy.
  */
 
+/**
+ * Which tabs a role may see (Permissions.md): a Manager works the board from Unscheduled down, a Worker
+ * only from Production down — plus Coils, which N-106 gives both.
+ */
+const ROLE_VIEWS: Record<string, string[]> = {
+  manager: ['home', 'scheduled', 'production', 'coils', 'calendar', 'completed'],
+  worker: ['production', 'coils']
+}
+
+export const canAccess = (view: string, role: string) => !!ROLE_VIEWS[role]?.includes(view)
+
+export const defaultView = (role: string) => ROLE_VIEWS[role]?.[0] ?? 'home'
+
 export type Tab = { view: string; comment: string; label: string; count?: number }
 
 export const DeptBar = ({
@@ -15,12 +28,14 @@ export const DeptBar = ({
   code,
   tabs,
   activeView,
+  role,
   onNavigate
 }: {
   title: string
   code: string
   tabs: Tab[]
   activeView: string
+  role: string
   onNavigate: (view: string) => void
 }) => (
   <div className='dept-bar' data-comment='dept-bar'>
@@ -44,7 +59,8 @@ export const DeptBar = ({
       {tabs.map(tab => (
         <button
           key={tab.comment}
-          className={tab.view === activeView ? 'tab active' : 'tab'}
+          // hidden, not disabled: a tab a role has no business with is not there at all
+          className={`${tab.view === activeView ? 'tab active' : 'tab'}${canAccess(tab.view, role) ? '' : ' is-hidden'}`}
           data-comment={tab.comment}
           onClick={() => onNavigate(tab.view)}
         >

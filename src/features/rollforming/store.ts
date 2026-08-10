@@ -19,6 +19,7 @@ import {
   supplierName
 } from './selectors'
 
+import type { DeptRole } from '@/session/dept-role'
 import type { CoilUnit, Location, Note, Order, RollformingState } from './types'
 import type { NoteCtx } from './components/note-modal'
 
@@ -65,6 +66,13 @@ export const setActor = (role: string) =>
         ? { role, activeGroup: 'All' }
         : { role }
   )
+
+/**
+ * Follows the sidebar's «Viewing as» — see `useDeptRole`. It outranks the station: the prototype
+ * applies the viewing-as role on load too, so whoever the app is being viewed as starts at the board,
+ * not at whichever station was last worked.
+ */
+export const setDeptRole = (role: DeptRole) => rollformingStore.set({ role })
 
 export const toggleExpand = (orderId: number) =>
   rollformingStore.set(state => ({

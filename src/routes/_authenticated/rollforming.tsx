@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
+import { useEffect, useRef } from 'react'
 
+import { useDeptRole } from '@/session/dept-role'
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -10,7 +12,7 @@ import { Sidebar, Topbar } from '@/components/shell/chrome'
 import { AlertOverlay, ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
-import { DeptBar } from '@/features/rollforming/components/shell'
+import { canAccess, defaultView, DeptBar } from '@/features/rollforming/components/shell'
 import { Coils } from '@/features/rollforming/components/coils'
 import { Completed } from '@/features/rollforming/components/completed'
 import { Production } from '@/features/rollforming/components/production'
@@ -38,7 +40,7 @@ import { PackageModal } from '@/features/rollforming/components/package-modal'
 import { SeePackagesModal } from '@/features/rollforming/components/see-packages'
 import { MaterialRequestModal } from '@/features/rollforming/components/material-request'
 import { NoteModal } from '@/features/rollforming/components/note-modal'
-import { DEPARTMENT, rollformingStore, setSearch } from '@/features/rollforming/store'
+import { DEPARTMENT, rollformingStore, setDeptRole, setSearch } from '@/features/rollforming/store'
 import {
   closeAlert,
   closeAssign,
@@ -97,6 +99,18 @@ function Rollforming() {
   const { searchTerm, activeGroup, expandedCoilsFolder, coils } = state
   const viewer = useViewer()
   const ui = useStore(rollformingUi, current => current)
+
+  useDeptRole(setDeptRole)
+
+  // the role changing can strand the viewer on a tab it no longer sees; the actor bar does its own
+  // navigating, so this only watches the cross-page role
+  const applied = useRef<string | null>(null)
+  useEffect(() => {
+    if (applied.current === state.role) return
+    applied.current = state.role
+    if (!canAccess(view, state.role))
+      void navigate({ search: { view: defaultView(state.role) as View } })
+  }, [state.role, view, navigate])
 
   const counts: Record<View, number> = {
     home: unscheduledOrders(state.orders).filter(order => orderInGroup(order, activeGroup)).length,

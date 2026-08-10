@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as z from 'zod'
+import { useEffect, useRef } from 'react'
 
+import { useDeptRole } from '@/session/dept-role'
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -10,7 +12,7 @@ import { Sidebar, Topbar } from '@/components/shell/chrome'
 import { AlertOverlay, ConfirmOverlay } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 
-import { DeptBar } from '@/features/trim/components/shell'
+import { canAccess, defaultView, DeptBar } from '@/features/trim/components/shell'
 import { Calendar } from '@/features/trim/components/calendar'
 import { Keypads } from '@/features/trim/components/keypads'
 import { CutlistCoils } from '@/features/trim/components/cutlist-coils'
@@ -37,6 +39,7 @@ import {
   rescheduleOrder,
   scheduleLines,
   scheduleOrders,
+  setDeptRole,
   setPeekDay,
   setScheduledDay,
   setSearch,
@@ -104,6 +107,18 @@ function Trim() {
   const viewer = useViewer()
   const cutlists = useStore(trimStore, state => (state.cutlists as unknown[]).length)
   const coils = useStore(trimStore, state => (state.coils as unknown[]).length)
+  const role = useStore(trimStore, state => state.role)
+
+  useDeptRole(setDeptRole)
+
+  // the role changing can strand the viewer on a tab it no longer sees; a click on one it does not is
+  // a different matter — the prototype lets a Worker open Completed from the header and stay there
+  const applied = useRef<string | null>(null)
+  useEffect(() => {
+    if (applied.current === role) return
+    applied.current = role
+    if (!canAccess(view, role)) void navigate({ search: { view: defaultView(role) as View } })
+  }, [role, view, navigate])
 
   const tabs = [
     {
@@ -144,7 +159,14 @@ function Trim() {
             placeholder='Search orders, customers, product IDs'
             onSearch={setSearch}
           />
-          <DeptBar title={DEPARTMENT} code='01' tabs={tabs} activeView={view} onNavigate={go} />
+          <DeptBar
+            title={DEPARTMENT}
+            code='01'
+            tabs={tabs}
+            activeView={view}
+            role={role}
+            onNavigate={go}
+          />
 
           <main className='content' data-comment='content'>
             <section id={`view-${view}`} className='view active' data-comment={`view-${view}`}>
