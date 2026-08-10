@@ -15,6 +15,7 @@ import {
   truckDisplay
 } from '../selectors'
 import { accessoriesStore, setScheduledDay, toggleExpand } from '../store'
+import { openReschedule } from '../ui'
 import {
   EmptyState,
   ItemStatusPill,
@@ -64,6 +65,7 @@ const Subrow = ({ order }: { order: Order }) => {
                 className='btn btn-sm'
                 data-pop-anchor
                 data-comment={`sch-reschedule-${order.id}`}
+                onClick={() => openReschedule(order.id)}
               >
                 <Calendar style={{ width: '14px', height: '14px' }} />
                 Reschedule / Unschedule
