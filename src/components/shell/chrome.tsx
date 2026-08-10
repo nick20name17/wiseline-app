@@ -18,6 +18,8 @@ import { Fragment, type ReactNode } from 'react'
 
 import { canSeeNav } from '@/session/nav-visibility'
 
+import { useRoleMenu } from './role-menu'
+
 import type { Department, Role } from '@/session/viewer'
 
 /**
@@ -170,19 +172,29 @@ export const Sidebar = ({
       )
     })}
 
+    <RoleFab roleLabel={roleLabel} />
+  </aside>
+)
+
+/** Its own component so the sidebar stays a plain render and the open menu is the only thing with state. */
+const RoleFab = ({ roleLabel }: { roleLabel: string }) => {
+  const { toggleRoleMenu, roleMenuNode } = useRoleMenu()
+
+  return (
     <div className='wl-role-fab' data-comment='sidebar-foot'>
       <span className='wl-role-fab-label' data-comment='role-switch-label'>
         Viewing as
       </span>
-      <button className='role-switch-btn' data-comment='role-switch-btn'>
+      <button className='role-switch-btn' data-comment='role-switch-btn' onClick={toggleRoleMenu}>
         <span id='wl-role-current' data-comment='role-switch-current'>
           {roleLabel}
         </span>
         <ChevronsUpDown className='role-switch-caret' />
       </button>
+      {roleMenuNode}
     </div>
-  </aside>
-)
+  )
+}
 
 export const Topbar = ({
   department,
