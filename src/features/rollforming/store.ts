@@ -1,15 +1,11 @@
 import { createStore } from '@/store/create-store'
 
+import { fmtDate } from './format'
 import { buildLineItem } from './line-item'
 import seed from './seed.json'
 import { showToast } from './ui'
 
-import {
-  arrivalKey,
-  forgetOccupant,
-  releaseStamps,
-  shippedKey
-} from '@/store/shared/locations'
+import { arrivalKey, forgetOccupant, releaseStamps, shippedKey } from '@/store/shared/locations'
 import { patchPackage } from '@/store/shared/shipping'
 
 import {
@@ -155,6 +151,137 @@ export const toggleReleaseSel = (orderId: number) =>
       return { ...order, releaseSel: on, exportSel: on ? order.exportSel : false }
     })
   }))
+
+/* -- scheduling ----------------------------------------------------------------------------------- */
+
+export const scheduleEntire = (orderIds: number[], iso: string) => {
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      orderIds.includes(order.id) ? { ...order, productionDate: iso, isSplit: false } : order
+    ),
+    selectedOrderIds: []
+  }))
+  showToast(`Scheduled to ${fmtDate(iso)}`)
+}
+
+/**
+ * Part of an order onto a day of its own. The order stays split until every line has a date, and only
+ * then does it get a single production date again — a split order is one that sits on two days.
+ */
+export const scheduleSplit = (orderId: number, lineIds: number[], iso: string) => {
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => {
+      if (order.id !== orderId) return order
+
+      const lineItems = order.lineItems.map(item =>
+        lineIds.includes(item.id) ? { ...item, scheduledDate: iso } : item
+      )
+      const allScheduled = lineItems.every(item => item.scheduledDate)
+
+      return {
+        ...order,
+        lineItems,
+        isSplit: !allScheduled,
+        productionDate: allScheduled ? iso : order.productionDate || iso
+      }
+    }),
+    selectedLineIds: [],
+    splitOrderId: null
+  }))
+  showToast(`Split scheduled to ${fmtDate(iso)}`)
+}
+
+/**
+ * Moving or dropping a production date returns the order to the state it arrived in.
+ *
+ * A rescheduled order is a new job on the floor: the priority, the review, the split and every
+ * per-unit coil assignment were decided for the day it was going to run, so they do not survive the
+ * move. Qty From Stock is left alone — it is a fact about the order, not about the day.
+ */
+const resetOrderEdits = (order: Order, productionDate: string | null): Order => ({
+  ...order,
+  productionDate,
+  isSplit: false,
+  reviewed: false,
+  priorityId: null,
+  lineItems: order.lineItems.map(item => ({
+    ...item,
+    scheduledDate: null,
+    coils: item.coils.map(coil => ({
+      ...coil,
+      supplierId: null,
+      coilNumber: '',
+      slitDone: false,
+      workerAssigned: false
+    }))
+  }))
+})
+
+export const rescheduleOrder = (orderId: number, iso: string) => {
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => (order.id === orderId ? resetOrderEdits(order, iso) : order))
+  }))
+  showToast(`Rescheduled to ${fmtDate(iso)}`)
+}
+
+export const unscheduleOrder = (orderId: number) => {
+  const order = rollformingStore.get().orders.find(candidate => candidate.id === orderId)
+  if (!order || order.released) return
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(candidate =>
+      candidate.id === orderId ? resetOrderEdits(candidate, null) : candidate
+    )
+  }))
+  showToast(`Order ${order.order} unscheduled`)
+}
+
+/* -- review and release --------------------------------------------------------------------------- */
+
+export const setReviewed = (orderId: number, reviewed: boolean) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.id !== orderId
+        ? order
+        : {
+            ...order,
+            reviewed,
+            exportSel: reviewed ? order.exportSel : false,
+            releaseSel: reviewed ? order.releaseSel : false
+          }
+    )
+  }))
+
+/**
+ * Both gates at once: Release puts the order on the floor, Export sends it to EBMS. An order picked
+ * for Export is released too — that is why the two columns move together.
+ */
+export const releaseSelectedOrders = () => {
+  const targets = rollformingStore.get().orders.filter(order => order.releaseSel)
+  if (!targets.length) return
+
+  const exported = targets.filter(order => order.exportSel).length
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order =>
+      order.releaseSel
+        ? {
+            ...order,
+            released: true,
+            exported: !!order.exportSel,
+            exportSel: false,
+            releaseSel: false
+          }
+        : order
+    )
+  }))
+
+  showToast(
+    `Released ${targets.length} order${targets.length > 1 ? 's' : ''} to production${
+      exported ? ` · ${exported} exported` : ''
+    }`
+  )
+}
 
 /* -- material requests --------------------------------------------------------------------------- */
 

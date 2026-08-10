@@ -30,6 +30,7 @@ import {
 import { AssignModal } from '@/features/rollforming/components/assign'
 import { CoilPickModal } from '@/features/rollforming/components/coil-pick'
 import { RfKeypad } from '@/features/rollforming/components/keypad'
+import { CalendarModal } from '@/features/rollforming/components/calendar-modal'
 import { LocationPicker } from '@/features/rollforming/components/location-picker'
 import { LotPickModal } from '@/features/rollforming/components/lot-pick'
 import { PackageModal } from '@/features/rollforming/components/package-modal'
@@ -46,6 +47,7 @@ import {
   closeLotPick,
   closeMaterialRequest,
   closePackage,
+  closeSchedule,
   closeSeePackages,
   closeNotes,
   rollformingUi
@@ -175,6 +177,12 @@ function Rollforming() {
       <PackageModal orderId={ui.pkg} onClose={closePackage} />
       <SeePackagesModal orderId={ui.seePkg} onClose={closeSeePackages} />
       <LocationPicker ctx={ui.loc} onClose={closeLocationPicker} />
+      {/* keyed per opening: a reschedule starts on the day the order already has */}
+      <CalendarModal
+        key={ui.schedule ? `${ui.schedule.mode}-${JSON.stringify(ui.schedule)}` : 'cal'}
+        ctx={ui.schedule}
+        onClose={closeSchedule}
+      />
       {/* keyed per opening, so the pad starts on the value the row already carries */}
       <RfKeypad key={ui.pad ? `${ui.pad.kind}-${ui.pad.lineId}` : 'kp'} ctx={ui.pad} />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />

@@ -27,6 +27,8 @@ import {
   toggleExportSel,
   toggleReleaseSel
 } from '../store'
+import { releaseSelectedOrders } from '../store'
+import { requestToggleReviewed } from '../ui'
 import { EmptyState, GroupTabs, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -51,6 +53,7 @@ const ReviewedCell = ({ order }: { order: Order }) => {
       <button
         className={`switch ${order.reviewed ? 'on' : ''}`}
         data-comment={`sch-revtoggle-${order.id}`}
+        onClick={() => requestToggleReviewed(order)}
       />
     </span>
   )
@@ -242,7 +245,12 @@ const ReleaseToolbar = ({ info }: { info: React.ReactNode }) => {
         )}
       </span>
       <div className='toolbar-spacer' />
-      <button className='btn btn-primary' data-comment='sch-releasebtn' disabled={!selected}>
+      <button
+        className='btn btn-primary'
+        data-comment='sch-releasebtn'
+        disabled={!selected}
+        onClick={releaseSelectedOrders}
+      >
         <ArrowRight style={{ width: '14px', height: '14px' }} />
         Export and/or Release To Production{selected ? ` (${selected})` : ''}
       </button>

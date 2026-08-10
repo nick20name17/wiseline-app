@@ -13,7 +13,7 @@ import {
   unscheduledOrders
 } from '../selectors'
 import { rollformingStore, toggleExpand, toggleOrderSelect } from '../store'
-import { openMaterialRequest } from '../ui'
+import { openMaterialRequest, openSchedule } from '../ui'
 import { EmptyState, GroupTabs, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
@@ -49,7 +49,17 @@ export const Unscheduled = () => {
           <Plus style={{ width: '14px', height: '14px' }} />
           New Material Request
         </button>
-        <button className='btn btn-primary' data-comment='uns-schedule' disabled={!selectedCount}>
+        <button
+          className='btn btn-primary'
+          data-comment='uns-schedule'
+          disabled={!selectedCount}
+          onClick={() =>
+            openSchedule({
+              mode: 'entire',
+              orderIds: state.selectedOrderIds.filter(id => rows.some(order => order.id === id))
+            })
+          }
+        >
           <CalendarDays style={{ width: '14px', height: '14px' }} />
           Schedule{selectedCount ? ` (${selectedCount})` : ''}
         </button>
