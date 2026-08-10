@@ -5,12 +5,22 @@ import { accessoriesStore, TODAY } from './store'
 
 import type { LineItem, Location, Order, Priority } from './types'
 
-/** Everything derived, under the prototype's own names, so its knowledge base still describes this code. */
+/**
+ * Everything derived, under the prototype's own names, so its knowledge base still describes this code.
+ *
+ * A selector that reads the store takes what it reads as a trailing argument, defaulted to the live
+ * value. The React Compiler keys a derived value on the reactive inputs it can *see*, and a call that
+ * reaches into the store on its own shows it none — the board would answer once and then freeze on
+ * stale rows. Components pass the slice they subscribed to; the default is for callers outside render.
+ */
 
-export const priorityById = (id: number | null): Priority | null =>
-  accessoriesStore.get().priorities.find(priority => priority.id === id) ?? null
+export const priorityById = (
+  id: number | null,
+  priorities = accessoriesStore.get().priorities
+): Priority | null => priorities.find(priority => priority.id === id) ?? null
 
-export const priHierarchy = (id: number | null) => priorityById(id)?.hierarchy ?? 999
+export const priHierarchy = (id: number | null, priorities = accessoriesStore.get().priorities) =>
+  priorityById(id, priorities)?.hierarchy ?? 999
 
 export const noteState = (notes: { dealt: boolean }[] | undefined) => {
   if (!notes || !notes.length) return 'none'
@@ -46,13 +56,15 @@ export const isOverdue = (order: Order) =>
 export const truckDisplay = (order: Order) =>
   order.shipVia === 'Pickup' ? 'N/A' : (order.truck ?? '')
 
-export const activeOrders = () => accessoriesStore.get().orders.filter(order => !order.completed)
+export const activeOrders = (orders = accessoriesStore.get().orders) =>
+  orders.filter(order => !order.completed)
 
 /** A split order is in both lists at once: its unscheduled remainder still needs a Prep Date. */
-export const unscheduledOrders = () =>
-  activeOrders().filter(order => !order.prepDate || order.isSplit)
+export const unscheduledOrders = (orders = accessoriesStore.get().orders) =>
+  activeOrders(orders).filter(order => !order.prepDate || order.isSplit)
 
-export const scheduledOrders = () => activeOrders().filter(order => order.prepDate)
+export const scheduledOrders = (orders = accessoriesStore.get().orders) =>
+  activeOrders(orders).filter(order => order.prepDate)
 
 export const unscheduledLineItemsOf = (order: Order) =>
   order.isSplit ? order.items.filter(item => !item.scheduledDate) : order.items
@@ -68,14 +80,13 @@ const daysSinceCompleted = (order: Order) =>
   )
 
 /** Completed Orders keeps 90 days of history from TODAY; older rows age out of the tab. */
-export const completedOrdersList = () =>
-  accessoriesStore
-    .get()
-    .orders.filter(order => order.completed && daysSinceCompleted(order) <= 90)
+export const completedOrdersList = (orders = accessoriesStore.get().orders) =>
+  orders
+    .filter(order => order.completed && daysSinceCompleted(order) <= 90)
     .sort((a, b) => ((a.completedDate ?? '') < (b.completedDate ?? '') ? 1 : -1))
 
-export const matchesSearch = (order: Order) => {
-  const query = accessoriesStore.get().search.trim().toLowerCase()
+export const matchesSearch = (order: Order, search = accessoriesStore.get().search) => {
+  const query = search.trim().toLowerCase()
   if (!query) return true
   return [order.orderNumber, order.customer, order.po].some(field =>
     String(field ?? '')
@@ -85,20 +96,24 @@ export const matchesSearch = (order: Order) => {
 }
 
 /** Prep Date always outranks Priority. */
-export const scheduledSort = (a: Order, b: Order) =>
-  a.prepDate !== b.prepDate
-    ? (a.prepDate ?? '') < (b.prepDate ?? '')
-      ? -1
-      : 1
-    : priHierarchy(a.priorityId) - priHierarchy(b.priorityId)
+export const scheduledSort =
+  (priorities = accessoriesStore.get().priorities) => (a: Order, b: Order) =>
+    a.prepDate !== b.prepDate
+      ? (a.prepDate ?? '') < (b.prepDate ?? '')
+        ? -1
+        : 1
+      : priHierarchy(a.priorityId, priorities) - priHierarchy(b.priorityId, priorities)
 
-export const sortedActive = () =>
-  scheduledOrders().filter(matchesSearch).slice().sort(scheduledSort)
+export const sortedActive = (state = accessoriesStore.get()) =>
+  scheduledOrders(state.orders)
+    .filter(order => matchesSearch(order, state.search))
+    .slice()
+    .sort(scheduledSort(state.priorities))
 
-export const scheduledDays = () => {
+export const scheduledDays = (orders = accessoriesStore.get().orders) => {
   const days = new Map<string, { date: string; count: number; overdue: number }>()
 
-  for (const order of scheduledOrders()) {
+  for (const order of scheduledOrders(orders)) {
     if (!order.prepDate) continue
     const day = days.get(order.prepDate) ?? { date: order.prepDate, count: 0, overdue: 0 }
     day.count++
@@ -116,8 +131,8 @@ export const stagedWeight = (order: Order) =>
     0
   )
 
-export const locById = (id: number) =>
-  accessoriesStore.get().locations.find(location => location.id === id) ?? null
+export const locById = (id: number, locations = accessoriesStore.get().locations) =>
+  locations.find(location => location.id === id) ?? null
 
 export const locCurrentWeight = (location: Location) =>
   location.occupants.reduce((sum, occupant) => sum + occupant.weight, 0)
