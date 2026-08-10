@@ -7,6 +7,7 @@ import { rollformingStore } from './store'
 
 import type { AssignCtx } from './components/assign'
 import type { CoilPickCtx } from './components/coil-pick'
+import type { LotPickCtx } from './components/lot-pick'
 import type { NoteCtx } from './components/note-modal'
 
 export type RollformingUi = {
@@ -14,6 +15,7 @@ export type RollformingUi = {
   mreq: boolean
   assign: AssignCtx | null
   coilPick: CoilPickCtx | null
+  lotPick: LotPickCtx | null
   confirm: Confirm
   alert: Alert
   toast: { message: string; type: ToastType; shown: boolean }
@@ -29,6 +31,7 @@ export const rollformingUi = createStore<RollformingUi>({
   mreq: false,
   assign: null,
   coilPick: null,
+  lotPick: null,
   confirm: null,
   alert: null,
   toast: { message: '', type: 'success', shown: false }
@@ -60,6 +63,9 @@ export const openBulkAssign = (orderId: number, asCutlist: boolean) => {
 
 export const openCoilPick = (coilPick: CoilPickCtx) => rollformingUi.set({ coilPick })
 export const closeCoilPick = () => rollformingUi.set({ coilPick: null })
+
+export const openLotPick = (lotPick: LotPickCtx) => rollformingUi.set({ lotPick })
+export const closeLotPick = () => rollformingUi.set({ lotPick: null })
 
 export const askConfirm = (
   title: string,

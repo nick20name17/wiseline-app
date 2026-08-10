@@ -4,7 +4,9 @@ import { buildLineItem } from './line-item'
 import seed from './seed.json'
 import { showToast } from './ui'
 
-import type { Note, Order, RollformingState } from './types'
+import { groupOf, queueGroups, queueGroupsSorted, supplierName } from './selectors'
+
+import type { CoilUnit, Note, Order, RollformingState } from './types'
 import type { NoteCtx } from './components/note-modal'
 
 /** The prototype pins its own clock; every date in the seed is relative to this one. */
@@ -264,6 +266,156 @@ export const copyCoilNumber = (coilNumber: string) => {
   void navigator.clipboard?.writeText(coilNumber).catch(() => {})
   rollformingStore.set({ copiedCoilNumber: coilNumber })
   showToast(`Copied Coil Number ${coilNumber}`)
+}
+
+/* -- the queue ----------------------------------------------------------------------------------- */
+
+/**
+ * The Queue is derived, so there is no row to write to: a change is applied to every coil unit whose
+ * recomputed key matches the row's. Stock units never form a row, so a key they happen to share must
+ * not carry an edit onto them.
+ */
+const patchQueueGroup = (groupKey: string, patch: (coil: CoilUnit) => CoilUnit) =>
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => ({
+      ...order,
+      lineItems: order.lineItems.map(item => ({
+        ...item,
+        coils: item.coils.map(coil => {
+          if (coil.stock) return coil
+          const key = [
+            order.productionDate || '',
+            item.color,
+            item.gauge,
+            item.profile,
+            order.priorityId || 0,
+            coil.supplierId || 0,
+            coil.coilNumber || '',
+            coil.needsSlit ? 1 : 0
+          ].join('|')
+          return key === groupKey ? patch(coil) : coil
+        })
+      }))
+    }))
+  }))
+
+export const setQueueSupplier = (groupKey: string, supplierId: number | null) => {
+  patchQueueGroup(groupKey, coil => ({
+    ...coil,
+    supplierId,
+    coilNumber: '',
+    workerAssigned: true
+  }))
+  showToast(
+    `Supplier set to ${supplierId ? supplierName(supplierId, rollformingStore.get().suppliers) : 'Undefined'}`
+  )
+}
+
+export const setQueueCoilNumber = (groupKey: string, coilNumber: string) => {
+  patchQueueGroup(groupKey, coil => ({ ...coil, coilNumber, workerAssigned: true }))
+  showToast(`Coil Number ${coilNumber} assigned`)
+}
+
+export const setQueueLotNumber = (groupKey: string, lot: string) => {
+  patchQueueGroup(groupKey, coil => ({ ...coil, coilNumber: lot, lotNumber: lot }))
+  showToast(`Lot Number ${lot} filled into the Coil Number field`)
+}
+
+let slitSeq = 800
+
+/**
+ * The Slit Line Worker reporting a row done. The material now exists, so the Supplier and Coil Number
+ * that were locked can finally be answered — and are, automatically: the slitter is what produced this
+ * coil, so the shop's own supplier and the next slit number are the only right answers.
+ */
+export const completeSlitLine = (groupKey: string) => {
+  const [date, color, gauge, profile, priorityId] = groupKey.split('|')
+  slitSeq += 1
+  const filled = { supplierId: 3, coilNumber: `CN-${slitSeq}` }
+
+  rollformingStore.set(state => ({
+    orders: state.orders.map(order => ({
+      ...order,
+      lineItems: order.lineItems.map(item => {
+        if (item.color !== color || String(item.gauge) !== gauge || item.profile !== profile)
+          return item
+        if (String(order.productionDate) !== date || String(order.priorityId || 0) !== priorityId)
+          return item
+
+        return {
+          ...item,
+          coils: item.coils.map(coil =>
+            coil.needsSlit && !coil.slitDone ? { ...coil, slitDone: true, ...filled } : coil
+          )
+        }
+      })
+    }))
+  }))
+
+  showToast('Slit Line complete — Supplier & Coil Number auto-filled')
+}
+
+/**
+ * One coil per machine is in the rollformer, and checking it in draws its footage off On Hand.
+ *
+ * Unchecking puts the footage back: the coil never ran, so the stock reading was wrong rather than
+ * spent. The same tick therefore both records what is loaded and keeps EBMS's quantity honest.
+ */
+export const toggleCoilInMachine = (groupKey: string) => {
+  const row = queueGroups().find(candidate => candidate.key === groupKey)
+  if (!row) return
+
+  const group = groupOf(row.profile)
+  let depleted = false
+
+  rollformingStore.set(state => {
+    const already = state.currentCoilByGroup[group]?.key === groupKey
+    const next = { ...state.currentCoilByGroup }
+
+    if (already) delete next[group]
+    else
+      next[group] = {
+        key: groupKey,
+        supplierId: row.supplierId,
+        coilNumber: row.coilNumber,
+        material: `${row.gauge}ga ${row.color}`
+      }
+
+    const coils = state.coils.map(coil => {
+      if (!row.coilNumber || coil.coilNumber !== row.coilNumber) return coil
+      depleted = !already
+      return { ...coil, onHand: Math.max(0, coil.onHand + (already ? row.lf : -row.lf)) }
+    })
+
+    return { currentCoilByGroup: next, coils }
+  })
+
+  const loaded = !!rollformingStore.get().currentCoilByGroup[group]
+  showToast(
+    `Coil ${loaded ? 'checked into ' : 'removed from '}${group}${
+      depleted ? ` · On Hand −${row.lf.toLocaleString()} ln ft` : ''
+    }`
+  )
+}
+
+/** A row's place in its day, which the Manager sets by hand — never across days. */
+export const reorderQueue = (date: string, fromKey: string, toKey: string, group: string) => {
+  if (fromKey === toKey) return
+
+  rollformingStore.set(state => {
+    const rows = queueGroupsSorted(group, state).find(bucket => bucket.date === date)?.rows ?? []
+    const keys = rows.map(row => row.key)
+    const from = keys.indexOf(fromKey)
+    if (from === -1) return {}
+
+    keys.splice(from, 1)
+    // the target's index has to be read after the removal, or the row lands one place late
+    const to = keys.indexOf(toKey)
+    if (to === -1) return {}
+
+    keys.splice(to, 0, fromKey)
+    return { queueOrder: { ...state.queueOrder, [date]: keys } }
+  })
 }
 
 /* -- notes ------------------------------------------------------------------------------------- */
