@@ -2,10 +2,20 @@ import type { ToastType } from '@/components/shell/use-toast'
 
 import { createStore } from '@/store/create-store'
 
+import { unscheduledOrders } from './selectors'
+import { shippingStore } from './store'
+
+import type { CalCtx } from './components/calendar-modal'
+import type { ScheduleCtx } from './components/schedule-modal'
+
 export type ShippingUi = {
   /** The order whose note thread is open. */
   note: number | null
   truckNotes: boolean
+  schedule: ScheduleCtx | null
+  cal: CalCtx | null
+  /** Bumped on every open, so the picker's mount site can key a fresh month grid off it. */
+  calSeq: number
   toast: { message: string; type: ToastType; shown: boolean }
 }
 
@@ -16,6 +26,9 @@ export type ShippingUi = {
 export const shippingUi = createStore<ShippingUi>({
   note: null,
   truckNotes: false,
+  schedule: null,
+  cal: null,
+  calSeq: 0,
   toast: { message: '', type: 'success', shown: false }
 })
 
@@ -24,6 +37,22 @@ export const closeOrderNotes = () => shippingUi.set({ note: null })
 
 export const openTruckNotes = () => shippingUi.set({ truckNotes: true })
 export const closeTruckNotes = () => shippingUi.set({ truckNotes: false })
+
+export const openSchedule = (schedule: ScheduleCtx) => shippingUi.set({ schedule })
+export const closeSchedule = () => shippingUi.set({ schedule: null })
+
+/** The toolbar's Schedule button takes whatever is still ticked *and* still unscheduled. */
+export const openScheduleForSelection = () => {
+  const state = shippingStore.get()
+  const orderIds = state.selUnscheduled.filter(id =>
+    unscheduledOrders(state.orders).some(order => order.id === id)
+  )
+  if (orderIds.length) openSchedule({ orderIds })
+}
+
+export const openCalendar = (cal: CalCtx) =>
+  shippingUi.set(state => ({ cal, calSeq: state.calSeq + 1 }))
+export const closeCalendar = () => shippingUi.set({ cal: null })
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
