@@ -16,6 +16,7 @@ import { ShipMap } from '@/features/shipping/components/map'
 import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
 import { CalendarModal } from '@/features/shipping/components/calendar-modal'
+import { NewPackageModal, NewPkgKeypad } from '@/features/shipping/components/new-package'
 import { NoteModal } from '@/features/shipping/components/note-modal'
 import { SchedTruckModal } from '@/features/shipping/components/sched-truck'
 import { ScheduleModal } from '@/features/shipping/components/schedule-modal'
@@ -24,6 +25,8 @@ import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shi
 import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shipping/store'
 import {
   closeCalendar,
+  closeNewPackage,
+  closeNewPkgKeypad,
   closeOrderNotes,
   closeSchedTruck,
   closeSchedule,
@@ -165,6 +168,14 @@ function Shipping() {
       <NoteModal orderId={ui.note} onClose={closeOrderNotes} />
       <TruckNotesModal open={ui.truckNotes} onClose={closeTruckNotes} />
       <SchedTruckModal ctx={ui.schedTruck} onClose={closeSchedTruck} />
+      <NewPackageModal ctx={ui.newPkg} onClose={closeNewPackage} />
+      {/* keyed per opening, so the pad starts on the quantity the row already carries */}
+      <NewPkgKeypad
+        key={`kp-${ui.newPkgKp ?? 'none'}`}
+        ctx={ui.newPkg}
+        orderId={ui.newPkgKp}
+        onClose={closeNewPkgKeypad}
+      />
       {/* both keyed per opening: each starts with no date and no truck picked */}
       <ScheduleModal
         key={ui.schedule ? `sched-${ui.schedule.orderIds.join(',')}` : 'sched'}

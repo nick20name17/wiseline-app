@@ -25,7 +25,7 @@ import {
   toggleSchedSel,
   toggleSelectAllScheduled
 } from '../store'
-import { openSchedule, showToast } from '../ui'
+import { openNewPackage, openSchedule, showToast } from '../ui'
 import {
   EmptyState,
   ExpandRow,
@@ -146,6 +146,7 @@ const TruckGrid = ({ truckId, activeDay }: { truckId: number; activeDay: string 
             className='btn btn-ghost btn-sm'
             data-comment={`sch-newpackage-${truckId}`}
             disabled={!selCount}
+            onClick={() => openNewPackage(truckId, activeDay)}
             title='New package'
           >
             <PackagePlus style={{ width: '14px', height: '14px' }} />
