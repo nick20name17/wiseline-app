@@ -228,17 +228,25 @@ body {
    dialog Trim hosts, so these rules key on the print host rather than on which page it sits inside — the
    page's own copy of them can only see its own page. `!important` answers the page's own `!important`,
    and the id is what outranks it: the host is a child of `#root` that the page's rule would hide. */
+/* The page's own rule for this is scoped to that page, and the sheet also prints from Trim's dialog, so
+   the hiding lives here where it can see both. `!important` answers the page's own, and the id is what
+   outranks it. */
+#print-sheet {
+  display: none;
+}
+
 @media print {
-  #root.is-printing-cards > *:not(.wl-print-host) {
+  #root.is-printing-cards > *:not(#print-sheet) {
     display: none !important;
   }
 
-  #root.is-printing-cards > .wl-print-host {
+  #root.is-printing-cards > #print-sheet {
     display: block !important;
   }
 
-  #root.is-printing-cards .wl-print-host #print-sheet {
-    display: grid !important;
+  /* the grid is on the wrapper inside, since the sheet itself has to stay the prototype's own child */
+  #root.is-printing-cards > #print-sheet > .wl-print-cards {
+    display: grid;
     grid-template-columns: repeat(2, 3.25in);
     gap: 0.1in;
     justify-content: center;
