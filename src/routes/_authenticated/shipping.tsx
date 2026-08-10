@@ -16,6 +16,8 @@ import { ShipMap } from '@/features/shipping/components/map'
 import { Scheduled } from '@/features/shipping/components/scheduled'
 import { Unscheduled } from '@/features/shipping/components/unscheduled'
 import { CalendarModal } from '@/features/shipping/components/calendar-modal'
+import { CompletedModal } from '@/features/shipping/components/completed'
+import { MapDetail } from '@/features/shipping/components/map-detail'
 import { LoadModal } from '@/features/shipping/components/load-modal'
 import { LoadTruckModal } from '@/features/shipping/components/load-truck'
 import { NewPackageModal, NewPkgKeypad } from '@/features/shipping/components/new-package'
@@ -27,6 +29,8 @@ import { loadingLoads, scheduledOrders, unscheduledOrders } from '@/features/shi
 import { setSearch, shippingStore, toggleNotesExpanded } from '@/features/shipping/store'
 import {
   closeCalendar,
+  closeCompleted,
+  closeMapDetail,
   closeLoadModal,
   closeLoadTruck,
   closeNewPackage,
@@ -171,6 +175,8 @@ function Shipping() {
       </div>
       <NoteModal orderId={ui.note} onClose={closeOrderNotes} />
       <TruckNotesModal open={ui.truckNotes} onClose={closeTruckNotes} />
+      <CompletedModal open={ui.completed} onClose={closeCompleted} />
+      <MapDetail orderId={ui.mapDetail} onClose={closeMapDetail} />
       <SchedTruckModal ctx={ui.schedTruck} onClose={closeSchedTruck} />
       <LoadTruckModal ctx={ui.loadTruck} onClose={closeLoadTruck} />
       {/* keyed per opening: each starts on Details with nothing expanded */}

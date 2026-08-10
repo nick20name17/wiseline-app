@@ -343,6 +343,13 @@ export const releaseToLoading = (loadId: number) => {
   return true
 }
 
+export const toggleCompletedExpand = (orderId: number) =>
+  shippingStore.set(state => ({
+    expCompleted: state.expCompleted.includes(orderId)
+      ? state.expCompleted.filter(id => id !== orderId)
+      : [...state.expCompleted, orderId]
+  }))
+
 export const setLoadingSubTab = (loadingSubTab: string) => shippingStore.set({ loadingSubTab })
 
 export const toggleLoadingRowExpand = (key: number | string) =>
