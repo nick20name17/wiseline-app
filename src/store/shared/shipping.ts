@@ -75,6 +75,20 @@ export const patchLoadStatus = (loadKey: string, status: string) => {
   shipState.set({ ...state, loads })
 }
 
+/**
+ * The stop order for a load, as order numbers rather than this page's ids.
+ *
+ * Unlike a status this is not ranked: the dispatcher dragging the stops around is the authority on the
+ * route, and the last word wins.
+ */
+export const patchLoadSequence = (loadKey: string, orderNumbers: string[]) => {
+  if (!loadKey) return
+  const state = shipState.get()
+  const loads = { ...((state.loads as Record<string, { sequence?: string[] }>) ?? {}) }
+  loads[loadKey] = { ...loads[loadKey], sequence: orderNumbers }
+  shipState.set({ ...state, loads })
+}
+
 export const loadStatusOf = (loadKey: string) => {
   const loads = shipState.get().loads as Record<string, { status?: string }> | undefined
   return loads?.[loadKey]?.status ?? null
