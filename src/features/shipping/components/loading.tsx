@@ -16,6 +16,7 @@ import {
   truckOverdue
 } from '../selectors'
 import { setLoadingDay, shippingStore } from '../store'
+import { openLoadTruck } from '../ui'
 import { EmptyState } from './bits'
 
 /**
@@ -108,6 +109,7 @@ export const Loading = () => {
                 data-comment={`ldg-truckhead-${key}`}
                 style={{ cursor: 'pointer' }}
                 title='Open truck detail'
+                onClick={() => openLoadTruck({ truckId, date: active })}
               >
                 <div>
                   <div className='truck-name' data-comment={`ldg-truckname-${key}`}>

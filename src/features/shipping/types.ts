@@ -95,7 +95,8 @@ export type ShippingState = {
   loadingDay: string
   expLoadingTruck: number | null
   loadingSubTab: string
-  expLoadingRows: number[]
+  /** Order ids, plus `ld<id>` for a load card — the prototype's expansion list holds both. */
+  expLoadingRows: (number | string)[]
   nextLoadId: number
   [key: string]: unknown
 }
