@@ -3,7 +3,7 @@ import { isWorkDay } from '@/store/shared/settings'
 import { lineDay, lineReleased, parsePartKey } from './parts'
 import { RANK, TODAY, trimStore } from './store'
 
-import type { LineItem, Location, Note, Order, Priority, Reman } from './types'
+import type { LineItem, Location, Note, Order, Priority, Reman, TrimState } from './types'
 
 /**
  * How many bends a profile takes is a property of the profile, not of the order: the Machine Capacities
@@ -25,7 +25,9 @@ const BENDS_PER: Record<string, number> = {
 /** Stock covers part of the order, so only the remainder is manufactured. */
 export const qtyToMake = (item: LineItem) => Math.max(0, item.qty - (item.fromStock || 0))
 
-export const lineBends = (item: LineItem) => qtyToMake(item) * (BENDS_PER[item.productId] || 1)
+export const bendsPerPiece = (productId: string) => BENDS_PER[productId] || 1
+
+export const lineBends = (item: LineItem) => qtyToMake(item) * bendsPerPiece(item.productId)
 
 export {
   isReleased,
@@ -317,6 +319,47 @@ export const dayScheduledTotals = (iso: string, orders = trimStore.get().orders)
 }
 
 /**
+ * #28: a remanufacture is work the station still has to do, so the day's strip has to see it.
+ *
+ * A machine-raised request takes its line out of the bendlist it was in (N-061), which used to take
+ * the pieces out of the totals with it — the machine tab would show a reman card sitting under a
+ * strip that no longer counted it. What counts is the quantity being remade, not the line's original
+ * quantity: the rest of that line has already been bent.
+ */
+const remanTotals = (state: TrimState, iso: string, keep: (reman: Reman) => boolean) => {
+  let pieces = 0
+  let bends = 0
+  let stockPieces = 0
+  let stockBends = 0
+
+  for (const reman of state.remans) {
+    if (reman.date !== iso || !keep(reman)) continue
+
+    /**
+     * How much work the list is depends on where it came from, exactly as the canvas draws the two:
+     * a machine-raised request takes the whole line with it («needs to show the full Qty. Ordered and
+     * then the Qty. that was requested … in the Remanufacture column»), while one raised from Wrapping
+     * leaves the line where it is and asks only for the pieces being remade.
+     */
+    const found = lineOf(reman.orderId, reman.lineId, state.orders)
+    const remanPieces = reman.source === 'machine' && found ? qtyToMake(found.item) : reman.qty
+    const remanBends =
+      reman.source === 'machine' && found
+        ? lineBends(found.item)
+        : reman.qty * bendsPerPiece(reman.productId)
+
+    pieces += remanPieces
+    bends += remanBends
+    if (state.orders.find(order => order.id === reman.orderId)?.type === 'stock') {
+      stockPieces += remanPieces
+      stockBends += remanBends
+    }
+  }
+
+  return { pieces, bends, stockPieces, stockBends }
+}
+
+/**
  * #209: the same strip for the Slinet, which is not a machine.
  *
  * Everything in the day's cutlists counts, whatever machine each line is routed to afterwards — the
@@ -344,7 +387,15 @@ export const slinetTotals = (iso: string, state = trimStore.get()) => {
     }
   }
 
-  return { pieces, bends, stockPieces, stockBends, dailyMax: 0 }
+  const recuts = remanTotals(state, iso, reman => !reman.slinetDone)
+
+  return {
+    pieces: pieces + recuts.pieces,
+    bends: bends + recuts.bends,
+    stockPieces: stockPieces + recuts.stockPieces,
+    stockBends: stockBends + recuts.stockBends,
+    dailyMax: 0
+  }
 }
 
 /** What one machine has been given for one day — the numbers on the totals strip. */
@@ -371,7 +422,19 @@ export const machineTotals = (machineId: number | null, iso: string, state = tri
   }
 
   const machine = trimStore.get().machines.find(candidate => candidate.id === machineId)
-  return { pieces, bends, stockPieces, stockBends, dailyMax: machine?.dailyMax || 0 }
+  const remade = remanTotals(
+    state,
+    iso,
+    reman => reman.machineId === machineId && !reman.machineDone
+  )
+
+  return {
+    pieces: pieces + remade.pieces,
+    bends: bends + remade.bends,
+    stockPieces: stockPieces + remade.stockPieces,
+    stockBends: stockBends + remade.stockBends,
+    dailyMax: machine?.dailyMax || 0
+  }
 }
 
 const remanSort = (a: Reman, b: Reman) =>
