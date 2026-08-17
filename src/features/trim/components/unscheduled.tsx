@@ -14,6 +14,8 @@ import { Fragment } from 'react'
 import { useStore } from '@/store/create-store'
 import { isWorkDay } from '@/store/shared/settings'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtCompactDate, fmtDate } from '../format'
 import {
   nextWorkDays,
@@ -116,34 +118,18 @@ const NextDays = ({ peek }: { peek: string | null }) => {
   )
 }
 
-/**
- * A draggable data-column header (N-166). Columns reorder per viewing-as role and per table; the
- * checkbox and expander columns are service columns and stay pinned, so they are plain `<th>`.
- */
-const ColHeader = ({
-  table,
-  col,
-  label,
-  width
-}: {
-  table: string
-  col: string
-  label: string
-  width?: string
-}) => (
-  <th
-    data-col={col}
-    draggable
-    className='col-move'
-    data-comment={`${table}-colh-${col}`}
-    title='Drag to reorder column'
-    style={width ? { width } : undefined}
-  >
-    {label}
-  </th>
-)
+/** N-166: the data columns, in declaration order. The viewer's own order comes from the store. */
+const COLUMNS: Column[] = [
+  { key: 'entry', label: 'Entry', width: '190px' },
+  { key: 'ship', label: 'Ship', width: '190px' },
+  { key: 'order', label: 'Order #', width: '110px' },
+  { key: 'priority', label: 'Priority', width: '140px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'notes', label: 'Notes', width: '56px' }
+]
 
 export const Unscheduled = () => {
+  const { headers, cells } = useColumnOrder('uns', COLUMNS, { notify: showToast })
   const state = useStore(trimStore, current => current)
   const rows = unscheduledOrders(state.orders).filter(orderMatchesSearch)
   const selectedCount = state.selectedOrderIds.filter(id =>
@@ -169,13 +155,16 @@ export const Unscheduled = () => {
 
         <div className='toolbar-spacer' />
 
-        <button className='btn' data-comment='uns-stock-cards'
-          onClick={openStockCards} title='Stock Cards (QR pull sheets)'>
+        <button
+          className='btn'
+          data-comment='uns-stock-cards'
+          onClick={openStockCards}
+          title='Stock Cards (QR pull sheets)'
+        >
           <QrCode style={{ width: '14px', height: '14px' }} />
           Stock Cards
         </button>
-        <button className='btn' data-comment='uns-create-stock'
-          onClick={openStockOrder}>
+        <button className='btn' data-comment='uns-create-stock' onClick={openStockOrder}>
           <Plus style={{ width: '14px', height: '14px' }} />
           Create stock order
         </button>
@@ -237,12 +226,7 @@ export const Unscheduled = () => {
               <tr>
                 <th className='col-chk' />
                 <th className='col-exp' />
-                <ColHeader table='uns' col='entry' label='Entry' width='190px' />
-                <ColHeader table='uns' col='ship' label='Ship' width='190px' />
-                <ColHeader table='uns' col='order' label='Order #' width='110px' />
-                <ColHeader table='uns' col='priority' label='Priority' width='140px' />
-                <ColHeader table='uns' col='customer' label='Customer' />
-                <ColHeader table='uns' col='notes' label='Notes' width='56px' />
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='uns-tbody'>
@@ -295,49 +279,63 @@ export const Unscheduled = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td
-                        data-col='entry'
-                        className='cell-num muted'
-                        data-comment={`uns-entry-${order.id}`}
-                      >
-                        {fmtDate(order.entryDate)}
-                      </td>
-                      <td
-                        data-col='ship'
-                        className='cell-num muted'
-                        data-comment={`uns-ship-${order.id}`}
-                      >
-                        {order.shipDate ? fmtDate(order.shipDate) : '—'}
-                      </td>
-                      <td
-                        data-col='order'
-                        className='cell-order'
-                        data-comment={`uns-order-${order.id}`}
-                      >
-                        {order.order}
-                        {order.isSplit ? (
-                          <span
-                            className='split-ind'
-                            data-comment={`uns-split-${order.id}`}
-                            title='Partially scheduled — some line items are on the Scheduled tab'
+                      {cells({
+                        entry: (
+                          <td
+                            data-col='entry'
+                            className='cell-num muted'
+                            data-comment={`uns-entry-${order.id}`}
                           >
-                            <Split style={{ width: '14px', height: '14px' }} />
-                          </span>
-                        ) : null}
-                      </td>
-                      <td data-col='priority' data-comment={`uns-pri-cell-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td
-                        data-col='customer'
-                        className='cell-cust'
-                        data-comment={`uns-cust-${order.id}`}
-                      >
-                        {order.customer}
-                      </td>
-                      <td data-col='notes' data-comment={`uns-note-${order.id}`}>
-                        <NoteButton order={order} />
-                      </td>
+                            {fmtDate(order.entryDate)}
+                          </td>
+                        ),
+                        ship: (
+                          <td
+                            data-col='ship'
+                            className='cell-num muted'
+                            data-comment={`uns-ship-${order.id}`}
+                          >
+                            {order.shipDate ? fmtDate(order.shipDate) : '—'}
+                          </td>
+                        ),
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`uns-order-${order.id}`}
+                          >
+                            {order.order}
+                            {order.isSplit ? (
+                              <span
+                                className='split-ind'
+                                data-comment={`uns-split-${order.id}`}
+                                title='Partially scheduled — some line items are on the Scheduled tab'
+                              >
+                                <Split style={{ width: '14px', height: '14px' }} />
+                              </span>
+                            ) : null}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`uns-pri-cell-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust'
+                            data-comment={`uns-cust-${order.id}`}
+                          >
+                            {order.customer}
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`uns-note-${order.id}`}>
+                            <NoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
                     {expanded ? <LineItemsSubrow order={order} ctx='uns' /> : null}
                   </Fragment>

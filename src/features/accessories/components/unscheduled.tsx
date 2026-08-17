@@ -4,10 +4,12 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import { matchesSearch, truckDisplay, unscheduledOrders } from '../selectors'
 import { accessoriesStore, toggleExpand, toggleLineSelect, toggleOrderSelect } from '../store'
-import { openScheduleEntire, openScheduleSplit } from '../ui'
+import { openScheduleEntire, openScheduleSplit, showToast } from '../ui'
 import {
   EmptyState,
   LineNoteButton,
@@ -80,7 +82,11 @@ const Subrow = ({ order }: { order: Order }) => {
                     </span>
                   ) : null}
                 </div>
-                <LineNoteButton item={item} orderId={order.id} commentKey={`uns-linote-${item.id}`} />
+                <LineNoteButton
+                  item={item}
+                  orderId={order.id}
+                  commentKey={`uns-linote-${item.id}`}
+                />
               </div>
             )
           })}
@@ -90,6 +96,16 @@ const Subrow = ({ order }: { order: Order }) => {
   )
 }
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '170px' },
+  { key: 'priority', label: 'Priority', width: '150px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'truck', label: 'Truck', width: '110px' },
+  { key: 'via', label: 'Ship Via', width: '110px' },
+  { key: 'notes', label: 'Notes', width: '64px' }
+]
+
 /**
  * New EBMS orders waiting on a Prep Date.
  *
@@ -97,6 +113,7 @@ const Subrow = ({ order }: { order: Order }) => {
  * the whole order can no longer be scheduled at once. That is what Schedule selected inside it is for.
  */
 export const Unscheduled = () => {
+  const { headers, cells } = useColumnOrder('acc-uns', DATA_COLUMNS, { notify: showToast })
   const state = useStore(accessoriesStore, current => current)
   const rows = unscheduledOrders(state.orders).filter(order => matchesSearch(order, state.search))
   const selCount = state.selectedOrderIds.filter(id =>
@@ -142,12 +159,7 @@ export const Unscheduled = () => {
               <tr>
                 <th style={{ width: '40px' }} />
                 <th style={{ width: '30px' }} />
-                <th style={{ width: '170px' }}>Order #</th>
-                <th style={{ width: '150px' }}>Priority</th>
-                <th>Customer</th>
-                <th style={{ width: '110px' }}>Truck</th>
-                <th style={{ width: '110px' }}>Ship Via</th>
-                <th style={{ width: '64px' }}>Notes</th>
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='uns-tbody'>
@@ -195,35 +207,61 @@ export const Unscheduled = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td className='cell-order' data-comment={`uns-ono-${order.id}`}>
-                        {order.orderNumber}
-                        {order.isSplit ? (
-                          <>
-                            {' '}
-                            <span
-                              className='split-badge'
-                              data-comment={`uns-splitbadge-${order.id}`}
-                            >
-                              Partial
-                            </span>
-                          </>
-                        ) : null}
-                      </td>
-                      <td data-comment={`uns-pricell-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td className='cell-cust trunc' data-comment={`uns-cust-${order.id}`}>
-                        {order.customer}
-                      </td>
-                      <td className='mono muted' data-comment={`uns-truck-${order.id}`}>
-                        {truckDisplay(order)}
-                      </td>
-                      <td data-comment={`uns-shipvia-${order.id}`}>
-                        <ShipViaCell order={order} />
-                      </td>
-                      <td data-comment={`uns-notes-${order.id}`}>
-                        <OrderNoteButton order={order} />
-                      </td>
+                      {cells({
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`uns-ono-${order.id}`}
+                          >
+                            {order.orderNumber}
+                            {order.isSplit ? (
+                              <>
+                                {' '}
+                                <span
+                                  className='split-badge'
+                                  data-comment={`uns-splitbadge-${order.id}`}
+                                >
+                                  Partial
+                                </span>
+                              </>
+                            ) : null}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`uns-pricell-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust trunc'
+                            data-comment={`uns-cust-${order.id}`}
+                          >
+                            {order.customer}
+                          </td>
+                        ),
+                        truck: (
+                          <td
+                            data-col='truck'
+                            className='mono muted'
+                            data-comment={`uns-truck-${order.id}`}
+                          >
+                            {truckDisplay(order)}
+                          </td>
+                        ),
+                        via: (
+                          <td data-col='via' data-comment={`uns-shipvia-${order.id}`}>
+                            <ShipViaCell order={order} />
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`uns-notes-${order.id}`}>
+                            <OrderNoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
 
                     {expanded ? <Subrow order={order} /> : null}

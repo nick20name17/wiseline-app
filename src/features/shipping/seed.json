@@ -772,14 +772,8 @@
       "truckId": 101,
       "date": "2026-07-13",
       "status": "shipped",
-      "orderIds": [
-        12,
-        13
-      ],
-      "sequence": [
-        12,
-        13
-      ],
+      "orderIds": [12, 13],
+      "sequence": [12, 13],
       "deliveryTerm": "Prepaid",
       "loadUnloadTime": "40 min",
       "vehicle": "Unit 101-A"
@@ -789,14 +783,8 @@
       "truckId": 101,
       "date": "2026-07-13",
       "status": "shipping",
-      "orderIds": [
-        14,
-        15
-      ],
-      "sequence": [
-        14,
-        15
-      ],
+      "orderIds": [14, 15],
+      "sequence": [14, 15],
       "deliveryTerm": "Collect",
       "loadUnloadTime": "55 min",
       "vehicle": "Unit 101-B"
@@ -806,14 +794,8 @@
       "truckId": 102,
       "date": "2026-07-14",
       "status": "loading",
-      "orderIds": [
-        16,
-        17
-      ],
-      "sequence": [
-        16,
-        17
-      ],
+      "orderIds": [16, 17],
+      "sequence": [16, 17],
       "deliveryTerm": "Prepaid",
       "loadUnloadTime": "35 min",
       "vehicle": "Unit 102-A"
@@ -823,14 +805,8 @@
       "truckId": 103,
       "date": "2026-07-16",
       "status": "unreleased",
-      "orderIds": [
-        18,
-        19
-      ],
-      "sequence": [
-        18,
-        19
-      ],
+      "orderIds": [18, 19],
+      "sequence": [18, 19],
       "deliveryTerm": "Prepaid",
       "loadUnloadTime": "30 min",
       "vehicle": "Unit 103-A"
@@ -840,14 +816,8 @@
       "truckId": 104,
       "date": "2026-07-16",
       "status": "notstarted",
-      "orderIds": [
-        1,
-        4
-      ],
-      "sequence": [
-        1,
-        4
-      ],
+      "orderIds": [1, 4],
+      "sequence": [1, 4],
       "deliveryTerm": "Prepaid",
       "loadUnloadTime": "—",
       "vehicle": "Unit 104-A"
@@ -857,14 +827,8 @@
       "truckId": 102,
       "date": "2026-07-16",
       "status": "notstarted",
-      "orderIds": [
-        2,
-        5
-      ],
-      "sequence": [
-        2,
-        5
-      ],
+      "orderIds": [2, 5],
+      "sequence": [2, 5],
       "deliveryTerm": "Prepaid",
       "loadUnloadTime": "—",
       "vehicle": "Unit 102-B"

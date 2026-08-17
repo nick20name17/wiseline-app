@@ -8,7 +8,13 @@ import {
   type Coil
 } from '@/store/shared/coils'
 
-export { coilLbPerFoot, coilLfFromThickness, coilLfFromWeight, coilThicknessFromLf, coilWeightFromLf }
+export {
+  coilLbPerFoot,
+  coilLfFromThickness,
+  coilLfFromWeight,
+  coilThicknessFromLf,
+  coilWeightFromLf
+}
 
 import { createStore } from '@/store/create-store'
 
@@ -431,7 +437,6 @@ export const usageQty = (productId: string) =>
 export const folderSlug = (value: string) => value.toLowerCase().replace(/\s+/g, '-')
 
 /* -- geometry (#193) -------------------------------------------------------------------------- */
-
 
 export const ADJUST_FIELDS = [
   { key: 'thickness', label: 'Coil Thickness' },

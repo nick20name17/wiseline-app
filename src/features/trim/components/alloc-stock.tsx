@@ -54,8 +54,6 @@ export const AllocStock = ({ open, onClose }: { open: boolean; onClose: () => vo
   const orders = useStore(trimStore, state => state.orders)
   const rows = allocatedRows(orders)
 
-  let lastColor: string | null = null
-
   return (
     <Overlay id='overlay-allocstock' comment='overlay-allocstock' open={open} onClose={onClose}>
       <div className='modal wide' data-comment='allocstock-modal' data-component='dialog'>
@@ -92,8 +90,8 @@ export const AllocStock = ({ open, onClose }: { open: boolean; onClose: () => vo
                 </thead>
                 <tbody data-comment='allocstock-tbody'>
                   {rows.map((row, index) => {
-                    const opensGroup = row.color !== lastColor
-                    lastColor = row.color
+                    // rows are sorted by colour, so a group opens wherever the previous row's differs
+                    const opensGroup = row.color !== rows[index - 1]?.color
 
                     return (
                       <Fragment key={`${row.color}|${row.productId}`}>

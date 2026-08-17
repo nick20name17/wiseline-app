@@ -3,6 +3,8 @@ import { ArrowRight, ChevronRight } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { fmtDate } from '../format'
@@ -34,6 +36,17 @@ export type LoadTruckCtx = { truckId: number; date: string }
 
 const COLUMNS = 8
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '112px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'address', label: 'Address', width: '160px' },
+  { key: 'city', label: 'City', width: '110px' },
+  { key: 'weight', label: 'Weight', width: '96px' },
+  { key: 'status', label: 'Status', width: '124px' },
+  { key: 'notes', label: 'Notes', width: '58px' }
+]
+
 /** Every stop on the given loads, in the order the driver drives them. */
 const LoadingGrid = ({
   loads,
@@ -44,6 +57,7 @@ const LoadingGrid = ({
   truckId: number
   state: ShippingState
 }) => {
+  const { headers, cells } = useColumnOrder('shp-load', DATA_COLUMNS, { notify: showToast })
   const orders = loads
     .flatMap(load => load.sequence)
     .map(id => orderById(id, state.orders))
@@ -56,13 +70,7 @@ const LoadingGrid = ({
           <thead>
             <tr>
               <th style={{ width: '22px' }} />
-              <th style={{ width: '88px' }}>Order #</th>
-              <th style={{ width: '210px' }}>Customer</th>
-              <th>Address</th>
-              <th style={{ width: '110px' }}>City</th>
-              <th style={{ width: '92px' }}>Weight</th>
-              <th style={{ width: '120px' }}>Status</th>
-              <th style={{ width: '66px' }}>Notes</th>
+              {headers}
             </tr>
           </thead>
           <tbody>
@@ -94,27 +102,59 @@ const LoadingGrid = ({
                         <ChevronRight style={{ width: '14px', height: '14px' }} />
                       </button>
                     </td>
-                    <td className='cell-order' data-comment={`ldg-order-${order.id}`}>
-                      {order.order}
-                    </td>
-                    <td className='cell-cust trunc' data-comment={`ldg-cust-${order.id}`}>
-                      {order.customer}
-                    </td>
-                    <td className='trunc' data-comment={`ldg-addr-${order.id}`}>
-                      {order.address}
-                    </td>
-                    <td className='trunc' data-comment={`ldg-city-${order.id}`}>
-                      {order.city}
-                    </td>
-                    <td className='cell-num' data-comment={`ldg-weight-${order.id}`}>
-                      {order.weight.toLocaleString('en-US')} lb
-                    </td>
-                    <td data-comment={`ldg-status-${order.id}`}>
-                      <OrderStatusPill order={order} />
-                    </td>
-                    <td data-comment={`ldg-notes-${order.id}`}>
-                      <NotesButton order={order} />
-                    </td>
+                    {cells({
+                      order: (
+                        <td
+                          data-col='order'
+                          className='cell-order'
+                          data-comment={`ldg-order-${order.id}`}
+                        >
+                          {order.order}
+                        </td>
+                      ),
+                      customer: (
+                        <td
+                          data-col='customer'
+                          className='cell-cust trunc'
+                          data-comment={`ldg-cust-${order.id}`}
+                        >
+                          {order.customer}
+                        </td>
+                      ),
+                      address: (
+                        <td
+                          data-col='address'
+                          className='trunc'
+                          data-comment={`ldg-addr-${order.id}`}
+                        >
+                          {order.address}
+                        </td>
+                      ),
+                      city: (
+                        <td data-col='city' className='trunc' data-comment={`ldg-city-${order.id}`}>
+                          {order.city}
+                        </td>
+                      ),
+                      weight: (
+                        <td
+                          data-col='weight'
+                          className='cell-num'
+                          data-comment={`ldg-weight-${order.id}`}
+                        >
+                          {order.weight.toLocaleString('en-US')} lb
+                        </td>
+                      ),
+                      status: (
+                        <td data-col='status' data-comment={`ldg-status-${order.id}`}>
+                          <OrderStatusPill order={order} />
+                        </td>
+                      ),
+                      notes: (
+                        <td data-col='notes' data-comment={`ldg-notes-${order.id}`}>
+                          <NotesButton order={order} />
+                        </td>
+                      )
+                    })}
                   </tr>
                   {expanded ? (
                     <PackageExpandRow order={order} ctx='ldg' colSpan={COLUMNS} />

@@ -20,6 +20,7 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { Toast } from '@/components/shell/toast'
 import { useToast } from '@/components/shell/use-toast'
 
@@ -60,7 +61,17 @@ const StatusIcon = ({ status }: { status: string }) => {
  * field-level PATCH rather than one "order complete" call, and everything the floor invents — notes,
  * priority, machine assignment — stays here. The write-back log below is the same claim, evidenced.
  */
+/** N-166. The header anchors predate this and stay as they are. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'time', label: 'Time', width: '92px', comment: 'wb-th-time' },
+  { key: 'type', label: 'Type', width: '130px', comment: 'wb-th-type' },
+  { key: 'ref', label: 'Reference', width: '100px', comment: 'wb-th-ref' },
+  { key: 'payload', label: 'Payload', comment: 'wb-th-payload' },
+  { key: 'status', label: 'Status', width: '150px', comment: 'wb-th-status' }
+]
+
 function Ebms() {
+  const { headers, cells } = useColumnOrder('ebms-log', DATA_COLUMNS)
   usePage('ebms')
 
   const state = useStore(ebmsStore, current => current)
@@ -226,58 +237,68 @@ function Ebms() {
                 <div className='table-wrap' data-comment='wb-table-wrap'>
                   <table className='grid' data-comment='wb-table'>
                     <thead>
-                      <tr>
-                        <th style={{ width: '92px' }} data-comment='wb-th-time'>
-                          Time
-                        </th>
-                        <th style={{ width: '130px' }} data-comment='wb-th-type'>
-                          Type
-                        </th>
-                        <th style={{ width: '100px' }} data-comment='wb-th-ref'>
-                          Reference
-                        </th>
-                        <th data-comment='wb-th-payload'>Payload</th>
-                        <th style={{ width: '150px' }} data-comment='wb-th-status'>
-                          Status
-                        </th>
-                      </tr>
+                      <tr>{headers}</tr>
                     </thead>
                     <tbody data-comment='wb-tbody'>
                       {rows.map(row => (
                         <tr data-comment={`wb-row-${row.id}`} key={row.id}>
-                          <td className='mono-cell' data-comment={`wb-cell-time-${row.id}`}>
-                            {row.time}
-                          </td>
-                          <td data-comment={`wb-cell-type-${row.id}`}>
-                            <span className={`chip ${TYPE_META[row.type]}`}>
-                              <TypeIcon type={row.type} />
-                              {row.type}
-                            </span>
-                          </td>
-                          <td className='mono-cell' data-comment={`wb-cell-ref-${row.id}`}>
-                            {row.ref}
-                          </td>
-                          <td className='trunc muted' data-comment={`wb-cell-payload-${row.id}`}>
-                            {row.payload}
-                          </td>
-                          <td data-comment={`wb-cell-status-${row.id}`}>
-                            <span className={`chip ${STATUS_META[row.status]}`}>
-                              <StatusIcon status={row.status} />
-                              {row.status}
-                            </span>
-                            {row.status === 'Failed' ? (
-                              <>
-                                {' '}
-                                <button
-                                  className='btn btn-sm'
-                                  data-comment={`wb-retry-${row.id}`}
-                                  onClick={() => retry(row.id)}
-                                >
-                                  Retry
-                                </button>
-                              </>
-                            ) : null}
-                          </td>
+                          {cells({
+                            time: (
+                              <td
+                                data-col='time'
+                                className='mono-cell'
+                                data-comment={`wb-cell-time-${row.id}`}
+                              >
+                                {row.time}
+                              </td>
+                            ),
+                            type: (
+                              <td data-col='type' data-comment={`wb-cell-type-${row.id}`}>
+                                <span className={`chip ${TYPE_META[row.type]}`}>
+                                  <TypeIcon type={row.type} />
+                                  {row.type}
+                                </span>
+                              </td>
+                            ),
+                            ref: (
+                              <td
+                                data-col='ref'
+                                className='mono-cell'
+                                data-comment={`wb-cell-ref-${row.id}`}
+                              >
+                                {row.ref}
+                              </td>
+                            ),
+                            payload: (
+                              <td
+                                data-col='payload'
+                                className='trunc muted'
+                                data-comment={`wb-cell-payload-${row.id}`}
+                              >
+                                {row.payload}
+                              </td>
+                            ),
+                            status: (
+                              <td data-col='status' data-comment={`wb-cell-status-${row.id}`}>
+                                <span className={`chip ${STATUS_META[row.status]}`}>
+                                  <StatusIcon status={row.status} />
+                                  {row.status}
+                                </span>
+                                {row.status === 'Failed' ? (
+                                  <>
+                                    {' '}
+                                    <button
+                                      className='btn btn-sm'
+                                      data-comment={`wb-retry-${row.id}`}
+                                      onClick={() => retry(row.id)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </>
+                                ) : null}
+                              </td>
+                            )
+                          })}
                         </tr>
                       ))}
                     </tbody>

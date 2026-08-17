@@ -1,5 +1,6 @@
 import { Timer, TriangleAlert, X } from 'lucide-react'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { useNow } from '@/features/accessories/use-now'
@@ -30,6 +31,15 @@ import {
  * its own fifteen minutes after Shipping's last scan, and both of those have to be visible from here
  * or the yard looks fuller than it is.
  */
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order', width: '110px' },
+  { key: 'dept', label: 'Dept', width: '110px' },
+  { key: 'weight', label: 'Weight', width: '96px' },
+  { key: 'status', label: 'Status', width: '124px' },
+  { key: 'countdown', label: 'Auto-release', width: '170px' }
+]
+
 export const LocationDetail = ({
   location,
   onClose
@@ -37,6 +47,7 @@ export const LocationDetail = ({
   location: Location | null
   onClose: () => void
 }) => {
+  const { headers, cells } = useColumnOrder('wh-detail', DATA_COLUMNS)
   const now = useNow(RELEASE_CHECK_MS)
 
   const current = location ? occCurrent(location) : 0
@@ -119,11 +130,7 @@ export const LocationDetail = ({
                     <table className='grid' data-comment='detail-table'>
                       <thead>
                         <tr>
-                          <th>Order</th>
-                          <th>Dept</th>
-                          <th>Weight</th>
-                          <th style={{ width: '112px' }}>Status</th>
-                          <th style={{ width: '128px' }}>Auto-release</th>
+                          {headers}
                           <th style={{ width: '44px' }} />
                         </tr>
                       </thead>
@@ -135,28 +142,50 @@ export const LocationDetail = ({
 
                           return (
                             <tr data-comment={comment} key={occupant.order}>
-                              <td className='mono-cell' data-comment={`${comment}-order`}>
-                                {occupant.order}
-                              </td>
-                              <td data-comment={`${comment}-dept`}>{occupant.dept}</td>
-                              <td className='mono-cell' data-comment={`${comment}-weight`}>
-                                {fmtN(occupant.weight)} lb
-                              </td>
-                              <td data-comment={`${comment}-status`}>
-                                <span
-                                  className={`status ${STATUS_CLASS[occupant.status] ?? 'st-stock'}`}
-                                >
-                                  <span className='st-dot' />
-                                  {occupant.status}
-                                </span>
-                              </td>
-                              <td data-comment={`${comment}-countdown`}>
-                                <span className={`countdown${msLeft <= 0 ? ' is-due' : ''}`}>
-                                  {msLeft <= 0
-                                    ? 'Releasing…'
-                                    : `Auto-releases in ${fmtCountdown(msLeft)}`}
-                                </span>
-                              </td>
+                              {cells({
+                                order: (
+                                  <td
+                                    data-col='order'
+                                    className='mono-cell'
+                                    data-comment={`${comment}-order`}
+                                  >
+                                    {occupant.order}
+                                  </td>
+                                ),
+                                dept: (
+                                  <td data-col='dept' data-comment={`${comment}-dept`}>
+                                    {occupant.dept}
+                                  </td>
+                                ),
+                                weight: (
+                                  <td
+                                    data-col='weight'
+                                    className='mono-cell'
+                                    data-comment={`${comment}-weight`}
+                                  >
+                                    {fmtN(occupant.weight)} lb
+                                  </td>
+                                ),
+                                status: (
+                                  <td data-col='status' data-comment={`${comment}-status`}>
+                                    <span
+                                      className={`status ${STATUS_CLASS[occupant.status] ?? 'st-stock'}`}
+                                    >
+                                      <span className='st-dot' />
+                                      {occupant.status}
+                                    </span>
+                                  </td>
+                                ),
+                                countdown: (
+                                  <td data-col='countdown' data-comment={`${comment}-countdown`}>
+                                    <span className={`countdown${msLeft <= 0 ? ' is-due' : ''}`}>
+                                      {msLeft <= 0
+                                        ? 'Releasing…'
+                                        : `Auto-releases in ${fmtCountdown(msLeft)}`}
+                                    </span>
+                                  </td>
+                                )
+                              })}
                               <td className='occ-cell' data-comment={`${comment}-act`}>
                                 <button
                                   className='occ-remove'

@@ -124,7 +124,9 @@ export const Wrapping = () => {
                               className='field-btn'
                               data-pop-anchor
                               data-comment={`wrap-selectloc-${index}-${row}`}
-                              onClick={() => openLocationPicker({ orderId: order.id, seq: pkg.seq })}
+                              onClick={() =>
+                                openLocationPicker({ orderId: order.id, seq: pkg.seq })
+                              }
                             >
                               Select Location
                               <ChevronDown />

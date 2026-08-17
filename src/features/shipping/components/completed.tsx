@@ -3,16 +3,32 @@ import { ChevronRight } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { fmtDate } from '../format'
 import { completedOrders, loadById, loadLabel } from '../selectors'
 import { shippingStore, toggleCompletedExpand } from '../store'
+import { showToast } from '../ui'
 import { EmptyState, LineItemsTable, ShipViaCell } from './bits'
+
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '112px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'city', label: 'City', width: '104px' },
+  { key: 'via', label: 'Ship Via', width: '120px' },
+  { key: 'weight', label: 'Weight', width: '92px' },
+  { key: 'truck', label: 'Truck', width: '84px' },
+  { key: 'load', label: 'Load', width: '96px' },
+  { key: 'date', label: 'Delivered', width: '104px' }
+]
 
 /** Ninety days of delivered orders, by delivery date. A row ages out ninety days after it landed. */
 export const CompletedModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const state = useStore(shippingStore, current => current)
+  const { headers, cells } = useColumnOrder('shp-comp', DATA_COLUMNS, { notify: showToast })
   const orders = completedOrders(state.orders)
 
   return (
@@ -40,14 +56,7 @@ export const CompletedModal = ({ open, onClose }: { open: boolean; onClose: () =
                   <thead>
                     <tr>
                       <th style={{ width: '22px' }} />
-                      <th style={{ width: '120px' }}>Order #</th>
-                      <th style={{ width: '150px' }}>Customer</th>
-                      <th style={{ width: '110px' }}>City</th>
-                      <th style={{ width: '118px' }}>Ship Via</th>
-                      <th style={{ width: '70px' }}>Weight</th>
-                      <th style={{ width: '64px' }}>Truck</th>
-                      <th style={{ width: '60px' }}>Load</th>
-                      <th style={{ width: '150px' }}>Delivered</th>
+                      {headers}
                     </tr>
                   </thead>
                   <tbody data-comment='comp-tbody'>
@@ -80,38 +89,84 @@ export const CompletedModal = ({ open, onClose }: { open: boolean; onClose: () =
                                 <ChevronRight style={{ width: '14px', height: '14px' }} />
                               </button>
                             </td>
-                            <td className='cell-order' data-comment={`comp-order-${order.id}`}>
-                              {order.order}
-                              {order.pickup ? (
-                                <span
-                                  className='pickup-badge'
-                                  data-comment={`comp-pickup-${order.id}`}
+                            {cells({
+                              order: (
+                                <td
+                                  data-col='order'
+                                  className='cell-order'
+                                  data-comment={`comp-order-${order.id}`}
                                 >
-                                  Pickup
-                                </span>
-                              ) : null}
-                            </td>
-                            <td className='cell-cust trunc' data-comment={`comp-cust-${order.id}`}>
-                              {order.customer}
-                            </td>
-                            <td className='trunc' data-comment={`comp-city-${order.id}`}>
-                              {order.city}
-                            </td>
-                            <td data-comment={`comp-shipvia-${order.id}`}>
-                              <ShipViaCell order={order} />
-                            </td>
-                            <td className='cell-num' data-comment={`comp-weight-${order.id}`}>
-                              {order.weight.toLocaleString('en-US')} lb
-                            </td>
-                            <td className='cell-num' data-comment={`comp-truck-${order.id}`}>
-                              {order.truckId || '—'}
-                            </td>
-                            <td className='cell-num' data-comment={`comp-load-${order.id}`}>
-                              {load ? loadLabel(load, state.loads) : '—'}
-                            </td>
-                            <td className='cell-num muted' data-comment={`comp-date-${order.id}`}>
-                              {fmtDate(order.shipDate)}
-                            </td>
+                                  {order.order}
+                                  {order.pickup ? (
+                                    <span
+                                      className='pickup-badge'
+                                      data-comment={`comp-pickup-${order.id}`}
+                                    >
+                                      Pickup
+                                    </span>
+                                  ) : null}
+                                </td>
+                              ),
+                              customer: (
+                                <td
+                                  data-col='customer'
+                                  className='cell-cust trunc'
+                                  data-comment={`comp-cust-${order.id}`}
+                                >
+                                  {order.customer}
+                                </td>
+                              ),
+                              city: (
+                                <td
+                                  data-col='city'
+                                  className='trunc'
+                                  data-comment={`comp-city-${order.id}`}
+                                >
+                                  {order.city}
+                                </td>
+                              ),
+                              via: (
+                                <td data-col='via' data-comment={`comp-shipvia-${order.id}`}>
+                                  <ShipViaCell order={order} />
+                                </td>
+                              ),
+                              weight: (
+                                <td
+                                  data-col='weight'
+                                  className='cell-num'
+                                  data-comment={`comp-weight-${order.id}`}
+                                >
+                                  {order.weight.toLocaleString('en-US')} lb
+                                </td>
+                              ),
+                              truck: (
+                                <td
+                                  data-col='truck'
+                                  className='cell-num'
+                                  data-comment={`comp-truck-${order.id}`}
+                                >
+                                  {order.truckId || '—'}
+                                </td>
+                              ),
+                              load: (
+                                <td
+                                  data-col='load'
+                                  className='cell-num'
+                                  data-comment={`comp-load-${order.id}`}
+                                >
+                                  {load ? loadLabel(load, state.loads) : '—'}
+                                </td>
+                              ),
+                              date: (
+                                <td
+                                  data-col='date'
+                                  className='cell-num muted'
+                                  data-comment={`comp-date-${order.id}`}
+                                >
+                                  {fmtDate(order.shipDate)}
+                                </td>
+                              )
+                            })}
                           </tr>
                           {expanded ? (
                             <tr className='subrow' data-comment={`comp-subrow-${order.id}`}>

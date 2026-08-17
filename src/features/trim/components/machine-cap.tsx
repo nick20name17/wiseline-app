@@ -8,40 +8,48 @@ import { fmtDate } from '../format'
 import { BENDLIST_MACHINES, dayScheduledTotals, machineTotals } from '../selectors'
 import { TODAY, trimStore } from '../store'
 
-/** Pieces have no ceiling, Bends do; Stock is a subset of the figure beside it, never an addition. */
+/**
+ * Pieces have no ceiling, Bends do; Stock is a subset of the figure beside it, never an addition.
+ *
+ * #219: the canvas writes the stock inside the figure — «20 of the 187 pieces are Stock» — so the
+ * column it briefly had of its own (#27) is folded back in as a parenthetical. The alignment that
+ * column was asked for is kept a different way: value, slash, max and the parenthetical are four
+ * tracks of one fixed grid, so the slashes and the «(n - Stock)» line up down the column anyway.
+ */
 const Cell = ({
   value,
   max,
   stock,
-  comment
+  comment,
+  unrouted
 }: {
   value: number
   max?: number
   stock: number
   comment: string
+  unrouted?: boolean
 }) => (
-  <>
-    {/* #212: value, slash and max are three cells of one grid so the slashes line up down the column */}
-    <td className='mcap-num' data-comment={comment}>
-      <span
-        className={`mcap-val${max ? ' has-max' : ''}${max && value > max ? ' over' : ''}`}
-        data-comment={`${comment}-val`}
-      >
-        <span className='mcap-assigned' data-comment={`${comment}-assigned`}>
-          {value}
-        </span>
-        <span className='mcap-slash' data-comment={`${comment}-slash`}>
-          {max ? '/' : ''}
-        </span>
-        <span className='mcap-max' data-comment={`${comment}-max`}>
-          {max ? max : ''}
-        </span>
+  <td className='mcap-num' data-comment={comment}>
+    <span
+      className={`mcap-val${max ? ' has-max' : ''}${max && value > max ? ' over' : ''}${
+        unrouted ? ' unrouted' : ''
+      }`}
+      data-comment={`${comment}-val`}
+    >
+      <span className='mcap-assigned' data-comment={`${comment}-assigned`}>
+        {value}
       </span>
-    </td>
-    <td className='mcap-num mcap-stock' data-comment={`${comment}-stock`}>
-      {stock}
-    </td>
-  </>
+      <span className='mcap-slash' data-comment={`${comment}-slash`}>
+        {max ? '/' : ''}
+      </span>
+      <span className='mcap-max' data-comment={`${comment}-max`}>
+        {max ? max : ''}
+      </span>
+      <span className='mcap-stock' data-comment={`${comment}-stock`}>
+        {stock ? `(${stock} - Stock)` : ''}
+      </span>
+    </span>
+  </td>
 )
 
 /**
@@ -71,12 +79,13 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
     pieces: scheduled.pieces - sum(totals => totals.pieces),
     bends: scheduled.bends - sum(totals => totals.bends)
   }
+  const hasUnrouted = unassigned.pieces > 0 || unassigned.bends > 0
 
   return (
     <Overlay id='overlay-machinecap' comment='overlay-machinecap' open={!!day} onClose={onClose}>
       <div
         className='modal'
-        style={{ maxWidth: '600px' }}
+        style={{ maxWidth: '640px' }}
         data-comment='machinecap-modal'
         data-component='dialog'
       >
@@ -94,36 +103,42 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
           data-comment='machinecap-body'
           style={{ paddingBottom: '18px' }}
         >
-          <div className='mcap-daylabel' data-comment='mcap-daylabel'>
-            {fmtDate(iso)}
-            {iso === TODAY ? ' · today' : ''}
-          </div>
-
+          {/*
+            #218: the canvas carries the date once, in the day's own row. The centred label that used to
+            repeat it directly above the same date is gone with its `mcap-daylabel` anchor.
+          */}
           <table className='mcap-table' data-comment='mcap-table'>
             <thead>
               <tr>
                 <th data-comment='mcap-th-blank' />
-                <th data-comment='mcap-th-pieces'>Pieces</th>
-                <th data-comment='mcap-th-piecesstock'>Stock</th>
-                <th data-comment='mcap-th-bends'>Bends</th>
-                <th data-comment='mcap-th-bendsstock'>Stock</th>
+                {/* #219: the canvas's own two headings — the stock figure lives inside each of them */}
+                <th data-comment='mcap-th-pieces'>Total # of Pieces</th>
+                <th data-comment='mcap-th-bends'>Total Bends / Daily Max.</th>
               </tr>
             </thead>
             <tbody data-comment='mcap-tbody'>
               <tr className='mcap-dayrow' data-comment='mcap-row-day'>
                 <th scope='row' data-comment='mcap-name-day'>
                   {fmtDate(iso)}
+                  {iso === TODAY ? <span className='subtle'> · today</span> : null}
                 </th>
+                {/*
+                  #216: the day's own figures turn orange while any of the day's trim still has no
+                  machine — the gap between this row and the machine rows below it. Over the daily max
+                  keeps the red it already had; that is the harder warning of the two.
+                */}
                 <Cell
                   value={scheduled.pieces}
                   stock={scheduled.stockPieces}
                   comment='mcap-daypieces'
+                  unrouted={hasUnrouted}
                 />
                 <Cell
                   value={scheduled.bends}
                   max={dailyMax}
                   stock={scheduled.stockBends}
                   comment='mcap-daybends'
+                  unrouted={hasUnrouted}
                 />
               </tr>
               {rows.map(({ machine, totals }) => (

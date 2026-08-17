@@ -206,30 +206,32 @@ const MachineTotals = ({ machineId, slinet }: { machineId: number | null; slinet
       </div>
       <div className='mach-total-item' data-comment='prod-mtotal-pieces'>
         <span className='mach-total-label'>Total # Pieces</span>
-        <span
-          className='mach-total-value mono'
-          title={`${where}${stockNote(totals.stockPieces)}`}
-        >
+        <span className='mach-total-value mono' title={`${where}${stockNote(totals.stockPieces)}`}>
           {totals.pieces}
         </span>
       </div>
-      <div className='mach-total-item' data-comment='prod-mtotal-bends'>
-        <span className='mach-total-label'>Total Bends</span>
-        <span
-          className={`mach-total-value mono ${over ? 'over' : ''}`}
-          title={`${where}${stockNote(totals.stockBends)}${over ? ' — over the daily max' : ''}`}
-        >
-          {totals.bends}
-        </span>
-      </div>
-      {/* #209: the Slinet has no daily max of its own, so the strip stops at the two totals */}
+      {/*
+        #209: the Slinet cuts, it does not bend — so neither Total Bends nor the daily max it has none
+        of belong on its strip. Pieces to cut is the whole figure there.
+      */}
       {slinet ? null : (
-        <div className='mach-total-item' data-comment='prod-mtotal-max'>
-          <span className='mach-total-label'>Daily Max (bends)</span>
-          <span className='mach-total-value mono' title='Set in Settings › Machines'>
-            {totals.dailyMax}
-          </span>
-        </div>
+        <>
+          <div className='mach-total-item' data-comment='prod-mtotal-bends'>
+            <span className='mach-total-label'>Total Bends</span>
+            <span
+              className={`mach-total-value mono ${over ? 'over' : ''}`}
+              title={`${where}${stockNote(totals.stockBends)}${over ? ' — over the daily max' : ''}`}
+            >
+              {totals.bends}
+            </span>
+          </div>
+          <div className='mach-total-item' data-comment='prod-mtotal-max'>
+            <span className='mach-total-label'>Daily Max (bends)</span>
+            <span className='mach-total-value mono' title='Set in Settings › Machines'>
+              {totals.dailyMax}
+            </span>
+          </div>
+        </>
       )}
     </div>
   )
@@ -325,296 +327,304 @@ const BatchRows = ({
   const opNotes = useStore(trimStore, state => state.opNotes)
 
   return (
-  <>
-    {popNode}
-    {rowGroupsOf(items, isSlinet).map((group, groupIndex) => {
-      const gitems = group.items
-      const solo = gitems.length === 1
-      const first = gitems[0]!
-      const rowKey = `${batchKey}-${groupIndex}`
-      const state = groupStepState(gitems, RANK[stepStatus]!)
-      const done = state === 'done'
+    <>
+      {popNode}
+      {rowGroupsOf(items, isSlinet).map((group, groupIndex) => {
+        const gitems = group.items
+        const solo = gitems.length === 1
+        const first = gitems[0]!
+        const rowKey = `${batchKey}-${groupIndex}`
+        const state = groupStepState(gitems, RANK[stepStatus]!)
+        const done = state === 'done'
 
-      // N-112/127: Total is the full qty to manufacture; a machine column is the non-vented remainder
-      const totalQty = gitems.reduce((sum, item) => sum + qtyToMake(item), 0)
-      const totalOrdered = gitems.reduce((sum, item) => sum + item.qty, 0)
-      const totalVented = gitems.reduce((sum, item) => sum + ventedOf(item), 0)
-      const totalFlat = gitems.reduce((sum, item) => sum + (item.fromStock || 0), 0)
+        // N-112/127: Total is the full qty to manufacture; a machine column is the non-vented remainder
+        const totalQty = gitems.reduce((sum, item) => sum + qtyToMake(item), 0)
+        const totalOrdered = gitems.reduce((sum, item) => sum + item.qty, 0)
+        const totalVented = gitems.reduce((sum, item) => sum + ventedOf(item), 0)
+        const totalFlat = gitems.reduce((sum, item) => sum + (item.fromStock || 0), 0)
 
-      const pidSet = [...new Set(gitems.map(item => item.productId))]
-      const descSet = [...new Set(gitems.map(item => item.description))]
-      const lenAlert = group.length !== 120
-      // on a machine tab a row cannot be completed before the Slinet has cut it
-      const eligible =
-        isSlinet ||
-        !(state === 'none' && gitems.every(item => !item.status || item.status === 'not_started'))
+        const pidSet = [...new Set(gitems.map(item => item.productId))]
+        const descSet = [...new Set(gitems.map(item => item.description))]
+        const lenAlert = group.length !== 120
+        // on a machine tab a row cannot be completed before the Slinet has cut it
+        const eligible =
+          isSlinet ||
+          !(state === 'none' && gitems.every(item => !item.status || item.status === 'not_started'))
 
-      const machineCount = (name: string) => {
-        const machine = BENDLIST_MACHINES.find(candidate => candidate.name === name)!
-        const count = gitems
-          .filter(item => item.machineId === machine.id)
-          .reduce((sum, item) => sum + (qtyToMake(item) - ventedOf(item)), 0)
-        return { machine, count }
-      }
+        const machineCount = (name: string) => {
+          const machine = BENDLIST_MACHINES.find(candidate => candidate.name === name)!
+          const count = gitems
+            .filter(item => item.machineId === machine.id)
+            .reduce((sum, item) => sum + (qtyToMake(item) - ventedOf(item)), 0)
+          return { machine, count }
+        }
 
-      const totalLink = (
-        <button
-          className='total-link'
-          data-comment={`prod-i-qtybtn-${rowKey}`}
-          title='See orders using this size'
-          onClick={event => {
-            event.stopPropagation()
-            openCutlistTotal(gitems)
-          }}
-        >
-          {totalQty}
-        </button>
-      )
+        const totalLink = (
+          <button
+            className='total-link'
+            data-comment={`prod-i-qtybtn-${rowKey}`}
+            title='See orders using this size'
+            onClick={event => {
+              event.stopPropagation()
+              openCutlistTotal(gitems)
+            }}
+          >
+            {totalQty}
+          </button>
+        )
 
-      const refs = gitems.map(item => ({ orderId: item.orderId, lineId: item.id }))
+        const refs = gitems.map(item => ({ orderId: item.orderId, lineId: item.id }))
 
-      const completeCell = (
-        <CompleteToggle
-          comment={rowKey}
-          done={done}
-          disabled={!eligible && !done}
-          title={
-            done
-              ? 'Marked complete — uncheck to reopen (asks first)'
-              : eligible
-                ? 'Mark this row complete'
-                : 'Waiting on Slinet cut'
-          }
-          onToggle={toYes => {
-            if (toYes) return isSlinet ? slinetCutGroup(batchId, refs) : machineCompleteGroup(refs)
+        const completeCell = (
+          <CompleteToggle
+            comment={rowKey}
+            done={done}
+            disabled={!eligible && !done}
+            title={
+              done
+                ? 'Marked complete — uncheck to reopen (asks first)'
+                : eligible
+                  ? 'Mark this row complete'
+                  : 'Waiting on Slinet cut'
+            }
+            onToggle={toYes => {
+              if (toYes)
+                return isSlinet ? slinetCutGroup(batchId, refs) : machineCompleteGroup(refs)
 
-            askConfirm(
-              'Mark this row as NOT completed?',
-              'Are you sure you want to mark this row as NOT completed?',
-              () => {
-                closeConfirm()
-                revertRowComplete(refs, isSlinet)
-              },
-              'Yes',
-              'No'
-            )
-          }}
-        />
-      )
+              askConfirm(
+                'Mark this row as NOT completed?',
+                'Are you sure you want to mark this row as NOT completed?',
+                () => {
+                  closeConfirm()
+                  revertRowComplete(refs, isSlinet)
+                },
+                'Yes',
+                'No'
+              )
+            }}
+          />
+        )
 
-      return (
-        <tr key={rowKey} className={done ? 'row-complete' : ''} data-comment={`prod-row-${rowKey}`}>
-          <td className='mono' data-comment={`prod-i-w-${rowKey}`}>
-            {group.width.toFixed(1)}
-          </td>
-          <td className={`mono ${lenAlert ? 'len-alert' : ''}`} data-comment={`prod-i-l-${rowKey}`}>
-            {group.length}&quot;
-          </td>
+        return (
+          <tr
+            key={rowKey}
+            className={done ? 'row-complete' : ''}
+            data-comment={`prod-row-${rowKey}`}
+          >
+            <td className='mono' data-comment={`prod-i-w-${rowKey}`}>
+              {group.width.toFixed(1)}
+            </td>
+            <td
+              className={`mono ${lenAlert ? 'len-alert' : ''}`}
+              data-comment={`prod-i-l-${rowKey}`}
+            >
+              {group.length}&quot;
+            </td>
 
-          {isSlinet ? (
-            <>
-              <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
-                {totalLink}
-              </td>
-              {['Press Brake', 'V1', 'V2', 'Rollformer'].map(name => {
-                const { machine, count } = machineCount(name)
-                return (
-                  <td
-                    key={machine.id}
-                    className='mono'
-                    data-comment={`prod-i-m${machine.id}-${rowKey}`}
-                  >
-                    {count ? count : <span className='subtle'>—</span>}
-                  </td>
-                )
-              })}
-              <td className='mono' data-comment={`prod-i-vent-${rowKey}`}>
-                {totalVented ? (
-                  <span className='vent-pill'>{totalVented}</span>
-                ) : (
-                  <span className='subtle'>—</span>
-                )}
-              </td>
-              {(() => {
-                const { machine, count } = machineCount('Caps')
-                return (
-                  <td className='mono' data-comment={`prod-i-m${machine.id}-${rowKey}`}>
-                    {count ? count : <span className='subtle'>—</span>}
-                  </td>
-                )
-              })()}
-              <td
-                className='mono'
-                data-comment={`prod-i-flat-${rowKey}`}
-                title='Pieces cut for flat stock during this cut (N-116)'
-              >
-                {totalFlat ? totalFlat : <span className='subtle'>—</span>}
-              </td>
-              <td data-comment={`prod-i-op-${rowKey}`}>
-                <input
-                  className='op-note'
-                  type='text'
-                  data-comment={`prod-opnote-${rowKey}`}
-                  placeholder='Notes…'
-                  value={opNotes[rowKey] ?? ''}
-                  onChange={event => setOpNote(rowKey, event.target.value)}
-                  onClick={event => event.stopPropagation()}
-                />
-              </td>
-              <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
-            </>
-          ) : (
-            <>
-              <td className='mono' data-comment={`prod-i-ordqty-${rowKey}`}>
-                {totalOrdered}
-              </td>
-              <td data-comment={`prod-i-stock-${rowKey}`}>
-                {done || !solo ? (
-                  <span className='mono'>{totalFlat}</span>
-                ) : (
-                  <button
-                    className='field-btn'
-                    style={{ minWidth: '52px', justifyContent: 'center' }}
-                    data-comment={`prod-stockbtn-${rowKey}`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      openPad({
-                        kind: 'stock',
-                        orderId: first.orderId,
-                        lineId: first.id,
-                        locked: first.status === 'wrapped'
-                      })
-                    }}
-                  >
-                    {first.fromStock || 0}
-                  </button>
-                )}
-              </td>
-              <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
-                {totalLink}
-              </td>
-              <td className='mono' data-comment={`prod-i-pid-${rowKey}`}>
-                {pidSet.length === 1 ? pidSet[0] : 'Multiple'}
-              </td>
-              <td className='trunc' data-comment={`prod-i-desc-${rowKey}`}>
-                {descSet.length === 1 ? descSet[0] : 'Multiple'}
-              </td>
-              <td data-comment={`prod-i-remc-${rowKey}`}>
-                {solo ? (
-                  done ? (
+            {isSlinet ? (
+              <>
+                <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
+                  {totalLink}
+                </td>
+                {['Press Brake', 'V1', 'V2', 'Rollformer'].map(name => {
+                  const { machine, count } = machineCount(name)
+                  return (
+                    <td
+                      key={machine.id}
+                      className='mono'
+                      data-comment={`prod-i-m${machine.id}-${rowKey}`}
+                    >
+                      {count ? count : <span className='subtle'>—</span>}
+                    </td>
+                  )
+                })}
+                <td className='mono' data-comment={`prod-i-vent-${rowKey}`}>
+                  {totalVented ? (
+                    <span className='vent-pill'>{totalVented}</span>
+                  ) : (
+                    <span className='subtle'>—</span>
+                  )}
+                </td>
+                {(() => {
+                  const { machine, count } = machineCount('Caps')
+                  return (
+                    <td className='mono' data-comment={`prod-i-m${machine.id}-${rowKey}`}>
+                      {count ? count : <span className='subtle'>—</span>}
+                    </td>
+                  )
+                })()}
+                <td
+                  className='mono'
+                  data-comment={`prod-i-flat-${rowKey}`}
+                  title='Pieces cut for flat stock during this cut (N-116)'
+                >
+                  {totalFlat ? totalFlat : <span className='subtle'>—</span>}
+                </td>
+                <td data-comment={`prod-i-op-${rowKey}`}>
+                  <input
+                    className='op-note'
+                    type='text'
+                    data-comment={`prod-opnote-${rowKey}`}
+                    placeholder='Notes…'
+                    value={opNotes[rowKey] ?? ''}
+                    onChange={event => setOpNote(rowKey, event.target.value)}
+                    onClick={event => event.stopPropagation()}
+                  />
+                </td>
+                <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
+              </>
+            ) : (
+              <>
+                <td className='mono' data-comment={`prod-i-ordqty-${rowKey}`}>
+                  {totalOrdered}
+                </td>
+                <td data-comment={`prod-i-stock-${rowKey}`}>
+                  {done || !solo ? (
+                    <span className='mono'>{totalFlat}</span>
+                  ) : (
+                    <button
+                      className='field-btn'
+                      style={{ minWidth: '52px', justifyContent: 'center' }}
+                      data-comment={`prod-stockbtn-${rowKey}`}
+                      onClick={event => {
+                        event.stopPropagation()
+                        openPad({
+                          kind: 'stock',
+                          orderId: first.orderId,
+                          lineId: first.id,
+                          locked: first.status === 'wrapped'
+                        })
+                      }}
+                    >
+                      {first.fromStock || 0}
+                    </button>
+                  )}
+                </td>
+                <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
+                  {totalLink}
+                </td>
+                <td className='mono' data-comment={`prod-i-pid-${rowKey}`}>
+                  {pidSet.length === 1 ? pidSet[0] : 'Multiple'}
+                </td>
+                <td className='trunc' data-comment={`prod-i-desc-${rowKey}`}>
+                  {descSet.length === 1 ? descSet[0] : 'Multiple'}
+                </td>
+                <td data-comment={`prod-i-remc-${rowKey}`}>
+                  {solo ? (
+                    done ? (
+                      <span
+                        className='subtle'
+                        data-comment={`prod-i-rem-${rowKey}`}
+                        style={{ fontSize: '11px' }}
+                      >
+                        —
+                      </span>
+                    ) : (
+                      <button
+                        className='btn btn-sm btn-ghost rem-btn'
+                        title='Remanufacture'
+                        data-comment={`prod-i-rem-${rowKey}`}
+                        onClick={event => {
+                          event.stopPropagation()
+                          openPad({
+                            kind: 'reman',
+                            source: 'machine',
+                            orderId: first.orderId,
+                            lineId: first.id
+                          })
+                        }}
+                      >
+                        <RefreshCw style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    )
+                  ) : (
                     <span
                       className='subtle'
                       data-comment={`prod-i-rem-${rowKey}`}
                       style={{ fontSize: '11px' }}
+                      title='Open the order to remanufacture a specific line'
                     >
-                      —
+                      {gitems.length} orders
+                    </span>
+                  )}
+                </td>
+                <td data-comment={`prod-i-mc-${rowKey}`}>
+                  {done || !solo ? (
+                    <span className='mono' data-comment={`prod-i-mach-${rowKey}`}>
+                      {machineById(group.machineId)?.name || '—'}
                     </span>
                   ) : (
                     <button
-                      className='btn btn-sm btn-ghost rem-btn'
-                      title='Remanufacture'
-                      data-comment={`prod-i-rem-${rowKey}`}
+                      className='field-btn field-sel'
+                      data-pop-anchor
+                      data-comment={`prod-i-mach-${rowKey}`}
                       onClick={event => {
                         event.stopPropagation()
-                        openPad({
-                          kind: 'reman',
-                          source: 'machine',
-                          orderId: first.orderId,
-                          lineId: first.id
-                        })
+                        openPop(
+                          event.currentTarget,
+                          trimStore
+                            .get()
+                            .machines.filter(machine => machine.id !== group.machineId)
+                            .map(machine => ({ label: machine.name, value: machine.id })),
+                          value => {
+                            reassignMachine(first.orderId, first.id, value as number)
+                            showToast(
+                              `Reassigned to ${machineById(value as number)?.name || 'machine'} · new single-item bendlist`
+                            )
+                            setActiveMachine(value as number)
+                          }
+                        )
                       }}
                     >
-                      <RefreshCw style={{ width: '14px', height: '14px' }} />
+                      <span>{machineById(group.machineId)?.name || '—'}</span>
+                      <ChevronDown style={{ width: '13px', height: '13px' }} />
                     </button>
-                  )
-                ) : (
-                  <span
-                    className='subtle'
-                    data-comment={`prod-i-rem-${rowKey}`}
-                    style={{ fontSize: '11px' }}
-                    title='Open the order to remanufacture a specific line'
-                  >
-                    {gitems.length} orders
-                  </span>
-                )}
-              </td>
-              <td data-comment={`prod-i-mc-${rowKey}`}>
-                {done || !solo ? (
-                  <span className='mono' data-comment={`prod-i-mach-${rowKey}`}>
-                    {machineById(group.machineId)?.name || '—'}
-                  </span>
-                ) : (
-                  <button
-                    className='field-btn field-sel'
-                    data-pop-anchor
-                    data-comment={`prod-i-mach-${rowKey}`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      openPop(
-                        event.currentTarget,
-                        trimStore
-                          .get()
-                          .machines.filter(machine => machine.id !== group.machineId)
-                          .map(machine => ({ label: machine.name, value: machine.id })),
-                        value => {
-                          reassignMachine(first.orderId, first.id, value as number)
-                          showToast(
-                            `Reassigned to ${machineById(value as number)?.name || 'machine'} · new single-item bendlist`
-                          )
-                          setActiveMachine(value as number)
-                        }
-                      )
-                    }}
-                  >
-                    <span>{machineById(group.machineId)?.name || '—'}</span>
-                    <ChevronDown style={{ width: '13px', height: '13px' }} />
-                  </button>
-                )}
-              </td>
-              <td data-comment={`prod-i-st-${rowKey}`}>
-                {state === 'partial' && !solo ? (
-                  <span className='status st-inprogress' data-comment={`prod-stp-${rowKey}`}>
-                    <span className='st-dot' />
-                    Mixed
-                  </span>
-                ) : (
-                  <ProdStatusPill status={first.status} comment={`prod-stp-${rowKey}`} />
-                )}
-              </td>
-              <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
-              <td data-comment={`prod-i-draw-${rowKey}`}>
-                <DrawingThumb />
-              </td>
-              <td data-comment={`prod-i-note-${rowKey}`}>
-                {solo ? (
-                  <button
-                    className={`note-btn ${noteState(first.notes) === 'unread' ? 'has-unread' : noteState(first.notes) === 'read' ? 'all-read' : ''}`}
-                    data-comment={`prod-note-${rowKey}`}
-                    title='Line notes'
-                    onClick={event => {
-                      event.stopPropagation()
-                      openNotes({ orderId: first.orderId, lineId: first.id })
-                    }}
-                  >
-                    <MessageSquare style={{ width: '14px', height: '14px' }} />
-                    {noteState(first.notes) !== 'none' ? <span className='note-dot' /> : null}
-                  </button>
-                ) : (
-                  <span
-                    className='subtle'
-                    data-comment={`prod-note-${rowKey}`}
-                    style={{ fontSize: '11px' }}
-                  >
-                    {gitems.length}
-                  </span>
-                )}
-              </td>
-            </>
-          )}
-        </tr>
-      )
-    })}
-  </>
+                  )}
+                </td>
+                <td data-comment={`prod-i-st-${rowKey}`}>
+                  {state === 'partial' && !solo ? (
+                    <span className='status st-inprogress' data-comment={`prod-stp-${rowKey}`}>
+                      <span className='st-dot' />
+                      Mixed
+                    </span>
+                  ) : (
+                    <ProdStatusPill status={first.status} comment={`prod-stp-${rowKey}`} />
+                  )}
+                </td>
+                <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
+                <td data-comment={`prod-i-draw-${rowKey}`}>
+                  <DrawingThumb />
+                </td>
+                <td data-comment={`prod-i-note-${rowKey}`}>
+                  {solo ? (
+                    <button
+                      className={`note-btn ${noteState(first.notes) === 'unread' ? 'has-unread' : noteState(first.notes) === 'read' ? 'all-read' : ''}`}
+                      data-comment={`prod-note-${rowKey}`}
+                      title='Line notes'
+                      onClick={event => {
+                        event.stopPropagation()
+                        openNotes({ orderId: first.orderId, lineId: first.id })
+                      }}
+                    >
+                      <MessageSquare style={{ width: '14px', height: '14px' }} />
+                      {noteState(first.notes) !== 'none' ? <span className='note-dot' /> : null}
+                    </button>
+                  ) : (
+                    <span
+                      className='subtle'
+                      data-comment={`prod-note-${rowKey}`}
+                      style={{ fontSize: '11px' }}
+                    >
+                      {gitems.length}
+                    </span>
+                  )}
+                </td>
+              </>
+            )}
+          </tr>
+        )
+      })}
+    </>
   )
 }
 
@@ -1115,9 +1125,7 @@ const BatchCard = ({
               Done
             </span>
             <span className='done-stamp' data-comment={`prod-donestamp-${batchKey}`}>
-              {fmtStamp(
-                isSlinet ? batch.doneSlinetAt : (batch.doneMachineAt || {})[machineId!]
-              )}
+              {fmtStamp(isSlinet ? batch.doneSlinetAt : (batch.doneMachineAt || {})[machineId!])}
             </span>
           </>
         ) : (
@@ -1402,19 +1410,19 @@ export const Production = () => {
         {/* #192: every machine tab carries its own Active / Completed switch, and a completed list
             renders in exactly the format the worker used — same cards, same columns, same expand. */}
         <div className='prodlist-tabs' data-comment='prod-listtabs'>
-        <button
-          className={`seg ${doneMode ? '' : 'active'}`}
-          data-comment='prod-listtab-active'
-          onClick={() => setProdListMode('active')}
-        >
-          Active {listWord}
-        </button>
-        <button
-          className={`seg ${doneMode ? 'active' : ''}`}
-          data-comment='prod-listtab-completed'
-          onClick={() => setProdListMode('completed')}
-        >
-          <History style={{ width: '14px', height: '14px' }} />
+          <button
+            className={`seg ${doneMode ? '' : 'active'}`}
+            data-comment='prod-listtab-active'
+            onClick={() => setProdListMode('active')}
+          >
+            Active {listWord}
+          </button>
+          <button
+            className={`seg ${doneMode ? 'active' : ''}`}
+            data-comment='prod-listtab-completed'
+            onClick={() => setProdListMode('completed')}
+          >
+            <History style={{ width: '14px', height: '14px' }} />
             Completed {listWord} · past 90 days
           </button>
         </div>

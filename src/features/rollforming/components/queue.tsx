@@ -15,6 +15,7 @@ import {
   supplierName,
   type QueueGroup
 } from '../selectors'
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { usePopover } from '@/components/shell/pop'
 
 import {
@@ -26,7 +27,7 @@ import {
   setQueueSupplier,
   toggleCoilInMachine
 } from '../store'
-import { openCoilPick, openLotPick } from '../ui'
+import { openCoilPick, openLotPick, showToast } from '../ui'
 import { EmptyState, GroupTabs } from './bits'
 import { CoilPanel } from './production'
 
@@ -35,6 +36,22 @@ import { CoilPanel } from './production'
  * exactly as the prototype keeps it.
  */
 const drag: { current: { date: string; key: string } | null } = { current: null }
+
+/**
+ * N-166. The header lives in `QueueBuckets` and the cells in `QueueRow`, so both call the hook —
+ * they read the same key and the same store, and the order they render is therefore the same one.
+ */
+const COLUMNS: Column[] = [
+  { key: 'date', label: 'Production Date', width: '128px' },
+  { key: 'material', label: 'Material', width: '150px' },
+  { key: 'profile', label: 'Profile', width: '115px' },
+  { key: 'lf', label: 'LF', width: '60px' },
+  { key: 'weight', label: 'Weight', width: '70px' },
+  { key: 'priority', label: 'Priority', width: '114px' },
+  { key: 'supplier', label: 'Supplier', width: '105px' },
+  { key: 'coil', label: 'Coil Number', width: '150px' },
+  { key: 'slit', label: 'Slit Line', width: '160px' }
+]
 
 /**
  * The Queue: every unit of released work, combined into one row wherever production date, colour,
@@ -69,6 +86,7 @@ const QueueRow = ({
   const role = useStore(rollformingStore, state => state.role)
   const priorities = useStore(rollformingStore, state => state.priorities)
   const suppliers = useStore(rollformingStore, state => state.suppliers)
+  const { cells } = useColumnOrder('rf-queue', COLUMNS)
 
   const priority = priorityById(row.priorityId, priorities)
   const waiting = row.needsSlit && !row.slitDone
@@ -129,158 +147,176 @@ const QueueRow = ({
           />
         )}
       </td>
-      {firstOfBucket ? (
-        <td className='cell-num muted' data-comment={`q-date-${bucketKey}`}>
-          {fmtDate(date)}
-          {overdue ? ' ⚠' : ''}
-        </td>
-      ) : (
-        <td data-comment={`q-datesp-${key}`} />
-      )}
-      <td className='mono trunc' data-comment={`q-material-${key}`}>
-        {row.productId} {row.color}
-      </td>
-      <td className='mono trunc' data-comment={`q-profile-${key}`}>
-        {row.profile}
-      </td>
-      <td className='mono' data-comment={`q-lf-${key}`}>
-        {row.lf.toLocaleString()}
-      </td>
-      <td className='mono' data-comment={`q-weight-${key}`}>
-        {row.weight.toLocaleString()}
-      </td>
-      <td data-comment={`q-pri-${key}`}>
-        {priority ? (
-          <span className={`pri ${priority.cls} readonly`}>
-            <span className='pri-dot' />
-            {priority.name}
-          </span>
+      {cells({
+        date: firstOfBucket ? (
+          <td data-col='date' className='cell-num muted' data-comment={`q-date-${bucketKey}`}>
+            {fmtDate(date)}
+            {overdue ? ' ⚠' : ''}
+          </td>
         ) : (
-          <span className='subtle'>—</span>
-        )}
-      </td>
-      <td data-comment={`q-sup-${key}`}>
-        {waiting ? (
-          <span className='subtle' style={{ fontSize: '11px' }}>
-            locked
-          </span>
-        ) : !row.supplierId ? (
-          <button
-            className='field-btn is-empty'
-            data-pop-anchor
-            data-comment={`q-supbtn-${key}`}
-            style={{ width: '100%' }}
-            onClick={pickSupplier}
-          >
-            Undefined
-            <ChevronDown />
-          </button>
-        ) : row.workerAssigned ? (
-          <button
-            className='field-btn'
-            data-pop-anchor
-            data-comment={`q-supbtn-${key}`}
-            style={{ width: '100%' }}
-            onClick={pickSupplier}
-          >
-            {supplierName(row.supplierId, suppliers)}
-            <ChevronDown />
-          </button>
-        ) : (
-          supplierName(row.supplierId, suppliers)
-        )}
-        {/* portalled out of here, so it adds no cell of its own */}
-        {popNode}
-      </td>
-      <td data-comment={`q-coil-${key}`}>
-        {waiting ? (
-          <button
-            className='lock-tag'
-            title='Click to mark slit complete'
-            data-comment={`q-slitcomplete-${key}`}
-            onClick={() => completeSlitLine(row.key)}
-          >
-            <Clock style={{ width: '14px', height: '14px' }} />
-            waiting...
-          </button>
-        ) : !row.coilNumber ? (
-          <button
-            className='field-btn is-empty'
-            data-comment={`q-coilbtn-${key}`}
-            disabled={!row.supplierId}
-            title={row.supplierId ? undefined : 'Choose a Supplier first'}
-            style={{ width: '100%' }}
-            onClick={pickCoilNumber}
-          >
-            Undefined
-            <ChevronDown />
-          </button>
-        ) : (
-          <>
-            {row.workerAssigned ? (
+          <td data-col='date' data-comment={`q-datesp-${key}`} />
+        ),
+        material: (
+          <td data-col='material' className='mono trunc' data-comment={`q-material-${key}`}>
+            {row.productId} {row.color}
+          </td>
+        ),
+        profile: (
+          <td data-col='profile' className='mono trunc' data-comment={`q-profile-${key}`}>
+            {row.profile}
+          </td>
+        ),
+        lf: (
+          <td data-col='lf' className='mono' data-comment={`q-lf-${key}`}>
+            {row.lf.toLocaleString()}
+          </td>
+        ),
+        weight: (
+          <td data-col='weight' className='mono' data-comment={`q-weight-${key}`}>
+            {row.weight.toLocaleString()}
+          </td>
+        ),
+        priority: (
+          <td data-col='priority' data-comment={`q-pri-${key}`}>
+            {priority ? (
+              <span className={`pri ${priority.cls} readonly`}>
+                <span className='pri-dot' />
+                {priority.name}
+              </span>
+            ) : (
+              <span className='subtle'>—</span>
+            )}
+          </td>
+        ),
+        supplier: (
+          <td data-col='supplier' data-comment={`q-sup-${key}`}>
+            {waiting ? (
+              <span className='subtle' style={{ fontSize: '11px' }}>
+                locked
+              </span>
+            ) : !row.supplierId ? (
               <button
-                className='q-coil-editable'
-                title='Click to change Coil Number'
-                data-comment={`q-coilbtn-${key}`}
-                onClick={pickCoilNumber}
+                className='field-btn is-empty'
+                data-pop-anchor
+                data-comment={`q-supbtn-${key}`}
+                style={{ width: '100%' }}
+                onClick={pickSupplier}
               >
-                {row.coilNumber}
+                Undefined
+                <ChevronDown />
+              </button>
+            ) : row.workerAssigned ? (
+              <button
+                className='field-btn'
+                data-pop-anchor
+                data-comment={`q-supbtn-${key}`}
+                style={{ width: '100%' }}
+                onClick={pickSupplier}
+              >
+                {supplierName(row.supplierId, suppliers)}
+                <ChevronDown />
               </button>
             ) : (
-              <span className='mono' title='Assigned by Manager — locked'>
-                <Lock style={{ width: '12px', height: '12px', verticalAlign: '-1px' }} />{' '}
-                {row.coilNumber}
+              supplierName(row.supplierId, suppliers)
+            )}
+            {/* portalled out of here, so it adds no cell of its own */}
+            {popNode}
+          </td>
+        ),
+        coil: (
+          <td data-col='coil' data-comment={`q-coil-${key}`}>
+            {waiting ? (
+              <button
+                className='lock-tag'
+                title='Click to mark slit complete'
+                data-comment={`q-slitcomplete-${key}`}
+                onClick={() => completeSlitLine(row.key)}
+              >
+                <Clock style={{ width: '14px', height: '14px' }} />
+                waiting...
+              </button>
+            ) : !row.coilNumber ? (
+              <button
+                className='field-btn is-empty'
+                data-comment={`q-coilbtn-${key}`}
+                disabled={!row.supplierId}
+                title={row.supplierId ? undefined : 'Choose a Supplier first'}
+                style={{ width: '100%' }}
+                onClick={pickCoilNumber}
+              >
+                Undefined
+                <ChevronDown />
+              </button>
+            ) : (
+              <>
+                {row.workerAssigned ? (
+                  <button
+                    className='q-coil-editable'
+                    title='Click to change Coil Number'
+                    data-comment={`q-coilbtn-${key}`}
+                    onClick={pickCoilNumber}
+                  >
+                    {row.coilNumber}
+                  </button>
+                ) : (
+                  <span className='mono' title='Assigned by Manager — locked'>
+                    <Lock style={{ width: '12px', height: '12px', verticalAlign: '-1px' }} />{' '}
+                    {row.coilNumber}
+                  </span>
+                )}{' '}
+                <button
+                  className='icon-btn'
+                  title='Copy Coil Number'
+                  data-comment={`q-copycn-${key}`}
+                  onClick={() => copyCoilNumber(row.coilNumber)}
+                >
+                  <Copy style={{ width: '14px', height: '14px' }} />
+                </button>{' '}
+                <button
+                  className='icon-btn'
+                  title='Lot Numbers'
+                  data-comment={`q-lotbtn-${key}`}
+                  onClick={() =>
+                    openLotPick({
+                      groupKey: row.key,
+                      color: row.color,
+                      gauge: row.gauge,
+                      coilNumber: row.coilNumber
+                    })
+                  }
+                >
+                  <Search style={{ width: '14px', height: '14px' }} />
+                </button>
+              </>
+            )}
+          </td>
+        ),
+        slit: (
+          <td data-col='slit' data-comment={`q-slit-${key}`}>
+            {row.needsSlit ? (
+              row.slitDone ? (
+                <span
+                  data-comment={`q-slitstate-${key}`}
+                  style={{ color: 'var(--success)', fontSize: '11px', fontWeight: 500 }}
+                >
+                  ✓ Slit
+                </span>
+              ) : (
+                <span
+                  data-comment={`q-slitstate-${key}`}
+                  style={{ color: 'var(--pri-by)', fontSize: '11px', fontWeight: 500 }}
+                >
+                  🟡 Waiting for Slit Line
+                </span>
+              )
+            ) : (
+              <span className='subtle' data-comment={`q-slitstate-${key}`}>
+                —
               </span>
-            )}{' '}
-            <button
-              className='icon-btn'
-              title='Copy Coil Number'
-              data-comment={`q-copycn-${key}`}
-              onClick={() => copyCoilNumber(row.coilNumber)}
-            >
-              <Copy style={{ width: '14px', height: '14px' }} />
-            </button>{' '}
-            <button
-              className='icon-btn'
-              title='Lot Numbers'
-              data-comment={`q-lotbtn-${key}`}
-              onClick={() =>
-                openLotPick({
-                  groupKey: row.key,
-                  color: row.color,
-                  gauge: row.gauge,
-                  coilNumber: row.coilNumber
-                })
-              }
-            >
-              <Search style={{ width: '14px', height: '14px' }} />
-            </button>
-          </>
-        )}
-      </td>
-      <td data-comment={`q-slit-${key}`}>
-        {row.needsSlit ? (
-          row.slitDone ? (
-            <span
-              data-comment={`q-slitstate-${key}`}
-              style={{ color: 'var(--success)', fontSize: '11px', fontWeight: 500 }}
-            >
-              ✓ Slit
-            </span>
-          ) : (
-            <span
-              data-comment={`q-slitstate-${key}`}
-              style={{ color: 'var(--pri-by)', fontSize: '11px', fontWeight: 500 }}
-            >
-              🟡 Waiting for Slit Line
-            </span>
-          )
-        ) : (
-          <span className='subtle' data-comment={`q-slitstate-${key}`}>
-            —
-          </span>
-        )}
-      </td>
+            )}
+          </td>
+        )
+      })}
       <td data-comment={`q-reorder-${key}`}>
         {role === 'worker' ? null : (
           <span
@@ -312,6 +348,7 @@ const QueueRow = ({
 const QueueBuckets = ({ group }: { group: string }) => {
   const state = useStore(rollformingStore, current => current)
   const slug = groupSlug(group)
+  const { headers } = useColumnOrder('rf-queue', COLUMNS, { notify: showToast })
 
   return (
     <>
@@ -334,15 +371,7 @@ const QueueBuckets = ({ group }: { group: string }) => {
               <thead>
                 <tr>
                   <th style={{ width: '44px' }} title='Coil in Machine' />
-                  <th style={{ width: '128px' }}>Production Date</th>
-                  <th style={{ width: '150px' }}>Material</th>
-                  <th style={{ width: '115px' }}>Profile</th>
-                  <th style={{ width: '60px' }}>LF</th>
-                  <th style={{ width: '70px' }}>Weight</th>
-                  <th style={{ width: '114px' }}>Priority</th>
-                  <th style={{ width: '105px' }}>Supplier</th>
-                  <th style={{ width: '150px' }}>Coil Number</th>
-                  <th style={{ width: '160px' }}>Slit Line</th>
+                  {headers}
                   <th style={{ width: '60px' }} />
                 </tr>
               </thead>

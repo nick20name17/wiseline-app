@@ -58,8 +58,7 @@ export const openScheduleSplit = (orderId: number) => {
   openSchedule({ mode: 'split', orderId, lineIds: [...state.selectedLineIds] })
 }
 
-export const openReschedule = (orderId: number) =>
-  openSchedule({ mode: 'reschedule', orderId })
+export const openReschedule = (orderId: number) => openSchedule({ mode: 'reschedule', orderId })
 
 export const openLocationPicker = (locPicker: number) => accessoriesUi.set({ locPicker })
 export const closeLocationPicker = () => accessoriesUi.set({ locPicker: null })
@@ -169,11 +168,15 @@ export const requestRemoveLocation = (orderId: number, locationId: number) => {
     return
   }
 
-  askConfirm('Remove location', 'Are you sure you want to remove this location from this order?', () => {
-    closeConfirm()
-    removeLocation(orderId, locationId)
-    showToast(`Location ${location.code} removed`)
-  })
+  askConfirm(
+    'Remove location',
+    'Are you sure you want to remove this location from this order?',
+    () => {
+      closeConfirm()
+      removeLocation(orderId, locationId)
+      showToast(`Location ${location.code} removed`)
+    }
+  )
 }
 
 export const requestDeletePackage = (orderId: number, pkgId: number) =>

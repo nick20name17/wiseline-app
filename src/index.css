@@ -224,6 +224,31 @@ body {
   min-height: 100%;
 }
 
+/* Movable columns (N-166). The prototype declares these on `th.col-move` with no page scope, and every
+   department's grid now uses the same mechanism, so they live here rather than being copied into each
+   page's sheet. The colours are read off the page the grid is on, so a page that sets neither still
+   gets the cursor and the opacity. */
+th.col-move {
+  cursor: grab;
+  user-select: none;
+}
+
+th.col-move:hover {
+  color: var(--text);
+}
+
+th.col-move:active {
+  cursor: grabbing;
+}
+
+th.col-dragging {
+  opacity: 0.45;
+}
+
+th.col-drop-target {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
 /* The sheet of stock cards prints the same whether it was selected on the Stock Cards page or in the
    dialog Trim hosts, so these rules key on the print host rather than on which page it sits inside — the
    page's own copy of them can only see its own page. `!important` answers the page's own `!important`,

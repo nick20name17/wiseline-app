@@ -3,6 +3,8 @@ import { ArrowRight, CalendarClock, ChevronRight, Package, PackagePlus, Search }
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { fmtDate } from '../format'
@@ -42,6 +44,21 @@ export type TruckCtx = { truckId: number; date: string }
 
 const COLUMNS = 13
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '112px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'address', label: 'Address', width: '150px' },
+  { key: 'city', label: 'City', width: '104px' },
+  { key: 'map', label: 'Map', width: '58px' },
+  { key: 'weight', label: 'Weight', width: '92px' },
+  { key: 'length', label: 'Length', width: '78px' },
+  { key: 'via', label: 'Ship Via', width: '120px' },
+  { key: 'priority', label: 'Priority', width: '128px' },
+  { key: 'status', label: 'Status', width: '124px' },
+  { key: 'notes', label: 'Notes', width: '58px' }
+]
+
 /**
  * One truck's scheduled orders: pick some, and they become a Load.
  *
@@ -50,6 +67,7 @@ const COLUMNS = 13
  * rather than offering a button that could not mean anything.
  */
 const TruckGrid = ({ truckId, activeDay }: { truckId: number; activeDay: string }) => {
+  const { headers, cells } = useColumnOrder('shp-sched', DATA_COLUMNS, { notify: showToast })
   const state = useStore(shippingStore, current => current)
   const truck = truckById(truckId, state.trucks)
   const orders = schedGridOrders(truckId, activeDay, state)
@@ -202,17 +220,7 @@ const TruckGrid = ({ truckId, activeDay }: { truckId: number; activeDay: string 
                     )}
                   </th>
                   <th style={{ width: '22px' }} />
-                  <th style={{ width: '132px' }}>Order #</th>
-                  <th style={{ width: '150px' }}>Customer</th>
-                  <th style={{ width: '150px' }}>Address</th>
-                  <th style={{ width: '90px' }}>City</th>
-                  <th style={{ width: '36px' }}>Map</th>
-                  <th style={{ width: '70px' }}>Weight</th>
-                  <th style={{ width: '70px' }}>Length</th>
-                  <th style={{ width: '110px' }}>Ship Via</th>
-                  <th style={{ width: '118px' }}>Priority</th>
-                  <th style={{ width: '104px' }}>Status</th>
-                  <th style={{ width: '44px' }}>Notes</th>
+                  {headers}
                 </tr>
               </thead>
               <tbody>
@@ -263,47 +271,95 @@ const TruckGrid = ({ truckId, activeDay }: { truckId: number; activeDay: string 
                             <ChevronRight style={{ width: '14px', height: '14px' }} />
                           </button>
                         </td>
-                        <td className='cell-order' data-comment={`sch-order-${order.id}`}>
-                          {order.order}
-                          {order.pickup ? (
-                            <span className='pickup-badge' data-comment={`sch-pickup-${order.id}`}>
-                              Pickup
-                            </span>
-                          ) : null}
-                        </td>
-                        <td className='cell-cust trunc' data-comment={`sch-cust-${order.id}`}>
-                          {order.customer}
-                        </td>
-                        <td className='trunc' data-comment={`sch-addr-${order.id}`}>
-                          {order.address}
-                        </td>
-                        <td className='trunc' data-comment={`sch-city-${order.id}`}>
-                          {order.city}
-                        </td>
-                        <td data-comment={`sch-map-${order.id}`}>
-                          <MapButton order={order} />
-                        </td>
-                        <td className='cell-num' data-comment={`sch-weight-${order.id}`}>
-                          {order.weight.toLocaleString('en-US')} lb
-                        </td>
-                        <td
-                          className={`cell-num${truck && order.longestLength > truck.maxLength ? ' over-txt' : ''}`}
-                          data-comment={`sch-length-${order.id}`}
-                        >
-                          {order.longestLength}"
-                        </td>
-                        <td data-comment={`sch-shipvia-${order.id}`}>
-                          <ShipViaCell order={order} />
-                        </td>
-                        <td data-comment={`sch-pri-${order.id}`}>
-                          <PriorityCell order={order} />
-                        </td>
-                        <td data-comment={`sch-status-${order.id}`}>
-                          <OrderStatusPill order={order} />
-                        </td>
-                        <td data-comment={`sch-notes-${order.id}`}>
-                          <NotesButton order={order} />
-                        </td>
+                        {cells({
+                          order: (
+                            <td
+                              data-col='order'
+                              className='cell-order'
+                              data-comment={`sch-order-${order.id}`}
+                            >
+                              {order.order}
+                              {order.pickup ? (
+                                <span
+                                  className='pickup-badge'
+                                  data-comment={`sch-pickup-${order.id}`}
+                                >
+                                  Pickup
+                                </span>
+                              ) : null}
+                            </td>
+                          ),
+                          customer: (
+                            <td
+                              data-col='customer'
+                              className='cell-cust trunc'
+                              data-comment={`sch-cust-${order.id}`}
+                            >
+                              {order.customer}
+                            </td>
+                          ),
+                          address: (
+                            <td
+                              data-col='address'
+                              className='trunc'
+                              data-comment={`sch-addr-${order.id}`}
+                            >
+                              {order.address}
+                            </td>
+                          ),
+                          city: (
+                            <td
+                              data-col='city'
+                              className='trunc'
+                              data-comment={`sch-city-${order.id}`}
+                            >
+                              {order.city}
+                            </td>
+                          ),
+                          map: (
+                            <td data-col='map' data-comment={`sch-map-${order.id}`}>
+                              <MapButton order={order} />
+                            </td>
+                          ),
+                          weight: (
+                            <td
+                              data-col='weight'
+                              className='cell-num'
+                              data-comment={`sch-weight-${order.id}`}
+                            >
+                              {order.weight.toLocaleString('en-US')} lb
+                            </td>
+                          ),
+                          length: (
+                            <td
+                              data-col='length'
+                              className={`cell-num${truck && order.longestLength > truck.maxLength ? ' over-txt' : ''}`}
+                              data-comment={`sch-length-${order.id}`}
+                            >
+                              {order.longestLength}"
+                            </td>
+                          ),
+                          via: (
+                            <td data-col='via' data-comment={`sch-shipvia-${order.id}`}>
+                              <ShipViaCell order={order} />
+                            </td>
+                          ),
+                          priority: (
+                            <td data-col='priority' data-comment={`sch-pri-${order.id}`}>
+                              <PriorityCell order={order} />
+                            </td>
+                          ),
+                          status: (
+                            <td data-col='status' data-comment={`sch-status-${order.id}`}>
+                              <OrderStatusPill order={order} />
+                            </td>
+                          ),
+                          notes: (
+                            <td data-col='notes' data-comment={`sch-notes-${order.id}`}>
+                              <NotesButton order={order} />
+                            </td>
+                          )
+                        })}
                       </tr>
 
                       {expanded ? (

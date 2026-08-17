@@ -229,8 +229,7 @@ export const addRow = (area: string, draft: Record<string, unknown>) =>
       area === 'priorities'
         ? {
             ...draft,
-            hierarchy:
-              state.priorities.filter(priority => priority.dept === draft.dept).length + 1
+            hierarchy: state.priorities.filter(priority => priority.dept === draft.dept).length + 1
           }
         : draft
     const rows = [...(state[area as keyof SettingsState] as unknown[]), { ...entry, id }]

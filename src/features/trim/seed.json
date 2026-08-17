@@ -5423,12 +5423,8 @@
       "completedTime": "11:18 AM",
       "pkgSeq": 2,
       "location": 1,
-      "wrapLocations": [
-        1
-      ],
-      "locationIds": [
-        1
-      ],
+      "wrapLocations": [1],
+      "locationIds": [1],
       "packages": [
         {
           "barcode": "01-338008-01",
@@ -5520,12 +5516,8 @@
       "completedTime": "2:47 PM",
       "pkgSeq": 1,
       "location": 5,
-      "wrapLocations": [
-        5
-      ],
-      "locationIds": [
-        5
-      ],
+      "wrapLocations": [5],
+      "locationIds": [5],
       "packages": [
         {
           "barcode": "01-338011-01",
@@ -5580,9 +5572,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        2
-      ],
+      "doneMachines": [2],
       "doneSlinetAt": "2026-07-14T14:20:00.000Z",
       "doneMachineAt": {
         "2": "2026-07-14T16:10:00.000Z"
@@ -5721,9 +5711,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        2
-      ],
+      "doneMachines": [2],
       "doneSlinetAt": "2026-06-24T14:43:00.000Z",
       "doneMachineAt": {
         "2": "2026-06-24T16:19:00.000Z"
@@ -5742,9 +5730,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        3
-      ],
+      "doneMachines": [3],
       "doneSlinetAt": "2026-06-24T14:50:00.000Z",
       "doneMachineAt": {
         "3": "2026-06-24T16:30:00.000Z"
@@ -5763,9 +5749,7 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [
-        6
-      ],
+      "doneMachines": [6],
       "doneSlinetAt": "2026-05-16T14:57:00.000Z",
       "doneMachineAt": {
         "6": "2026-05-16T16:41:00.000Z"

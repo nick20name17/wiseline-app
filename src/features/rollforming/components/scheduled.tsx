@@ -4,6 +4,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import {
   gaugeColourLabel,
@@ -28,13 +30,31 @@ import {
   toggleReleaseSel
 } from '../store'
 import { releaseSelectedOrders } from '../store'
-import { requestToggleReviewed } from '../ui'
+import { requestToggleReviewed, showToast } from '../ui'
 import { EmptyState, GroupTabs, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
 import type { Order } from '../types'
 
 const COLUMNS = 17
+
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'ship', label: 'Ship', width: '66px' },
+  { key: 'proddate', label: 'Production', width: '104px' },
+  { key: 'order', label: 'Order #', width: '106px' },
+  { key: 'customer', label: 'Customer', width: '140px' },
+  { key: 'reqby', label: 'Requested By', width: '112px' },
+  { key: 'gc', label: 'Gauge / Colour', width: '150px' },
+  { key: 'po', label: 'PO', width: '96px' },
+  { key: 'salesman', label: 'Salesman', width: '104px' },
+  { key: 'via', label: 'Ship Via', width: '120px' },
+  { key: 'priority', label: 'Priority', width: '130px' },
+  { key: 'reviewed', label: 'Reviewed', width: '118px' },
+  { key: 'status', label: 'Status', width: '104px' },
+  { key: 'loc', label: 'Loc.', width: '74px' },
+  { key: 'notes', label: 'Notes', width: '62px' }
+]
 
 /**
  * Reviewed is a gate, not a note: an order cannot be picked for Export or Release until it is on. Once
@@ -63,6 +83,7 @@ const ReviewedCell = ({ order }: { order: Order }) => {
  *  of the "All" overview cannot claim the same `data-comment` — row-level ones stay keyed by order id,
  *  because an order waiting on the Slit Line legitimately appears under its own profile too. */
 const ScheduledTable = ({ orders, wrapKey }: { orders: Order[]; wrapKey: string }) => {
+  const { headers, cells } = useColumnOrder('rf-sch', DATA_COLUMNS, { notify: showToast })
   const expandedIds = useStore(rollformingStore, state => state.expandedIds)
   const locations = useStore(rollformingStore, state => state.locations)
 
@@ -78,20 +99,7 @@ const ScheduledTable = ({ orders, wrapKey }: { orders: Order[]; wrapKey: string 
               R
             </th>
             <th style={{ width: '28px' }} />
-            <th style={{ width: '66px' }}>Ship</th>
-            <th style={{ width: '104px' }}>Production</th>
-            <th style={{ width: '106px' }}>Order #</th>
-            <th style={{ width: '140px' }}>Customer</th>
-            <th style={{ width: '112px' }}>Requested By</th>
-            <th style={{ width: '150px' }}>Gauge / Colour</th>
-            <th style={{ width: '96px' }}>PO</th>
-            <th style={{ width: '104px' }}>Salesman</th>
-            <th style={{ width: '120px' }}>Ship Via</th>
-            <th style={{ width: '130px' }}>Priority</th>
-            <th style={{ width: '118px' }}>Reviewed</th>
-            <th style={{ width: '104px' }}>Status</th>
-            <th style={{ width: '74px' }}>Loc.</th>
-            <th style={{ width: '62px' }}>Notes</th>
+            {headers}
           </tr>
         </thead>
         <tbody data-comment={`sch-tbody${wrapKey}`}>
@@ -165,57 +173,111 @@ const ScheduledTable = ({ orders, wrapKey }: { orders: Order[]; wrapKey: string 
                       <ChevronRight style={{ width: '14px', height: '14px' }} />
                     </button>
                   </td>
-                  <td className='cell-num muted' data-comment={`sch-ship-${order.id}`}>
-                    {order.shipDate ? fmtDate(order.shipDate) : '—'}
-                  </td>
-                  <td className='cell-num muted' data-comment={`sch-proddate-${order.id}`}>
-                    {order.productionDate ? fmtDate(order.productionDate) : '—'}
-                  </td>
-                  <td className='cell-order' data-comment={`sch-order-${order.id}`}>
-                    {order.order}
-                    {order.isSplit ? (
-                      <span className='split-badge' data-comment={`sch-split-${order.id}`}>
-                        Split
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className='cell-cust' data-comment={`sch-cust-${order.id}`}>
-                    {order.customer}
-                  </td>
-                  <td data-comment={`sch-reqby-${order.id}`}>
-                    <span className='chip' data-comment={`sch-reqbychip-${order.id}`}>
-                      {order.requestedBy}
-                    </span>
-                  </td>
-                  <td className='mono trunc' data-comment={`sch-gc-${order.id}`}>
-                    {gaugeColourLabel(order, scheduledLineItemsOf(order))}
-                  </td>
-                  <td className='mono muted' data-comment={`sch-po-${order.id}`}>
-                    {order.po || '—'}
-                  </td>
-                  <td className='muted' data-comment={`sch-sales-${order.id}`}>
-                    {order.salesman || '—'}
-                  </td>
-                  <td className='muted' data-comment={`sch-via-${order.id}`}>
-                    {order.shipVia || '—'}
-                  </td>
-                  <td data-comment={`sch-pri-${order.id}`}>
-                    <PriorityCell order={order} />
-                  </td>
-                  <td data-comment={`sch-rev-${order.id}`}>
-                    <ReviewedCell order={order} />
-                  </td>
-                  <td data-comment={`sch-status-${order.id}`}>
-                    <span className='subtle' style={{ fontSize: '11px' }}>
-                      {orderStatusLabel(order)}
-                    </span>
-                  </td>
-                  <td className='mono muted' data-comment={`sch-loc-${order.id}`}>
-                    {orderLocLabel(order, locations)}
-                  </td>
-                  <td data-comment={`sch-note-${order.id}`}>
-                    <NoteButton order={order} />
-                  </td>
+                  {cells({
+                    ship: (
+                      <td
+                        data-col='ship'
+                        className='cell-num muted'
+                        data-comment={`sch-ship-${order.id}`}
+                      >
+                        {order.shipDate ? fmtDate(order.shipDate) : '—'}
+                      </td>
+                    ),
+                    proddate: (
+                      <td
+                        data-col='proddate'
+                        className='cell-num muted'
+                        data-comment={`sch-proddate-${order.id}`}
+                      >
+                        {order.productionDate ? fmtDate(order.productionDate) : '—'}
+                      </td>
+                    ),
+                    order: (
+                      <td
+                        data-col='order'
+                        className='cell-order'
+                        data-comment={`sch-order-${order.id}`}
+                      >
+                        {order.order}
+                        {order.isSplit ? (
+                          <span className='split-badge' data-comment={`sch-split-${order.id}`}>
+                            Split
+                          </span>
+                        ) : null}
+                      </td>
+                    ),
+                    customer: (
+                      <td
+                        data-col='customer'
+                        className='cell-cust'
+                        data-comment={`sch-cust-${order.id}`}
+                      >
+                        {order.customer}
+                      </td>
+                    ),
+                    reqby: (
+                      <td data-col='reqby' data-comment={`sch-reqby-${order.id}`}>
+                        <span className='chip' data-comment={`sch-reqbychip-${order.id}`}>
+                          {order.requestedBy}
+                        </span>
+                      </td>
+                    ),
+                    gc: (
+                      <td data-col='gc' className='mono trunc' data-comment={`sch-gc-${order.id}`}>
+                        {gaugeColourLabel(order, scheduledLineItemsOf(order))}
+                      </td>
+                    ),
+                    po: (
+                      <td data-col='po' className='mono muted' data-comment={`sch-po-${order.id}`}>
+                        {order.po || '—'}
+                      </td>
+                    ),
+                    salesman: (
+                      <td
+                        data-col='salesman'
+                        className='muted'
+                        data-comment={`sch-sales-${order.id}`}
+                      >
+                        {order.salesman || '—'}
+                      </td>
+                    ),
+                    via: (
+                      <td data-col='via' className='muted' data-comment={`sch-via-${order.id}`}>
+                        {order.shipVia || '—'}
+                      </td>
+                    ),
+                    priority: (
+                      <td data-col='priority' data-comment={`sch-pri-${order.id}`}>
+                        <PriorityCell order={order} />
+                      </td>
+                    ),
+                    reviewed: (
+                      <td data-col='reviewed' data-comment={`sch-rev-${order.id}`}>
+                        <ReviewedCell order={order} />
+                      </td>
+                    ),
+                    status: (
+                      <td data-col='status' data-comment={`sch-status-${order.id}`}>
+                        <span className='subtle' style={{ fontSize: '11px' }}>
+                          {orderStatusLabel(order)}
+                        </span>
+                      </td>
+                    ),
+                    loc: (
+                      <td
+                        data-col='loc'
+                        className='mono muted'
+                        data-comment={`sch-loc-${order.id}`}
+                      >
+                        {orderLocLabel(order, locations)}
+                      </td>
+                    ),
+                    notes: (
+                      <td data-col='notes' data-comment={`sch-note-${order.id}`}>
+                        <NoteButton order={order} />
+                      </td>
+                    )
+                  })}
                 </tr>
                 {expanded ? <LineItemsSubrow order={order} ctx='sch' colSpan={COLUMNS} /> : null}
               </Fragment>

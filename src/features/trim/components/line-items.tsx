@@ -1,11 +1,4 @@
-import {
-  Calendar,
-  CalendarDays,
-  ChevronDown,
-  Lock,
-  MessageSquare,
-  Split
-} from 'lucide-react'
+import { Calendar, CalendarDays, ChevronDown, Lock, MessageSquare, Split } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
@@ -383,7 +376,13 @@ export const LineItemsSubrow = ({
                           <VentCell ctx={ctx} order={order} item={item} otherDay={otherDay} />
                         </td>
                         <td data-comment={`${ctx}-limachine-${item.id}`}>
-                          <MachineCell ctx={ctx} order={order} item={item} otherDay={otherDay} onPick={pickMachine} />
+                          <MachineCell
+                            ctx={ctx}
+                            order={order}
+                            item={item}
+                            otherDay={otherDay}
+                            onPick={pickMachine}
+                          />
                         </td>
                         {order.type !== 'stock' ? (
                           otherDay ? (

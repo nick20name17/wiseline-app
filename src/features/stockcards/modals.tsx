@@ -1,20 +1,12 @@
 import { useRef, useState } from 'react'
-import { ChevronDown, Image as ImageIcon, Upload, X } from 'lucide-react'
+import { Image as ImageIcon, Upload, X } from 'lucide-react'
 
 import { pendingStockOrders } from '@/store/shared/stock-orders'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
 import { NumberInput } from '@/components/shell/number-input'
-import { usePopover, type PopItem } from '@/components/shell/pop'
 
-import {
-  addCard,
-  lookupProduct,
-  nextStockOrderNo,
-  PRODUCT_CATALOG,
-  updateCard,
-  type StockCard
-} from './store'
+import { addCard, lookupProduct, nextStockOrderNo, updateCard, type StockCard } from './store'
 
 type Draft = { pid: string; stockMin: string; orderQty: string; image: string | null }
 
@@ -23,9 +15,9 @@ const EMPTY: Draft = { pid: '', stockMin: '', orderQty: '', image: null }
 /**
  * Add or edit a stock card.
  *
- * Product ID is picked, never typed: a card names a real EBMS product, and one that already has a
- * card is shown in the list as «In use» rather than hidden — the person looking for it should see
- * that it exists, not conclude that it does not.
+ * #217: Product ID is typed, not picked. The catalog is EBMS's, not this app's — a dropdown of every
+ * id in it is unusable at real size, so the field takes an id and judges it: anything that is not an
+ * active EBMS product, or already carries a card of its own, underlines red and cannot be saved.
  *
  * An image is required on a new card and optional on an edit, because an edit already has one.
  */
@@ -55,34 +47,20 @@ export const NewCardModal = ({
   )
   const [error, setError] = useState('')
   const file = useRef<HTMLInputElement>(null)
-  const { openPop, popNode } = usePopover()
 
   const product = lookupProduct(draft.pid)
+  const pidTaken = cards.some(card => card.pid === draft.pid && card.id !== editing?.id)
+  // half-typed is not yet wrong: the field only goes red once there is something to reject
+  const pidRejected = !!draft.pid && (!product || pidTaken)
   const canSubmit =
-    !!product && +draft.stockMin > 0 && +draft.orderQty > 0 && (!!draft.image || !!editing)
-
-  const pickProduct = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    const items: PopItem[] = PRODUCT_CATALOG.map(entry => {
-      const takenBy = cards.find(card => card.pid === entry.pid && card.id !== editing?.id)
-      return {
-        value: entry.pid,
-        label: `${entry.pid} — ${entry.desc}`,
-        disabled: !!takenBy,
-        badge: takenBy ? 'In use' : undefined
-      }
-    }).sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1))
-
-    openPop<string>(
-      event.currentTarget,
-      items,
-      pid => setDraft(current => ({ ...current, pid })),
-      draft.pid
-    )
-  }
+    !!product &&
+    !pidTaken &&
+    +draft.stockMin > 0 &&
+    +draft.orderQty > 0 &&
+    (!!draft.image || !!editing)
 
   const submit = () => {
-    if (!product) return setError('Pick a valid, active EBMS Product ID.')
+    if (!product) return setError('Enter a valid, active EBMS Product ID.')
     if (!(+draft.stockMin > 0)) return setError('Stock Minimum is required.')
     if (!(+draft.orderQty > 0)) return setError('Order Qty is required.')
     if (!draft.image && !editing) return setError('An image is required.')
@@ -133,20 +111,43 @@ export const NewCardModal = ({
           </div>
 
           <div className='field' data-comment='newcard-field-pid'>
-            <label className='field-label' data-comment='newcard-field-pid-label'>
+            <label
+              className='field-label'
+              htmlFor='newcard-pid'
+              data-comment='newcard-field-pid-label'
+            >
               Product ID <span className='req'>*</span>
             </label>
-            <button
-              className={`select-btn ${draft.pid ? '' : 'placeholder'}`}
-              data-pop-anchor
+            {/*
+              #217: typed, not picked. The `-select` anchor stays on the control that replaced the
+              dropdown so comments written against it still land; the inner `-value` span had no
+              equivalent inside an input and is gone.
+            */}
+            <input
+              className={`input mono${pidRejected ? ' is-invalid' : ''}`}
+              id='newcard-pid'
               data-comment='newcard-field-pid-select'
-              onClick={pickProduct}
-            >
-              <span className='mono' data-comment='newcard-field-pid-value'>
-                {draft.pid || 'Select a valid EBMS product ID…'}
-              </span>
-              <ChevronDown style={{ width: '14px', height: '14px' }} />
-            </button>
+              aria-invalid={pidRejected}
+              aria-describedby={pidRejected ? 'newcard-pid-help' : undefined}
+              placeholder='Type a valid EBMS product ID…'
+              autoComplete='off'
+              spellCheck={false}
+              value={draft.pid}
+              onChange={event =>
+                setDraft(current => ({ ...current, pid: event.target.value.toUpperCase() }))
+              }
+            />
+            {pidRejected ? (
+              <div
+                className='field-help is-invalid'
+                id='newcard-pid-help'
+                data-comment='newcard-field-pid-help'
+              >
+                {pidTaken
+                  ? `${draft.pid} already has a stock card.`
+                  : `${draft.pid} is not an active EBMS product ID.`}
+              </div>
+            ) : null}
           </div>
 
           <div className='field' data-comment='newcard-field-desc'>
@@ -285,7 +286,6 @@ export const NewCardModal = ({
           </button>
         </div>
       </div>
-      {popNode}
     </Overlay>
   )
 }

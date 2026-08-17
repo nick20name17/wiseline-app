@@ -4,10 +4,12 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import { completedOrdersList } from '../selectors'
 import { accessoriesStore, toggleExpand } from '../store'
-import { openLocationPicker, openPackages } from '../ui'
+import { openLocationPicker, openPackages, showToast } from '../ui'
 import { DetailField, EmptyState } from './bits'
 import { LocTags } from './locations'
 
@@ -115,8 +117,18 @@ const Subrow = ({ order }: { order: Order }) => (
   </tr>
 )
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'date', label: 'Completed', width: '112px' },
+  { key: 'order', label: 'Order #', width: '110px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'items', label: 'Items', width: '70px' },
+  { key: 'pkgs', label: 'Packages', width: '90px' }
+]
+
 /** Packaged and completed orders, kept for 90 days and then aged out. */
 export const Completed = () => {
+  const { headers, cells } = useColumnOrder('acc-comp', DATA_COLUMNS, { notify: showToast })
   const expandedIds = useStore(accessoriesStore, state => state.expandedIds)
   useStore(accessoriesStore, state => state.orders)
 
@@ -136,11 +148,7 @@ export const Completed = () => {
         <thead>
           <tr>
             <th style={{ width: '30px' }} />
-            <th style={{ width: '112px' }}>Completed</th>
-            <th style={{ width: '110px' }}>Order #</th>
-            <th>Customer</th>
-            <th style={{ width: '70px' }}>Items</th>
-            <th style={{ width: '90px' }}>Packages</th>
+            {headers}
           </tr>
         </thead>
         <tbody data-comment='comp-tbody'>
@@ -172,21 +180,53 @@ export const Completed = () => {
                       <ChevronRight style={{ width: '14px', height: '14px' }} />
                     </button>
                   </td>
-                  <td className='cell-num muted' data-comment={`comp-date-${order.id}`}>
-                    {fmtDate(order.completedDate)}
-                  </td>
-                  <td className='cell-order' data-comment={`comp-ono-${order.id}`}>
-                    {order.orderNumber}
-                  </td>
-                  <td className='cell-cust trunc' data-comment={`comp-cust-${order.id}`}>
-                    {order.customer}
-                  </td>
-                  <td className='cell-num' data-comment={`comp-items-${order.id}`}>
-                    {order.items.length}
-                  </td>
-                  <td className='cell-num' data-comment={`comp-pkgs-${order.id}`}>
-                    {order.packages.filter(pkg => !pkg.deleted).length}
-                  </td>
+                  {cells({
+                    date: (
+                      <td
+                        data-col='date'
+                        className='cell-num muted'
+                        data-comment={`comp-date-${order.id}`}
+                      >
+                        {fmtDate(order.completedDate)}
+                      </td>
+                    ),
+                    order: (
+                      <td
+                        data-col='order'
+                        className='cell-order'
+                        data-comment={`comp-ono-${order.id}`}
+                      >
+                        {order.orderNumber}
+                      </td>
+                    ),
+                    customer: (
+                      <td
+                        data-col='customer'
+                        className='cell-cust trunc'
+                        data-comment={`comp-cust-${order.id}`}
+                      >
+                        {order.customer}
+                      </td>
+                    ),
+                    items: (
+                      <td
+                        data-col='items'
+                        className='cell-num'
+                        data-comment={`comp-items-${order.id}`}
+                      >
+                        {order.items.length}
+                      </td>
+                    ),
+                    pkgs: (
+                      <td
+                        data-col='pkgs'
+                        className='cell-num'
+                        data-comment={`comp-pkgs-${order.id}`}
+                      >
+                        {order.packages.filter(pkg => !pkg.deleted).length}
+                      </td>
+                    )
+                  })}
                 </tr>
 
                 {expanded ? <Subrow order={order} /> : null}

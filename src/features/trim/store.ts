@@ -361,15 +361,12 @@ export const createStockWrapBatch = (orderId: number, lineIds: number[]) => {
       const lineItems = candidate.lineItems.map(item => {
         if (!lineIds.includes(item.id)) return item
         const made = (item.qtyManufactured || 0) + (item.wrapped || 0)
-        return {
-          ...item,
-          qtyManufactured: made,
-          wrapped: 0,
-          status: made >= item.qty ? 'wrapped' : item.status
-        }
+        // #219: the batch is what finishes the line, not the quantity in it — a short batch is still a
+        // batch, and the canvas has the row read Wrapped from the moment one is created
+        return { ...item, qtyManufactured: made, wrapped: 0, status: 'wrapped' as const }
       })
 
-      const allBatched = lineItems.every(item => (item.qtyManufactured || 0) >= item.qty)
+      const allBatched = lineItems.every(item => (item.qtyManufactured || 0) > 0)
       return allBatched
         ? {
             ...candidate,

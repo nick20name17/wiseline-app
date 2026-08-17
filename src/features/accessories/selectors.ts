@@ -97,7 +97,8 @@ export const matchesSearch = (order: Order, search = accessoriesStore.get().sear
 
 /** Prep Date always outranks Priority. */
 export const scheduledSort =
-  (priorities = accessoriesStore.get().priorities) => (a: Order, b: Order) =>
+  (priorities = accessoriesStore.get().priorities) =>
+  (a: Order, b: Order) =>
     a.prepDate !== b.prepDate
       ? (a.prepDate ?? '') < (b.prepDate ?? '')
         ? -1

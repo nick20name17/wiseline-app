@@ -25,7 +25,9 @@ test('a Worker on Trim sees Production and Coils, and no board above them', asyn
   await expect(at(page, 'tab-calendar')).toBeHidden()
 })
 
-test('the Coil Filter is the Manager\'s to set and the Worker\'s to work within', async ({ page }) => {
+test("the Coil Filter is the Manager's to set and the Worker's to work within", async ({
+  page
+}) => {
   await asRole(page, 'manager', 'trim')
   await page.goto('/trim?view=coils')
   await expect(at(page, 'coils-filter-btn')).toBeVisible()

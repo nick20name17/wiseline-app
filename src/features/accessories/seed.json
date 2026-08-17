@@ -4792,9 +4792,7 @@
       "priorityId": 1,
       "maxPkgWeight": 15,
       "pkgSeq": 1,
-      "locationIds": [
-        123
-      ],
+      "locationIds": [123],
       "packages": [
         {
           "id": 9101,
@@ -5139,9 +5137,7 @@
       "priorityId": null,
       "maxPkgWeight": 15,
       "pkgSeq": 2,
-      "locationIds": [
-        125
-      ],
+      "locationIds": [125],
       "completed": true,
       "completedDate": "2026-07-08",
       "orderNotes": [],
@@ -5214,9 +5210,7 @@
       "priorityId": null,
       "maxPkgWeight": 15,
       "pkgSeq": 1,
-      "locationIds": [
-        126
-      ],
+      "locationIds": [126],
       "completed": true,
       "completedDate": "2026-07-11",
       "orderNotes": [],

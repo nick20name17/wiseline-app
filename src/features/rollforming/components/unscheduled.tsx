@@ -4,6 +4,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import {
   gaugeColourLabel,
@@ -13,14 +15,31 @@ import {
   unscheduledOrders
 } from '../selectors'
 import { rollformingStore, toggleExpand, toggleOrderSelect } from '../store'
-import { openMaterialRequest, openSchedule } from '../ui'
+import { openMaterialRequest, openSchedule, showToast } from '../ui'
 import { EmptyState, GroupTabs, NoteButton, PriorityCell } from './bits'
 import { LineItemsSubrow } from './line-items'
 
 const COLUMNS = 14
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'entry', label: 'Entry', width: '76px' },
+  { key: 'ship', label: 'Ship', width: '76px' },
+  { key: 'order', label: 'Order #', width: '106px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'address', label: 'Address', width: '150px' },
+  { key: 'city', label: 'City', width: '110px' },
+  { key: 'gc', label: 'Gauge / Colour', width: '150px' },
+  { key: 'po', label: 'PO', width: '96px' },
+  { key: 'salesman', label: 'Salesman', width: '104px' },
+  { key: 'via', label: 'Ship Via', width: '120px' },
+  { key: 'priority', label: 'Priority', width: '130px' },
+  { key: 'notes', label: 'Notes', width: '62px' }
+]
+
 export const Unscheduled = () => {
   const state = useStore(rollformingStore, current => current)
+  const { headers, cells } = useColumnOrder('rf-uns', DATA_COLUMNS, { notify: showToast })
   const rows = unscheduledOrders(state.orders)
     .filter(order => orderMatchesSearch(order, state.searchTerm))
     .filter(order => orderInGroup(order, state.activeGroup))
@@ -78,18 +97,7 @@ export const Unscheduled = () => {
               <tr>
                 <th style={{ width: '36px' }} />
                 <th style={{ width: '28px' }} />
-                <th style={{ width: '76px' }}>Entry</th>
-                <th style={{ width: '76px' }}>Ship</th>
-                <th style={{ width: '106px' }}>Order #</th>
-                <th>Customer</th>
-                <th style={{ width: '150px' }}>Address</th>
-                <th style={{ width: '110px' }}>City</th>
-                <th style={{ width: '150px' }}>Gauge / Colour</th>
-                <th style={{ width: '96px' }}>PO</th>
-                <th style={{ width: '104px' }}>Salesman</th>
-                <th style={{ width: '120px' }}>Ship Via</th>
-                <th style={{ width: '130px' }}>Priority</th>
-                <th style={{ width: '62px' }}>Notes</th>
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='uns-tbody'>
@@ -131,47 +139,109 @@ export const Unscheduled = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td className='cell-num muted' data-comment={`uns-entry-${order.id}`}>
-                        {fmtDate(order.entryDate)}
-                      </td>
-                      <td className='cell-num muted' data-comment={`uns-ship-${order.id}`}>
-                        {order.shipDate ? fmtDate(order.shipDate) : '—'}
-                      </td>
-                      <td className='cell-order' data-comment={`uns-order-${order.id}`}>
-                        {order.order}
-                        {order.isSplit ? (
-                          <span className='split-badge' data-comment={`uns-split-${order.id}`}>
-                            Split
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className='cell-cust' data-comment={`uns-cust-${order.id}`}>
-                        {order.customer}
-                      </td>
-                      <td className='trunc muted' data-comment={`uns-addr-${order.id}`}>
-                        {order.address || '—'}
-                      </td>
-                      <td className='trunc muted' data-comment={`uns-city-${order.id}`}>
-                        {order.city || '—'}
-                      </td>
-                      <td className='mono trunc' data-comment={`uns-gc-${order.id}`}>
-                        {gaugeColourLabel(order, unscheduledLineItemsOf(order))}
-                      </td>
-                      <td className='mono muted' data-comment={`uns-po-${order.id}`}>
-                        {order.po || '—'}
-                      </td>
-                      <td className='muted' data-comment={`uns-sales-${order.id}`}>
-                        {order.salesman || '—'}
-                      </td>
-                      <td className='muted' data-comment={`uns-via-${order.id}`}>
-                        {order.shipVia || '—'}
-                      </td>
-                      <td data-comment={`uns-pri-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td data-comment={`uns-note-${order.id}`}>
-                        <NoteButton order={order} />
-                      </td>
+                      {cells({
+                        entry: (
+                          <td
+                            data-col='entry'
+                            className='cell-num muted'
+                            data-comment={`uns-entry-${order.id}`}
+                          >
+                            {fmtDate(order.entryDate)}
+                          </td>
+                        ),
+                        ship: (
+                          <td
+                            data-col='ship'
+                            className='cell-num muted'
+                            data-comment={`uns-ship-${order.id}`}
+                          >
+                            {order.shipDate ? fmtDate(order.shipDate) : '—'}
+                          </td>
+                        ),
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`uns-order-${order.id}`}
+                          >
+                            {order.order}
+                            {order.isSplit ? (
+                              <span className='split-badge' data-comment={`uns-split-${order.id}`}>
+                                Split
+                              </span>
+                            ) : null}
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust'
+                            data-comment={`uns-cust-${order.id}`}
+                          >
+                            {order.customer}
+                          </td>
+                        ),
+                        address: (
+                          <td
+                            data-col='address'
+                            className='trunc muted'
+                            data-comment={`uns-addr-${order.id}`}
+                          >
+                            {order.address || '—'}
+                          </td>
+                        ),
+                        city: (
+                          <td
+                            data-col='city'
+                            className='trunc muted'
+                            data-comment={`uns-city-${order.id}`}
+                          >
+                            {order.city || '—'}
+                          </td>
+                        ),
+                        gc: (
+                          <td
+                            data-col='gc'
+                            className='mono trunc'
+                            data-comment={`uns-gc-${order.id}`}
+                          >
+                            {gaugeColourLabel(order, unscheduledLineItemsOf(order))}
+                          </td>
+                        ),
+                        po: (
+                          <td
+                            data-col='po'
+                            className='mono muted'
+                            data-comment={`uns-po-${order.id}`}
+                          >
+                            {order.po || '—'}
+                          </td>
+                        ),
+                        salesman: (
+                          <td
+                            data-col='salesman'
+                            className='muted'
+                            data-comment={`uns-sales-${order.id}`}
+                          >
+                            {order.salesman || '—'}
+                          </td>
+                        ),
+                        via: (
+                          <td data-col='via' className='muted' data-comment={`uns-via-${order.id}`}>
+                            {order.shipVia || '—'}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`uns-pri-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`uns-note-${order.id}`}>
+                            <NoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
                     {expanded ? (
                       <LineItemsSubrow order={order} ctx='uns' colSpan={COLUMNS} />

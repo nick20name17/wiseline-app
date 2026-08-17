@@ -64,10 +64,12 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
             const manufactured = item.qtyManufactured ?? 0
             const wrapped = item.wrapped || 0
             /**
-             * A batch closes the row only once the *whole* quantity is manufactured — a partial batch
-             * leaves the rest of the line wrappable, and batchable again.
+             * #219: a batch closes the row, whatever it was for. It used to take the *whole* quantity —
+             * a partial batch left the rest wrappable — but the batch has already gone to EBMS, and
+             * Kevin's rule is that the line stops being editable at that point: «This applies even if
+             * the Qty. Manufactured is not equal to the Qty. Ordered.»
              */
-            const done = manufactured >= item.qty
+            const done = manufactured > 0
             const left = Math.max(0, item.qty - wrapped - manufactured)
             const [cls, label] =
               PRODUCTION_STATUS[item.status ?? ''] ?? PRODUCTION_STATUS.not_started!

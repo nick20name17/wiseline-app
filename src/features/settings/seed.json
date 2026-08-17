@@ -2,15 +2,7 @@
   "activeArea": "priorities",
   "activeDept": "Trim",
   "workdays": {
-    "weekdays": [
-      false,
-      true,
-      true,
-      true,
-      true,
-      true,
-      false
-    ],
+    "weekdays": [false, true, true, true, true, true, false],
     "holidays": []
   },
   "warehouses": [
@@ -192,11 +184,7 @@
       "dailyMax": 300
     }
   ],
-  "coilSuppliers": [
-    "Taylor",
-    "Color Steel",
-    "Cascadia"
-  ],
+  "coilSuppliers": ["Taylor", "Color Steel", "Cascadia"],
   "pkgMax": {
     "Trim": 500,
     "Rollforming": 900,
@@ -208,18 +196,14 @@
       "name": "John Enns",
       "email": "john@wiseline.app",
       "role": "Manager",
-      "depts": [
-        "Trim"
-      ]
+      "depts": ["Trim"]
     },
     {
       "id": 2,
       "name": "Hannah Weir",
       "email": "hannah@wiseline.app",
       "role": "Worker",
-      "depts": [
-        "Trim"
-      ]
+      "depts": ["Trim"]
     },
     {
       "id": 3,

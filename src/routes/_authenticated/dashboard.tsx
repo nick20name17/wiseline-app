@@ -19,6 +19,7 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 
 import { fmtDate } from '@/features/trim/format'
 import {
@@ -153,12 +154,24 @@ const DeptCard = ({ dept }: { dept: Dept }) => {
  * Nothing here is derived from the department pages — the prototype gives this screen its own numbers,
  * and they do not add up to what the other pages show. That is the prototype's arrangement, kept.
  */
+/** N-166: the data columns of the «Due» grid, in declaration order. */
+const DUE_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order#', width: '90px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'dept', label: 'Dept', width: '120px' },
+  { key: 'ship', label: 'Ship date', width: '100px' },
+  { key: 'priority', label: 'Priority', width: '120px' },
+  { key: 'status', label: 'Status', width: '130px' }
+]
+
 function Dashboard() {
   usePage('dashboard')
 
   const state = useStore(dashboardStore, current => current)
   const viewer = useViewer()
   const goto = useGoto()
+  // no toast host on this page, so the save is silent — the columns moving is its own confirmation
+  const { headers, cells } = useColumnOrder('dash-due', DUE_COLUMNS)
 
   const term = state.searchTerm.trim().toLowerCase()
   const rows = state.dueOrders.filter(
@@ -313,14 +326,7 @@ function Dashboard() {
                   <div className='table-wrap' data-comment='due-table-wrap'>
                     <table className='grid' data-comment='due-table'>
                       <thead>
-                        <tr>
-                          <th style={{ width: '90px' }}>Order#</th>
-                          <th>Customer</th>
-                          <th style={{ width: '120px' }}>Dept</th>
-                          <th style={{ width: '100px' }}>Ship date</th>
-                          <th style={{ width: '120px' }}>Priority</th>
-                          <th style={{ width: '130px' }}>Status</th>
-                        </tr>
+                        <tr>{headers}</tr>
                       </thead>
                       <tbody data-comment='due-tbody'>
                         {rows.map(order => (
@@ -330,37 +336,65 @@ function Dashboard() {
                             onClick={() => goto(deepLink(order))}
                             key={order.id}
                           >
-                            <td className='mono-cell' data-comment={`due-cell-order-${order.id}`}>
-                              {order.order}
-                            </td>
-                            <td
-                              className='trunc cell-name'
-                              data-comment={`due-cell-customer-${order.id}`}
-                            >
-                              {order.customer}
-                            </td>
-                            <td data-comment={`due-cell-dept-${order.id}`}>{order.dept}</td>
-                            <td className='mono-cell' data-comment={`due-cell-ship-${order.id}`}>
-                              {fmtDate(order.shipDate)}
-                            </td>
-                            <td data-comment={`due-cell-priority-${order.id}`}>
-                              <span
-                                className={`pri ${order.priority ? (PRI_CLASS[order.priority] ?? 'pri-none') : 'pri-none'}`}
-                                data-comment={`pri-chip-${order.id}`}
-                              >
-                                <span className='pri-dot' />
-                                {order.priority || 'No priority'}
-                              </span>
-                            </td>
-                            <td data-comment={`due-cell-status-${order.id}`}>
-                              <span
-                                className={`status ${ST_CLASS[order.status] ?? 'st-notstarted'}`}
-                                data-comment={`st-chip-${order.id}`}
-                              >
-                                <span className='st-dot' />
-                                {order.status}
-                              </span>
-                            </td>
+                            {cells({
+                              order: (
+                                <td
+                                  data-col='order'
+                                  className='mono-cell'
+                                  data-comment={`due-cell-order-${order.id}`}
+                                >
+                                  {order.order}
+                                </td>
+                              ),
+                              customer: (
+                                <td
+                                  data-col='customer'
+                                  className='trunc cell-name'
+                                  data-comment={`due-cell-customer-${order.id}`}
+                                >
+                                  {order.customer}
+                                </td>
+                              ),
+                              dept: (
+                                <td data-col='dept' data-comment={`due-cell-dept-${order.id}`}>
+                                  {order.dept}
+                                </td>
+                              ),
+                              ship: (
+                                <td
+                                  data-col='ship'
+                                  className='mono-cell'
+                                  data-comment={`due-cell-ship-${order.id}`}
+                                >
+                                  {fmtDate(order.shipDate)}
+                                </td>
+                              ),
+                              priority: (
+                                <td
+                                  data-col='priority'
+                                  data-comment={`due-cell-priority-${order.id}`}
+                                >
+                                  <span
+                                    className={`pri ${order.priority ? (PRI_CLASS[order.priority] ?? 'pri-none') : 'pri-none'}`}
+                                    data-comment={`pri-chip-${order.id}`}
+                                  >
+                                    <span className='pri-dot' />
+                                    {order.priority || 'No priority'}
+                                  </span>
+                                </td>
+                              ),
+                              status: (
+                                <td data-col='status' data-comment={`due-cell-status-${order.id}`}>
+                                  <span
+                                    className={`status ${ST_CLASS[order.status] ?? 'st-notstarted'}`}
+                                    data-comment={`st-chip-${order.id}`}
+                                  >
+                                    <span className='st-dot' />
+                                    {order.status}
+                                  </span>
+                                </td>
+                              )
+                            })}
                           </tr>
                         ))}
                       </tbody>

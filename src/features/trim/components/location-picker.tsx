@@ -97,11 +97,7 @@ export const LocationPicker = ({
                   {column.label}
                 </div>
                 {locations
-                  .filter(
-                    location =>
-                      location.dept === dept &&
-                      location.code[0] === column.prefix
-                  )
+                  .filter(location => location.dept === dept && location.code[0] === column.prefix)
                   .map(location => {
                     const mine = (order?.locationIds ?? []).includes(location.id)
                     const full = isLocationFull(location)

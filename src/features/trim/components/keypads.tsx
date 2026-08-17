@@ -45,10 +45,16 @@ const Pad = ({ ctx }: { ctx: PadCtx | null }) => {
 
   const wrapNow = item?.wrapped || 0
   const wrapCap = item ? wrapMax(item) : 0
+  /**
+   * #219: not clamped to the order. A Worker can wrap more than was ordered — an overrun is a real
+   * thing on a shop floor, and Kevin asks for the number he actually wrapped to be enterable — so the
+   * cap is what the field *expects*, shown in the prompt, not a limit on what it takes. Zero still is
+   * one: a negative wrapped count would mean pieces came back off the pallet.
+   */
   const wrapResult = () => {
     const digits = Number.parseInt(value.replace(/^[+−]/, ''), 10) || 0
     const raw = value[0] === '+' ? wrapNow + digits : value[0] === '−' ? wrapNow - digits : digits
-    return Math.max(0, Math.min(wrapCap, raw))
+    return Math.max(0, raw)
   }
 
   return (
@@ -114,7 +120,7 @@ const Pad = ({ ctx }: { ctx: PadCtx | null }) => {
         keyComment='wrapkey'
         open={open('wrap')}
         title='Wrapped'
-        desc={`Now ${wrapNow} of ${wrapCap} pcs. · type a new total, or +10 / −10 to adjust`}
+        desc={`Now ${wrapNow} of ${wrapCap} pcs. expected · type a new total, or +10 / −10 to adjust`}
         keys={WRAP_KEYS}
         display={`${value || String(wrapNow)} pcs.${/^[+−]/.test(value) ? `  →  ${wrapResult()}` : ''}`}
         onPress={pressed =>

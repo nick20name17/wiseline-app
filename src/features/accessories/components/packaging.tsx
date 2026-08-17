@@ -4,6 +4,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import {
   isOverdue,
@@ -20,7 +22,13 @@ import {
   setPackaging,
   toggleExpand
 } from '../store'
-import { createAndPrint, openLocationPicker, openPackages, requestOrderComplete } from '../ui'
+import {
+  createAndPrint,
+  openLocationPicker,
+  openPackages,
+  requestOrderComplete,
+  showToast
+} from '../ui'
 import {
   DateSepRow,
   DetailField,
@@ -90,9 +98,7 @@ const PackagingCell = ({ item, orderId }: { item: LineItem; orderId: number }) =
         style={{ gap: '5px' }}
         data-comment={`autofill-${item.id}`}
         title={filled ? 'Clear packaging' : 'Auto fill — package all remaining'}
-        onClick={() =>
-          filled ? clearPackaging(orderId, item.id) : autoFillLine(orderId, item.id)
-        }
+        onClick={() => (filled ? clearPackaging(orderId, item.id) : autoFillLine(orderId, item.id))}
       >
         {filled ? (
           <X style={{ width: '14px', height: '14px' }} />
@@ -198,7 +204,11 @@ const Subrow = ({ order }: { order: Order }) => {
                     {item.description}
                   </td>
                   <td data-comment={`li-notes-${item.id}`}>
-                    <LineNoteButton item={item} orderId={order.id} commentKey={`li-notebtn-${item.id}`} />
+                    <LineNoteButton
+                      item={item}
+                      orderId={order.id}
+                      commentKey={`li-notebtn-${item.id}`}
+                    />
                   </td>
                 </tr>
               ))}
@@ -277,8 +287,21 @@ const Subrow = ({ order }: { order: Order }) => {
   )
 }
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'prepdate', label: 'Prep Date', width: '180px' },
+  { key: 'order', label: 'Order #', width: '170px' },
+  { key: 'priority', label: 'Priority', width: '150px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'truck', label: 'Truck', width: '110px' },
+  { key: 'via', label: 'Ship Via', width: '110px' },
+  { key: 'status', label: 'Status', width: '132px' },
+  { key: 'notes', label: 'Notes', width: '64px' }
+]
+
 /** The worker's flat list, sorted by Prep Date and broken by day. */
 export const Packaging = () => {
+  const { headers, cells } = useColumnOrder('acc-pkg', DATA_COLUMNS, { notify: showToast })
   const state = useStore(accessoriesStore, current => current)
   const expandedIds = state.expandedIds
 
@@ -310,14 +333,7 @@ export const Packaging = () => {
             <thead>
               <tr>
                 <th style={{ width: '30px' }} />
-                <th style={{ width: '180px' }}>Prep Date</th>
-                <th style={{ width: '170px' }}>Order #</th>
-                <th style={{ width: '150px' }}>Priority</th>
-                <th>Customer</th>
-                <th style={{ width: '110px' }}>Truck</th>
-                <th style={{ width: '110px' }}>Ship Via</th>
-                <th style={{ width: '132px' }}>Status</th>
-                <th style={{ width: '64px' }}>Notes</th>
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='pkg-tbody'>
@@ -381,42 +397,76 @@ export const Packaging = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td className='cell-num muted' data-comment={`pkg-prepdate-${order.id}`}>
-                        {fmtDate(order.prepDate)}
-                      </td>
-                      <td className='cell-order' data-comment={`pkg-ono-${order.id}`}>
-                        {order.orderNumber}
-                        {overdue ? (
-                          <>
-                            {' '}
-                            <span
-                              className='split-badge'
-                              style={OVERDUE_BADGE_STYLE}
-                              data-comment={`pkg-overduebadge-${order.id}`}
-                            >
-                              Overdue
-                            </span>
-                          </>
-                        ) : null}
-                      </td>
-                      <td data-comment={`pkg-pricell-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td className='cell-cust trunc' data-comment={`pkg-cust-${order.id}`}>
-                        {order.customer}
-                      </td>
-                      <td className='mono muted' data-comment={`pkg-truck-${order.id}`}>
-                        {truckDisplay(order)}
-                      </td>
-                      <td data-comment={`pkg-shipvia-${order.id}`}>
-                        <ShipViaCell order={order} />
-                      </td>
-                      <td data-comment={`pkg-status-${order.id}`}>
-                        <OrderStatusPill order={order} />
-                      </td>
-                      <td data-comment={`pkg-notes-${order.id}`}>
-                        <OrderNoteButton order={order} />
-                      </td>
+                      {cells({
+                        prepdate: (
+                          <td
+                            data-col='prepdate'
+                            className='cell-num muted'
+                            data-comment={`pkg-prepdate-${order.id}`}
+                          >
+                            {fmtDate(order.prepDate)}
+                          </td>
+                        ),
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`pkg-ono-${order.id}`}
+                          >
+                            {order.orderNumber}
+                            {overdue ? (
+                              <>
+                                {' '}
+                                <span
+                                  className='split-badge'
+                                  style={OVERDUE_BADGE_STYLE}
+                                  data-comment={`pkg-overduebadge-${order.id}`}
+                                >
+                                  Overdue
+                                </span>
+                              </>
+                            ) : null}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`pkg-pricell-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust trunc'
+                            data-comment={`pkg-cust-${order.id}`}
+                          >
+                            {order.customer}
+                          </td>
+                        ),
+                        truck: (
+                          <td
+                            data-col='truck'
+                            className='mono muted'
+                            data-comment={`pkg-truck-${order.id}`}
+                          >
+                            {truckDisplay(order)}
+                          </td>
+                        ),
+                        via: (
+                          <td data-col='via' data-comment={`pkg-shipvia-${order.id}`}>
+                            <ShipViaCell order={order} />
+                          </td>
+                        ),
+                        status: (
+                          <td data-col='status' data-comment={`pkg-status-${order.id}`}>
+                            <OrderStatusPill order={order} />
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`pkg-notes-${order.id}`}>
+                            <OrderNoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
 
                     {expanded ? <Subrow order={order} /> : null}

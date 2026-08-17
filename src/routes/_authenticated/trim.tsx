@@ -246,7 +246,12 @@ function Trim() {
       />
       <StockOrderModal open={ui.stockOrder} onClose={closeStockOrder} />
       <CompletedDetail orderId={ui.compDetail} onClose={closeCompDetail} />
-      <CoilAdjust ctx={ui.coilAdjust} onClose={closeCoilAdjust} />
+      {/* keyed so each coil's draft is seeded by mounting, not by an effect writing state back */}
+      <CoilAdjust
+        key={ui.coilAdjust?.coilId ?? 'none'}
+        ctx={ui.coilAdjust}
+        onClose={closeCoilAdjust}
+      />
       <ConfirmOverlay confirm={ui.confirm} onClose={closeConfirm} />
       <AlertOverlay alert={ui.alert} onClose={closeAlert} />
       <Toast message={ui.toast.message} type={ui.toast.type} shown={ui.toast.shown} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 import {
@@ -53,27 +53,15 @@ export const CoilAdjust = ({
   const coils = useStore(trimStore, state => state.coils)
   const coil = coils.find(candidate => candidate.id === ctx?.coilId)
 
-  const [draft, setDraft] = useState<Draft>({
-    thickness: '',
-    linearFeet: '',
-    weight: '',
-    materialThickness: '',
-    coreOD: ''
-  })
-
-  const coilId = ctx?.coilId
-  useEffect(() => {
-    const opened = trimStore.get().coils.find(candidate => candidate.id === coilId)
-    if (!opened) return
-
-    setDraft({
-      thickness: opened.thickness != null ? String(opened.thickness) : '',
-      linearFeet: String(opened.linearFeet),
-      weight: String(opened.weight),
-      materialThickness: opened.materialThickness != null ? String(opened.materialThickness) : '',
-      coreOD: opened.coreOD != null ? String(opened.coreOD) : ''
-    })
-  }, [coilId])
+  // the route keys this on the coil being adjusted, so the draft is seeded once on mount rather than
+  // written back by an effect every time the id changes
+  const [draft, setDraft] = useState<Draft>(() => ({
+    thickness: coil?.thickness != null ? String(coil.thickness) : '',
+    linearFeet: coil ? String(coil.linearFeet) : '',
+    weight: coil ? String(coil.weight) : '',
+    materialThickness: coil?.materialThickness != null ? String(coil.materialThickness) : '',
+    coreOD: coil?.coreOD != null ? String(coil.coreOD) : ''
+  }))
 
   const geom = geomOf(draft)
   const ready =

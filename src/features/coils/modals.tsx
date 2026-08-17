@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import type { Coil } from '@/store/shared/coils'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 import { NumberInput } from '@/components/shell/number-input'
 
@@ -109,6 +110,19 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
  * straight to the coil as they are typed, exactly as the prototype does; the keypad's value does not,
  * because it is pushed to EBMS and so goes through a confirm.
  */
+/** N-166 / Kevin #177. Shares Trim's `cadj` key — it is the same table on another page. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'pid', label: 'Product ID' },
+  { key: 'width', label: 'Width' },
+  { key: 'gauge', label: 'Gauge' },
+  { key: 'colour', label: 'Color' },
+  { key: 'num', label: 'Coil #' },
+  { key: 'thick', label: 'Coil Thickness' },
+  { key: 'lf', label: 'Linear Feet' },
+  { key: 'weight', label: 'Weight' },
+  { key: 'note', label: 'Note' }
+]
+
 export const AdjustModal = ({
   coil,
   onClose,
@@ -118,6 +132,7 @@ export const AdjustModal = ({
   onClose: () => void
   onConfirm: (question: { title: string; desc: string; onOk: () => void }) => void
 }) => {
+  const { headers, cells } = useColumnOrder('cadj', DATA_COLUMNS)
   const [field, setField] = useState<AdjustField>('thickness')
   // the window opens on Coil Thickness showing what it currently is, not on an empty keypad
   const [value, setValue] = useState(() => (coil?.thickness != null ? String(coil.thickness) : ''))
@@ -198,35 +213,57 @@ export const AdjustModal = ({
                   data-component='table'
                 >
                   <thead>
-                    <tr>
-                      <th>Product ID</th>
-                      <th>Width</th>
-                      <th>Gauge</th>
-                      <th>Color</th>
-                      <th>Coil #</th>
-                      <th>Coil Thickness</th>
-                      <th>Linear Feet</th>
-                      <th>Weight</th>
-                      <th>Note</th>
-                    </tr>
+                    <tr>{headers}</tr>
                   </thead>
                   <tbody>
                     <tr data-comment='adjust-coilrow'>
-                      <td className='mono-cell'>{coil.productId}</td>
-                      <td className='mono-cell'>{coil.width}"</td>
-                      <td className='mono-cell'>{coil.gauge}ga</td>
-                      <td>{coil.color}</td>
-                      <td className='mono-cell'>{coil.coilNumber}</td>
-                      <td className='mono-cell'>
-                        {coil.thickness != null ? (
-                          `${coil.thickness}"`
-                        ) : (
-                          <span className='subtle'>—</span>
-                        )}
-                      </td>
-                      <td className='mono-cell'>{num(coil.linearFeet)}</td>
-                      <td className='mono-cell'>{num(coil.weight)}</td>
-                      <td>{coil.note ? coil.note : <span className='subtle'>—</span>}</td>
+                      {cells({
+                        pid: (
+                          <td data-col='pid' className='mono-cell'>
+                            {coil.productId}
+                          </td>
+                        ),
+                        width: (
+                          <td data-col='width' className='mono-cell'>
+                            {coil.width}"
+                          </td>
+                        ),
+                        gauge: (
+                          <td data-col='gauge' className='mono-cell'>
+                            {coil.gauge}ga
+                          </td>
+                        ),
+                        colour: <td data-col='colour'>{coil.color}</td>,
+                        num: (
+                          <td data-col='num' className='mono-cell'>
+                            {coil.coilNumber}
+                          </td>
+                        ),
+                        thick: (
+                          <td data-col='thick' className='mono-cell'>
+                            {coil.thickness != null ? (
+                              `${coil.thickness}"`
+                            ) : (
+                              <span className='subtle'>—</span>
+                            )}
+                          </td>
+                        ),
+                        lf: (
+                          <td data-col='lf' className='mono-cell'>
+                            {num(coil.linearFeet)}
+                          </td>
+                        ),
+                        weight: (
+                          <td data-col='weight' className='mono-cell'>
+                            {num(coil.weight)}
+                          </td>
+                        ),
+                        note: (
+                          <td data-col='note'>
+                            {coil.note ? coil.note : <span className='subtle'>—</span>}
+                          </td>
+                        )
+                      })}
                     </tr>
                   </tbody>
                 </table>

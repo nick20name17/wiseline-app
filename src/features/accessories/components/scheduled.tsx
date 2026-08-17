@@ -4,6 +4,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import {
   isOverdue,
@@ -15,7 +17,7 @@ import {
   truckDisplay
 } from '../selectors'
 import { accessoriesStore, setScheduledDay, toggleExpand } from '../store'
-import { openReschedule } from '../ui'
+import { openReschedule, showToast } from '../ui'
 import {
   EmptyState,
   ItemStatusPill,
@@ -101,7 +103,11 @@ const Subrow = ({ order }: { order: Order }) => {
                     {item.description}
                   </td>
                   <td data-comment={`sch-linotes-${item.id}`}>
-                    <LineNoteButton item={item} orderId={order.id} commentKey={`sch-linote-${item.id}`} />
+                    <LineNoteButton
+                      item={item}
+                      orderId={order.id}
+                      commentKey={`sch-linote-${item.id}`}
+                    />
                   </td>
                 </tr>
               ))}
@@ -113,8 +119,20 @@ const Subrow = ({ order }: { order: Order }) => {
   )
 }
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '170px' },
+  { key: 'priority', label: 'Priority', width: '150px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'truck', label: 'Truck', width: '110px' },
+  { key: 'via', label: 'Ship Via', width: '110px' },
+  { key: 'status', label: 'Status', width: '132px' },
+  { key: 'notes', label: 'Notes', width: '64px' }
+]
+
 /** The Manager's scheduling view: scheduled orders grouped by the day they are prepped for. */
 export const Scheduled = () => {
+  const { headers, cells } = useColumnOrder('acc-sch', DATA_COLUMNS, { notify: showToast })
   const state = useStore(accessoriesStore, current => current)
   const days = scheduledDays(state.orders)
 
@@ -177,13 +195,7 @@ export const Scheduled = () => {
             <thead>
               <tr>
                 <th style={{ width: '30px' }} />
-                <th style={{ width: '170px' }}>Order #</th>
-                <th style={{ width: '150px' }}>Priority</th>
-                <th>Customer</th>
-                <th style={{ width: '110px' }}>Truck</th>
-                <th style={{ width: '110px' }}>Ship Via</th>
-                <th style={{ width: '132px' }}>Status</th>
-                <th style={{ width: '64px' }}>Notes</th>
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='sch-tbody'>
@@ -216,50 +228,78 @@ export const Scheduled = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td className='cell-order' data-comment={`sch-ono-${order.id}`}>
-                        {order.orderNumber}
-                        {order.isSplit ? (
-                          <>
-                            {' '}
-                            <span
-                              className='split-badge'
-                              data-comment={`sch-splitbadge-${order.id}`}
-                            >
-                              Partial
-                            </span>
-                          </>
-                        ) : null}
-                        {overdue ? (
-                          <>
-                            {' '}
-                            <span
-                              className='split-badge'
-                              style={OVERDUE_BADGE_STYLE}
-                              data-comment={`sch-overduebadge-${order.id}`}
-                            >
-                              Overdue
-                            </span>
-                          </>
-                        ) : null}
-                      </td>
-                      <td data-comment={`sch-pricell-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td className='cell-cust trunc' data-comment={`sch-cust-${order.id}`}>
-                        {order.customer}
-                      </td>
-                      <td className='mono muted' data-comment={`sch-truck-${order.id}`}>
-                        {truckDisplay(order)}
-                      </td>
-                      <td data-comment={`sch-shipvia-${order.id}`}>
-                        <ShipViaCell order={order} />
-                      </td>
-                      <td data-comment={`sch-status-${order.id}`}>
-                        <OrderStatusPill order={order} />
-                      </td>
-                      <td data-comment={`sch-notes-${order.id}`}>
-                        <OrderNoteButton order={order} />
-                      </td>
+                      {cells({
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`sch-ono-${order.id}`}
+                          >
+                            {order.orderNumber}
+                            {order.isSplit ? (
+                              <>
+                                {' '}
+                                <span
+                                  className='split-badge'
+                                  data-comment={`sch-splitbadge-${order.id}`}
+                                >
+                                  Partial
+                                </span>
+                              </>
+                            ) : null}
+                            {overdue ? (
+                              <>
+                                {' '}
+                                <span
+                                  className='split-badge'
+                                  style={OVERDUE_BADGE_STYLE}
+                                  data-comment={`sch-overduebadge-${order.id}`}
+                                >
+                                  Overdue
+                                </span>
+                              </>
+                            ) : null}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`sch-pricell-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust trunc'
+                            data-comment={`sch-cust-${order.id}`}
+                          >
+                            {order.customer}
+                          </td>
+                        ),
+                        truck: (
+                          <td
+                            data-col='truck'
+                            className='mono muted'
+                            data-comment={`sch-truck-${order.id}`}
+                          >
+                            {truckDisplay(order)}
+                          </td>
+                        ),
+                        via: (
+                          <td data-col='via' data-comment={`sch-shipvia-${order.id}`}>
+                            <ShipViaCell order={order} />
+                          </td>
+                        ),
+                        status: (
+                          <td data-col='status' data-comment={`sch-status-${order.id}`}>
+                            <OrderStatusPill order={order} />
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`sch-notes-${order.id}`}>
+                            <OrderNoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
 
                     {expanded ? <Subrow order={order} /> : null}

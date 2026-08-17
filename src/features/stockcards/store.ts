@@ -68,7 +68,14 @@ export const PRODUCT_CATALOG = [
   { pid: 'TDRIP24', desc: 'Drip Edge', color: 'Charcoal', gauge: 24, width: 4, length: 120 },
   { pid: 'TRIDGE26', desc: 'Ridge Cap', color: 'Barn Red', gauge: 26, width: 12, length: 120 },
   { pid: 'TRAKE24', desc: 'Rake Trim', color: 'Bright White', gauge: 24, width: 6, length: 120 },
-  { pid: 'TSWB262', desc: 'Sidewall Flashing', color: 'Galvalume', gauge: 26, width: 10, length: 120 },
+  {
+    pid: 'TSWB262',
+    desc: 'Sidewall Flashing',
+    color: 'Galvalume',
+    gauge: 26,
+    width: 10,
+    length: 120
+  },
   { pid: 'TVAL26', desc: 'Valley', color: 'Hawaiian Blue', gauge: 26, width: 16, length: 120 },
   { pid: 'TGABLE26', desc: 'Gable Trim', color: 'White', gauge: 26, width: 8, length: 120 },
   { pid: 'TDE8262', desc: 'Eave Trim', color: 'Charcoal', gauge: 29, width: 8, length: 120 },

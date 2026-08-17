@@ -10,6 +10,7 @@ import { useViewer } from '@/session/use-viewer'
 import { useStore } from '@/store/create-store'
 
 import { Sidebar } from '@/components/shell/chrome'
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ConfirmOverlay, type Confirm } from '@/components/shell/modal'
 import { Toast } from '@/components/shell/toast'
 import { useToast } from '@/components/shell/use-toast'
@@ -59,7 +60,21 @@ const num = (value: number) => value.toLocaleString()
  * a location is exclusive — checking Rollforming unchecks Trim — which is why moving a coil that is
  * currently somewhere else asks first.
  */
+/** N-166: the lot rows. The folder summary above them is a heading, not a grid, and stays put. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'num', label: 'Coil #', width: '110px' },
+  { key: 'supplier', label: 'Supplier', width: '110px' },
+  { key: 'grade', label: 'Grade', width: '60px' },
+  { key: 'thick', label: 'Thickness', width: '80px' },
+  { key: 'lf', label: 'Lin. Ft', width: '90px' },
+  { key: 'weight', label: 'Weight', width: '90px' },
+  { key: 'slinet', label: 'Slinet', width: '80px' },
+  { key: 'location', label: 'Location', width: '130px' },
+  { key: 'note', label: 'Note', width: '150px' }
+]
+
 function Coils() {
+  const { headers } = useColumnOrder('coils-lots', DATA_COLUMNS)
   usePage('coils')
 
   const state = useStore(coilsStore, current => current)
@@ -335,15 +350,7 @@ function Coils() {
                                     >
                                       <thead>
                                         <tr>
-                                          <th style={{ width: '110px' }}>Coil #</th>
-                                          <th style={{ width: '110px' }}>Supplier</th>
-                                          <th style={{ width: '60px' }}>Grade</th>
-                                          <th style={{ width: '80px' }}>Thickness</th>
-                                          <th style={{ width: '90px' }}>Lin. Ft</th>
-                                          <th style={{ width: '90px' }}>Weight</th>
-                                          <th style={{ width: '80px' }}>Slinet</th>
-                                          <th style={{ width: '130px' }}>Location</th>
-                                          <th style={{ width: '150px' }}>Note</th>
+                                          {headers}
                                           <th style={{ width: '150px' }} />
                                         </tr>
                                       </thead>
@@ -424,74 +431,101 @@ const CoilRow = ({
   onDeplete: (coil: Coil) => void
   onAdjust: (id: Coil['id']) => void
 }) => {
+  const { cells } = useColumnOrder('coils-lots', DATA_COLUMNS)
   const low = coil.linearFeet < LOW_STOCK_LF
   const slinetOk = slinetEligible(coil)
   const rfOk = rfEligible(coil)
 
   return (
     <tr data-comment={`coil-row-${coil.id}`}>
-      <td className='mono-cell' data-comment={`coil-num-${coil.id}`}>
-        {coil.coilNumber}
-      </td>
-      <td data-comment={`coil-supplier-${coil.id}`}>{coil.supplier}</td>
-      <td data-comment={`coil-grade-${coil.id}`}>{coil.grade}</td>
-      <td className='mono-cell' data-comment={`coil-thick-${coil.id}`}>
-        {coil.thickness != null ? `${coil.thickness}"` : <span className='subtle'>—</span>}
-      </td>
-      <td className='mono-cell' data-comment={`coil-lf-${coil.id}`}>
-        {num(coil.linearFeet)}
-        {low ? (
-          <>
-            {' '}
-            <span className='chip amber' data-comment={`coil-lowtag-${coil.id}`}>
-              Low
-            </span>
-          </>
-        ) : null}
-      </td>
-      <td className='mono-cell' data-comment={`coil-weight-${coil.id}`}>
-        {num(coil.weight)}
-      </td>
-      <td data-comment={`coil-slinetcell-${coil.id}`}>
-        <button
-          className={`slinet-tag ${coil.slinetIn ? 'slinet-in' : 'slinet-out'}`}
-          data-comment={`coil-slinet-${coil.id}`}
-          title={slinetOk ? undefined : 'Requires Trim location + Coil Thickness'}
-          disabled={!slinetOk}
-          onClick={() => toggleSlinet(coil.id)}
-        >
-          {coil.slinetIn ? 'In' : 'Out'}
-        </button>
-      </td>
-      <td data-comment={`coil-loccell-${coil.id}`}>
-        <div className='loc-flags' data-comment={`coil-locflags-${coil.id}`}>
-          <button
-            className={`loc-flag ${coil.locTrim ? 'on' : ''}`}
-            data-comment={`coil-loctrim-${coil.id}`}
-            onClick={() => onMove(coil, 'locTrim')}
-          >
-            Trim
-          </button>
-          <button
-            className={`loc-flag ${coil.locRollforming ? 'on' : ''}`}
-            data-comment={`coil-locrf-${coil.id}`}
-            disabled={!rfOk}
-            title={rfOk ? undefined : 'Coil is mounted in the Slinet — take it off Slinet first'}
-            onClick={() => onMove(coil, 'locRollforming')}
-          >
-            RF
-          </button>
-        </div>
-      </td>
-      <td data-comment={`coil-notecell-${coil.id}`}>
-        <input
-          className='coil-note-input'
-          data-comment={`coil-note-${coil.id}`}
-          value={coil.note}
-          placeholder='—'
-          onChange={event => setCoilNote(coil.id, event.target.value)}
-        />
-      </td>
+      {cells({
+        num: (
+          <td data-col='num' className='mono-cell' data-comment={`coil-num-${coil.id}`}>
+            {coil.coilNumber}
+          </td>
+        ),
+        supplier: (
+          <td data-col='supplier' data-comment={`coil-supplier-${coil.id}`}>
+            {coil.supplier}
+          </td>
+        ),
+        grade: (
+          <td data-col='grade' data-comment={`coil-grade-${coil.id}`}>
+            {coil.grade}
+          </td>
+        ),
+        thick: (
+          <td data-col='thick' className='mono-cell' data-comment={`coil-thick-${coil.id}`}>
+            {coil.thickness != null ? `${coil.thickness}"` : <span className='subtle'>—</span>}
+          </td>
+        ),
+        lf: (
+          <td data-col='lf' className='mono-cell' data-comment={`coil-lf-${coil.id}`}>
+            {num(coil.linearFeet)}
+            {low ? (
+              <>
+                {' '}
+                <span className='chip amber' data-comment={`coil-lowtag-${coil.id}`}>
+                  Low
+                </span>
+              </>
+            ) : null}
+          </td>
+        ),
+        weight: (
+          <td data-col='weight' className='mono-cell' data-comment={`coil-weight-${coil.id}`}>
+            {num(coil.weight)}
+          </td>
+        ),
+        slinet: (
+          <td data-col='slinet' data-comment={`coil-slinetcell-${coil.id}`}>
+            <button
+              className={`slinet-tag ${coil.slinetIn ? 'slinet-in' : 'slinet-out'}`}
+              data-comment={`coil-slinet-${coil.id}`}
+              title={slinetOk ? undefined : 'Requires Trim location + Coil Thickness'}
+              disabled={!slinetOk}
+              onClick={() => toggleSlinet(coil.id)}
+            >
+              {coil.slinetIn ? 'In' : 'Out'}
+            </button>
+          </td>
+        ),
+        location: (
+          <td data-col='location' data-comment={`coil-loccell-${coil.id}`}>
+            <div className='loc-flags' data-comment={`coil-locflags-${coil.id}`}>
+              <button
+                className={`loc-flag ${coil.locTrim ? 'on' : ''}`}
+                data-comment={`coil-loctrim-${coil.id}`}
+                onClick={() => onMove(coil, 'locTrim')}
+              >
+                Trim
+              </button>
+              <button
+                className={`loc-flag ${coil.locRollforming ? 'on' : ''}`}
+                data-comment={`coil-locrf-${coil.id}`}
+                disabled={!rfOk}
+                title={
+                  rfOk ? undefined : 'Coil is mounted in the Slinet — take it off Slinet first'
+                }
+                onClick={() => onMove(coil, 'locRollforming')}
+              >
+                RF
+              </button>
+            </div>
+          </td>
+        ),
+        note: (
+          <td data-col='note' data-comment={`coil-notecell-${coil.id}`}>
+            <input
+              className='coil-note-input'
+              data-comment={`coil-note-${coil.id}`}
+              value={coil.note}
+              placeholder='—'
+              onChange={event => setCoilNote(coil.id, event.target.value)}
+            />
+          </td>
+        )
+      })}
       <td data-comment={`coil-actionscell-${coil.id}`}>
         <div className='coil-row-actions'>
           <button

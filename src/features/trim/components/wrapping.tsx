@@ -4,9 +4,12 @@ import { Fragment, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import { isOverdue, lineDay, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
+import { showToast } from '../ui'
 import { EmptyState } from './bits'
 import { WrapOrderDetail } from './wrap-detail'
 
@@ -35,12 +38,27 @@ const StatusPill = ({ status, comment }: { status: string | null; comment: strin
 
 type Row = { order: Order; item: LineItem; index: number; day: string }
 
+/** N-166 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'order', label: 'Order #', width: '116px' },
+  { key: 'customer', label: 'Customer', width: '150px' },
+  { key: 'qty', label: 'Qty', width: '58px' },
+  { key: 'stock', label: 'Stock', width: '64px' },
+  { key: 'priority', label: 'Priority', width: '124px' },
+  { key: 'remfg', label: 'Remfg', width: '84px' },
+  { key: 'status', label: 'Status', width: '112px' },
+  { key: 'pid', label: 'ID', width: '104px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'notes', label: 'Notes', width: '56px' }
+]
+
 /**
  * §242: the Wrapping tab is a flat list of every released line item, and clicking a row drills into
  * that order's package builder. The list is per *line*, so a split order's lines file under their own
  * production day (#172) rather than all under the order's earliest one.
  */
 export const Wrapping = () => {
+  const { headers, cells } = useColumnOrder('trim-wrap', DATA_COLUMNS, { notify: showToast })
   const { orders, remans } = useStore(trimStore, current => current)
   const [drillOrderId, setDrillOrderId] = useState<number | null>(null)
 
@@ -105,16 +123,7 @@ export const Wrapping = () => {
         <thead>
           <tr>
             {/* #213: no per-row date — the frozen day divider owns it, as on the cutlists */}
-            <th style={{ width: '96px' }}>Order #</th>
-            <th>Customer</th>
-            <th style={{ width: '60px' }}>Qty</th>
-            <th style={{ width: '60px' }}>Stock</th>
-            <th style={{ width: '120px' }}>Priority</th>
-            <th style={{ width: '64px' }}>Remfg</th>
-            <th style={{ width: '118px' }}>Status</th>
-            <th style={{ width: '116px' }}>ID</th>
-            <th>Description</th>
-            <th style={{ width: '56px' }}>Notes</th>
+            {headers}
           </tr>
         </thead>
         <tbody data-comment='wrap-list-tbody'>
@@ -151,73 +160,103 @@ export const Wrapping = () => {
                   title='Open wrapping detail'
                   onClick={() => setDrillOrderId(order.id)}
                 >
-                  <td className='cell-order' data-comment={`wrap-li-ono-${key}`}>
-                    {order.order}
-                    {order.type === 'stock' ? (
-                      <span
-                        className='stock-ico'
-                        data-comment={`wrap-li-stockico-${key}`}
-                        title='Stock order'
+                  {cells({
+                    order: (
+                      <td
+                        data-col='order'
+                        className='cell-order'
+                        data-comment={`wrap-li-ono-${key}`}
                       >
-                        <Warehouse style={{ width: '13px', height: '13px' }} />
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className='cell-cust' data-comment={`wrap-li-cust-${key}`}>
-                    {order.type === 'stock' ? 'Stock' : order.customer}
-                  </td>
-                  <td className='mono' data-comment={`wrap-li-qty-${key}`}>
-                    {item.qty}
-                  </td>
-                  <td className='mono' data-comment={`wrap-li-stock-${key}`}>
-                    {item.fromStock ? item.fromStock : <span className='subtle'>—</span>}
-                  </td>
-                  <td data-comment={`wrap-li-pri-${key}`}>
-                    {priority ? (
-                      <span className={`pri ${priority.cls} readonly`}>
-                        <span className='pri-dot' />
-                        {priority.name}
-                      </span>
-                    ) : (
-                      <span className='subtle'>—</span>
-                    )}
-                  </td>
-                  {/* verbatim: this cell holds orange until the *machine* marks the line Bent — the
-                      Slinet's recut greens only the machine tab's copy */}
-                  <td data-comment={`wrap-li-rem-${key}`}>
-                    {lineRemans.length ? (
-                      <span
-                        className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
-                        data-comment={`wrap-li-rembadge-${key}`}
-                        title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
+                        {order.order}
+                        {order.type === 'stock' ? (
+                          <span
+                            className='stock-ico'
+                            data-comment={`wrap-li-stockico-${key}`}
+                            title='Stock order'
+                          >
+                            <Warehouse style={{ width: '13px', height: '13px' }} />
+                          </span>
+                        ) : null}
+                      </td>
+                    ),
+                    customer: (
+                      <td
+                        data-col='customer'
+                        className='cell-cust'
+                        data-comment={`wrap-li-cust-${key}`}
                       >
-                        <RefreshCw style={{ width: '14px', height: '14px' }} />
-                        {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
-                      </span>
-                    ) : (
-                      <span className='subtle'>—</span>
-                    )}
-                  </td>
-                  <td data-comment={`wrap-li-st-${key}`}>
-                    <StatusPill status={item.status} comment={`wrap-li-stp-${key}`} />
-                  </td>
-                  <td className='mono' data-comment={`wrap-li-pid-${key}`}>
-                    {item.productId}
-                  </td>
-                  <td className='trunc' data-comment={`wrap-li-desc-${key}`}>
-                    {item.description}
-                  </td>
-                  <td data-comment={`wrap-li-note-${key}`}>
-                    <button
-                      className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
-                      data-comment={`wrap-li-notebtn-${key}`}
-                      title='Line notes'
-                      onClick={event => event.stopPropagation()}
-                    >
-                      <MessageSquare style={{ width: '14px', height: '14px' }} />
-                      {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}
-                    </button>
-                  </td>
+                        {order.type === 'stock' ? 'Stock' : order.customer}
+                      </td>
+                    ),
+                    qty: (
+                      <td data-col='qty' className='mono' data-comment={`wrap-li-qty-${key}`}>
+                        {item.qty}
+                      </td>
+                    ),
+                    stock: (
+                      <td data-col='stock' className='mono' data-comment={`wrap-li-stock-${key}`}>
+                        {item.fromStock ? item.fromStock : <span className='subtle'>—</span>}
+                      </td>
+                    ),
+                    priority: (
+                      <td data-col='priority' data-comment={`wrap-li-pri-${key}`}>
+                        {priority ? (
+                          <span className={`pri ${priority.cls} readonly`}>
+                            <span className='pri-dot' />
+                            {priority.name}
+                          </span>
+                        ) : (
+                          <span className='subtle'>—</span>
+                        )}
+                      </td>
+                    ),
+                    /* verbatim: this cell holds orange until the *machine* marks the line Bent — the
+                       Slinet's recut greens only the machine tab's copy */
+                    remfg: (
+                      <td data-col='remfg' data-comment={`wrap-li-rem-${key}`}>
+                        {lineRemans.length ? (
+                          <span
+                            className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
+                            data-comment={`wrap-li-rembadge-${key}`}
+                            title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
+                          >
+                            <RefreshCw style={{ width: '14px', height: '14px' }} />
+                            {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
+                          </span>
+                        ) : (
+                          <span className='subtle'>—</span>
+                        )}
+                      </td>
+                    ),
+                    status: (
+                      <td data-col='status' data-comment={`wrap-li-st-${key}`}>
+                        <StatusPill status={item.status} comment={`wrap-li-stp-${key}`} />
+                      </td>
+                    ),
+                    pid: (
+                      <td data-col='pid' className='mono' data-comment={`wrap-li-pid-${key}`}>
+                        {item.productId}
+                      </td>
+                    ),
+                    desc: (
+                      <td data-col='desc' className='trunc' data-comment={`wrap-li-desc-${key}`}>
+                        {item.description}
+                      </td>
+                    ),
+                    notes: (
+                      <td data-col='notes' data-comment={`wrap-li-note-${key}`}>
+                        <button
+                          className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
+                          data-comment={`wrap-li-notebtn-${key}`}
+                          title='Line notes'
+                          onClick={event => event.stopPropagation()}
+                        >
+                          <MessageSquare style={{ width: '14px', height: '14px' }} />
+                          {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}
+                        </button>
+                      </td>
+                    )
+                  })}
                 </tr>
               </Fragment>
             )

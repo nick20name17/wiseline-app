@@ -50,7 +50,7 @@ board's own role comes from the sidebar's «Viewing as» (`src/session/dept-role
 `wlOnRole`): worker and driver read as `worker`, everyone else as `manager`.
 
 Two things printing taught late, since neither gate can see a print stylesheet. The port's `#root`
-stands in for the prototype's `<body>`, so a rule that anchors at the root *twice* —
+stands in for the prototype's `<body>`, so a rule that anchors at the root _twice_ —
 `html.is-printing-cards body > *` — had a step left over that could never match, and both print
 sheets were dead; `scope.ts` now drops it. And the class those rules key on goes on `#root`, beside
 `data-page`, not on `documentElement`.
@@ -62,7 +62,7 @@ that page ever goes red with one extra row, re-run it before believing it. Every
 first, for exactly this reason.
 
 **Shipping's board does not reach its own two most important screens.** `renderTruckExpandedGrid` (the
-load-assignment grid) and the Load builder live *only* in a modal, so read `renderScheduled` and
+load-assignment grid) and the Load builder live _only_ in a modal, so read `renderScheduled` and
 `renderTruckExpandedGrid` together before touching either: `schedGridOrders` is deliberately shared by
 the render, Select-All and Reschedule so all three act on the same visible rows.
 
@@ -75,11 +75,11 @@ not descend into it. That is the only place the gate looks away, and it is one l
 
 Three checks decide whether a page is done. They are mechanical; nothing is judged by eye.
 
-| Gate | Catches | Budget | Verdict |
-| --- | --- | --- | --- |
-| `data-comment` parity | a lost or renamed element — i.e. a review comment that can no longer be placed | exact | `✗`, fatal |
-| structural diff | a hierarchy change a screenshot cannot show | first difference wins | `✗`, fatal |
-| pixel diff | everything else | 0.1% | `⚠`, reported |
+| Gate                  | Catches                                                                        | Budget                | Verdict       |
+| --------------------- | ------------------------------------------------------------------------------ | --------------------- | ------------- |
+| `data-comment` parity | a lost or renamed element — i.e. a review comment that can no longer be placed | exact                 | `✗`, fatal    |
+| structural diff       | a hierarchy change a screenshot cannot show                                    | first difference wins | `✗`, fatal    |
+| pixel diff            | everything else                                                                | 0.1%                  | `⚠`, reported |
 
 **The pixel diff reports; it does not decide.** A percentage cannot tell a moved element from a map tile
 that had not arrived, and the two axes above are the ones a review comment actually depends on — so a
@@ -152,8 +152,8 @@ Repeat per view; it took roughly one commit each.
 1. Read the prototype's `renderX()` and every helper it calls. Port the helpers into `selectors.ts` and
    `store.ts` under **the prototype's names** — `sortScheduled`, `allMachinesAssigned`, `releaseType` —
    so its knowledge base still describes this code.
-2. Write the component with every `data-comment` and every class, and follow the prototype's *control
-   flow*: where it returns early, return early. Production has three renderers behind one view because
+2. Write the component with every `data-comment` and every class, and follow the prototype's _control
+   flow_: where it returns early, return early. Production has three renderers behind one view because
    `renderProduction` returns three times, and flattening that into one component would have quietly
    changed which chrome each screen carries.
 3. Interactions that only open a popover stay unwired, but the button, its classes and its
@@ -166,7 +166,7 @@ Two more things the gate is for, both from Rollforming:
 
 - The prototype writes `space · nbsp · space` between a line's Product ID and its spec text, and JSX
   swallows one of a run of spaces. The structural diff collapses whitespace and reported nothing; the
-  screenshot was 0.19% out on three states. Whenever markup is retyped, the spaces *between* elements
+  screenshot was 0.19% out on three states. Whenever markup is retyped, the spaces _between_ elements
   are part of it.
 - **A class the browser computes has to be computed in the port too.** Shipping fades the edge of any
   horizontally-scrollable table by toggling `can-scroll-l` / `can-scroll-r` on the wrapper from a
@@ -206,8 +206,8 @@ would think to try.
 ## Decisions already made
 
 **Each page keeps its whole stylesheet.** An early version factored the rules common to all fifteen pages
-into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts *last*;
-loading them *first* flipped the cascade, `.btn` went 30px → 36px and the sign-in card grew 6px. Only 23
+into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts _last_;
+loading them _first_ flipped the cascade, `.btn` went 30px → 36px and the sign-in card grew 6px. Only 23
 rules were common. Duplication is the cheaper mistake.
 
 **Every `<style>` counts, attributes and all.** The role switcher ships its own
@@ -217,18 +217,18 @@ rules were common. Duplication is the cheaper mistake.
 **Tailwind and shadcn dress what we add; the prototype's CSS dresses what we ported.** They coexist
 because Tailwind emits everything in cascade layers and unlayered rules beat layered ones, and because
 the colliding tokens (`--accent`, `--border`, `--primary`) are declared by shadcn on `:root` and by the
-prototype on the page element. The shadcn palette in `src/index.css` *is* the prototype's palette, so a
+prototype on the page element. The shadcn palette in `src/index.css` _is_ the prototype's palette, so a
 dialog opened over a ported screen matches it.
 
 The layer rule only settles a property the prototype actually declares. Where it declares none, Tailwind
 reaches straight into a ported page, and both ways it can do that cost a day each:
 
-- *A ported class that spells a utility.* `<table class="grid">` made Tailwind emit a real
+- _A ported class that spells a utility._ `<table class="grid">` made Tailwind emit a real
   `display: grid`; `<thead>` and `<tbody>` became blocks and laid themselves out as two separate tables.
   Ported markup is no longer scanned (`@source not './features'`), which covers every name only it
   uses — `filter`, for one. Across all fifteen pages `grid` is the only name we genuinely share, and it
   is reverted inside `[data-page]`.
-- *Preflight, which does reach in, three times.* `input, button { font: inherit }` hands every control the
+- _Preflight, which does reach in, three times._ `input, button { font: inherit }` hands every control the
   page font; the prototype asks for that one declaration at a time, on the controls that want it, and
   leaves the rest on the browser's own Arial 13.333px — so a calendar cell was set in the wrong face,
   and the `line-height` the shorthand also carries made every button two pixels too tall. And
@@ -240,7 +240,7 @@ reaches straight into a ported page, and both ways it can do that cost a day eac
 All four guards live at the bottom of the imports in `src/index.css`, at one element of specificity, so
 any prototype rule still outranks them. Three of them were found only because the pixel gate stayed red at
 0.11–0.12% — well under what anyone would notice by eye, and wrong on every screen. The heading one was
-red at 390 and *green at 1440*: the same wrong text is a smaller share of a bigger page, so a defect can
+red at 390 and _green at 1440_: the same wrong text is a smaller share of a bigger page, so a defect can
 hide behind the budget at one width and not the other.
 
 One cost to know: this template's shadcn wraps `@base-ui/react`, so the DOM element is created inside
@@ -267,35 +267,35 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 
 ## State
 
-| | |
-| --- | --- |
-| ✅ Gates, baseline, tooling | `tools/parity/`, `tools/port/`, `parity/demo/` committed |
-| ✅ `/sign-in` | green, both widths |
-| ✅ Cross-page `wl_` contracts | typed, validated, 4 tests |
-| ✅ Shared chrome | sidebar + top bar in `src/components/shell/`, lifted once two pages spelled them alike |
-| ✅ Trim shell + seed | its own department bar, tabs, `seed.json` |
-| ✅ `/trim` — all six views | green at 1440 and 390 |
-| ✅ Trim's reachable states | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts` |
-| ✅ Rollforming shell + Unscheduled | seven views as one search param, 4 states green at both widths |
-| ✅ `/rollforming` — all seven views | green at 1440 and 390, 42 captures |
-| ✅ Rollforming's reachable states | 13 of them, both renderers of every view that has two |
-| ✅ Shipping shell + Unscheduled | + its Accessories tab; 5 captures green at both widths |
-| ✅ `/shipping` — all five views | green at 1440 and 390, Map included |
-| ✅ Shipping's reachable states | 8 of them: three on Scheduled, two on Loading, three on Unscheduled |
-| ✅ `/accessories` — all four views | green at 1440 and 390, 20 captures |
-| ✅ Accessories' reachable states | 7, incl. the split order and the package builder |
-| ✅ The three scan tools | `/driver`, `/scanner`, `/loading` — green, with 5 states |
-| ✅ `/activity` | green, with 3 states — paused, filtered, and no matches |
-| ✅ `/dashboard` and `/warehouse` | green, warehouse with 2 legend states |
-| ✅ `/ebms` | green, with 2 states — the Failed filter and a retry |
-| ⬜ The last 3 pages | coils, stockcards, settings |
+|                                     |                                                                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| ✅ Gates, baseline, tooling         | `tools/parity/`, `tools/port/`, `parity/demo/` committed                               |
+| ✅ `/sign-in`                       | green, both widths                                                                     |
+| ✅ Cross-page `wl_` contracts       | typed, validated, 4 tests                                                              |
+| ✅ Shared chrome                    | sidebar + top bar in `src/components/shell/`, lifted once two pages spelled them alike |
+| ✅ Trim shell + seed                | its own department bar, tabs, `seed.json`                                              |
+| ✅ `/trim` — all six views          | green at 1440 and 390                                                                  |
+| ✅ Trim's reachable states          | 7 of them, incl. both wrapping drill-ins — see `tools/parity/states.ts`                |
+| ✅ Rollforming shell + Unscheduled  | seven views as one search param, 4 states green at both widths                         |
+| ✅ `/rollforming` — all seven views | green at 1440 and 390, 42 captures                                                     |
+| ✅ Rollforming's reachable states   | 13 of them, both renderers of every view that has two                                  |
+| ✅ Shipping shell + Unscheduled     | + its Accessories tab; 5 captures green at both widths                                 |
+| ✅ `/shipping` — all five views     | green at 1440 and 390, Map included                                                    |
+| ✅ Shipping's reachable states      | 8 of them: three on Scheduled, two on Loading, three on Unscheduled                    |
+| ✅ `/accessories` — all four views  | green at 1440 and 390, 20 captures                                                     |
+| ✅ Accessories' reachable states    | 7, incl. the split order and the package builder                                       |
+| ✅ The three scan tools             | `/driver`, `/scanner`, `/loading` — green, with 5 states                               |
+| ✅ `/activity`                      | green, with 3 states — paused, filtered, and no matches                                |
+| ✅ `/dashboard` and `/warehouse`    | green, warehouse with 2 legend states                                                  |
+| ✅ `/ebms`                          | green, with 2 states — the Failed filter and a retry                                   |
+| ⬜ The last 3 pages                 | coils, stockcards, settings                                                            |
 
 ### What Shipping still owes
 
 Its two modals, and they hold more than the other departments' do. `renderTruckExpandedGrid` — pick
 orders, Add To Load, Reschedule, New Package — opens only from a truck card, and the Load builder with
 its drag-to-reorder route and Release To Loading opens only from there. The board is honest about what it
-shows, but nothing on it can be *done* until those two land. Also unopened: Completed Orders (90 days),
+shows, but nothing on it can be _done_ until those two land. Also unopened: Completed Orders (90 days),
 Trucks Notes, the Schedule modal and the per-order notes drawer.
 
 ### What Accessories still owes
@@ -347,7 +347,7 @@ Two things the second department taught, both worth knowing before the third:
 
 The 48 comments live in the **legacy** portal (`hub.rivnetech.com`, Railway project «Design Review
 Portal», project 25), not in review-2.0. Their anchors carry `dataComment` on 45 of 48, which is the
-bridge. The React build becomes a *new* project on the new portal — a project is unique per
+bridge. The React build becomes a _new_ project on the new portal — a project is unique per
 `(repo_owner, repo_name, root_dir)` — so the threads are copied across with freshly captured anchors and
 project 25 is never touched.
 

@@ -14,6 +14,8 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { fmtDate } from '../format'
 import {
   allMachinesAssigned,
@@ -204,21 +206,22 @@ const SelectCell = ({ order, locked }: { order: Order; locked: boolean }) => {
   )
 }
 
-const ColHeader = ({ col, label, width }: { col: string; label: string; width?: string }) => (
-  <th
-    data-col={col}
-    draggable
-    className='col-move'
-    data-comment={`sch-colh-${col}`}
-    title='Drag to reorder column'
-    style={width ? { width } : undefined}
-  >
-    {label}
-  </th>
-)
+/** N-166: the data columns, in declaration order. The viewer's own order comes from the store. */
+const COLUMNS: Column[] = [
+  { key: 'ship', label: 'Ship', width: '78px' },
+  { key: 'proddate', label: 'Prod. Date', width: '128px' },
+  { key: 'order', label: 'Order #', width: '104px' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'priority', label: 'Priority', width: '132px' },
+  { key: 'reviewed', label: 'Reviewed', width: '132px' },
+  { key: 'status', label: 'Status', width: '124px' },
+  { key: 'trimloc', label: 'Trim Location', width: '104px' },
+  { key: 'notes', label: 'Notes', width: '56px' }
+]
 
 export const Scheduled = () => {
   const { expandedIds, releaseIds, scheduledDay, orders } = useStore(trimStore, current => current)
+  const { headers, cells } = useColumnOrder('sch', COLUMNS, { notify: showToast })
 
   // nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing
   if (!scheduledOrders(orders).length)
@@ -327,15 +330,7 @@ export const Scheduled = () => {
               <tr>
                 <th style={{ width: '44px' }} />
                 <th style={{ width: '30px' }} />
-                <ColHeader col='ship' label='Ship' width='78px' />
-                <ColHeader col='proddate' label='Prod. Date' width='128px' />
-                <ColHeader col='order' label='Order #' width='104px' />
-                <ColHeader col='customer' label='Customer' />
-                <ColHeader col='priority' label='Priority' width='132px' />
-                <ColHeader col='reviewed' label='Reviewed' width='132px' />
-                <ColHeader col='status' label='Status' width='124px' />
-                <ColHeader col='trimloc' label='Trim Location' width='104px' />
-                <ColHeader col='notes' label='Notes' width='56px' />
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='sch-tbody'>
@@ -378,100 +373,120 @@ export const Scheduled = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td
-                        data-col='ship'
-                        className='cell-num muted'
-                        data-comment={`sch-ship-${order.id}`}
-                      >
-                        {order.shipDate ? fmtDate(order.shipDate) : '—'}
-                      </td>
-                      <td data-col='proddate' data-comment={`sch-proddate-${order.id}`}>
-                        {order.type === 'stock' ? (
-                          <Package
-                            data-comment={`sch-stockico-${order.id}`}
-                            style={{
-                              width: '13px',
-                              height: '13px',
-                              verticalAlign: '-2px',
-                              marginRight: '5px',
-                              color: 'var(--text-subtle)'
-                            }}
-                          />
-                        ) : null}
-                        {order.released ? (
-                          <span
+                      {cells({
+                        ship: (
+                          <td
+                            data-col='ship'
                             className='cell-num muted'
-                            data-comment={`sch-proddate-ro-${order.id}`}
+                            data-comment={`sch-ship-${order.id}`}
                           >
-                            {fmtDate(order.productionDate)}
-                          </span>
-                        ) : (
-                          <button
-                            className='field-btn'
-                            data-pop-anchor
-                            data-comment={`sch-proddate-btn-${order.id}`}
-                            title='Change production day (pre-release, N-041)'
-                            onClick={event => {
-                              event.stopPropagation()
-                              openSchedule({
-                                mode: 'reschedule',
-                                orderId: order.id,
-                                order: order.order,
-                                current: order.productionDate
-                              })
-                            }}
+                            {order.shipDate ? fmtDate(order.shipDate) : '—'}
+                          </td>
+                        ),
+                        proddate: (
+                          <td data-col='proddate' data-comment={`sch-proddate-${order.id}`}>
+                            {order.type === 'stock' ? (
+                              <Package
+                                data-comment={`sch-stockico-${order.id}`}
+                                style={{
+                                  width: '13px',
+                                  height: '13px',
+                                  verticalAlign: '-2px',
+                                  marginRight: '5px',
+                                  color: 'var(--text-subtle)'
+                                }}
+                              />
+                            ) : null}
+                            {order.released ? (
+                              <span
+                                className='cell-num muted'
+                                data-comment={`sch-proddate-ro-${order.id}`}
+                              >
+                                {fmtDate(order.productionDate)}
+                              </span>
+                            ) : (
+                              <button
+                                className='field-btn'
+                                data-pop-anchor
+                                data-comment={`sch-proddate-btn-${order.id}`}
+                                title='Change production day (pre-release, N-041)'
+                                onClick={event => {
+                                  event.stopPropagation()
+                                  openSchedule({
+                                    mode: 'reschedule',
+                                    orderId: order.id,
+                                    order: order.order,
+                                    current: order.productionDate
+                                  })
+                                }}
+                              >
+                                <Calendar style={{ width: '13px', height: '13px' }} />
+                                {fmtDate(order.productionDate)}
+                              </button>
+                            )}
+                          </td>
+                        ),
+                        order: (
+                          <td
+                            data-col='order'
+                            className='cell-order'
+                            data-comment={`sch-order-${order.id}`}
                           >
-                            <Calendar style={{ width: '13px', height: '13px' }} />
-                            {fmtDate(order.productionDate)}
-                          </button>
-                        )}
-                      </td>
-                      <td
-                        data-col='order'
-                        className='cell-order'
-                        data-comment={`sch-order-${order.id}`}
-                      >
-                        {order.order}
-                        {order.isSplit ? (
-                          <span
-                            className='split-ind'
-                            data-comment={`sch-split-${order.id}`}
-                            title={
-                              order.lineItems.some(item => !lineDay(order, item))
-                                ? 'Partially scheduled — some line items are still on the Unscheduled tab'
-                                : 'Split across production days — see the lock icons for lines on another day'
-                            }
+                            {order.order}
+                            {order.isSplit ? (
+                              <span
+                                className='split-ind'
+                                data-comment={`sch-split-${order.id}`}
+                                title={
+                                  order.lineItems.some(item => !lineDay(order, item))
+                                    ? 'Partially scheduled — some line items are still on the Unscheduled tab'
+                                    : 'Split across production days — see the lock icons for lines on another day'
+                                }
+                              >
+                                <Split style={{ width: '14px', height: '14px' }} />
+                              </span>
+                            ) : null}
+                          </td>
+                        ),
+                        customer: (
+                          <td
+                            data-col='customer'
+                            className='cell-cust'
+                            data-comment={`sch-cust-${order.id}`}
                           >
-                            <Split style={{ width: '14px', height: '14px' }} />
-                          </span>
-                        ) : null}
-                      </td>
-                      <td
-                        data-col='customer'
-                        className='cell-cust'
-                        data-comment={`sch-cust-${order.id}`}
-                      >
-                        {order.type === 'stock' ? 'Stock' : order.customer}
-                      </td>
-                      <td data-col='priority' data-comment={`sch-pri-${order.id}`}>
-                        <PriorityCell order={order} />
-                      </td>
-                      <td data-col='reviewed' data-comment={`sch-rev-${order.id}`}>
-                        <ReviewedToggle order={order} gate1={allMachinesAssigned(order)} />
-                      </td>
-                      <td data-col='status' data-comment={`sch-status-${order.id}`}>
-                        <OrderStatusPill order={order} />
-                      </td>
-                      <td
-                        data-col='trimloc'
-                        className='mono muted'
-                        data-comment={`sch-loc-${order.id}`}
-                      >
-                        {order.type === 'stock' ? 'N/A' : orderLocLabel(order)}
-                      </td>
-                      <td data-col='notes' data-comment={`sch-note-${order.id}`}>
-                        <NoteButton order={order} />
-                      </td>
+                            {order.type === 'stock' ? 'Stock' : order.customer}
+                          </td>
+                        ),
+                        priority: (
+                          <td data-col='priority' data-comment={`sch-pri-${order.id}`}>
+                            <PriorityCell order={order} />
+                          </td>
+                        ),
+                        reviewed: (
+                          <td data-col='reviewed' data-comment={`sch-rev-${order.id}`}>
+                            <ReviewedToggle order={order} gate1={allMachinesAssigned(order)} />
+                          </td>
+                        ),
+                        status: (
+                          <td data-col='status' data-comment={`sch-status-${order.id}`}>
+                            <OrderStatusPill order={order} />
+                          </td>
+                        ),
+                        trimloc: (
+                          <td
+                            data-col='trimloc'
+                            className='mono muted'
+                            data-comment={`sch-loc-${order.id}`}
+                          >
+                            {order.type === 'stock' ? 'N/A' : orderLocLabel(order)}
+                          </td>
+                        ),
+                        notes: (
+                          <td data-col='notes' data-comment={`sch-note-${order.id}`}>
+                            <NoteButton order={order} />
+                          </td>
+                        )
+                      })}
                     </tr>
 
                     {/* on «All Scheduled Orders» there is no single active day, so no line is elsewhere (#172) */}

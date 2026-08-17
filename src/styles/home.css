@@ -2120,27 +2120,44 @@
             [data-page="home"] .rework-pending { background: var(--pri-asap-soft); color: var(--pri-asap); }
             [data-page="home"] .rework-done { background: var(--success-soft); color: var(--success); }
 
-            /* ---------- #174: Machine Capacities report (canvas layout, printable on 8½ × 11) ---------- */
-            [data-page="home"] .mcap-daylabel { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
-            [data-page="home"] .mcap-table { width: 100%; border-collapse: collapse; }
-            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 9px 12px; text-align: left; }
-            [data-page="home"] .mcap-table thead th { font-size: 12px; font-weight: 700; color: var(--text); border-bottom: 2px solid var(--text); }
-            [data-page="home"] .mcap-table thead th:first-child { border-bottom: none; }
-            [data-page="home"] .mcap-table tbody th { font-size: 13px; font-weight: 500; white-space: nowrap; }
-            [data-page="home"] .mcap-table tbody tr { border-bottom: 1px solid var(--border); }
-            [data-page="home"] .mcap-dayrow th, [data-page="home"] .mcap-dayrow td { border-bottom: 2px solid var(--border-strong); }
-            [data-page="home"] .mcap-dayrow th { font-weight: 700; }
-            [data-page="home"] .mcap-num { white-space: nowrap; }
+            /* ---------- #174: Machine Capacities report (canvas layout, printable on 8½ × 11) ----------
+               #218: the canvas draws every row as its own rounded card, so the rows are separated by
+               border-spacing rather than by rules, and each row paints its own background and edges.
+               #219: it also writes the stock inside the figure rather than in a column of its own. */
+            [data-page="home"] .mcap-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 12px 14px; text-align: left; }
+            /* the machine name takes the slack; the figures keep the width their digits need */
+            [data-page="home"] .mcap-table :is(th, td):first-child { width: 40%; }
+            /* the canvas draws this heavy; on screen it keeps the app's own type scale — the layout is
+               what the report needed, not shop-sign lettering. Paper grows it, in the print block below. */
+            [data-page="home"] .mcap-table thead th { font-size: 12px; font-weight: 700; color: var(--text); border-bottom: 2px solid var(--text); padding-bottom: 4px; text-align: center; }
+            [data-page="home"] .mcap-table thead th:first-child { border-bottom: none; text-align: left; }
+            [data-page="home"] .mcap-table tbody th { font-size: 13px; font-weight: 600; white-space: nowrap; }
+            [data-page="home"] .mcap-table tbody :is(th, td) { background: var(--surface-3); border-block: 1px solid var(--border-strong); }
+            [data-page="home"] .mcap-table tbody :is(th, td):first-child { border-left: 1px solid var(--border-strong); border-start-start-radius: var(--r-lg); border-end-start-radius: var(--r-lg); }
+            [data-page="home"] .mcap-table tbody :is(th, td):last-child { border-right: 1px solid var(--border-strong); border-start-end-radius: var(--r-lg); border-end-end-radius: var(--r-lg); }
+            /* the day is the report's headline figure, so its card is white against the machines' grey */
+            [data-page="home"] .mcap-table tbody .mcap-dayrow :is(th, td) { background: var(--surface); }
+            [data-page="home"] .mcap-num { white-space: nowrap; text-align: center; }
             [data-page="home"] .mcap-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
-            /* fixed tracks, not 1fr: the slashes have to line up down the column, not inside each cell */
-            [data-page="home"] .mcap-val.has-max { display: inline-grid; grid-template-columns: 4ch auto 4ch; align-items: baseline; gap: 4px; }
+            [data-page="home"] .mcap-dayrow .mcap-val { font-size: 17px; }
+            /* fixed tracks, not 1fr: the slashes and the stock note line up down the column, not inside
+               each cell. #219: the fourth track is the parenthetical, reserved on every row so a machine
+               with no stock does not let its figure slide right. */
+            [data-page="home"] .mcap-val { display: inline-grid; grid-template-columns: 4ch 0 0 11ch; align-items: baseline; gap: 0 4px; }
+            [data-page="home"] .mcap-val.has-max { grid-template-columns: 4ch auto 4ch 11ch; }
             [data-page="home"] .mcap-assigned { text-align: right; }
             [data-page="home"] .mcap-slash { color: var(--text-subtle); }
             [data-page="home"] .mcap-max { text-align: left; }
+            /* #216: the day's own figure, not the plant's max beside it — that is a limit, not a total */
+            [data-page="home"] .mcap-val.unrouted .mcap-assigned { color: var(--warn); }
+            /* over the max outranks not-yet-routed: it colours the whole cell and is declared after */
             [data-page="home"] .mcap-val.over { color: var(--danger); }
-            [data-page="home"] td.mcap-stock { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); }
-            [data-page="home"] .mcap-note { margin-top: 14px; font-size: 11.5px; line-height: 1.5; color: var(--text-subtle); }
-            [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 16px; }
+            /* the stock note rides with its figure, quieter and smaller — it is a part of that number,
+               not a second one, which is the whole point of the canvas writing it in brackets */
+            [data-page="home"] .mcap-stock { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--accent); text-align: left; }
+            [data-page="home"] .mcap-note { margin-top: 16px; font-size: 11.5px; line-height: 1.5; color: var(--text-subtle); }
+            [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 18px; }
             /* #174: only the capacity report's own Print button prints report-only — an ordinary Ctrl+P
                anywhere else in Trim must still print the page it is looking at. */
             @media print {
@@ -2150,7 +2167,24 @@
                 [data-page="home"].is-printing-report #overlay-machinecap .modal { max-width: none; width: 100%; border: none; border-radius: 0; box-shadow: none; }
                 [data-page="home"] .mcap-print-hide, [data-page="home"] .modal-x { display: none !important; }
                 [data-page="home"] .mcap-table { break-inside: avoid; }
-                [data-page="home"] td.mcap-stock { color: #4a5aa8; }
+                [data-page="home"] .mcap-stock { color: #4a5aa8; }
+
+                /* #218: one report, one sheet — it is read at arm's length on a shop floor, so the type
+                   grows to fill 8½ × 11 instead of sitting as a screen-sized block at the top of it.
+                   #219: two columns wide now, so the widest row needs 692px of the 7.5in the page leaves
+                   at these sizes, and six rows reach ~89% of its 10in. Growing either further is what
+                   puts a seventh row on a second sheet. */
+                [data-page="home"] .modal-title { font-size: 24px; }
+                [data-page="home"] .modal-head { padding-bottom: 10px; }
+                [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 32px 8px; }
+                [data-page="home"] .mcap-table thead th { font-size: 13px; padding-bottom: 6px; }
+                [data-page="home"] .mcap-table tbody th { font-size: 15px; }
+                [data-page="home"] .mcap-val { font-size: 17px; }
+                [data-page="home"] .mcap-dayrow .mcap-val { font-size: 19px; }
+                [data-page="home"] .mcap-stock { font-size: 11px; }
+                [data-page="home"] .mcap-note { font-size: 13px; }
+                /* the grey cards are the layout, not decoration — keep them on paper */
+                [data-page="home"] .mcap-table tbody :is(th, td) { print-color-adjust: exact; }
             }
 
             /* ---------- Machine capacity totals (gap: Machine Capacities) ---------- */
