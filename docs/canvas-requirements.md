@@ -1,0 +1,397 @@
+# The canvas, as a checklist
+
+Every requirement-shaped sentence on Kevin's flowchart (`Copy of Overall Workflow.pdf`), extracted
+verbatim with the page and the point it sits at, so any one of them can be found on the board again:
+open the PDF, go to that page, look at (x, y) in PDF points.
+
+This is a *verification* list, not a spec — the spec is the board. It exists so that «does the port do
+what the canvas says» stops being answered from memory.
+
+Legend: `[ ]` unverified · `[x]` verified against the running app · `[!]` verified as broken, with the
+thread or commit that carries it.
+
+## Page 1 — Trim (217 requirements)
+
+- [ ] (488, 58) Priorities need to be department (category) specific. Each department (category) needs to be able to create their own Priorities. When a Priority is assigned to an order in a department (category), it should only assign that Priority to that order within that department (category). For example, if the Trim department (category) assigns a “By 10:00” Priority to an order, that should only affect the trims on that order. It should not assign that Priority to any of the other line items and departments (categories).
+- [ ] (663, 59) Second you would have to create a Location Type
+- [ ] (495, 64) We need to be able to create a hierarchy on how Priorities will be sorted. So, if a Priority has the number 1 assigned to it, it will always appear on top of all the other priorities.
+- [ ] (648, 64) We need to be able to create these Location Types for each department (category) independently.
+- [ ] (691, 64) We need to be able to create these Locations for each department (category) independently.
+- [ ] (625, 72) Clicking this button would open this window where you would enter the Name, Address and Description of the Warehouse you want to create.
+- [ ] (669, 72) Clicking this button would open this window where you would enter the Name and Description of the Location Type you want to create. You would also select a Warehouse from the dropdown of existing Warehouses.
+- [ ] (710, 72) Clicking this button would open this window where you would enter the Name, Max Weight and Description of the Location you want to create. You would also select a Warehouse from the dropdown of existing Warehouses, a Location Type from the dropdown of existing Location Types within that Warehouse and you have to decide if this is a Multi Order location.
+- [ ] (821, 73) Clicking this button would open this window where you would be able to create a list of coil suppliers.
+- [ ] (691, 88) All Location Names have to be unique within the entire app, can never be doubled up.
+- [ ] (731, 91) If you want this to be a Multi Order Location than you would toggle “On” the Multi Order button. This would make the Number of Orders text box become available and you would have to enter how many orders can be in this location.
+- [ ] (543, 104) If we have multiply Warehouses then there needs to be a way to select the default Warehouse. This default Warehouse would be the one that opens first when selecting a location.
+- [ ] (754, 109) A Multi Order Location would allow you to use the location multiple times (for multiple orders) before becoming unavailable, within the Max Weight limit. This example would be able to be used 12 times (for 12 different orders) before becoming unavailable, within 3500 lbs. If this location has been assigned to 12 different orders, then as soon as it has been removed from 1 of those orders it becomes available again.
+- [ ] (698, 115) Department (category) specific. It needs to default to the locations for the department (category) the Workers is signed into. Example: If a Worker in the Trim department (category) goes to select a location, the location window needs to default to Trim locations. That being said the Worker should still be able to choose a different department (category) to select a location there too.
+- [ ] (722, 125) This is how locations would show up in production when Workers are selecting locations.
+- [ ] (1059, 206) Each Department (category) needs be completely separate from the others. For example, everything that’s done in the Trim department (category) should not affect anything in the Rollforming department (category). Each department (category) should be able to Release To Production without the other departments (categories) having to schedule their items. For example: A Trim Manager should be able to release the scheduled trims to production without the Rollforming Manager having to schedule their items first.
+- [ ] (1037, 210) Admin should be able to do everything in every Department (category).
+- [ ] (281, 240) Trim Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
+- [ ] (657, 256) Trim Workers should be able to see everything from here down.
+- [ ] (667, 260) All the Worker windows should just be a list of the released uncompleted orders/line items. As the Manager releases orders to production, the new cutlists and bendslists should just be added to the windows that the workers are working off of. A Worker should not need to select days of the week, it needs to just be a list. This list of cutlists and bendlists needs to always sort primarily by Production Date and then have a distinct line between the different days. See example: -----&gt;
+- [ ] (661, 276) For the images below, Press Brake, V1, V2, Rollformer and Caps are considered to be Machines and are all the same. Everything below should be applied to all the Machines in the Trim department (category) except for the Slinet and the Wrapping tab.
+- [ ] (648, 283) These bendlists would be created automatically as soon as the orders are Released To Production. It should combine line items that have the same Colour/Gauge combination and Priority at the time that the orders were Released To Production. It should never add to an existing bendlist. For example, if you were to Release To Production an order that has 28Ga. Black trims on it, it would create a bendlist for that order. Afterwards, if you go and Release To Production another order that has 28Ga. Black on it, it should create another bendlist since they weren’t Released To Production at the same time.
+- [ ] (755, 283) Stock Orders would have an icon in the Production Date column showing that it’s a Stock Order. The Order# would have a prefix of “S” and be it’s own series of numbers. The Customer Name would say Stock.
+- [ ] (943, 285) This tab needs to primarily sort by Production Date, then Priority and then ID.
+- [x] (249, 286) Once you have selected at least one order, then the Schedule button and Bypass Production button should become available. We need to be able to expand &amp; collapse orders, check &amp; deal with notes and set Priorities without losing the orders we’ve selected.  _(verified: live 2026-08-18)_
+- [ ] (286, 287) Each day needs to show the Max. Capacity for the day and also how much has been assigned to the day.
+- [ ] (459, 287) These cutlists would be created automatically as soon as the order is Released To Production. It should combine line items that have the same Color/Gauge combination and Priority at the time that the orders were Released To Production. It should never add to an existing cutlist. For example, if you were to Release To Production an order that has 28Ga. Black trims on it, it would create a cutlist for that order. Afterwards, if you go and Release To Production another order that has 28Ga. Black on it, it should create another cutlist since they weren’t Released To Production at the same time.
+- [ ] (585, 288) Stock Orders would have an icon in the Production Date column showing that it’s a Stock Order.
+- [ ] (1004, 289) The Stock Manufacturing tab needs to be on ALL of these tabs.
+- [ ] (507, 291) The cutlists should combine line items that are identical in the following ways: Gauge/Colour combination Width and Length combination Priority Machine See the example below.
+- [ ] (878, 293) Stock and Manufactured items will all appear in the same tab. We don’t need separate tabs for them.
+- [x] (835, 298) When the Manager makes an order Bypass Production, then the line items would appear here in the Wrapping tab and have a Status of Bypassed. From here the wrapping process would be the same as any other order. The Remanufacture column needs say N/A and the Remanufacturing function needs to be unavailable from these orders.  _(verified: code 2026-08-18 (#28))_
+- [ ] (464, 301) The Total column should display the combined number of all the quantities within that row.
+- [ ] (687, 302) The Qty to Manufacture column needs to show the difference between the Qty Ordered and Stock columns.
+- [ ] (1057, 303) The Coils tab in the Worker windows would be filtered by the coil filter in the Manager window. It needs to operate with the same authorities and in the same way as the Managers Coil tab.
+- [ ] (730, 305) This tab needs to primarily sort by Production Date, then Priority and then Gauge/Colour.
+- [ ] (71, 307) Here the Manager can create Stock Cards. He would enter the Product ID, Stock Minimum, Order Qty and Upload an Image. The Product IDs would have to be valid, active IDs in EBMS. The Description would NOT be editable and would auto fill from EBMS.
+- [x] (286, 309) If you expand an order when at least 1 order has been check off to be scheduled, then the line item check boxes to split an order need to be unavailable.  _(verified: live 2026-08-18)_
+- [ ] (654, 311) The bendlist should highlight any length that is NOT 120”.
+- [x] (332, 315) As soon as you select at least 1 line item, then the Split Order button becomes available and the scheduling check boxes become unavailable.  _(verified: live 2026-08-18)_
+- [ ] (639, 315) The Manager and Workers should be able to add and view Line Item Notes at any point in production. These notes are just within the app, they do not come from or push back to EBMS.
+- [ ] (125, 318) We need to be able to either manually enter the Qty and Product ID, or scan the QR code on a Stock Card which would then auto fill the Order Qty and Product ID that is on that card.
+- [ ] (650, 318) As long as the Slinet Worker has NOT marked any of the material lines as Complete (Cut), then the Status would show Not Started within all the Machine bendlists. Once the Slinet Worker marks the first material line as Complete (Cut), then all the Status’s for every line item connected to that cutlist would change to In Progress. All the line items connected to that cutlist need to change to In Progress, even for all the Machines that that line item isn’t assigned to, showing that the Slinet is working on that Gauge / Color.
+- [ ] (72, 321) Once ALL 5 of these fields are filled in, then the Create button becomes available.
+- [ ] (899, 323) Clicking a line item opens the order but only shows trims, not line items in other Departments (categories).
+- [ ] (461, 327) The items within the dropdown cutlists need to be primarily sorted by width and then length. The smallest width goes on top and the largest goes on the bottom. Then it sorts by length after that. For example, if there are multiple different lengths of the same width, the shortest one would be on top of the other ones. Also, it needs to display the quantities from the order minus the amount that’s being pulled from stock, not the number of line items.
+- [ ] (224, 328) These Order Notes would be imported from the Salesman (EBMS). There would be a red indicator showing that you haven’t dealt with this note yet.
+- [ ] (879, 328) Line items that don’t have a Status of either Bent or Stock need to be blocked from being Wrapped.
+- [ ] (686, 329) As long as the Status is Not Started, then the Complete button is NOT available, as soon as the Status changes to In Progress then the Complete button becomes available. We need to be able to mark a line item as Complete even if it hasn’t been marked as Cut yet. Then when the Slinet Worker marks it as Cut it would still remain as Bent, Bent needs to override Cut.
+- [ ] (650, 330) The line items need to be primarily sorted by width and then length. The smallest width goes on top and the largest goes on the bottom. Then it sorts by length after that. For example, if there are multiple different lengths of the same width, the shortest one would be on top of the other ones.
+- [ ] (499, 334) There should be NO pop-up when changing from “No” to “Yes”, but there needs to be pop-up when changing from “Yes” to “No” asking if you are sure you want to mark this row as NOT completed.
+- [ ] (138, 337) Clicking Create would enter the Stock Order into the Unscheduled tab.
+- [ ] (465, 337) The cutlist should highlight any length that is NOT 120”.
+- [ ] (499, 338) When a row is marked as Yes in the Complete column, it needs to get crossed out.
+- [ ] (650, 338) Workers needs to be able to change the Machine a line item is assigned to. If the Worker changes the Machine for a line item, then that line item needs to disappear out of this bendlist and appear in the bendlist of the Machine it got reassigned to. It would create a new bendlist for the Machine that the line item was reassigned to with just this line item in it. The new bendlist would inherit everything from the bendlist it came from, except the Machine.
+- [ ] (1025, 338) When the Worker clicks the Create Manufacturing Batch button, then a manufacturing batch needs to be created in EBMS.
+- [ ] (86, 341) Clicking Create would add the Stock Card to the list.
+- [ ] (163, 341) Stock Orders would NOT have a Ship Date. The Order# would have a prefix of “S” and be it’s own series of numbers. The Customer Name would say Stock.
+- [ ] (426, 341) These coils all match the “Color” of the cutlist and if they are all checked off as being in the Slinet, then they would all show up in the Cutlist Coils coil list. Gauge and Width do NOT matter, any gauge and/or width of coil will show up as long as it is checked off as being in the Slinet and matches the “Color”, as shown here.
+- [ ] (845, 342) Clicking the Auto Fill button would automatically fill whatever is in the Left To Wrap column into the Wrapping column
+- [ ] (163, 345) Stock Orders would NOT have an Order Note because Order Notes come from EBMS.
+- [ ] (131, 346) Entry Date would be the date that the Stock Order was created.
+- [ ] (551, 347) Clicking on a number in the Total column would open this window
+- [ ] (365, 349) When part of an order has been scheduled, there needs be an indication in the Order # column showing that this order has been split, on both sub-orders.
+- [ ] (463, 351) Once ALL the rows are marked as Complete, then the Done button needs to become available. The Worker needs to adjust the coil/coils that he used for this cutlist before clicking the Done button.
+- [ ] (501, 353) We need to be able to make a coil adjustment at anytime, it doesn’t matter how much of the cutlist has been cut already or not.
+- [ ] (838, 353) After clicking an Auto Fill button, then it changes to a delete button, which, if clicked would remove the number from the Wrapping column.
+- [ ] (330, 354) When scheduling part of an order, the scheduled line items should not disappear. Rather, they should be grayed out and completely uneditable in the Unscheduled tab. Once all the trims are Scheduled, the order will disappear in the Unscheduled tab within the Trim department (category).
+- [ ] (146, 355) From here the Manager would Schedule the Stock Order just like a customer’s order from EBMS.
+- [ ] (76, 356) We need to be able to edit and delete the Stock Cards.
+- [ ] (687, 357) There should be a pop-up asking you to confirm when changing the Complete from “Yes” to “No”, but no pop-up when changing from “No” to “Yes”.
+- [ ] (653, 358) When a row is marked as Complete, it needs to get crossed out and the Machine button would disappear.
+- [ ] (878, 358) When you’re working on a new order (nothing has been Wrapped for this order yet), then once there is an amount in the Wrapping column, then the Select Location button becomes available.
+- [ ] (912, 358) This will show the combined weight of the trims you are planning to wrap. We need to be able to set a Max Weight per package (ex. 45 lbs).
+- [ ] (940, 365) If the package you are trying to create is heavier than the Max Weight, then this box needs to be highlighted in red.
+- [ ] (239, 367) Clicking the Bypass Production button would give you this pop up
+- [ ] (912, 369) When selecting a location, you need to be able to just click on an available location.
+- [ ] (838, 373) The Worker does NOT have to use the Auto Fill function, he needs to also be able to just click on a line item within the Wrapping column and then manually type in any number between 1 and the number in the Left To Wrap column.
+- [ ] (639, 376) If a second note is added that has not been “Checked-off” yet then the note should be highlighted in red again.
+- [ ] (227, 378) Clicking Yes, Bypass Production would make the selected order or orders bypass the Slinet and Machine tabs and go straight to the Wrapping tab. Nothing would get assigned to this order and no cutlist or bendlist would be created for it, all the line items would just appear in the Wrapping tab like line items that went throught production but have a Status of Bypassed.
+- [ ] (688, 378) When all the rows within a bendlist are marked Complete, then the Done button should become available.
+- [x] (463, 379) The Cutlist Coils coil list is make up of ONLY the coils that are checked off as being in the Slinet and that match the “Color” of the cutlist. Gauge and width do NOT matter, any gauge and/or width of coil will show up as long as it is checked off as being in the Slinet and matches the “Color”.  _(verified: code 2026-08-18 (#5))_
+- [ ] (316, 381) When viewing a partially scheduled order in the Scheduled tab, the trims that are still unscheduled or scheduled to a different day should appear but be grayed out and completely uneditable.
+- [ ] (950, 382) When you open the location window on an order that already has a location, it needs to be highlighted.
+- [ ] (75, 383) To print the Stock Cards you would check off all the cards you want to print and then click the Print Selected button.
+- [ ] (108, 383) Once you have selected at least one Stock Card to print, then the Print Selected button would become available.
+- [ ] (240, 386) Bypassing an order would automatically assign the current date as it’s Production Date.
+- [ ] (750, 386) As a Worker wraps the Stock, he would enter what he has wrapped here in the Wrapped column. We need to be able to add or subtact from the amonut in the Wrapped column on the keypad, or just enter a completely new amount. Example: If a Worker had already wrapped 50 pcs. and enter that, then later he wraps 10 more pcs. he needs to just type +10 on the keypad. The new number in the Wrapped column would then show 60 pcs.
+- [ ] (982, 392) As locations are assigned to orders they grey out and become unavailable.
+- [ ] (937, 395) Clicking on a second Location needs to add that Location to the order as well, now this order has 2 Locations.
+- [ ] (972, 396) For locations to become available again (reset) they need to be removed from an order manually.
+- [ ] (677, 397) Clicking the Done button would give you this pop up
+- [ ] (972, 399) When the last trim package has been scanned onto the truck by shipping, then after 15 mins. the location becomes available again (reset).
+- [ ] (878, 401) Once a location has been selected, then the Create &amp; Print button becomes available.
+- [ ] (149, 402) Here in the Scheduled tab, Stock Orders would NOT have a Ship Date or Order Note. The Order# would have a prefix of “S” and be it’s own series of numbers. The Customer Name would say Stock. The Location would say N/A.
+- [ ] (326, 402) Choose the day you want to work on, this day tab should show your maximum capacity for the day and how much is already assigned to that day.
+- [ ] (687, 411) Clicking Yes will remove the entire bendlist from the Machine tab. It will remain available within the Completed Bendlists tab for the next 90 days. It should keep the same formatting.
+- [x] (755, 412) The Left To Wrap column would always show the difference between the Qty Ordered and Wrapped columns.  _(verified: live 2026-08-18 (#29))_
+- [ ] (846, 414) If you are trying to create another package that combined with the packages already on the order will be over the Max Weight for the location, then the location name should highlight in red indicating that you need to select another location.
+- [x] (755, 417) Once there is any value in the Wrapped column, then the check box becomes available.  _(verified: live 2026-08-18 (#29))_
+- [ ] (206, 419) When releasing orders with different Priorities and some without Priorities, the cutlists and bendlists need to be created by looking at and combining the: Production Date Gauge/Colour Priority For example, if the 7 orders being released are all 28Ga. - Bright White then 5 cutlists and bendlist need to be created. 1 st list is the “NOW” order 2 nd list is the 2 “ASAP” orders 3 rd list is the “By 10:00&quot; order 4 th list is the “By 3:00&quot; order 5 th list is the rest of the orders without a priority In the Wrapping tab each line item would be assigned the same Priority as the order was.
+- [ ] (261, 419) If a trim needs to be Vented, then the Manager would toggle “on” the Vented column for that line item.
+- [ ] (326, 419) When an order has not been Released To Production, the Status should remain empty.
+- [ ] (326, 422) The Width and Description columns need to be editable. These edits DON’T need to push back to EBMS.
+- [ ] (150, 423) For Stock orders, there would be NO Stock column.
+- [ ] (252, 423) When a line item has been marked as Vented, then for the Slinet ONLY it needs to over ride the Machine and put that Qty in the Vented column within the cutlist. This line item would still show up in the assigned Machine tab (in this case V2).
+- [ ] (294, 423) The Vented column needs to default to being toggled “off”.
+- [ ] (911, 425) Once the first package has been created, then the See Packages button becomes available.
+- [ ] (253, 426) This way the Slinet Worker would put these pieces on a separate table to be Vented first before going to the assgined Machine (V2) to be bent.
+- [ ] (678, 427) Example: If it is Thursday, May 09/2024 and there are bendlists from Wednesday, May 08/2024 that are not complete yet, then we need those Wednesday bendlists to be highlighted as overdue.
+- [ ] (868, 427) Each department (category) will need to be assigned a unique number code to identify and keep labels separate between departments (categories). Example: Trim - 01 Rollforming - 02 Accessories - 03
+- [ ] (876, 427) The labels should be identified by a code made up of 3 parts. The 1 st part is the department (category) ID, the second part is the order number and then the last part is the number of packages wrapped for the order, which just keeps counting up as you create packages.
+- [ ] (252, 429) In this example you can see that the middle 2 line items are both assgined to V2, but the 1 is marked as Vented. Within the cutlist in the Slinet tab you can see that the 8 pieces that are NOT marked as Vented are in the V2 column and the 18 pieces that are marked as Vented are in the Vented column. Again, this ONLY effects the Slinet tab. All 26 of these pieces would still show up in the V2 tab.
+- [ ] (144, 435) This should be a toggleable button that can only be used once all the trims within the order have a machine assigned to them. When toggling it “On” there should NOT be a pop-up but when toggling it from “On” to “Off” then there should be a pop-up asking you to confirm that you want to do that. Also, you should be able it toggle it when the order is collapsed as well as when the order is expanded.
+- [ ] (464, 436) The Apply button ONLY becomes available if the Coil Thickness number changes.
+- [ ] (937, 437) To remove a Location from an order you would click on the Location you want to remove, this would give you a pop-up ask to confirm this action.
+- [x] (754, 440) The Worker would then check off the stock items that he is done wrapping. Once at least 1 box is checked, then the Create Manufacturing Batch button becomes available.  _(verified: live 2026-08-18 (#29))_
+- [ ] (861, 440) If you try to “Create &amp; Print” when the potential package will cause the Location to be over the weight limit, you will get a pop up asking if you want to continue and go over the Location weight limit. If you disagree, then you will need to chose another Location to be able to Create &amp; Print.
+- [ ] (149, 442) The check boxes to select orders to Release To Production should only become available if the order is checked as reviewed.
+- [ ] (292, 445) If the number entered to come from stock is less than the Qty Ordered, then the Status needs to remain blank because the remaining amount still needs to be manufactured.
+- [ ] (608, 446) When a Remanufacture Request is made from the Wrapping tab, then a new bendlist for that line item is created and sent to the appropriate Machine. The Remanufacture column in the new bendlist needs to then be orange and show the qty. that needs to be remanufactured.
+- [ ] (292, 449) If the number entered to come from stock is equal to the Qty Ordered, then the Status needs to automatically update to Stock.
+- [ ] (512, 450) Clicking the Apply button when the Coil Thickness has been entered as “0” would give you this pop up
+- [ ] (477, 451) Clicking the Apply button would give you this pop up
+- [ ] (700, 451) If a worker damages a piece and decides to use some from stock then he needs to be able to enter that into the Stock column.
+- [ ] (775, 458) Clicking the Create Manufacturing Batch button would give you this pop up
+- [ ] (877, 459) Once the Left To Wrap column is zero, then that trim’s Status needs to automatically change to Wrapped and the Auto Fill button needs to grey out.
+- [ ] (466, 461) By clicking Yes, Make Adjustment the new Linear Feet amount would get pushed back into EBMS.
+- [ ] (502, 461) By clicking Yes, Deplete &amp; Delete Coil the coil would be zeroed out in EBMS and deleted out of the App.
+- [x] (613, 462) Once the Slinet Worker marks the material as Cut (Complete), then the Remanufacture column needs to change from orange to green here in the Machine tab.  _(verified: live 2026-08-18 (#28))_
+- [ ] (861, 462) Once you select a second Location, then the first Location needs to be highlighted in orange indicating to not put any more packages on that location. Now you can Create &amp; Print.
+- [ ] (797, 464) If you override the weight limit on a Location, then that Location name needs to be highlighted in red.
+- [ ] (127, 467) If the Manager selects a Stock Order to Release To Production, then all the Customer Order check boxes need to become unavailable even if they have been Reviewed.
+- [ ] (168, 468) If the Manager selects a Customer Order to Release To Production, then any Stock Order check boxes need to become unavailable even if they have been Reviewed.
+- [ ] (502, 469) From here the Worker would have to put another coil into the Slinet and check off that it is in the Slinet to be able to continue working on this cutlist.
+- [ ] (950, 475) If a worker wants to remove all the Locations from an order, then the worker needs to be forced to select a new Location. An order with existing packages HAS to have a Location.
+- [ ] (291, 478) The Release To Production button should only become available when you have selected at least one order.
+- [ ] (852, 480) If something was packaged wrong, then we need to be able to delete that package and repackage the items that were in it.
+- [ ] (465, 481) After making all the necessary coil adjustments and the Worker is done with the cutlist then he would click the Done button to remove the cutlist from the Production tab.
+- [x] (612, 482) A Remanufacture bendlist from the Wrapping tab needs to only show the qty. that was requested to be remanufactured, NOT the full amount that was ordered.  _(verified: live 2026-08-18 (#28))_
+- [ ] (699, 482) Even if there is already a number in the Stock column, we still need to be able to change the number to anything from zero up to the Qty Ordered.
+- [x] (763, 485) Clicking Yes, Create Manufacturing Batch would create the Manufacturing Batch, make the Left To Wrap and Wrapped columns blank, enter the amount(s) manufactured into the Qty Manufactured column, the check box would be replaced with a Manufactured icon and the Status would updated to Wrapped.  _(verified: live 2026-08-18 (#29))_
+- [ ] (278, 486) This top row would show the totals that are Scheduled for the day.
+- [ ] (307, 486) When an order or group of orders is Released To Production a cutlist and bendlist needs to be created from those orders and be added to the workers windows.
+- [x] (653, 488) When you enter a quantity in the Remanufacture column, then that line item gets removed from the current bendlist and a new bendlist is created with only that line item in it.  _(verified: live 2026-08-18 (#28))_
+- [ ] (127, 491) If there are multiple Stock Orders, then if the Manager selects a Stock Order to Release To Production, the rest of the Stock Orders’ check boxes need to stay available but NOT the Customer Orders.
+- [ ] (278, 491) This would show the totals that have been assigned to each Machine.
+- [ ] (293, 492) Once an order(s) has been Released To Production, the check box needs to change to a released icon and the Status should change to Not Started.
+- [ ] (697, 492) Changing the amount being pulled from stock shouldn’t make any different in regards to manufacturing batches. The manufacturing batch should only be created and push back to EBMS once all the line items have been wrapped and the Worker clicks the Order Complete button. To create the manufacturing batch it just needs to look at the Qty ordered minus the amount that has been pulled from stock and then manufacture the difference between those 2 numbers. This way it makes no difference who or how many times the number being pulled from stock changes, as long as it’s the right number when the order is completed.
+- [ ] (647, 494) This needs to create a new cutlist that inherits the same Production Date, Gauge/Colour, Priority and Machine as was assigned to this line item. This is then sent to the Slinet.
+- [ ] (840, 494) Clicking the Delete button would give you this pop up
+- [ ] (668, 495) Enter the amount that needs to be Remanufactured
+- [ ] (686, 501) It should display the quantity that was requested in the Remanufature column.
+- [ ] (937, 501) Overdue trims to be wrapped need to be highlighted.
+- [ ] (937, 503) Example: If it is Thursday, May 09/2024 and there are trims from Wednesday, May 08/2024 that are not wrapped yet, then we need those Wednesday trims to be highlighted as overdue.
+- [ ] (289, 505) The order Status should remain Not Started until at least one trim on that order has the Status of Cut, Bent or Wrapped. Then, the Status should change to In Progress and remain In Progress until all trims on that order have the Status of Wrapped. This means that if a trim has Stock as its Status, the order Status will remain Not Started until that trim’s Status is changed to Wrapped or another trim on that order is marked as Cut, Bent or Wrapped.
+- [ ] (335, 505) If an order has NOT been Release To Production yet, we need to be able to reschedule it to another day or unschedule that order.
+- [ ] (879, 506) Once the Left To Wrap column is ALL zeros, then the Order Complete button becomes available.
+- [ ] (326, 507) As soon as a Trim Location has been added to an order it should display it here.
+- [ ] (245, 508) The Stock numbers ONLY come from Stock Orders, when the Manager creates an order to manufacture Stock.
+- [ ] (703, 509) The Qty To Manufacture column would also need to automatically be updated.
+- [ ] (686, 514) It should be highlighted in orange until it has been marked as Cut (Complete) by the Slinet. After is has been marked as Cut, then it should be highlighted in green.
+- [ ] (499, 515) Clicking Yes will remove the entire cutlist from the Slinet tab. It will remain available within the Completed Cutlists tab for the next 90 days. It should keep the same formatting.
+- [x] (754, 517) Once a Manufacturing Batch has been created for ALL of the rows, then the Stock line items would automatically disappear out of the Wrapping window and this Stock Order would move to the Completed Orders tab.  _(verified: live 2026-08-18 (#29))_
+- [ ] (899, 521) Clicking the Complete Order button would give you this pop up
+- [ ] (293, 525) When you expand an order, you should be able to see the Status of each individual trim.
+- [ ] (343, 526) Here you would be able to reschedule the order to another day or unschedule that order. If you unschedule the order then it disappears from the scheduled tab and reappears in the unscheduled tab like a new order again. Rescheduling and Unscheduling an order also resets any edits that the Manager had already made to the order.
+- [ ] (835, 528) Deleting a package will make that package number invalid, if anyone tries to scan the bar code on the deleted label will need to get a messge that this package has been deleted.
+- [ ] (508, 531) Example: If it is Thursday, May 09/2024 and there are cutlists from Wednesday, May 08/2024 that are not complete yet, then we need those Wednesday cutlists to be highlighted as overdue.
+- [ ] (911, 535) This would cause the web app to create a manufacturing batch and push it back into EBMS. To create the manufacturing batch it just needs to look at the Qty ordered minus the amount that has been pulled from stock and then manufacture the difference between those 2 numbers. This way it makes no difference who or how many times the number being pulled from stock changes, as long as it’s the right number when the order is completed.
+- [ ] (808, 536) If the line item that was in the deleted package had a Status of Wrapped already, then after deleting, that Status would have to change back to Bent again. If the Qty Ordered column and Stock column are equal, then it would have to change back to Stock.
+- [ ] (293, 540) Whenever there is an order that is overdue, the day tab that has that order should be highlighted in red. Also, the calendar should be highlighted in red.
+- [ ] (326, 541) It is Thursday and there are orders that were scheduled for Wednesday that are not completed yet (overdue). The Wednesday tab should then be highlighted in red
+- [ ] (903, 543) Clicking Yes would make this order disappear out of the Wrapping tab and appear in the Completed Orders tab and create a manufaturing batch
+- [ ] (912, 545) When you open the Completed Orders tab you should be able to view all the completed orders for the past 90 days. The completed orders should be displayed here and appear like this.
+- [ ] (251, 546) When the Manager makes an order Bypass Production, then that order would automatically be assigned the current date as it’s Production Date and appear in the day tab as a released order. The Reviewed column would say N/A and the Status would be Bypassed.
+- [x] (653, 546) A Remanufacture bentlist from a Machine tab needs to show the full Qty. Ordered and then the Qty. that was requested to be remanufactured in the Remanufacture column.  _(verified: live 2026-08-18 (#28))_
+- [ ] (336, 554) This list needs to be sorted by Color first and then Product ID. We need a distinct line between the colors.
+- [ ] (371, 554) This list would show all the trims that are assigned to come from Stock that have NOT been Wrapped yet. As soon as an order has been marked as Reviewed, then any number that is in the Stock column and NOT Wrapped yet what show up here in this list. It would show a combined total for the Product ID that has been assigned to be pulled from Stock across all orders that have the Reviewed column toggled “on”.
+- [ ] (293, 555) When you click on the day that has overdue orders within it, then you would see the orders that are overdue highlighted in red.
+- [ ] (371, 560) This needs to be a live report, as more orders are marked as Reviewed and have trims assigned as coming from stock then the numbers need to update. Like wise as trims are being Wrapped, then numbers also need to update. It would only update from the Wrapping tab when a line item gets the Status of Wrapped.
+- [ ] (445, 561) This is the new Remanufacture cutlist from Wrapping. Opening it shows just what needs to be Remanufactured.
+- [ ] (487, 562) This is the new Remanufacture cutlist from one of the Machines. Opening it shows just what needs to be Remanufactured.
+- [ ] (253, 563) When you expand the order, the Vented and Machine columns would say N/A and the line item Status would be Bypassed.
+- [ ] (326, 569) If there are overdue orders for a day that is not displayed in the week tabs then you should still see the highlighted calendar.
+- [ ] (878, 571) Within the Completed Orders tab we need to be able to see a list of the line items ordered and how many were pulled from stock. We also need a list of the packages that were created for this order and what was put into each package.
+- [ ] (326, 574) The date that has the overdue order should be highlighted in red within the calendar.
+- [ ] (912, 576) Within the Completed Orders tab we need to be able to reprint package labels and change/add/remove locations if necessary.
+- [ ] (252, 578) The Status would stay Bypassed until a Worker wraps the trim, then it would change to Wrapped.
+- [ ] (478, 586) Once the Worker marks the material as Complete, then the Recut column changes to green and the Done button becomes available.
+- [ ] (478, 590) Marking it as Complete will also change the Remanufacture column to green in the Machine tab but leave the Remanufacture column in the Wrapping tab as orange. The Remanufacture column in the Wrapping tab should only change to green once the Machine has marked it as Bent (Complete).
+- [ ] (850, 600) If a worker damages a piece, he needs to be able to request for is to be remanufactured in the Remanufature column.
+- [ ] (326, 609) Within the drop down you would see all the lots that are in EBMS.
+- [ ] (220, 610) We will need all these fields under the Production tab in EBMS.
+- [ ] (287, 612) Here you would enter the range of Thickness, Width and Grade of coils that you want to be able to see in this Coil tab. You can also click the Apply All check box which would make the range limitless.
+- [ ] (350, 616) When a new coil is entered into EBMS, then that coil needs to appear in the App. The Linear Feet (main unit in EBMS) for that coil would be pushed into the App from Ebms. The Weight would be calculated off of the Linear Feet. The Coil Thickness would be blank until someone inputs and applies all the needed parameters. The Location and Slinet check boxes would also be blank (unchecked).
+- [x] (253, 624) When any one or more coils within a folder in EBMS qualify to show up in this Coils tab, then a folder tab needs to appear with the same title as the folder that the coil is in within EBMS.  _(verified: code 2026-08-18 (#5))_
+- [ ] (307, 624) Clicking in any of these 3 columns would open this window
+- [ ] (851, 624) Should only be able to enter a number between 1 and the Qty Ordered.
+- [x] (292, 630) We need to be able to enter either the Coil Thickness or Linear Feet or Weight and the others would auto adjust but only if the Material Thickness and Core OD are filled in.  _(verified: live 2026-08-18 (#5))_
+- [ ] (253, 631) The Color and Width entered in the Production tab in EBMS would be what would appear in the Color and Width columns.
+- [ ] (305, 644) Clicking the Apply button would give you one of these 2 pop ups
+- [ ] (342, 648) We need to be able to check a coil into a location before entering a Coil Thickness, but even if a coil is checked into the Trim department the Slinet check box needs to remain unavailable until a Coil Thickness is present as well. The Slinet check box should only be available if both a Coil thickness is present and the coil is checked as being in the Trim department.
+- [ ] (883, 656) After entering the amount you need to have remanufactured, then that line item should be highlighted in orange and show the amount to remanufactured. This needs to show up within the order window and also within the main Wrapping window on that line item.
+- [ ] (351, 658) When you open the Coil Adjustment window for the first time, then the Coil Thickness, Material Thickness &amp; Core OD fields would be blank.
+- [ ] (278, 674) We need to be able to add a Note to any coil. This Note is only within the App and does NOT need to push back to EBMS. The Note needs to show up everywhere that the coil shows up and all Managers and Workers need to be able to add or edit the note.
+- [ ] (327, 675) If a coil is checked off as being in the Trim department but not in the Slinet, then the Rollforming and Slinet check boxes need to both be available.
+- [ ] (848, 677) This should stay highlighted in orange until the Machine has marked it as Bent (Complete). After it is mark as Bent, then it should change to being highlighted in green.
+- [x] (327, 678) If a coil is checked off as being in the Trim department and in the Slinet, then the Rollforming check box needs to become unavailable.  _(verified: code 2026-08-18 (#5))_
+- [x] (327, 681) If a coil is checked off as being in the Rollforming department, then the Slinet check box needs to become unavailable. The Slinet check box is only available if the coil is checked off as being in the Trim department and a Coil Thickness is present.  _(verified: code 2026-08-18 (#5))_
+- [x] (351, 681) The Apply button would only become available once the Material Thickness and Core OD fields have been filled in.  _(verified: live 2026-08-18 (#5))_
+- [ ] (300, 689) Clicking this check box to move the coil to the Rollforming department would give you this pop up
+- [ ] (320, 689) Clicking this check box to move the coil to the Trim department would give you this pop up
+- [ ] (276, 702) By clicking Yes, the location for this coil will change to the Rollforming department. This will uncheck the Trim departament, both locations can NOT be checked at the same time.
+- [ ] (344, 702) By clicking Yes, the location for this coil will change to the Trim department. This will uncheck the Rollforming departament, both locations can NOT be checked at the same time.
+- [ ] (367, 708) Clicking the Apply button would give this pop up
+- [ ] (291, 724) This would be the Manager’s view in the Production tab. The Manger would be able to go into any of the Production (Machine) tabs and have the same authority as a worker.
+
+## Page 2 — Rollforming (98 requirements)
+
+- [ ] (508, 258) Rollforming Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
+- [ ] (1034, 272) Rollforming Workers should be able to see everything from here down.
+- [ ] (542, 280) Each Machine tab only shows the line items that are assigned to that Machine via inputs through the “Roll Options” tab in EBMS
+- [ ] (573, 283) The Gauge / Color column would show all the materials that are on the order.
+- [ ] (541, 284) The Name assigned here would have to exactly match the Name given to the Machine in the app.
+- [ ] (1145, 294) As soon as at least 1 package has been created in an order by the Rollforming Worker, then this Status needs to change to In Progress and stay that way until the Left To Package column for that order is ALL zeros, then it needs to change to Rolled.
+- [ ] (1100, 296) This tab needs to primarily sort by Production Date and then by Priority
+- [ ] (935, 297) Priorities need to show here in the Queue but NOT be sorted by Priority. The Queue for the Worker needs to just be a mirror image of the Queue from the Manager. As the Manager drags lines up and down, these lines in the Worker view need to just follow suit.
+- [ ] (925, 299) If the Manager assigned a Supplier and/or Coil Number to an order, then that needs to be locked so the worker can’t edit and has to use the coil the Manager assigned.
+- [ ] (895, 300) The check boxes need to only become available if a Supplier and Coil Number are present.
+- [ ] (513, 301) Once you have selected at least one order, then the Schedule button should become available. We need to be able to expand &amp; collapse orders, check &amp; deal with notes and set Priorities without losing the orders we’ve selected.
+- [ ] (571, 303) Line items need to be sorted by Product ID and then have a distinct line between them.
+- [ ] (724, 305) Line items need to be sorted by Product ID and then have a destinct line between them.
+- [ ] (883, 309) If the Manager requests a material to be slit, then the Queue needs an icon showing that that material is waiting for the Slit Line to slit it. The Supplier and Coil Number need to be locked and say waiting for Slit Line. Once the Slit Line Worker marks the material as slit then the Supplier and Coil Number from the Slit Line will be automatically be filled in here in the Queue and the icon will change, showing that this material has been slit.
+- [ ] (1058, 309) Rollforming material that first has to be slit
+- [ ] (1007, 312) Here in the Production tab you would see what is Currently In The Rollformer via. info from the Queue tab.
+- [ ] (894, 313) If the Manager has NOT assigned a Supplier and/or Coil Number to an order, then the Worker needs to choose the Supplier from the drop down and assign the Coil Number of the coil that they will be using.
+- [ ] (1040, 313) These are the Coil Numbers that the Manager assigned to an order. If the Manager left the Coil Numbers as undefined, then this column would just stay blank.
+- [ ] (1086, 315) If the Manager assigned part of of an order to be rolled off of an existing coil and part of that order to be slit, then we need that indicated here. The slit icon needs to be yellow, indicating that it is still waiting for the Slit Line Worker to slit it.
+- [ ] (1144, 315) Expand the order of the package you are Wrapping. Here any package that has been created by the Rollforming Worker would appear.
+- [ ] (1086, 321) The Coil Number column should show waiting..., meaning that the material is not slit yet and waiting for the Coil Number to be auto filled from the Slit Line once the Slit Line Worker marks the material as slit.
+- [ ] (1040, 322) The Worker would look at what is in the rollformer and chose an order that matches that coil.
+- [ ] (725, 324) As soon as you select at least 1 line item, then the Split Order button becomes available.
+- [ ] (901, 325) This list would show the Lot Numbers conneted to the coil of the row you are working on.
+- [ ] (918, 325) Clicking on the search icon (magnifying glass) would open a window with a list of the Lot Numbers.
+- [ ] (1164, 325) Clicking Select Loaction would open the list of Locations.
+- [ ] (1125, 332) If the Manager assigned a specific coil to some line items and assigned some line items to be slit, then it needs to show waiting... and the Coil Number for the line item that are just coming from an existing coil.
+- [ ] (1010, 333) If the Manager assigned a Supplier and/or Coil Number to the order, then that needs to show here and be locked (can NOT be edited by the Worker).
+- [ ] (1051, 333) If the Manager assigned a line item to be slit, then that line item needs to have a slit icon in yellow showing that it is waiting to be slit. The Supplier and Coil Number need to be locked (can NOT be edited by the Worker) and show waiting..., meaning that the material is not slit yet and waiting for the Supplier and Coil Number to be auto filled from the Slit Line once the Slit Line Worker marks the material as slit.
+- [ ] (918, 341) Clicking on a specific Lot Number would auto fill that number into the Coil Number feild.
+- [ ] (601, 345) The Gauge / Color column would have to update to show only the gauge &amp; color that is valid after splitting the order.
+- [ ] (1010, 346) If the Manager did NOT assign a Supplier and/or Coil Number to the order, then the Worker would have to select a Supplier from the drop down and input the Coil Number before being able to put those line items into a package.
+- [ ] (1040, 347) We need a copy button for the Coil Number so that the Worker can just copy and paste the Coil Number into the individual line items. The Worker needs to be able to also manually type in the Coil Number.
+- [ ] (723, 348) When part of an order has been scheduled, there should be an indication that this order has been split, on both sub-orders.
+- [ ] (1086, 349) Once the Slit Line Worker has marked the material as slit, then these slit icons need to change to green and the Supplier and Coil Number that the Slit Line Worker entered needs to auto fill into the Supplier and Coil Number fields.
+- [ ] (925, 359) When a coil is checked as being in the Machine, then it needs to auto fill the Supplier, the Coil Number and the Gauge &amp; Color into here.
+- [ ] (1124, 360) Once the Slit Line Worker marks the material as slit, then you would see both the Coil Number that the Manager assigned to the line items that are coming off of an existing coil and the Coil Number of the material that was just slit. Also the slit icons need to change to green and the Supplier and Coil Number that the Slit Line Worker entered needs to auto fill into the Supplier and Coil Number fields.
+- [ ] (1144, 366) Once the Left To Package column is ALL zeros in the Production tab, then the Status would change from In Progress to Rolled.
+- [ ] (1011, 367) Only after a Supplier and Coil Number are present, then the Worker can Create Packages &amp; Print Labels.
+- [ ] (728, 376) When viewing a partially scheduled order in the Scheduled tab, the line items that are still unscheduled or scheduled to a different day should appear but be grayed out and completely uneditable.
+- [ ] (892, 378) Example: If it is Thursday, May 09/2024 and there are lines from Wednesday, May 08/2024 that are not complete yet, then we need those Wednesday lines to be highlighted as overdue.
+- [ ] (1144, 383) Once all the packages for the order have been created and as soon as you give the last package a Location, then the order should disappear out of the Wrapping tab and fill in the Completed Date &amp; Time and the last Location into that order within the Completed Orders tab.
+- [ ] (1040, 385) If a Supplier or Coil Number is missing for a line item, then that line item needs to be blocked from being packaged.
+- [ ] (963, 404) Clicking the Auto Fill button would automatically fill whatever is in the Left To Package column into the Packaging column.
+- [ ] (585, 406) Clicking the Coils tab would open a window with the coils folders and sub-folders from EBMS. You would then select the appropriate folders for the coil you are looking for.
+- [ ] (709, 408) It needs to default the Supplier and Coil Number as Undefined, meaning that the Worker can use any Coil Number from any Supplier to slit the order.
+- [ ] (963, 410) Once you’ve clicked Auto Fill on 1 of the line items, then only the Auto Fill buttons within that section (same Product ID’s) would remain available. The Auto Fill buttons for line items with a different Product ID would become unavailable.
+- [ ] (573, 411) The line items need to initially be sorted primarily by Product ID and then by Length. That being said, the Manager needs to be able to drag &amp; drop to rearrange the line item order within it’s own Product ID section, can NOT be dragged across the “line”.
+- [ ] (585, 414) This would show you all the coils in the selected folder.
+- [ ] (616, 414) By selecting a specific coil it would show you the Lot Numbers within that coil.
+- [ ] (1078, 414) Once the Slit Line Worker marks some of the material as slit, then those line items would show that they are slit and the Source column would show that some of the material has been slit and some is still waiting to be slit. The Coil Number of the slit material would appear in the Coil Number column and it would also still show waiting... because some material is still NOT slit.
+- [ ] (544, 416) We need a distinct line between the different Product IDs.
+- [ ] (679, 416) Once an order is in the Scheduled tab, then it needs to display the line items like this. Show what was ordered on one line. Then however many are in the Qty Orderd column, that many seperate lines underneth with only a Qty of 1 on each line. This way a different Supplier and/or Coil Number can be assigned to each Coil sold.
+- [ ] (541, 431) It needs to default to using a coil for every line item. It needs to also default to the Supplier and Coil Number be Undefined, meaning that the Worker can use any Coil Number from any Supplier to roll the order.
+- [ ] (1111, 434) Once the Slit Line Worker has marked all the materials as slit, then the icon would change to fully green and all the Coil Numbers would appear here.
+- [ ] (1011, 435) Once at least one number has been entered in the Packaging column, then the Create &amp; Print button becomes available.
+- [ ] (1041, 435) This will show the combined weight of the items you are planning to package. We need to be able to set a Max Weight per package (ex. 1,500 lbs).
+- [ ] (574, 453) Here the Manager can enter how many to use from stock, this would be subtracted from the amount ordered and the remaining amount would show up in the Qty To Produce column. If the amount ordered and the amount being pulled from stock are equal, then the Status would automatically change to Stock.
+- [ ] (678, 456) Here the Manager has 2 options, he can just assign a Supplier and leave the Coil Number as Undefined, or, he can assign a Supplier and a Coil Number. He should only be able to assign a Coil Number if he has selected a Supplier.
+- [ ] (709, 459) The Select Coil Number option needs to be greyed out and unavailable if no Supplier has been selected.
+- [ ] (678, 460) This drop down of Suppliers would be created and come from the Machines tab.
+- [ ] (1002, 461) Packaging only part of the Qty Ordered for a line item
+- [ ] (1009, 464) Once the Left To Package Column is zero then the Status for that line item automatically changes to Rolled. If the Worker packages only part of the Qty Ordered, then the Status for that line item automatically changes to In Progress.
+- [ ] (949, 465) Worker Auto Fills line items 1 &amp; 3 and then manually inputs only part of the Qty Ordered for line item 2 and creates the package.
+- [ ] (540, 467) As soon as the Manager selects at least 1 line item, then the Select Supplier / Coil Number and the Create Cutlist buttons become available. Also any line items NOT within the same Product ID section as the one selected need to become unavaiable.
+- [ ] (563, 488) Here the Manager has 3 options, he can just leave the Supplier and Coil Number as Undefined, or, he can just assign a Supplier and leave the Coil Number as Undefined, or, he can assign a Supplier and a Coil Number. He should only be able to assign a Coil Number if he has selected a Supplier.
+- [ ] (678, 498) This window would show the Lot Numbers for the coil that is connected to the Product ID that you selected.
+- [ ] (930, 500) If the Qty Ordered and the Left To Package columns are NOT equel, then the Status needs to be In Progress. If the Left To Package column is zero, then the Status needs to be Rolled.
+- [ ] (1050, 505) Example: If it is Thursday, May 09/2024 and there are orders from Wednesday, May 08/2024 that are not completed yet, then we need those Wednesday orders to be highlighted as overdue.
+- [ ] (690, 509) Clicking on a specific Lot Number would auto fill that number into the Coil Number field.
+- [ ] (1041, 510) Once the Left To Package column is ALL zeros, then the order would disappear from this window and appear in the Completed Orders tab.
+- [ ] (941, 521) For any line that has the Status of Stock, even once the Left To Package column is zero, it needs to stay as Stock and NOT change to In Progress or Rolled. This should just change straight to Wrapped, and that should only happen once the package that it is in gets a location.
+- [ ] (565, 527) Clicking on a coil would open a list of all the Lot Numbers connected to that coil.
+- [ ] (597, 543) This list of coils would be made up of any coil that is the same Color and Gauge as the Product ID that you are creating a cutlist for, and has a Production Type of Coil.
+- [ ] (1042, 544) This would say waiting... until all the packages have a Location, then the Completion Date &amp; Time would get filled in.
+- [ ] (1042, 548) This would say waiting... until the Wrapping Worker gives all the packages a Location.
+- [ ] (1012, 550) Within the Completed Orders tab we need to be able to reprint package labels and change locations if necessary.
+- [ ] (566, 565) This coil icon would change to a scissor icon indicating that this line item needs to be slit.
+- [ ] (615, 581) Any Product ID in EBMS that has a Production Type of Coil, and the same Color and Gauge as the Product ID that you are creating a cutlist for would then be pulled into this coil list.
+- [ ] (543, 583) This should be a toggle button that can be toggled when the order is collapsed as well as when the order is expanded. When toggling it “on” there should NOT be a pop-up but when toggling it from “on” to “off”, then there should be a pop-up asking you to confirm that you want to do that mark the order as unreviewed.
+- [ ] (601, 588) This Product ID would then be pulled into the list of coils to pick from.
+- [ ] (543, 590) The check boxes to select orders to Export and Release To Production should only become available once the order has been checked as reviewed.
+- [ ] (544, 599) The Export and/or Release To Production button should only become available when you have selected at least one order to Export or Release.
+- [ ] (542, 607) Selecting “Export” needs to auto select “Release” as well, but selecting “Release” needs to only select “Release”.
+- [ ] (544, 611) Once an order(s) has been Exported and/or Released To Production, it should indicate that in the in the appropiate column. Also, the Status should change to Not Started.
+- [ ] (493, 614) This Material code comes from the coil that is connected to the Product ID that you need to rollform.
+- [ ] (540, 625) The order Status should remain Not Started until at least one line item on that order has the Status of Rolled or Wrapped. Then, the Status should change to In Progress and remain In Progress until all the line items on that order have the Status of Wrapped. This means that if a line item has Stock as its Status, the order Status will remain Not Started until that line item’s Status is changed to Wrapped or another line item on that order is marked as Rolled or Wrapped.
+- [ ] (575, 627) As soon as a Location has been added to a line item it should display it here.
+- [ ] (529, 628) If the Manger has assigned a Supplier and/or Coil Number to an order, then those need to be locked. To change them the Manager would have to go back into the order and change it there. If the Supplier and/or Coil Number is left as Undefined in the order, then we need to be able to assign one here if so desired but still remain unlocked so is can be changed it needed.
+- [ ] (493, 630) As orders are Released to Production the materials need to be added to the Queue. This Queue needs to be a list of materials (coils) that is sorted by looking at the Production Date, Color &amp; Gauge, Profile, Priority, Supplier, Coil Number and if there is a Cutlist Request or is it just coming from a coil. When all these match within Released Orders then it should combine the Linear Feet and display it as 1 row.
+- [ ] (499, 635) We need a distinct line between each Production Date.
+- [ ] (530, 641) The Queue needs to always sort by Production Date. The Manager needs to be able to drag and drop these material lines to rearrange them within there Production Date, can NOT be dragged across the “line”.
+- [ ] (575, 644) When you expand an order, you should be able to see the Status of each individual line item.
+- [ ] (541, 647) After an order has been Released To Production, then the Select Supplier / Coil Number and Create Cutlist button should disappear, and this See Packages button should appear.
+- [ ] (498, 662) Even if a line has a Priority assigned to it, the Manager still needs to be able to rearange the order of the lines.
+- [ ] (543, 662) In this window the Manager would be able to see the packages that have been created by the Worker and the locations as the Worker wraps those packages.
+- [ ] (540, 718) This would be the Manager’s view in the Production tab. The Manger would be able to go into any of the Machine tabs and have the same authority as a worker.
+- [ ] (540, 733) This would be the Manager’s view in the Wrapping tab. The Manger would be able to go into any of the Machine tabs and have the same authority as a worker.
+
+## Page 3 — Shipping (62 requirements)
+
+- [ ] (570, 171) Shipping Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
+- [ ] (1242, 183) Accessories Workers should be able to see everything from here down.
+- [ ] (1249, 187) The Worker window should just be a list of the scheduled orders. A Worker should not need to select days of the week, it needs to just be a list. This lists needs to always sort primarily by Prep Date and then have a distinct line between the different days. See example: -----&gt;
+- [ ] (1285, 195) This tab needs to primarily sort by Prep Date and then by Priority.
+- [ ] (1239, 204) The “Truck” data comes from Dispatch. If the order is not assigned to a Truck yet, then the column for that order would just stay blank. Whether the order has a Truck assigned to it or not, it makes no difference with regards to if the order can be packaged, it is just visual info.
+- [ ] (1239, 209) If the order is a Pick-up, then the Truck column would just automatically be assigned “N/A”
+- [ ] (1254, 225) Clicking an order line opens the order and only shows accessories, not line items in other Departments (categories).
+- [ ] (1230, 226) The Manager and Workers should be able to add and view Line Item Notes at any point in packaging. These notes are just within the app, they do not come from or push back to EBMS.
+- [ ] (1240, 229) It should only display the accessories for the order you are working on.
+- [ ] (562, 244) Only once you have selected a Ship Date do the check boxes for the trucks become available.
+- [ ] (586, 248) These are NOT customer pickups, these are things that a delivery driver needs to pickup for a supplier.
+- [ ] (1239, 249) When you’re working on a new order (nothing has been Packaged for this order yet), then once there is an amount in the Packaging column, then the Select Location button becomes available.
+- [ ] (1264, 249) This will show the combined weight of the accessories you are planning to package. We need to be able to set a Max Weight per package (ex. 15 lbs).
+- [ ] (1105, 253) When scheduling part of an order, the scheduled line items should not disappear. Rather, they should be greyed out and completely uneditable in the Unscheduled tab. Once all the trims are Scheduled, the order will disappear in the Unscheduled tab within the Accessories department (category).
+- [ ] (587, 259) If the Assigned Weight is over the Weight Limit, then this box gets highlighted in orange. This does NOT give any other warnings or prevent the Manager from assigning these orders to this truck because later the Manager will just have to divide up the orders into multiple loads for this truck.
+- [ ] (562, 263) Selecting a truck will auto fill the Total Weight &amp; Longest Length of the Delivery Orders and/or Pickups you had selected. Once you have selected a truck, then the Apply button becomes available.
+- [ ] (1097, 272) When viewing a partially scheduled order in the Scheduled tab, the accessories that are still unscheduled or scheduled to a different day should appear but be greyed out and completely uneditable. Also, the Status column should be blank for the unscheduled accessories.
+- [ ] (1103, 281) Once an order has been scheduled, the Status should change to Not Started.
+- [ ] (1305, 286) When the last Accessories package has been scanned onto the truck by shipping, then after 15 mins. the location becomes available again (reset).
+- [ ] (1324, 286) When only part of a line item is Packaged, then that line item’s Status needs to be In Progress. So if the Left To Package column is NOT zero but NOT equel to the Qty Ordered column, then it would show In Progress.
+- [ ] (1077, 291) The order Status should remain Not Started until at least one Package has been created for that order. Then, the Status should change to In Progress and remain In Progress until all the accessories on that order have the Status of Packaged.
+- [ ] (1103, 291) As soon as an Accessories Location has been added to an order it should display it here.
+- [ ] (1069, 296) The Manager and Workers should be able to add and view Line Item Notes at any point. These notes are just within the app, they do not come from or push back to EBMS.
+- [ ] (1265, 296) The Order Complete button should only become available once the 1 st package has been created.
+- [ ] (1080, 304) When you expand an order, you should be able to see the Status of each individual accessory.
+- [ ] (1079, 307) If part of a line item is packaged, then the status needs to show In Progress. Example: If 2 out of these 4 bags of screws are packaged, then is needs to show In Progress.
+- [ ] (617, 308) If the weight in these boxes are over the Weight Limit of the Truck, then the boxes should be highlighted in orange.
+- [ ] (616, 310) This would show how many Delivery Orders have been scheduled for each truck for the selected day, and the total weight of those order.
+- [ ] (617, 311) This would show how many Pickups have been scheduled for each truck for the selected day, and the total weight of those pickups. These are NOT customer pickups, these are things that a delivery driver needs to pickup for a supplier.
+- [ ] (616, 313) This would show how many of the Delivery Orders that are scheduled for each truck that are NOT assigned to a Load yet, and the total weight of those order.
+- [ ] (616, 315) This would show how many of the Pickups that are scheduled for each truck that are NOT assigned to a Load yet, and the total weight of those order. These are NOT customer pickups, these are things that a delivery driver needs to pickup for a supplier.
+- [ ] (617, 317) When these are zero, then the boxes should be highlighted in green showing that everything is assigned to a Load.
+- [ ] (596, 319) Clicking on a this button would open up a drop down of all the orders that are scheduled for that truck for the selected day
+- [ ] (1239, 320) Once the Left To Package column is zero, then that line item’s Status needs to automatically change to Packaged and the Auto Fill button needs to grey out.
+- [ ] (616, 324) The Status for each order would be blank until the orders are released to loading.
+- [ ] (594, 325) We need a Select All check box, which would select all the order that have not been assigned to a load.
+- [ ] (592, 338) We need to be able to expand &amp; collapse orders, view the map, check &amp; deal with notes and set Priorities without losing the orders we’ve selected.
+- [ ] (591, 341) Once you have selected at least one order, then the Add To Load button &amp; Reschedule button should become available.
+- [ ] (616, 344) As you select orders, the Total Weight Selected needs to keep updating.
+- [ ] (1271, 348) Overdue Accessories to be packaged need to be highlighted in red.
+- [ ] (1270, 349) Example: If it is Thursday, May 09/2024 and there are Accessories from Wednesday, May 08/2024 that are not packaged yet, then we need those Wednesday Orders to be highlighted as overdue.
+- [ ] (1076, 350) This would be the Manager’s view in the Accessories Packaging tab. The Manger would have the same authority as a worker.
+- [ ] (1263, 354) Once the Worker is satisfied with everything on the order then he would click the Order Complete button. He would get a pop-up to confirm this action. Once confirmed the order disappears from the Packaging tab and appears in the Completed Orders tab.
+- [ ] (591, 357) Clicking the Add To Load button would cause a few things to happen:
+- [ ] (598, 357) Clicking the Add To Load button would assign the selected orders to that load
+- [ ] (592, 359) The selected orders would be assigned to that load. The total weight of the orders assigned to that load would be displayed in the load tab. A status of Unreleased would appear in the load tab. The load number (L-1 in this case) would replace the order check boxes. Another load tab would appear (Load 2 in this case) The Total # and Total Weight for Delivery Orders would update The Total Weight for Selected Orders would update
+- [ ] (1199, 368) If the line item that was in the deleted package had a Status of Packaged already, then after deleting, that Status would have to change back to Not Started again. If some of that line item is still packaged, then it would have to change back to In Progress.
+- [ ] (1239, 390) Within the Completed Orders tab we need to be able to see a list of the line items ordered and a list of the packages that were created for this order and what was put into each package.
+- [ ] (605, 397) Clicking on a Load tab would show the orders assigned to that Load
+- [ ] (617, 441) The sequence of these orders determines which order to deliver 1 st , 2 nd , 3 rd , etc. and shows that route on the map. We need to be able to drag these orders up &amp; down to change the order that they will be delivered.
+- [ ] (598, 468) Clicking the Release To Loading button would make the Load show up in the Loading window and change the Load and order Status’s to Not Started
+- [ ] (592, 489) As soon as the first package of any of the orders on this Load are marked as Loaded, then the Load Status would change to Loading.
+- [ ] (592, 492) As soon as the first package is marked as loaded onto the truck, then the order Status would change to Loading.
+- [ ] (592, 507) Once ALL the packages for an order are marked as Loaded, then the order Status would change to Loaded. The Load Status would still show Loading because not ALL of the packages for ALL of the orders on this Load are loaded yet.
+- [ ] (592, 523) Once ALL the packages for ALL the order on this Load are marked as Loaded, then the Load Status would change to Loaded.
+- [ ] (592, 540) When the Driver checks off that he has left the warehouse, then the Load Status and all the order Status’s would change to En Route.
+- [ ] (592, 543) As soon as a Load is En Route, then the check boxes for the orders become unavailable.
+- [ ] (592, 558) Once an order has been Delivered, then the order Status would change to Delivered. The Load Status would still show En Route because not ALL of the orders on this Load have been delivered yet.
+- [ ] (592, 574) Once ALL the order has been Delivered, then the Load Status would change to Delivered.
+- [ ] (617, 591) It is Friday and there are orders that were scheduled for Thursday that are not delivered yet (overdue). The Thursday tab should then be highlighted in red
+- [ ] (593, 606) When you click on the day that has overdue orders within it, then you would see the Truck and the Load that is overdue highlighted in red.
+- [ ] (605, 628) Here you would see the orders that are overdue highlighted in red.

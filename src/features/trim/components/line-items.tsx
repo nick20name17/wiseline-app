@@ -243,9 +243,14 @@ const SubHead = ({
           </span>
         ) : null}
       </span>
+      {/*
+        The prototype spends `uns-split-<id>` on the split indicator in the order row, and both are on
+        screen at once — a comment anchored to «uns-split-1» could not say which it meant, so the
+        button this port adds carries its own name.
+      */}
       <button
         className='btn btn-sm'
-        data-comment={`uns-split-${order.id}`}
+        data-comment={`uns-splitbtn-${order.id}`}
         disabled={!splitCount}
         onClick={() =>
           openSchedule({
