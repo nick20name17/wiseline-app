@@ -77,25 +77,38 @@ export const CompletedDetail = ({
                     </tr>
                   </thead>
                   <tbody data-comment='compdetail-li-tbody'>
-                    {order.lineItems.map((item, index) => (
-                      <tr data-comment={`compdetail-li-${index}`} key={item.id}>
-                        <td className='mono' data-comment={`compdetail-li-pid-${index}`}>
-                          {item.productId}
-                        </td>
-                        <td className='trunc' data-comment={`compdetail-li-desc-${index}`}>
-                          {item.description}
-                        </td>
-                        <td className='mono' data-comment={`compdetail-li-qty-${index}`}>
-                          {item.qty}
-                        </td>
-                        <td className='mono' data-comment={`compdetail-li-stock-${index}`}>
-                          {item.fromStock ? item.fromStock : <span className='subtle'>—</span>}
-                        </td>
-                        <td className='mono' data-comment={`compdetail-li-mfg-${index}`}>
-                          {Math.max(0, item.qty - (item.fromStock || 0))}
-                        </td>
-                      </tr>
-                    ))}
+                    {order.lineItems.map((item, index) => {
+                      /**
+                       * #112: what was *made*, not what was owed. A stock order's figure is the one
+                       * the Worker entered when the manufacturing batch was created — it can be short
+                       * of the order, or over it — so the derived «ordered minus stock» is only right
+                       * for a customer order, where everything not pulled from stock was manufactured.
+                       */
+                      const made =
+                        order.type === 'stock'
+                          ? (item.qtyManufactured ?? 0)
+                          : Math.max(0, item.qty - (item.fromStock || 0))
+
+                      return (
+                        <tr data-comment={`compdetail-li-${index}`} key={item.id}>
+                          <td className='mono' data-comment={`compdetail-li-pid-${index}`}>
+                            {item.productId}
+                          </td>
+                          <td className='trunc' data-comment={`compdetail-li-desc-${index}`}>
+                            {item.description}
+                          </td>
+                          <td className='mono' data-comment={`compdetail-li-qty-${index}`}>
+                            {item.qty}
+                          </td>
+                          <td className='mono' data-comment={`compdetail-li-stock-${index}`}>
+                            {item.fromStock ? item.fromStock : <span className='subtle'>—</span>}
+                          </td>
+                          <td className='mono' data-comment={`compdetail-li-mfg-${index}`}>
+                            {made}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
