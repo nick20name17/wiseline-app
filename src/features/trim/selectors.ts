@@ -1,5 +1,6 @@
 import { isWorkDay } from '@/store/shared/settings'
 
+import { lineDay, lineReleased, parsePartKey } from './parts'
 import { RANK, TODAY, trimStore } from './store'
 
 import type { LineItem, Location, Note, Order, Priority, Reman } from './types'
@@ -26,12 +27,15 @@ export const qtyToMake = (item: LineItem) => Math.max(0, item.qty - (item.fromSt
 
 export const lineBends = (item: LineItem) => qtyToMake(item) * (BENDS_PER[item.productId] || 1)
 
-/**
- * The production day of a single line (#172). Only a split order carries per-line dates; a plain
- * order's lines all follow the order's own date. `null` means still unscheduled.
- */
-export const lineDay = (order: Order, item: LineItem) =>
-  item.scheduledDate || (order.isSplit ? null : order.productionDate)
+export {
+  isReleased,
+  isReviewed,
+  lineDay,
+  lineReleased,
+  parsePartKey,
+  partDays,
+  partKey
+} from './parts'
 
 /**
  * An order stays in Unscheduled while *any* of its lines has no day — so a split order whose remaining
@@ -142,22 +146,27 @@ export const ventedOf = (item: LineItem) => Math.min(item.vented || 0, qtyToMake
 /** A line needs a machine only if there is something left to manufacture. */
 export const needsMachine = (item: LineItem) => qtyToMake(item) > 0
 
-export const allMachinesAssigned = (order: Order) =>
-  order.lineItems.every(item => !needsMachine(item) || item.machineId)
+/** #6: with a day, only that part's lines are the gate — the other part is a separate order. */
+export const allMachinesAssigned = (order: Order, day?: string | null) =>
+  order.lineItems
+    .filter(item => !day || lineDay(order, item) === day)
+    .every(item => !needsMachine(item) || item.machineId)
 
 /** N-019/020/021/037. Empty is a real value: nothing is claimed about a line before release. */
 export const lineStatus = (order: Order, item: LineItem) => {
   if (item.status) return item.status
   if ((item.fromStock || 0) >= item.qty) return 'stock'
-  if (order.released) return 'not_started'
+  if (lineReleased(order, item)) return 'not_started'
   return ''
 }
 
-export const productionStatus = (order: Order) => {
+/** #6: with a day, only that part's lines decide its status. */
+export const productionStatus = (order: Order, day?: string | null) => {
   const statusOf = (item: LineItem) => item.status || lineStatus(order, item)
-  if (order.lineItems.every(item => statusOf(item) === 'wrapped')) return 'complete'
-  if (order.lineItems.some(item => ['cut', 'bent', 'wrapped'].includes(statusOf(item))))
-    return 'in_progress'
+  const lines = day ? order.lineItems.filter(item => lineDay(order, item) === day) : order.lineItems
+  if (!lines.length) return 'not_started'
+  if (lines.every(item => statusOf(item) === 'wrapped')) return 'complete'
+  if (lines.some(item => ['cut', 'bent', 'wrapped'].includes(statusOf(item)))) return 'in_progress'
   return 'not_started'
 }
 
@@ -186,7 +195,8 @@ export const releaseType = () => {
   const state = trimStore.get()
   const [first] = state.releaseIds
   if (first === undefined) return null
-  return state.orders.find(order => order.id === first)?.type ?? null
+  const { orderId } = parsePartKey(first)
+  return state.orders.find(order => order.id === orderId)?.type ?? null
 }
 
 export const completedOrders = () => {

@@ -235,14 +235,18 @@ export const pickLocation = (
  * Switching it on is a claim the Manager is making and can retract; switching it off retracts one
  * other people may already be acting on, because a reviewed order is what the release list offers.
  */
-export const requestToggleReviewed = (order: { id: number; order: string; reviewed: boolean }) => {
-  if (!order.reviewed) return setReviewed(order.id, true)
+export const requestToggleReviewed = (
+  order: { id: number; order: string },
+  day: string,
+  reviewed: boolean
+) => {
+  if (!reviewed) return setReviewed(order.id, day, true)
 
   askConfirm(
     'Turn off Reviewed?',
     `Order ${order.order} will no longer be selectable for release.`,
     () => {
-      setReviewed(order.id, false)
+      setReviewed(order.id, day, false)
       closeConfirm()
     }
   )

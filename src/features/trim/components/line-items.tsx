@@ -5,7 +5,15 @@ import { useStore } from '@/store/create-store'
 import { usePopover } from '@/components/shell/pop'
 
 import { fmtDate } from '../format'
-import { lineDay, machineById, noteState, qtyToMake, ventedOf } from '../selectors'
+import {
+  isReleased,
+  lineDay,
+  lineReleased,
+  machineById,
+  noteState,
+  qtyToMake,
+  ventedOf
+} from '../selectors'
 import {
   setFromStock,
   setLineField,
@@ -93,7 +101,7 @@ const VentCell = ({
         —
       </span>
     )
-  if (order.released)
+  if (lineReleased(order, item))
     return vented ? (
       <span className='mono' data-comment={`${ctx}-ventro-${item.id}`}>
         {vented}
@@ -176,12 +184,20 @@ const MachineCell = ({
  * The header above the lines. On Unscheduled it is the split control; on Scheduled it is the two
  * actions a Manager still has before Release (N-041/042), and after Release it is nothing at all.
  */
-const SubHead = ({ order, ctx }: { order: Order; ctx: Context }) => {
+const SubHead = ({
+  order,
+  ctx,
+  activeDay
+}: {
+  order: Order
+  ctx: Context
+  activeDay?: string | null
+}) => {
   const splitOrderId = useStore(trimStore, state => state.splitOrderId)
   const selectedLineIds = useStore(trimStore, state => state.selectedLineIds)
 
   if (ctx === 'sch') {
-    if (order.released) return null
+    if (isReleased(order, activeDay)) return null
 
     return (
       <div className='subhead' data-comment={`sch-subhead-${order.id}`}>
@@ -281,7 +297,7 @@ export const LineItemsSubrow = ({
         <div className='subwrap' data-comment={`${ctx}-subwrap-${order.id}`}>
           {popNode}
           {/* #202: the owner caption is gone — the accent rail ties the rows to their order */}
-          <SubHead order={order} ctx={ctx} />
+          <SubHead order={order} ctx={ctx} activeDay={activeDay} />
 
           <table className='sub' data-comment={`${ctx}-litable-${order.id}`}>
             <thead>
@@ -320,7 +336,7 @@ export const LineItemsSubrow = ({
                 const otherDay = isScheduled && !!activeDay && lineDay(order, item) !== activeDay
                 const locked = (!isScheduled && !!item.scheduledDate) || otherDay
                 // #165: description and width stay editable while the order is under review
-                const editable = isScheduled && !order.released && !otherDay
+                const editable = isScheduled && !lineReleased(order, item) && !otherDay
 
                 return (
                   <tr

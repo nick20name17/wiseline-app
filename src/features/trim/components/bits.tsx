@@ -4,7 +4,14 @@ import { useStore } from '@/store/create-store'
 
 import { usePopover } from '@/components/shell/pop'
 
-import { lineStatus, noteState, priorityById, productionStatus } from '../selectors'
+import {
+  isReleased,
+  isReviewed,
+  lineStatus,
+  noteState,
+  priorityById,
+  productionStatus
+} from '../selectors'
 import { setPriority, trimStore } from '../store'
 import { openNotes, requestToggleReviewed } from '../ui'
 
@@ -162,9 +169,12 @@ const ORDER_STATUS: Record<string, [string, string]> = {
   complete: ['st-wrapped', 'Complete']
 }
 
-/** N-019: Status stays empty until Release — no invented pre-release chip. */
-export const OrderStatusPill = ({ order }: { order: Order }) => {
-  if (!order.released)
+/**
+ * N-019: Status stays empty until Release — no invented pre-release chip.
+ * #6: with a day, it is that part's status; the other half of a split order answers for itself.
+ */
+export const OrderStatusPill = ({ order, day }: { order: Order; day?: string | null }) => {
+  if (!isReleased(order, day))
     return (
       <span
         className='subtle'
@@ -175,7 +185,7 @@ export const OrderStatusPill = ({ order }: { order: Order }) => {
       </span>
     )
 
-  const production = productionStatus(order)
+  const production = productionStatus(order, day)
 
   if (order.bypassed && production !== 'complete')
     return (
@@ -199,7 +209,17 @@ export const OrderStatusPill = ({ order }: { order: Order }) => {
  * Gate 1 (N-026): Reviewed cannot be switched on until every line that has to be made has a machine,
  * and the hint says which of the four gates is holding the order rather than leaving a dead control.
  */
-export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean }) => {
+export const ReviewedToggle = ({
+  order,
+  day,
+  gate1
+}: {
+  order: Order
+  day: string
+  gate1: boolean
+}) => {
+  const reviewed = isReviewed(order, day)
+
   if (order.bypassed)
     return (
       <span
@@ -210,7 +230,7 @@ export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean 
         N/A
       </span>
     )
-  if (order.released)
+  if (isReleased(order, day))
     return (
       <span className='status st-notstarted' data-comment={`sch-revlock-${order.id}`}>
         Reviewed
@@ -220,13 +240,13 @@ export const ReviewedToggle = ({ order, gate1 }: { order: Order; gate1: boolean 
   return (
     <span className='switch-wrap' data-comment={`sch-revwrap-${order.id}`}>
       <button
-        className={`switch ${order.reviewed ? 'on' : ''}`}
+        className={`switch ${reviewed ? 'on' : ''}`}
         data-comment={`sch-revtoggle-${order.id}`}
         disabled={!gate1}
         aria-label='Reviewed'
         onClick={event => {
           event.stopPropagation()
-          requestToggleReviewed(order)
+          requestToggleReviewed(order, day, reviewed)
         }}
       />
       {gate1 ? null : (

@@ -7,7 +7,7 @@ import { useStore } from '@/store/create-store'
 import { useColumnOrder, type Column } from '@/components/shell/column-order'
 
 import { fmtDate } from '../format'
-import { isOverdue, lineDay, lineStatus, noteState, priorityById } from '../selectors'
+import { isOverdue, lineDay, lineReleased, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
 import { showToast } from '../ui'
 import { EmptyState } from './bits'
@@ -62,7 +62,9 @@ export const Wrapping = () => {
   const { orders, remans } = useStore(trimStore, current => current)
   const [drillOrderId, setDrillOrderId] = useState<number | null>(null)
 
-  const released = orders.filter(order => order.released && !order.completed)
+  // #6: an order reaches Wrapping part by part — a released day's lines are here while the other
+  // half of a split order may still be under review
+  const released = orders.filter(order => order.releasedDays.length && !order.completed)
 
   // an order that is completed or unreleased while its detail is open drops back to the list
   const drilled = released.find(order => order.id === drillOrderId)
@@ -94,9 +96,10 @@ export const Wrapping = () => {
 
   const rows: Row[] = []
   for (const order of released)
-    order.lineItems.forEach((item, index) =>
+    order.lineItems.forEach((item, index) => {
+      if (!lineReleased(order, item)) return
       rows.push({ order, item, index, day: lineDay(order, item) || order.productionDate || '' })
-    )
+    })
 
   /**
    * #202: production date, then priority, then product id. Ascending date already floats the overdue

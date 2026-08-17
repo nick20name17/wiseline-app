@@ -5,6 +5,7 @@ import { unclaimedStockOrders, type PendingStockOrder } from '@/store/shared/sto
 import { withPublishedCaps } from '@/store/shared/settings'
 
 import { PRODUCT_CATALOG } from './catalog'
+import { isReleased, isReviewed, lineDay, parsePartKey, partKey } from './parts'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
@@ -25,8 +26,32 @@ export const DEPARTMENT = 'Trim'
  * `tools/port/dump-seed.ts`. Machine capacities are the one part of it Settings may have overridden
  * since, so they are re-read on load exactly as the prototype re-reads them.
  */
+/**
+ * #6: the dump still carries the prototype's whole-order `reviewed` / `released` booleans, and the seed
+ * is never retyped by hand, so the split into per-day parts happens here on the way in. An order the
+ * prototype had reviewed is one whose every day was reviewed.
+ */
+const withParts = (state: TrimState): TrimState => ({
+  ...state,
+  orders: state.orders.map(order => {
+    const legacy = order as unknown as { reviewed?: boolean; released?: boolean }
+    const days = new Set<string>()
+    for (const item of order.lineItems) {
+      const day = item.scheduledDate || (order.isSplit ? null : order.productionDate)
+      if (day) days.add(day)
+    }
+    const all = [...days].sort()
+
+    return {
+      ...order,
+      reviewedDays: order.reviewedDays ?? (legacy.reviewed ? all : []),
+      releasedDays: order.releasedDays ?? (legacy.released ? all : [])
+    }
+  })
+})
+
 export const trimStore = createStore<TrimState>({
-  ...(seed as unknown as TrimState),
+  ...withParts(seed as unknown as TrimState),
   // not in the dump: the prototype keeps its open cards outside the store
   expandedBatches: [],
   // #214: what the operator typed against a row, keyed the way the prototype keys it
@@ -68,16 +93,17 @@ export const clearPeekDay = () => trimStore.set({ peekDay: null })
 export const setScheduledDay = (scheduledDay: string) =>
   trimStore.set({ scheduledDay, releaseIds: [] })
 
-/** Gate 3 (N-026): an order can only be picked for release once it has been Reviewed. */
-export const toggleRelease = (orderId: number) =>
+/** Gate 3 (N-026): a part can only be picked for release once *that part* has been Reviewed (#6). */
+export const toggleRelease = (orderId: number, day: string) =>
   trimStore.set(state => {
     const order = state.orders.find(candidate => candidate.id === orderId)
-    if (!order || order.released || !order.reviewed) return {}
+    if (!order || isReleased(order, day) || !isReviewed(order, day)) return {}
 
+    const key = partKey(orderId, day)
     return {
-      releaseIds: state.releaseIds.includes(orderId)
-        ? state.releaseIds.filter(id => id !== orderId)
-        : [...state.releaseIds, orderId]
+      releaseIds: state.releaseIds.includes(key)
+        ? state.releaseIds.filter(candidate => candidate !== key)
+        : [...state.releaseIds, key]
     }
   })
 
@@ -176,7 +202,7 @@ export const rescheduleOrder = (orderId: number, iso: string) =>
             ...order,
             productionDate: iso,
             priorityId: null,
-            reviewed: false,
+            reviewedDays: [],
             isSplit: false,
             lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: iso }))
           }
@@ -192,7 +218,7 @@ export const unscheduleOrder = (orderId: number) =>
             ...order,
             productionDate: null,
             isSplit: false,
-            reviewed: false,
+            reviewedDays: [],
             priorityId: null,
             lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: null }))
           }
@@ -208,7 +234,8 @@ export const bypassProduction = (orderIds: number[]) =>
         ? {
             ...order,
             bypassed: true,
-            released: true,
+            // straight to Wrapping: the one day it now has is released
+            releasedDays: [TODAY],
             productionDate: TODAY,
             isSplit: false,
             lineItems: order.lineItems.map(item => ({
@@ -450,8 +477,8 @@ const orderFromPending = (pending: PendingStockOrder) => ({
   entryDate: pending.entryDate ?? TODAY,
   shipDate: null,
   priorityId: null,
-  reviewed: false,
-  released: false,
+  reviewedDays: [],
+  releasedDays: [],
   productionDate: null,
   isSplit: false,
   notes: [],
@@ -509,8 +536,8 @@ export const createStockOrder = (rows: { qty: number; pid: string; desc: string 
         entryDate: TODAY,
         shipDate: null,
         priorityId: null,
-        reviewed: false,
-        released: false,
+        reviewedDays: [],
+        releasedDays: [],
         productionDate: null,
         isSplit: false,
         notes: [],
@@ -574,11 +601,25 @@ export const setVented = (orderId: number, lineId: number, value: number) =>
     }))
   )
 
-/** Un-reviewing also drops the order from the release selection — it is no longer eligible for it. */
-export const setReviewed = (orderId: number, reviewed: boolean) =>
+/**
+ * Un-reviewing also drops that part from the release selection — it is no longer eligible for it.
+ * #6: the review belongs to one production day, so the other half of a split order keeps its own.
+ */
+export const setReviewed = (orderId: number, day: string, reviewed: boolean) =>
   trimStore.set(state => ({
-    orders: state.orders.map(order => (order.id === orderId ? { ...order, reviewed } : order)),
-    releaseIds: reviewed ? state.releaseIds : state.releaseIds.filter(id => id !== orderId)
+    orders: state.orders.map(order =>
+      order.id === orderId
+        ? {
+            ...order,
+            reviewedDays: reviewed
+              ? [...new Set([...order.reviewedDays, day])]
+              : order.reviewedDays.filter(candidate => candidate !== day)
+          }
+        : order
+    ),
+    releaseIds: reviewed
+      ? state.releaseIds
+      : state.releaseIds.filter(candidate => candidate !== partKey(orderId, day))
   }))
 
 /**
@@ -595,19 +636,26 @@ export const releaseToProduction = () => {
   const state = trimStore.get()
   if (!state.releaseIds.length) return null
 
-  const releasing = state.orders.filter(order => state.releaseIds.includes(order.id))
-  if (!releasing.every(order => order.reviewed)) return null
+  const picks = state.releaseIds.map(parsePartKey)
+  const releasing = picks.flatMap(({ orderId, day }) => {
+    const order = state.orders.find(candidate => candidate.id === orderId)
+    return order && isReviewed(order, day) ? [{ order, day }] : []
+  })
+  if (releasing.length !== picks.length) return null
 
   const groups = new Map<string, TrimState['cutlists'][number]>()
 
-  for (const order of releasing)
+  // #6: the cutlist a line joins is keyed by *its own* day — releasing one half of a split order must
+  // not drag the other half's lines onto this day's list
+  for (const { order, day } of releasing)
     for (const item of order.lineItems) {
+      if (lineDay(order, item) !== day) continue
       if (item.qty - (item.fromStock || 0) <= 0) continue
 
-      const key = `${order.productionDate}|${item.gaugeColour}|${order.priorityId || 0}`
+      const key = `${day}|${item.gaugeColour}|${order.priorityId || 0}`
       const group = groups.get(key) ?? {
         id: key,
-        date: order.productionDate as string,
+        date: day,
         gaugeColour: item.gaugeColour,
         priorityId: order.priorityId,
         members: [],
@@ -621,21 +669,26 @@ export const releaseToProduction = () => {
 
   const stamp = Date.now()
   const cutlists = [...groups.values()].map(group => ({ ...group, id: `${group.id}|${stamp}` }))
+  const daysByOrder = new Map<number, string[]>()
+  for (const { order, day } of releasing)
+    daysByOrder.set(order.id, [...(daysByOrder.get(order.id) ?? []), day])
 
   trimStore.set(current => ({
-    orders: current.orders.map(order =>
-      !current.releaseIds.includes(order.id)
-        ? order
-        : {
-            ...order,
-            released: true,
-            // N-037: a line covered entirely by stock is already done; the rest starts at the beginning
-            lineItems: order.lineItems.map(item => ({
-              ...item,
-              status: (item.fromStock || 0) >= item.qty ? 'stock' : 'not_started'
-            }))
-          }
-    ),
+    orders: current.orders.map(order => {
+      const days = daysByOrder.get(order.id)
+      if (!days) return order
+
+      return {
+        ...order,
+        releasedDays: [...new Set([...order.releasedDays, ...days])],
+        // N-037: a line covered entirely by stock is already done; the rest starts at the beginning
+        lineItems: order.lineItems.map(item =>
+          days.includes(lineDay(order, item) ?? '')
+            ? { ...item, status: (item.fromStock || 0) >= item.qty ? 'stock' : 'not_started' }
+            : item
+        )
+      }
+    }),
     cutlists: [...current.cutlists, ...cutlists],
     releaseIds: []
   }))

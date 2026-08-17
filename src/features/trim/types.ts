@@ -54,8 +54,12 @@ export type Order = {
   entryDate: string
   shipDate: string | null
   priorityId: number | null
-  reviewed: boolean
-  released: boolean
+  /**
+   * #6: review and release are per production day, because a split order's two halves are two
+   * separate orders to everyone downstream. A plain order has exactly one day in here.
+   */
+  reviewedDays: string[]
+  releasedDays: string[]
   productionDate: string | null
   /** True when the order's lines sit on more than one day. */
   isSplit: boolean
@@ -118,7 +122,8 @@ export type TrimState = {
   splitOrderId: number | null
   scheduledDay: string | null
   peekDay: string | null
-  releaseIds: number[]
+  /** `${orderId}|${day}` — a release is picked per part, not per order (#6). */
+  releaseIds: string[]
   activeMachine: number | null
   expandedCoilGroups: string[]
   prodMode: string

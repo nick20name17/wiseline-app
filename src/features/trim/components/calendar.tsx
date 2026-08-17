@@ -12,6 +12,8 @@ import {
   priorityById,
   scheduledDays,
   scheduledOrders,
+  isReleased,
+  isReviewed,
   totalDailyCap
 } from '../selectors'
 import { setScheduledDay, TODAY, trimStore } from '../store'
@@ -216,7 +218,7 @@ export const Calendar = () => {
                     className='caltab-dayrow-state'
                     data-comment={`cal-dayrow-state-${order.id}`}
                   >
-                    {order.released ? 'Released' : order.reviewed ? 'Reviewed' : 'Scheduled'}
+                    {isReleased(order) ? 'Released' : isReviewed(order) ? 'Reviewed' : 'Scheduled'}
                   </span>
                 </button>
               )

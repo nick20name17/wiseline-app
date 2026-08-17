@@ -25,7 +25,8 @@ const allocatedRows = (orders: Order[]) => {
   >()
 
   for (const order of orders) {
-    if (!order.reviewed) continue
+    // #6: one reviewed part is enough — the allocation is read off the lines, not the order
+    if (!order.reviewedDays.length) continue
 
     for (const item of order.lineItems) {
       const qty = item.fromStock || 0

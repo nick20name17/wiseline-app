@@ -19,6 +19,11 @@ import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { fmtDate } from '../format'
 import {
   allMachinesAssigned,
+  isReleased,
+  isReviewed,
+  parsePartKey,
+  partDays,
+  partKey,
   isOverdue,
   lineDay,
   nextWorkDays,
@@ -173,10 +178,10 @@ const DayTabs = ({
  * Gate 3 (N-026): the release checkbox appears only once an order is Reviewed. Before that it is a
  * dash with the reason, and after release it is the icon saying the order has already gone.
  */
-const SelectCell = ({ order, locked }: { order: Order; locked: boolean }) => {
+const SelectCell = ({ order, day, locked }: { order: Order; day: string; locked: boolean }) => {
   const releaseIds = useStore(trimStore, state => state.releaseIds)
 
-  if (order.released)
+  if (isReleased(order, day))
     return (
       <span
         className='released-ico'
@@ -187,7 +192,7 @@ const SelectCell = ({ order, locked }: { order: Order; locked: boolean }) => {
       </span>
     )
 
-  if (!order.reviewed)
+  if (!isReviewed(order, day))
     return (
       <span className='subtle' title='Mark Reviewed to select' style={{ fontSize: '11px' }}>
         —
@@ -199,9 +204,9 @@ const SelectCell = ({ order, locked }: { order: Order; locked: boolean }) => {
       type='checkbox'
       className='chk'
       data-comment={`sch-relchk-${order.id}`}
-      checked={releaseIds.includes(order.id)}
+      checked={releaseIds.includes(partKey(order.id, day))}
       disabled={locked}
-      onChange={() => toggleRelease(order.id)}
+      onChange={() => toggleRelease(order.id, day)}
     />
   )
 }
@@ -235,23 +240,34 @@ export const Scheduled = () => {
   const { days, active } = dayTabs(scheduledDay)
   const isAll = active === 'all'
 
-  const dayOrders = scheduledOrders(orders)
-    .filter(
-      order =>
-        (isAll || order.lineItems.some(item => lineDay(order, item) === active)) &&
-        orderMatchesSearch(order)
+  /**
+   * #6: the tab lists *parts*, not orders. A day tab shows the one part that sits on it; «All
+   * Scheduled Orders» shows every part, so a split order appears once per day it has work on —
+   * which is what «each part acts as a completely separate order» looks like in a list.
+   */
+  const dayParts = scheduledOrders(orders)
+    .filter(orderMatchesSearch)
+    .flatMap(order =>
+      partDays(order)
+        .filter(day => isAll || day === active)
+        .map(day => ({ order, day }))
     )
     .sort((a, b) =>
-      isAll && a.productionDate !== b.productionDate
-        ? (a.productionDate ?? '').localeCompare(b.productionDate ?? '')
-        : sortScheduled(a, b)
+      isAll && a.day !== b.day ? a.day.localeCompare(b.day) : sortScheduled(a.order, b.order)
     )
 
   const relType = releaseType()
-  const selected = releaseIds.filter(id => dayOrders.some(order => order.id === id))
-  // the 4-gate: releasing needs every selected order Reviewed, not just one of them
+  const selected = releaseIds.filter(key =>
+    dayParts.some(part => partKey(part.order.id, part.day) === key)
+  )
+  // the 4-gate: releasing needs every selected part Reviewed, not just one of them
   const allSelectedReviewed =
-    selected.length > 0 && selected.every(id => dayOrders.find(order => order.id === id)?.reviewed)
+    selected.length > 0 &&
+    selected.every(key => {
+      const { orderId, day } = parsePartKey(key)
+      const order = orders.find(candidate => candidate.id === orderId)
+      return !!order && isReviewed(order, day)
+    })
 
   const toolbar = (
     <div className='toolbar' data-comment='sch-toolbar'>
@@ -263,8 +279,8 @@ export const Scheduled = () => {
           </>
         ) : (
           <>
-            <b>{dayOrders.length}</b> {isAll ? 'scheduled ' : ''}order
-            {dayOrders.length === 1 ? '' : 's'}
+            <b>{dayParts.length}</b> {isAll ? 'scheduled ' : ''}order
+            {dayParts.length === 1 ? '' : 's'}
             {isAll ? '' : ` on ${fmtDate(active)}`}
           </>
         )}
@@ -314,7 +330,7 @@ export const Scheduled = () => {
       <DayTabs days={days} active={active} scheduledCount={scheduledOrders(orders).length} />
       {toolbar}
 
-      {dayOrders.length === 0 ? (
+      {dayParts.length === 0 ? (
         <EmptyState
           title='No matching orders'
           text={
@@ -334,21 +350,27 @@ export const Scheduled = () => {
               </tr>
             </thead>
             <tbody data-comment='sch-tbody'>
-              {dayOrders.map(order => {
+              {dayParts.map(({ order, day }) => {
                 const expanded = expandedIds.includes(order.id)
-                const relSelected = releaseIds.includes(order.id)
+                const relSelected = releaseIds.includes(partKey(order.id, day))
                 const mutexLocked = !!relType && order.type !== relType && !relSelected
                 /**
                  * #211: releasing does not clear overdue. The rule is production date before today and
                  * not Done, and completed orders have already left this tab.
                  */
-                const overdue = isOverdue(order.productionDate)
+                // #6: the part's own day is what can be late, not the order's earliest
+                const overdue = isOverdue(day)
+                /**
+                 * A split order is two rows, so the anchor has to tell them apart — but an unsplit
+                 * order keeps the plain `sch-row-<id>` its review comments are joined to.
+                 */
+                const rowKey = order.isSplit ? `${order.id}-${day}` : `${order.id}`
 
                 return (
-                  <Fragment key={order.id}>
+                  <Fragment key={partKey(order.id, day)}>
                     <tr
                       className={`row-order ${relSelected ? 'selected' : ''}${overdue ? ' overdue' : ''}${expanded ? ' is-expanded' : ''}`}
-                      data-comment={`sch-row-${order.id}`}
+                      data-comment={`sch-row-${rowKey}`}
                       style={{ cursor: 'pointer' }}
                       onClick={event => {
                         if (
@@ -361,7 +383,7 @@ export const Scheduled = () => {
                       }}
                     >
                       <td data-comment={`sch-sel-${order.id}`}>
-                        <SelectCell order={order} locked={mutexLocked} />
+                        <SelectCell order={order} day={day} locked={mutexLocked} />
                       </td>
                       <td>
                         <button
@@ -397,12 +419,12 @@ export const Scheduled = () => {
                                 }}
                               />
                             ) : null}
-                            {order.released ? (
+                            {isReleased(order, day) ? (
                               <span
                                 className='cell-num muted'
                                 data-comment={`sch-proddate-ro-${order.id}`}
                               >
-                                {fmtDate(order.productionDate)}
+                                {fmtDate(day)}
                               </span>
                             ) : (
                               <button
@@ -464,7 +486,11 @@ export const Scheduled = () => {
                         ),
                         reviewed: (
                           <td data-col='reviewed' data-comment={`sch-rev-${order.id}`}>
-                            <ReviewedToggle order={order} gate1={allMachinesAssigned(order)} />
+                            <ReviewedToggle
+                              order={order}
+                              day={day}
+                              gate1={allMachinesAssigned(order, day)}
+                            />
                           </td>
                         ),
                         status: (
@@ -489,10 +515,8 @@ export const Scheduled = () => {
                       })}
                     </tr>
 
-                    {/* on «All Scheduled Orders» there is no single active day, so no line is elsewhere (#172) */}
-                    {expanded ? (
-                      <LineItemsSubrow order={order} ctx='sch' activeDay={isAll ? null : active} />
-                    ) : null}
+                    {/* #6: a row is one part, so its own day is the active one even on «All» */}
+                    {expanded ? <LineItemsSubrow order={order} ctx='sch' activeDay={day} /> : null}
                   </Fragment>
                 )
               })}
