@@ -5,7 +5,7 @@ import { unclaimedStockOrders, type PendingStockOrder } from '@/store/shared/sto
 import { withPublishedCaps } from '@/store/shared/settings'
 
 import { PRODUCT_CATALOG } from './catalog'
-import { isReleased, isReviewed, lineDay, parsePartKey, partKey } from './parts'
+import { isReleased, isReviewed, lineDay, parsePartKey, partDays, partKey } from './parts'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
@@ -35,12 +35,7 @@ const withParts = (state: TrimState): TrimState => ({
   ...state,
   orders: state.orders.map(order => {
     const legacy = order as unknown as { reviewed?: boolean; released?: boolean }
-    const days = new Set<string>()
-    for (const item of order.lineItems) {
-      const day = item.scheduledDate || (order.isSplit ? null : order.productionDate)
-      if (day) days.add(day)
-    }
-    const all = [...days].sort()
+    const all = partDays(order)
 
     return {
       ...order,
@@ -193,37 +188,42 @@ export const scheduleLines = (orderId: number, lineIds: number[], iso: string) =
     splitOrderId: null
   }))
 
-export const rescheduleOrder = (orderId: number, iso: string) =>
+/**
+ * #6: a part moves on its own. `from` is the day the Manager opened this row on, and only the lines
+ * sitting on it are re-dated — the other half of a split order keeps its day, its review and its
+ * machines. Without a `from` (an order with one day) this is the whole order, as before.
+ *
+ * The review of the day being left goes with it: it was a judgement about that day's run.
+ */
+const movePart = (order: TrimState['orders'][number], from: string | null, to: string | null) => {
+  const moving = (item: TrimState['orders'][number]['lineItems'][number]) =>
+    !from || (item.scheduledDate ?? order.productionDate) === from
+
+  const lineItems = order.lineItems.map(item =>
+    moving(item) ? resetManagerEdits(item, { scheduledDate: to }) : item
+  )
+  const days = [...new Set(lineItems.map(item => item.scheduledDate).filter(Boolean))] as string[]
+
+  return {
+    ...order,
+    lineItems,
+    isSplit: days.length > 1,
+    productionDate: days.sort()[0] ?? null,
+    priorityId: null,
+    reviewedDays: order.reviewedDays.filter(day => day !== (from ?? order.productionDate)),
+    releasedDays: order.releasedDays.filter(day => day !== (from ?? order.productionDate))
+  }
+}
+
+export const rescheduleOrder = (orderId: number, iso: string, from: string | null = null) =>
   trimStore.set(state => ({
     scheduledDay: iso,
-    orders: state.orders.map(order =>
-      order.id === orderId
-        ? {
-            ...order,
-            productionDate: iso,
-            priorityId: null,
-            reviewedDays: [],
-            isSplit: false,
-            lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: iso }))
-          }
-        : order
-    )
+    orders: state.orders.map(order => (order.id === orderId ? movePart(order, from, iso) : order))
   }))
 
-export const unscheduleOrder = (orderId: number) =>
+export const unscheduleOrder = (orderId: number, from: string | null = null) =>
   trimStore.set(state => ({
-    orders: state.orders.map(order =>
-      order.id === orderId
-        ? {
-            ...order,
-            productionDate: null,
-            isSplit: false,
-            reviewedDays: [],
-            priorityId: null,
-            lineItems: order.lineItems.map(item => resetManagerEdits(item, { scheduledDate: null }))
-          }
-        : order
-    )
+    orders: state.orders.map(order => (order.id === orderId ? movePart(order, from, null) : order))
   }))
 
 /** Straight to Wrapping: no Slinet, no machines, and today's date, because it is being done now. */
@@ -334,7 +334,9 @@ export const addReman = (
           qty,
           machineId: item.machineId as number,
           priorityId: order.priorityId,
-          date: order.productionDate as string,
+          // #6: the line's own day, not the order's — on a split order those differ, and a reman
+          // raised on the later part must not land on the earlier part's strip
+          date: (lineDay(order, item) ?? order.productionDate) as string,
           source,
           fromCutlistId: from ? from.id : null,
           recut: false,

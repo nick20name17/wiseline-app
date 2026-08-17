@@ -201,13 +201,15 @@ function Trim() {
         onClose={closeSchedule}
         onUnschedule={orderId => {
           const order = trimStore.get().orders.find(entry => entry.id === orderId)
-          if (order) confirmUnschedule(order.id, order.order)
+          // the modal was opened on one part, and `current` is the day it belongs to (#6)
+          const from = ui.schedule?.mode === 'reschedule' ? ui.schedule.current : null
+          if (order) confirmUnschedule(order.id, order.order, from)
         }}
         onPick={(ctx, iso) => {
           if (ctx.mode === 'jump') setScheduledDay(iso)
           else if (ctx.mode === 'peek') setPeekDay(iso)
           else if (ctx.mode === 'reschedule') {
-            rescheduleOrder(ctx.orderId, iso)
+            rescheduleOrder(ctx.orderId, iso, ctx.current)
             showToast(`Rescheduled to ${fmtDate(iso)} — Manager edits reset`)
           } else if (ctx.mode === 'entire') {
             scheduleOrders(ctx.orderIds, iso)

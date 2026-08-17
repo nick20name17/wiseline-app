@@ -142,12 +142,12 @@ export const showToast = (message: string, type: ToastType = 'success') => {
  * Unscheduling is asked about, not just done: it moves the order back to Unscheduled *and* throws
  * away the Manager's priority, review tick, machine choices and # From Stock.
  */
-export const confirmUnschedule = (orderId: number, orderNo: string) =>
+export const confirmUnschedule = (orderId: number, orderNo: string, from: string | null = null) =>
   askConfirm(
     `Unschedule order ${orderNo}?`,
     'Moves it back to Unscheduled and resets all Manager edits (Priority, Reviewed, machines, # From Stock).',
     () => {
-      unscheduleOrder(orderId)
+      unscheduleOrder(orderId, from)
       closeConfirm()
       closeSchedule()
       showToast(`Order ${orderNo} unscheduled — Manager edits reset`)

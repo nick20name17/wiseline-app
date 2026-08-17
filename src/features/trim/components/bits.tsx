@@ -51,7 +51,15 @@ export const EmptyState = ({
  * A Worker sees the priority and works to it but cannot set it (N-057). Releasing an order no longer
  * locks it either (#184) — a Manager can re-prioritise work already on the floor.
  */
-export const PriorityCell = ({ order }: { order: Order }) => {
+export const PriorityCell = ({
+  order,
+  anchor
+}: {
+  order: Order
+  /** #6: a split order draws this cell once per part. */
+  anchor?: string
+}) => {
+  const key = anchor ?? String(order.id)
   const priority = priorityById(order.priorityId)
   // `useStore`, not `get()`: a read in render subscribes to nothing, so the cell never turned read-only
   const role = useStore(trimStore, current => current.role)
@@ -65,7 +73,7 @@ export const PriorityCell = ({ order }: { order: Order }) => {
   return (
     <>
       <button
-        data-comment={`priority-${order.id}`}
+        data-comment={`priority-${key}`}
         className={`pri ${priority ? priority.cls : 'pri-none'}${readOnly ? ' readonly' : ''}`}
         data-pop-anchor
         onClick={
@@ -102,14 +110,18 @@ const openOrderNotes = (orderId: number) => openNotes({ orderId, lineId: null })
 
 export const NoteButton = ({
   order,
-  onOpen
+  onOpen,
+  anchor
 }: {
   order: Order
   onOpen?: (orderId: number) => void
+  /** #6: a split order draws this cell once per part. */
+  anchor?: string
 }) => {
+  const key = anchor ?? String(order.id)
   if (order.type === 'stock')
     return (
-      <span className='subtle' data-comment={`note-na-${order.id}`} style={{ fontSize: '11px' }}>
+      <span className='subtle' data-comment={`note-na-${key}`} style={{ fontSize: '11px' }}>
         —
       </span>
     )
@@ -119,7 +131,7 @@ export const NoteButton = ({
   return (
     <button
       className={`note-btn ${state === 'unread' ? 'has-unread' : state === 'read' ? 'all-read' : ''}`}
-      data-comment={`note-btn-${order.id}`}
+      data-comment={`note-btn-${key}`}
       onClick={event => {
         event.stopPropagation()
         ;(onOpen ?? openOrderNotes)(order.id)
@@ -173,14 +185,20 @@ const ORDER_STATUS: Record<string, [string, string]> = {
  * N-019: Status stays empty until Release — no invented pre-release chip.
  * #6: with a day, it is that part's status; the other half of a split order answers for itself.
  */
-export const OrderStatusPill = ({ order, day }: { order: Order; day?: string | null }) => {
+export const OrderStatusPill = ({
+  order,
+  day,
+  anchor
+}: {
+  order: Order
+  day?: string | null
+  /** #6: a split order draws this row once per part, so the anchors have to tell them apart. */
+  anchor?: string
+}) => {
+  const key = anchor ?? String(order.id)
   if (!isReleased(order, day))
     return (
-      <span
-        className='subtle'
-        data-comment={`sch-ostat-empty-${order.id}`}
-        style={{ fontSize: '11px' }}
-      >
+      <span className='subtle' data-comment={`sch-ostat-empty-${key}`} style={{ fontSize: '11px' }}>
         —
       </span>
     )
@@ -189,7 +207,7 @@ export const OrderStatusPill = ({ order, day }: { order: Order; day?: string | n
 
   if (order.bypassed && production !== 'complete')
     return (
-      <span className='status st-bypassed' data-comment={`sch-ostat-rel-${order.id}`}>
+      <span className='status st-bypassed' data-comment={`sch-ostat-rel-${key}`}>
         <span className='st-dot' />
         Bypassed
       </span>
@@ -198,7 +216,7 @@ export const OrderStatusPill = ({ order, day }: { order: Order; day?: string | n
   const [cls, label] = ORDER_STATUS[production] as [string, string]
 
   return (
-    <span className={`status ${cls}`} data-comment={`sch-ostat-rel-${order.id}`}>
+    <span className={`status ${cls}`} data-comment={`sch-ostat-rel-${key}`}>
       <span className='st-dot' />
       {label}
     </span>
@@ -212,36 +230,36 @@ export const OrderStatusPill = ({ order, day }: { order: Order; day?: string | n
 export const ReviewedToggle = ({
   order,
   day,
-  gate1
+  gate1,
+  anchor
 }: {
   order: Order
   day: string
   gate1: boolean
+  /** #6: one row per part, so one anchor per part. */
+  anchor?: string
 }) => {
+  const key = anchor ?? String(order.id)
   const reviewed = isReviewed(order, day)
 
   if (order.bypassed)
     return (
-      <span
-        className='subtle'
-        data-comment={`sch-revlock-${order.id}`}
-        style={{ fontSize: '11px' }}
-      >
+      <span className='subtle' data-comment={`sch-revlock-${key}`} style={{ fontSize: '11px' }}>
         N/A
       </span>
     )
   if (isReleased(order, day))
     return (
-      <span className='status st-notstarted' data-comment={`sch-revlock-${order.id}`}>
+      <span className='status st-notstarted' data-comment={`sch-revlock-${key}`}>
         Reviewed
       </span>
     )
 
   return (
-    <span className='switch-wrap' data-comment={`sch-revwrap-${order.id}`}>
+    <span className='switch-wrap' data-comment={`sch-revwrap-${key}`}>
       <button
         className={`switch ${reviewed ? 'on' : ''}`}
-        data-comment={`sch-revtoggle-${order.id}`}
+        data-comment={`sch-revtoggle-${key}`}
         disabled={!gate1}
         aria-label='Reviewed'
         onClick={event => {
@@ -250,7 +268,7 @@ export const ReviewedToggle = ({
         }}
       />
       {gate1 ? null : (
-        <span className='switch-hint' data-comment={`sch-revhint-${order.id}`}>
+        <span className='switch-hint' data-comment={`sch-revhint-${key}`}>
           assign machines
         </span>
       )}

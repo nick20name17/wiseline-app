@@ -205,6 +205,21 @@ would think to try.
 
 ## Decisions already made
 
+**Two `data-comment` values deviate from the prototype, on purpose.** The rule is verbatim, and these
+are the exceptions the gate should not be read as failures:
+
+- `uns-splitbtn-<id>` — the prototype spends `uns-split-<id>` twice, on the split indicator in the
+  Unscheduled row _and_ on the split button, and both are on screen at once. A comment anchored to
+  `uns-split-1` could not say which it meant. The indicator keeps the prototype's name; the button,
+  which this port draws differently anyway, takes `uns-splitbtn-<id>`.
+- `sch-row-<id>-<day>` and every cell anchor inside that row — a split order is two rows on the
+  Scheduled tab since #6, one per production day, so one anchor per order would name two elements.
+  An order with a single day keeps the plain `<id>` form its comments are joined to; only a split
+  order's rows carry the day.
+
+`cal-dow-<n>` is emitted twice by the prototype itself (the calendar tab and the schedule modal). That
+duplication is copied as-is: the markup is verbatim, and the gate compares it against the same source.
+
 **Each page keeps its whole stylesheet.** An early version factored the rules common to all fifteen pages
 into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts _last_;
 loading them _first_ flipped the cascade, `.btn` went 30px → 36px and the sign-in card grew 6px. Only 23

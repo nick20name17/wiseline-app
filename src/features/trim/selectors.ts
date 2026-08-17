@@ -326,7 +326,19 @@ export const dayScheduledTotals = (iso: string, orders = trimStore.get().orders)
  * strip that no longer counted it. What counts is the quantity being remade, not the line's original
  * quantity: the rest of that line has already been bent.
  */
-const remanTotals = (state: TrimState, iso: string, keep: (reman: Reman) => boolean) => {
+const remanTotals = (
+  state: TrimState,
+  iso: string,
+  keep: (reman: Reman) => boolean,
+  /**
+   * How much work a reman list is depends on which station is asking. The Slinet only ever re-cuts
+   * the damaged pieces — «Opening it shows just what needs to be Remanufactured» — while a machine
+   * that raised the request took the whole line with it into a bendlist of its own, which the canvas
+   * draws with the full Qty Ordered beside the requested quantity. A request raised in Wrapping left
+   * the line where it was, so for either station it is only the pieces being remade.
+   */
+  wholeLineForMachineRequests: boolean
+) => {
   let pieces = 0
   let bends = 0
   let stockPieces = 0
@@ -335,18 +347,10 @@ const remanTotals = (state: TrimState, iso: string, keep: (reman: Reman) => bool
   for (const reman of state.remans) {
     if (reman.date !== iso || !keep(reman)) continue
 
-    /**
-     * How much work the list is depends on where it came from, exactly as the canvas draws the two:
-     * a machine-raised request takes the whole line with it («needs to show the full Qty. Ordered and
-     * then the Qty. that was requested … in the Remanufacture column»), while one raised from Wrapping
-     * leaves the line where it is and asks only for the pieces being remade.
-     */
     const found = lineOf(reman.orderId, reman.lineId, state.orders)
-    const remanPieces = reman.source === 'machine' && found ? qtyToMake(found.item) : reman.qty
-    const remanBends =
-      reman.source === 'machine' && found
-        ? lineBends(found.item)
-        : reman.qty * bendsPerPiece(reman.productId)
+    const whole = wholeLineForMachineRequests && reman.source === 'machine' && found
+    const remanPieces = whole ? qtyToMake(found.item) : reman.qty
+    const remanBends = whole ? lineBends(found.item) : reman.qty * bendsPerPiece(reman.productId)
 
     pieces += remanPieces
     bends += remanBends
@@ -387,7 +391,7 @@ export const slinetTotals = (iso: string, state = trimStore.get()) => {
     }
   }
 
-  const recuts = remanTotals(state, iso, reman => !reman.slinetDone)
+  const recuts = remanTotals(state, iso, reman => !reman.slinetDone, false)
 
   return {
     pieces: pieces + recuts.pieces,
@@ -425,7 +429,8 @@ export const machineTotals = (machineId: number | null, iso: string, state = tri
   const remade = remanTotals(
     state,
     iso,
-    reman => reman.machineId === machineId && !reman.machineDone
+    reman => reman.machineId === machineId && !reman.machineDone,
+    true
   )
 
   return {

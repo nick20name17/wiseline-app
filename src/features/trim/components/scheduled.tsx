@@ -178,14 +178,25 @@ const DayTabs = ({
  * Gate 3 (N-026): the release checkbox appears only once an order is Reviewed. Before that it is a
  * dash with the reason, and after release it is the icon saying the order has already gone.
  */
-const SelectCell = ({ order, day, locked }: { order: Order; day: string; locked: boolean }) => {
+const SelectCell = ({
+  order,
+  day,
+  locked,
+  anchor
+}: {
+  order: Order
+  day: string
+  locked: boolean
+  /** #6: the row is one part of the order, and so is this control. */
+  anchor: string
+}) => {
   const releaseIds = useStore(trimStore, state => state.releaseIds)
 
   if (isReleased(order, day))
     return (
       <span
         className='released-ico'
-        data-comment={`sch-released-${order.id}`}
+        data-comment={`sch-released-${anchor}`}
         title='Released to production'
       >
         <SendHorizontal style={{ width: '15px', height: '15px' }} />
@@ -203,7 +214,7 @@ const SelectCell = ({ order, day, locked }: { order: Order; day: string; locked:
     <input
       type='checkbox'
       className='chk'
-      data-comment={`sch-relchk-${order.id}`}
+      data-comment={`sch-relchk-${anchor}`}
       checked={releaseIds.includes(partKey(order.id, day))}
       disabled={locked}
       onChange={() => toggleRelease(order.id, day)}
@@ -382,14 +393,14 @@ export const Scheduled = () => {
                         toggleExpand(order.id)
                       }}
                     >
-                      <td data-comment={`sch-sel-${order.id}`}>
-                        <SelectCell order={order} day={day} locked={mutexLocked} />
+                      <td data-comment={`sch-sel-${rowKey}`}>
+                        <SelectCell order={order} day={day} locked={mutexLocked} anchor={rowKey} />
                       </td>
                       <td>
                         <button
                           aria-label='Toggle details'
                           className={`expander ${expanded ? 'open' : ''}`}
-                          data-comment={`sch-exp-${order.id}`}
+                          data-comment={`sch-exp-${rowKey}`}
                           onClick={() => toggleExpand(order.id)}
                         >
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
@@ -400,16 +411,16 @@ export const Scheduled = () => {
                           <td
                             data-col='ship'
                             className='cell-num muted'
-                            data-comment={`sch-ship-${order.id}`}
+                            data-comment={`sch-ship-${rowKey}`}
                           >
                             {order.shipDate ? fmtDate(order.shipDate) : '—'}
                           </td>
                         ),
                         proddate: (
-                          <td data-col='proddate' data-comment={`sch-proddate-${order.id}`}>
+                          <td data-col='proddate' data-comment={`sch-proddate-${rowKey}`}>
                             {order.type === 'stock' ? (
                               <Package
-                                data-comment={`sch-stockico-${order.id}`}
+                                data-comment={`sch-stockico-${rowKey}`}
                                 style={{
                                   width: '13px',
                                   height: '13px',
@@ -422,7 +433,7 @@ export const Scheduled = () => {
                             {isReleased(order, day) ? (
                               <span
                                 className='cell-num muted'
-                                data-comment={`sch-proddate-ro-${order.id}`}
+                                data-comment={`sch-proddate-ro-${rowKey}`}
                               >
                                 {fmtDate(day)}
                               </span>
@@ -430,7 +441,7 @@ export const Scheduled = () => {
                               <button
                                 className='field-btn'
                                 data-pop-anchor
-                                data-comment={`sch-proddate-btn-${order.id}`}
+                                data-comment={`sch-proddate-btn-${rowKey}`}
                                 title='Change production day (pre-release, N-041)'
                                 onClick={event => {
                                   event.stopPropagation()
@@ -452,13 +463,13 @@ export const Scheduled = () => {
                           <td
                             data-col='order'
                             className='cell-order'
-                            data-comment={`sch-order-${order.id}`}
+                            data-comment={`sch-order-${rowKey}`}
                           >
                             {order.order}
                             {order.isSplit ? (
                               <span
                                 className='split-ind'
-                                data-comment={`sch-split-${order.id}`}
+                                data-comment={`sch-split-${rowKey}`}
                                 title={
                                   order.lineItems.some(item => !lineDay(order, item))
                                     ? 'Partially scheduled — some line items are still on the Unscheduled tab'
@@ -474,42 +485,43 @@ export const Scheduled = () => {
                           <td
                             data-col='customer'
                             className='cell-cust'
-                            data-comment={`sch-cust-${order.id}`}
+                            data-comment={`sch-cust-${rowKey}`}
                           >
                             {order.type === 'stock' ? 'Stock' : order.customer}
                           </td>
                         ),
                         priority: (
-                          <td data-col='priority' data-comment={`sch-pri-${order.id}`}>
-                            <PriorityCell order={order} />
+                          <td data-col='priority' data-comment={`sch-pri-${rowKey}`}>
+                            <PriorityCell order={order} anchor={rowKey} />
                           </td>
                         ),
                         reviewed: (
-                          <td data-col='reviewed' data-comment={`sch-rev-${order.id}`}>
+                          <td data-col='reviewed' data-comment={`sch-rev-${rowKey}`}>
                             <ReviewedToggle
                               order={order}
                               day={day}
                               gate1={allMachinesAssigned(order, day)}
+                              anchor={rowKey}
                             />
                           </td>
                         ),
                         status: (
-                          <td data-col='status' data-comment={`sch-status-${order.id}`}>
-                            <OrderStatusPill order={order} />
+                          <td data-col='status' data-comment={`sch-status-${rowKey}`}>
+                            <OrderStatusPill order={order} day={day} anchor={rowKey} />
                           </td>
                         ),
                         trimloc: (
                           <td
                             data-col='trimloc'
                             className='mono muted'
-                            data-comment={`sch-loc-${order.id}`}
+                            data-comment={`sch-loc-${rowKey}`}
                           >
                             {order.type === 'stock' ? 'N/A' : orderLocLabel(order)}
                           </td>
                         ),
                         notes: (
-                          <td data-col='notes' data-comment={`sch-note-${order.id}`}>
-                            <NoteButton order={order} />
+                          <td data-col='notes' data-comment={`sch-note-${rowKey}`}>
+                            <NoteButton order={order} anchor={rowKey} />
                           </td>
                         )
                       })}

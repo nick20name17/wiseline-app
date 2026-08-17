@@ -42,11 +42,14 @@ const split = () => {
   return { id: order.id, movedLine: first!.id, stayed: rest.map(item => item.id) }
 }
 
+/**
+ * The store is a module singleton, and these tests schedule and release against it — so each one
+ * starts from the seed rather than from whatever the last one left behind.
+ */
+const seedState = structuredClone(trimStore.get())
+
 beforeEach(() => {
-  trimStore.set(state => ({
-    orders: state.orders.map(order => ({ ...order, reviewedDays: [], releasedDays: [] })),
-    releaseIds: []
-  }))
+  trimStore.set(structuredClone(seedState))
 })
 
 it('reviews one part without touching the other', () => {
@@ -98,4 +101,14 @@ it('will not release a part that has not been reviewed', () => {
 
   expect(trimStore.get().releaseIds).toEqual([])
   expect(releaseToProduction()).toBeNull()
+})
+
+it('gives each part of a split order its own row anchor material', () => {
+  const { id } = split()
+  const order = reload(id)
+
+  // the Scheduled tab keys a split order's row — and every anchor inside it — on order + day, so
+  // the two rows a split order draws are two distinct elements to the comment migration
+  const keys = partDays(order).map(day => (order.isSplit ? `${order.id}-${day}` : `${order.id}`))
+  expect(new Set(keys).size).toBe(2)
 })

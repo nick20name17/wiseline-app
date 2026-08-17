@@ -4,7 +4,7 @@ import { useStore } from '@/store/create-store'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
-import { lineStatus } from '../selectors'
+import { isReviewed, lineDay, lineStatus } from '../selectors'
 import { trimStore } from '../store'
 import { EmptyState } from './bits'
 import { colorOf } from './cutlist-coils'
@@ -25,10 +25,13 @@ const allocatedRows = (orders: Order[]) => {
   >()
 
   for (const order of orders) {
-    // #6: one reviewed part is enough — the allocation is read off the lines, not the order
     if (!order.reviewedDays.length) continue
 
     for (const item of order.lineItems) {
+      // #6: a line counts once *its own* part has been reviewed — the other half of a split order
+      // has not been decided yet, and its stock is not allocated
+      if (!isReviewed(order, lineDay(order, item))) continue
+
       const qty = item.fromStock || 0
       if (qty <= 0) continue
       if ((item.status || lineStatus(order, item)) === 'wrapped') continue
