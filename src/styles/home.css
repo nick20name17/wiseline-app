@@ -1410,9 +1410,12 @@
             [data-page="home"] .pkgbuilder { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--border); }
             /* #185: a Stock order's wrapping window — "Stock" heading instead of the order-info footer,
                and one centred Create Manufacturing Batch action. */
-            [data-page="home"] .stockwrap-head { display: flex; align-items: baseline; justify-content: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); }
-            [data-page="home"] .stockwrap-title { font-size: 17px; font-weight: 700; letter-spacing: .01em; }
-            [data-page="home"] .swrap-foot { display: flex; justify-content: center; padding: 14px; border-top: 1px solid var(--border); }
+            /* #29: the canvas prints this large under the lines, with a rule beneath it, where a
+               customer order carries its Customer / PO / Salesman block — so the button below reads as
+               belonging to the stock order rather than to the list. */
+            [data-page="home"] .stockwrap-head { display: flex; align-items: baseline; justify-content: center; gap: 12px; padding: 22px 14px 14px; border-bottom: 1px solid var(--text); }
+            [data-page="home"] .stockwrap-title { font-size: 30px; font-weight: 700; letter-spacing: .01em; }
+            [data-page="home"] .swrap-foot { display: flex; justify-content: center; padding: 16px 14px 4px; }
             [data-page="home"] .mfg-ico { display: inline-flex; color: var(--success); }
             [data-page="home"] .mfg-ico i, [data-page="home"] .mfg-ico svg { pointer-events: none; }
             /* #190: stock marker beside a production date */

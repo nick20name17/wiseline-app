@@ -31,15 +31,6 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
 
   return (
     <div className='bendlist' data-comment={`wrap-order-${order.id}`}>
-      <div className='stockwrap-head' data-comment={`swrap-head-${order.id}`}>
-        <span className='stockwrap-title' data-comment={`swrap-title-${order.id}`}>
-          Stock
-        </span>
-        <span className='mono subtle' data-comment={`swrap-ono-${order.id}`}>
-          {order.order}
-        </span>
-      </div>
-
       <table
         className='sub'
         data-comment={`swrap-table-${order.id}`}
@@ -157,6 +148,20 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
           })}
         </tbody>
       </table>
+
+      {/*
+        #29: the canvas puts the word where a customer order puts its Customer / PO / Salesman block —
+        under the lines, over the action — so the two windows differ exactly where they carry different
+        information. It used to sit above the table as a heading.
+      */}
+      <div className='stockwrap-head' data-comment={`swrap-head-${order.id}`}>
+        <span className='stockwrap-title' data-comment={`swrap-title-${order.id}`}>
+          Stock
+        </span>
+        <span className='mono subtle' data-comment={`swrap-ono-${order.id}`}>
+          {order.order}
+        </span>
+      </div>
 
       <div className='swrap-foot' data-comment={`swrap-foot-${order.id}`}>
         <button
