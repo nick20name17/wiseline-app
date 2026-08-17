@@ -1,11 +1,13 @@
-import { Printer } from 'lucide-react'
+import { MapPin, Printer } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
+import { fmtDate } from '../format'
+import { orderLocLabel } from '../selectors'
 import { trimStore } from '../store'
-import { showToast } from '../ui'
+import { openLocPicker, showToast } from '../ui'
 import { OrderInfoBlock } from './wrap-detail'
 
 /**
@@ -153,7 +155,32 @@ export const CompletedDetail = ({
 
               {/* #205/#210: the Wrapping window's order-info block, in the same place — under the
                   tables rather than above them. */}
-              <OrderInfoBlock order={order} prefix='compdetail-info' />
+              <OrderInfoBlock
+                order={order}
+                prefix='compdetail-info'
+                location={
+                  /* #210: a completed order can still be moved, so the location stays editable */
+                  <span className='compdetail-loc' data-comment='compdetail-loc'>
+                    {orderLocLabel(order)}
+                    <button
+                      className='btn btn-sm'
+                      data-comment='compdetail-locbtn'
+                      title='Change this order&rsquo;s location'
+                      onClick={() => openLocPicker(order.id, 0)}
+                    >
+                      <MapPin style={{ width: '13px', height: '13px' }} />
+                      Locations
+                    </button>
+                  </span>
+                }
+              />
+
+              {/* #210/#211: when it was finished, centred under the order info */}
+              <div className='compdetail-stamp' data-comment='compdetail-stamp'>
+                {order.completedDate
+                  ? `Completed ${fmtDate(order.completedDate)}${order.completedTime ? ` · ${order.completedTime}` : ''}`
+                  : 'Completion time not recorded'}
+              </div>
             </>
           ) : null}
         </div>

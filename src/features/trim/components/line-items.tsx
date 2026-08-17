@@ -1,9 +1,7 @@
 import {
   Calendar,
   CalendarDays,
-  CalendarX,
   ChevronDown,
-  CornerDownRight,
   Lock,
   MessageSquare,
   Split
@@ -24,7 +22,7 @@ import {
   toggleVented,
   trimStore
 } from '../store'
-import { confirmUnschedule, openNotes, openSchedule } from '../ui'
+import { openNotes, openSchedule } from '../ui'
 import { LineStatusPill } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -213,14 +211,6 @@ const SubHead = ({ order, ctx }: { order: Order; ctx: Context }) => {
           <Calendar style={{ width: '14px', height: '14px' }} />
           Reschedule
         </button>
-        <button
-          className='btn btn-sm'
-          data-comment={`sch-unschedule-${order.id}`}
-          onClick={() => confirmUnschedule(order.id, order.order)}
-        >
-          <CalendarX style={{ width: '14px', height: '14px' }} />
-          Unschedule
-        </button>
       </div>
     )
   }
@@ -237,16 +227,12 @@ const SubHead = ({ order, ctx }: { order: Order; ctx: Context }) => {
           <Split style={{ width: '15px', height: '15px' }} />
           Split order
         </span>
-        <span className='split-head-hint' data-comment={`uns-splithint-${order.id}`}>
-          {splitCount ? (
-            <>
-              <b>{splitCount}</b> line item{splitCount > 1 ? 's' : ''} picked — schedule them to
-              their own day.
-            </>
-          ) : (
-            'Tick line items below to schedule part of this order on a different day.'
-          )}
-        </span>
+        {splitCount ? (
+          <span className='split-head-hint' data-comment={`uns-splithint-${order.id}`}>
+            <b>{splitCount}</b> line item{splitCount > 1 ? 's' : ''} picked — schedule them to their
+            own day.
+          </span>
+        ) : null}
       </span>
       <button
         className='btn btn-sm'
@@ -301,19 +287,7 @@ export const LineItemsSubrow = ({
       <td colSpan={isScheduled ? 11 : 8}>
         <div className='subwrap' data-comment={`${ctx}-subwrap-${order.id}`}>
           {popNode}
-          {/* #171: name the owning order above its line items */}
-          <div className='li-owner' data-comment={`${ctx}-liowner-${order.id}`}>
-            <CornerDownRight style={{ width: '13px', height: '13px' }} />
-            Line items of{' '}
-            <span className='li-owner-order' data-comment={`${ctx}-liowner-order-${order.id}`}>
-              {order.order}
-            </span>
-            <span data-comment={`${ctx}-liowner-cust-${order.id}`}>&nbsp;· {order.customer}</span>
-            <span className='li-owner-count' data-comment={`${ctx}-liowner-count-${order.id}`}>
-              {order.lineItems.length} line item{order.lineItems.length > 1 ? 's' : ''}
-            </span>
-          </div>
-
+          {/* #202: the owner caption is gone — the accent rail ties the rows to their order */}
           <SubHead order={order} ctx={ctx} />
 
           <table className='sub' data-comment={`${ctx}-litable-${order.id}`}>

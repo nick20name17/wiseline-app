@@ -4775,7 +4775,7 @@
           "author": "Hannah Weir",
           "email": "hannah@wiseline.app",
           "ts": "Jul 8, 9:41 AM",
-          "body": "Customer needs charcoal sidewall to match a prior job — confirm colour lot before cutting.",
+          "body": "Customer needs charcoal sidewall to match a prior job \u2014 confirm colour lot before cutting.",
           "dealt": false
         }
       ],
@@ -4889,7 +4889,7 @@
           "author": "Marcus Reid",
           "email": "marcus@wiseline.app",
           "ts": "Jul 10, 2:14 PM",
-          "body": "Split shipment approved — first 50 by Friday.",
+          "body": "Split shipment approved \u2014 first 50 by Friday.",
           "dealt": true
         },
         {
@@ -5018,7 +5018,7 @@
           "author": "Marcus Reid",
           "email": "marcus@wiseline.app",
           "ts": "Jul 7, 11:20 AM",
-          "body": "White drip edge — customer supplied their own coil, verify gauge.",
+          "body": "White drip edge \u2014 customer supplied their own coil, verify gauge.",
           "dealt": false
         }
       ],
@@ -5204,7 +5204,7 @@
           "author": "Marcus Reid",
           "email": "marcus@wiseline.app",
           "ts": "Jul 13, 8:12 AM",
-          "body": "Past its production date — wrap and ship as soon as the drip edge is bent.",
+          "body": "Past its production date \u2014 wrap and ship as soon as the drip edge is bent.",
           "dealt": false
         }
       ],
@@ -5261,7 +5261,7 @@
           "author": "Marcus Reid",
           "email": "marcus@wiseline.app",
           "ts": "Jul 12, 3:40 PM",
-          "body": "Priority job — keep on today's board.",
+          "body": "Priority job \u2014 keep on today's board.",
           "dealt": true
         }
       ],
@@ -5414,7 +5414,7 @@
           "author": "Hannah Weir",
           "email": "hannah@wiseline.app",
           "ts": "Jun 27, 11:05 AM",
-          "body": "Confirmed with customer — full order picked up.",
+          "body": "Confirmed with customer \u2014 full order picked up.",
           "dealt": true
         }
       ],
@@ -5423,13 +5423,17 @@
       "completedTime": "11:18 AM",
       "pkgSeq": 2,
       "location": 1,
-      "wrapLocations": [1],
-      "locationIds": [1],
+      "wrapLocations": [
+        1
+      ],
+      "locationIds": [
+        1
+      ],
       "packages": [
         {
           "barcode": "01-338008-01",
           "seq": 1,
-          "contents": "36 × TSWB262",
+          "contents": "36 \u00d7 TSWB262",
           "locId": 1,
           "locName": "101",
           "qty": 36,
@@ -5447,7 +5451,7 @@
         {
           "barcode": "01-338008-02",
           "seq": 2,
-          "contents": "24 × TRAKE24",
+          "contents": "24 \u00d7 TRAKE24",
           "locId": 1,
           "locName": "101",
           "qty": 24,
@@ -5516,13 +5520,17 @@
       "completedTime": "2:47 PM",
       "pkgSeq": 1,
       "location": 5,
-      "wrapLocations": [5],
-      "locationIds": [5],
+      "wrapLocations": [
+        5
+      ],
+      "locationIds": [
+        5
+      ],
       "packages": [
         {
           "barcode": "01-338011-01",
           "seq": 1,
-          "contents": "50 × TGABLE26",
+          "contents": "50 \u00d7 TGABLE26",
           "locId": 5,
           "locName": "105",
           "qty": 50,
@@ -5572,7 +5580,13 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [2]
+      "doneMachines": [
+        2
+      ],
+      "doneSlinetAt": "2026-07-14T14:20:00.000Z",
+      "doneMachineAt": {
+        "2": "2026-07-14T16:10:00.000Z"
+      }
     },
     {
       "id": "S0142|24ga White|0|seed",
@@ -5707,7 +5721,13 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [2]
+      "doneMachines": [
+        2
+      ],
+      "doneSlinetAt": "2026-06-24T14:43:00.000Z",
+      "doneMachineAt": {
+        "2": "2026-06-24T16:19:00.000Z"
+      }
     },
     {
       "id": "338008|24ga White|3|seed",
@@ -5722,7 +5742,13 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [3]
+      "doneMachines": [
+        3
+      ],
+      "doneSlinetAt": "2026-06-24T14:50:00.000Z",
+      "doneMachineAt": {
+        "3": "2026-06-24T16:30:00.000Z"
+      }
     },
     {
       "id": "338011|26ga Hawaiian Blue|0|seed",
@@ -5737,7 +5763,13 @@
       ],
       "slinetStarted": true,
       "doneSlinet": true,
-      "doneMachines": [6]
+      "doneMachines": [
+        6
+      ],
+      "doneSlinetAt": "2026-05-16T14:57:00.000Z",
+      "doneMachineAt": {
+        "6": "2026-05-16T16:41:00.000Z"
+      }
     }
   ],
   "remans": [
@@ -6064,7 +6096,7 @@
       "locRollforming": false,
       "locTrim": false,
       "slinetIn": false,
-      "note": "Just arrived from EBMS — needs Material Thickness + Core OD",
+      "note": "Just arrived from EBMS \u2014 needs Material Thickness + Core OD",
       "materialThickness": null,
       "coreOD": null,
       "thickness": null,

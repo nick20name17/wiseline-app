@@ -104,7 +104,7 @@ export const Wrapping = () => {
       <table className='grid' data-comment='wrap-list-table'>
         <thead>
           <tr>
-            <th style={{ width: '104px' }}>Prod. Date</th>
+            {/* #213: no per-row date — the frozen day divider owns it, as on the cutlists */}
             <th style={{ width: '96px' }}>Order #</th>
             <th>Customer</th>
             <th style={{ width: '60px' }}>Qty</th>
@@ -135,7 +135,7 @@ export const Wrapping = () => {
               <Fragment key={key}>
                 {newDay ? (
                   <tr className='day-row' data-comment={`wrap-daysep-${day}`}>
-                    <td colSpan={11} data-comment={`wrap-daysep-cell-${day}`}>
+                    <td colSpan={10} data-comment={`wrap-daysep-cell-${day}`}>
                       {fmtDate(day)}{' '}
                       <span className='day-count' data-comment={`wrap-daysep-count-${day}`}>
                         {count} line item{count > 1 ? 's' : ''}
@@ -151,7 +151,8 @@ export const Wrapping = () => {
                   title='Open wrapping detail'
                   onClick={() => setDrillOrderId(order.id)}
                 >
-                  <td className='cell-num muted' data-comment={`wrap-li-date-${key}`}>
+                  <td className='cell-order' data-comment={`wrap-li-ono-${key}`}>
+                    {order.order}
                     {order.type === 'stock' ? (
                       <span
                         className='stock-ico'
@@ -161,10 +162,6 @@ export const Wrapping = () => {
                         <Warehouse style={{ width: '13px', height: '13px' }} />
                       </span>
                     ) : null}
-                    {fmtDate(day)}
-                  </td>
-                  <td className='cell-order' data-comment={`wrap-li-ono-${key}`}>
-                    {order.order}
                   </td>
                   <td className='cell-cust' data-comment={`wrap-li-cust-${key}`}>
                     {order.type === 'stock' ? 'Stock' : order.customer}

@@ -14,6 +14,20 @@ const format = (iso: string, options: Intl.DateTimeFormatOptions) => {
 export const fmtDate = (iso: string | null) =>
   iso ? format(iso, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : ''
 
+/**
+ * `Jul 14, 2:41 PM` — an *instant*, not a production day, so unlike the rest of this file it is read
+ * in local time: it records when somebody on the floor pressed Done.
+ */
+export const fmtStamp = (iso: string | undefined) =>
+  iso
+    ? new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(new Date(iso))
+    : ''
+
 /** The same without the year, for strips where every day is obviously this year. */
 export const fmtCompactDate = (iso: string) =>
   format(iso, { weekday: 'short', month: 'long', day: 'numeric' })

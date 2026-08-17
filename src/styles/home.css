@@ -717,7 +717,9 @@
                 border-bottom: 1px solid var(--border);
                 white-space: nowrap;
                 position: sticky;
-                top: 0;
+                /* #208: parks under the frozen production controls where there are any (--freeze-h is
+                   published by the FreezeBar); every other table keeps the plain scrollport top. */
+                top: var(--freeze-h, 0px);
                 z-index: 1;
             }
             [data-page="home"] table.grid td {
@@ -1430,6 +1432,9 @@
             [data-page="home"] .wrap-foot-item { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--border); padding: 3px 0; font-size: 12px; }
             [data-page="home"] .wrap-foot-label { color: var(--text-subtle); font-weight: 600; }
             [data-page="home"] .wrap-foot-val { color: var(--text); text-align: right; }
+            [data-page="home"] .done-stamp { font-size: 11px; color: var(--text-subtle); white-space: nowrap; }
+            [data-page="home"] .compdetail-loc { display: inline-flex; align-items: center; gap: 8px; }
+            [data-page="home"] .compdetail-stamp { text-align: center; padding: 10px 14px 2px; font-size: 12px; color: var(--text-subtle); }
 
             /* ---------- Calendar ---------- */
             [data-page="home"] .cal-head {
@@ -1784,6 +1789,17 @@
             }
 
             /* ---------- Production preview ---------- */
+            /* #208: the controls freeze; only the lists scroll. The negative top/side margins cancel
+               .content's padding so the bar is opaque edge to edge as rows pass under it. */
+            [data-page="home"] .prod-freeze {
+                position: sticky;
+                top: calc(-1 * var(--pad-t, 0px));
+                z-index: 30;
+                background: var(--bg);
+                padding: var(--pad-t, 0px) var(--pad-x, 0px) 0;
+                margin: calc(-1 * var(--pad-t, 0px)) calc(-1 * var(--pad-x, 0px)) 0;
+            }
+            [data-page="home"] .prod-freeze > *:last-child { margin-bottom: 10px; }
             [data-page="home"] .machine-tabs {
                 display: flex;
                 gap: 4px;
@@ -1916,7 +1932,7 @@
                    top cancels .content's padding so it pins flush to the scrollport edge (otherwise a card
                    edge shows through the gap); the side bleed keeps it opaque edge to edge. Under .pop (z 90). */
                 position: sticky;
-                top: calc(-1 * var(--pad-t, 0px));
+                top: calc(var(--freeze-h, 0px) - var(--pad-t, 0px));
                 z-index: 20;
                 background: var(--bg);
                 padding: 8px var(--pad-x, 0px);
@@ -1935,6 +1951,11 @@
             [data-page="home"] .day-count { font-weight: 500; color: var(--text-subtle); text-transform: none; letter-spacing: 0; }
             [data-page="home"] table.grid tr.day-row td {
                 background: var(--surface-3);
+                /* #213: the wrapping list freezes its day the way the cutlists do, parked directly under
+                   the sticky header row (which is 33px: 7px padding × 2 + 19px line). */
+                position: sticky;
+                top: calc(var(--freeze-h, 0px) + 33px);
+                z-index: 2;
                 border-top: 2px solid rgba(71, 84, 103, 0.5); /* --text-subtle @ 50%, matches .day-sep line */
                 font-size: 11px;
                 font-weight: 600;
@@ -2111,8 +2132,13 @@
             [data-page="home"] .mcap-dayrow th { font-weight: 700; }
             [data-page="home"] .mcap-num { white-space: nowrap; }
             [data-page="home"] .mcap-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+            /* fixed tracks, not 1fr: the slashes have to line up down the column, not inside each cell */
+            [data-page="home"] .mcap-val.has-max { display: inline-grid; grid-template-columns: 4ch auto 4ch; align-items: baseline; gap: 4px; }
+            [data-page="home"] .mcap-assigned { text-align: right; }
+            [data-page="home"] .mcap-slash { color: var(--text-subtle); }
+            [data-page="home"] .mcap-max { text-align: left; }
             [data-page="home"] .mcap-val.over { color: var(--danger); }
-            [data-page="home"] .mcap-stock { margin-left: 8px; font-size: 11.5px; color: var(--accent); }
+            [data-page="home"] td.mcap-stock { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); }
             [data-page="home"] .mcap-note { margin-top: 14px; font-size: 11.5px; line-height: 1.5; color: var(--text-subtle); }
             [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 16px; }
             /* #174: only the capacity report's own Print button prints report-only — an ordinary Ctrl+P
@@ -2124,7 +2150,7 @@
                 [data-page="home"].is-printing-report #overlay-machinecap .modal { max-width: none; width: 100%; border: none; border-radius: 0; box-shadow: none; }
                 [data-page="home"] .mcap-print-hide, [data-page="home"] .modal-x { display: none !important; }
                 [data-page="home"] .mcap-table { break-inside: avoid; }
-                [data-page="home"] .mcap-stock { color: #4a5aa8; }
+                [data-page="home"] td.mcap-stock { color: #4a5aa8; }
             }
 
             /* ---------- Machine capacity totals (gap: Machine Capacities) ---------- */

@@ -12,13 +12,15 @@ import {
   Warehouse
 } from 'lucide-react'
 
-import { Fragment } from 'react'
+import { Link } from '@tanstack/react-router'
+
+import { Fragment, useEffect, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
 import { usePopover } from '@/components/shell/pop'
 
-import { fmtDate } from '../format'
+import { fmtDate, fmtStamp } from '../format'
 import {
   BENDLIST_MACHINES,
   computeBatches,
@@ -34,6 +36,7 @@ import {
   remanBendlistEntries,
   remanCutlistEntries,
   remanIsStock,
+  slinetTotals,
   ventedOf,
   type BatchItem
 } from '../selectors'
@@ -43,6 +46,7 @@ import {
   reassignMachine,
   revertRowComplete,
   setActiveMachine,
+  setOpNote,
   setProdListMode,
   setProdMode,
   slinetCutGroup,
@@ -156,11 +160,43 @@ const DaySep = ({
   </div>
 )
 
-const MachineTotals = ({ machineId }: { machineId: number | null }) => {
+/**
+ * #208: the production controls, frozen at the top of the scrollport.
+ *
+ * Its height is published as `--freeze-h` rather than hard-coded, because the day dividers park
+ * directly under it and the bar is a different height on the Wrapping tab, in Stock mode, and
+ * whenever the machine tabs wrap to a second line.
+ */
+const FreezeBar = ({ children }: { children: React.ReactNode }) => {
+  const [node, setNode] = useState<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    // the var goes on the parent, not on the bar: the day dividers that read it are its siblings
+    const host = node?.parentElement
+    if (!node || !host) return
+    const publish = () => host.style.setProperty('--freeze-h', `${node.offsetHeight}px`)
+    const observer = new ResizeObserver(publish)
+    observer.observe(node)
+    publish()
+    return () => {
+      observer.disconnect()
+      host.style.removeProperty('--freeze-h')
+    }
+  }, [node])
+
+  return (
+    <div className='prod-freeze' data-comment='prod-freeze' ref={setNode}>
+      {children}
+    </div>
+  )
+}
+
+const MachineTotals = ({ machineId, slinet }: { machineId: number | null; slinet?: boolean }) => {
   const state = useStore(trimStore, current => current)
-  const totals = machineTotals(machineId, TODAY, state)
-  const over = totals.bends > totals.dailyMax
+  const totals = slinet ? slinetTotals(TODAY, state) : machineTotals(machineId, TODAY, state)
+  const over = !slinet && totals.bends > totals.dailyMax
   const stockNote = (value: number) => (value ? ` (${value} of them from stock orders)` : '')
+  const where = slinet ? 'Cut on the Slinet today' : 'Assigned to this machine for today'
 
   return (
     <div className='mach-totals' data-comment='prod-mtotals'>
@@ -172,7 +208,7 @@ const MachineTotals = ({ machineId }: { machineId: number | null }) => {
         <span className='mach-total-label'>Total # Pieces</span>
         <span
           className='mach-total-value mono'
-          title={`Assigned to this machine for today${stockNote(totals.stockPieces)}`}
+          title={`${where}${stockNote(totals.stockPieces)}`}
         >
           {totals.pieces}
         </span>
@@ -181,17 +217,20 @@ const MachineTotals = ({ machineId }: { machineId: number | null }) => {
         <span className='mach-total-label'>Total Bends</span>
         <span
           className={`mach-total-value mono ${over ? 'over' : ''}`}
-          title={`Assigned to this machine for today${stockNote(totals.stockBends)}${over ? ' — over the daily max' : ''}`}
+          title={`${where}${stockNote(totals.stockBends)}${over ? ' — over the daily max' : ''}`}
         >
           {totals.bends}
         </span>
       </div>
-      <div className='mach-total-item' data-comment='prod-mtotal-max'>
-        <span className='mach-total-label'>Daily Max (bends)</span>
-        <span className='mach-total-value mono' title='Set in Settings › Machines'>
-          {totals.dailyMax}
-        </span>
-      </div>
+      {/* #209: the Slinet has no daily max of its own, so the strip stops at the two totals */}
+      {slinet ? null : (
+        <div className='mach-total-item' data-comment='prod-mtotal-max'>
+          <span className='mach-total-label'>Daily Max (bends)</span>
+          <span className='mach-total-value mono' title='Set in Settings › Machines'>
+            {totals.dailyMax}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -283,6 +322,7 @@ const BatchRows = ({
   stepStatus: string
 }) => {
   const { openPop, popNode } = usePopover()
+  const opNotes = useStore(trimStore, state => state.opNotes)
 
   return (
   <>
@@ -416,8 +456,9 @@ const BatchRows = ({
                   type='text'
                   data-comment={`prod-opnote-${rowKey}`}
                   placeholder='Notes…'
+                  value={opNotes[rowKey] ?? ''}
+                  onChange={event => setOpNote(rowKey, event.target.value)}
                   onClick={event => event.stopPropagation()}
-                  readOnly
                 />
               </td>
               <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
@@ -579,6 +620,7 @@ const BatchRows = ({
 
 const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
   const expandedBatches = useStore(trimStore, state => state.expandedBatches)
+  const opNotes = useStore(trimStore, state => state.opNotes)
   const expKey = `RS|${reman.id}`
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(reman.priorityId)
@@ -603,7 +645,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           {remanIsStock(reman) ? <StockIco comment={`remcut-stockico-${reman.id}`} /> : null}
         </span>
         <span className='pri-slot' data-comment={`remcut-prislot-${reman.id}`}>
-          {priority ? (
+          {priority && !reman.slinetDone ? (
             <span
               className={`pri ${priority.cls} readonly`}
               data-comment={`remcut-pri-${reman.id}`}
@@ -630,27 +672,42 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           </span>
         </span>
         <span className='toolbar-spacer' />
-        <button
-          className='btn btn-sm'
-          data-comment={`remcut-coils-${reman.id}`}
-          disabled={!reman.fromCutlistId}
-          title={
-            reman.fromCutlistId ? undefined : 'Original cutlist is closed — no coils to adjust'
-          }
-          onClick={() => openCutlistCoils(reman.gaugeColour)}
-        >
-          <Database style={{ width: '14px', height: '14px' }} />
-          Cutlist Coils
-        </button>
-        <button
-          className='btn btn-sm'
-          data-comment={`remcut-donebtn-${reman.id}`}
-          disabled={!reman.recut}
-          title={reman.recut ? undefined : 'Available once the recut row is Complete'}
-          onClick={() => askRemanListDone(reman.id, 'slinet')}
-        >
-          Done
-        </button>
+        {/* #214: a completed recut keeps only its Done stamp */}
+        {reman.slinetDone ? (
+          <>
+            <span className='status st-wrapped' data-comment={`remcut-done-${reman.id}`}>
+              <Check style={{ width: '14px', height: '14px' }} />
+              Done
+            </span>
+            <span className='done-stamp' data-comment={`remcut-donestamp-${reman.id}`}>
+              {fmtStamp(reman.slinetDoneAt)}
+            </span>
+          </>
+        ) : (
+          <>
+            <button
+              className='btn btn-sm'
+              data-comment={`remcut-coils-${reman.id}`}
+              disabled={!reman.fromCutlistId}
+              title={
+                reman.fromCutlistId ? undefined : 'Original cutlist is closed — no coils to adjust'
+              }
+              onClick={() => openCutlistCoils(reman.gaugeColour)}
+            >
+              <Database style={{ width: '14px', height: '14px' }} />
+              Cutlist Coils
+            </button>
+            <button
+              className='btn btn-sm'
+              data-comment={`remcut-donebtn-${reman.id}`}
+              disabled={!reman.recut}
+              title={reman.recut ? undefined : 'Available once the recut row is Complete'}
+              onClick={() => askRemanListDone(reman.id, 'slinet')}
+            >
+              Done
+            </button>
+          </>
+        )}
       </div>
 
       {expanded ? (
@@ -712,7 +769,8 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
                   type='text'
                   data-comment={`remcut-opnote-${reman.id}`}
                   placeholder='Notes…'
-                  readOnly
+                  value={opNotes[`rem-${reman.id}`] ?? ''}
+                  onChange={event => setOpNote(`rem-${reman.id}`, event.target.value)}
                 />
               </td>
               <td data-comment={`remcut-complete-${reman.id}`}>
@@ -783,7 +841,7 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
           {remanIsStock(reman) ? <StockIco comment={`reman-stockico-${reman.id}`} /> : null}
         </span>
         <span className='pri-slot' data-comment={`reman-prislot-${reman.id}`}>
-          {priority ? (
+          {priority && !reman.machineDone ? (
             <span className={`pri ${priority.cls} readonly`} data-comment={`reman-pri-${reman.id}`}>
               <span className='pri-dot' />
               {priority.name}
@@ -807,15 +865,28 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
           </span>
         </span>
         <span className='toolbar-spacer' />
-        <button
-          className='btn btn-sm'
-          data-comment={`reman-donebtn-${reman.id}`}
-          disabled={!reman.bent}
-          title={reman.bent ? undefined : 'Available once the remanufacture row is Complete'}
-          onClick={() => askRemanListDone(reman.id, 'machine')}
-        >
-          Done
-        </button>
+        {/* #214: same as the recut card — done means done */}
+        {reman.machineDone ? (
+          <>
+            <span className='status st-wrapped' data-comment={`reman-done-${reman.id}`}>
+              <Check style={{ width: '14px', height: '14px' }} />
+              Done
+            </span>
+            <span className='done-stamp' data-comment={`reman-donestamp-${reman.id}`}>
+              {fmtStamp(reman.machineDoneAt)}
+            </span>
+          </>
+        ) : (
+          <button
+            className='btn btn-sm'
+            data-comment={`reman-donebtn-${reman.id}`}
+            disabled={!reman.bent}
+            title={reman.bent ? undefined : 'Available once the remanufacture row is Complete'}
+            onClick={() => askRemanListDone(reman.id, 'machine')}
+          >
+            Done
+          </button>
+        )}
       </div>
 
       {expanded ? (
@@ -945,8 +1016,10 @@ const BatchCard = ({
   const expKey = `${isSlinet ? 'S' : `M${machineId}`}|${batch.id}`
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(batch.priorityId)
-  const overdue = isOverdue(batch.date)
   const doneHere = isSlinet ? !!batch.doneSlinet : (batch.doneMachines || []).includes(machineId!)
+  /* #214: a finished list is not late and has nothing left to act on — no overdue paint, no
+     Priority, no Cutlist Coils. */
+  const overdue = !doneHere && isOverdue(batch.date)
   const stepStatus = isSlinet ? 'cut' : 'bent'
   /**
    * N-056/199, and #195: reaching the station's step on every line is the *only* gate. A cutlist whose
@@ -989,7 +1062,7 @@ const BatchCard = ({
         </span>
 
         <span className='pri-slot' data-comment={`prod-batchprislot-${batchKey}`}>
-          {priority ? (
+          {priority && !doneHere ? (
             <span
               className={`pri ${priority.cls} readonly`}
               data-comment={`prod-batchpri-${batchKey}`}
@@ -1024,7 +1097,7 @@ const BatchCard = ({
 
         <span className='toolbar-spacer' />
 
-        {isSlinet ? (
+        {isSlinet && !doneHere ? (
           <button
             className='btn btn-sm'
             data-comment={`prod-coils-${batchKey}`}
@@ -1036,10 +1109,17 @@ const BatchCard = ({
         ) : null}
 
         {doneHere ? (
-          <span className='status st-wrapped' data-comment={`prod-done-${batchKey}`}>
-            <Check style={{ width: '14px', height: '14px' }} />
-            Done
-          </span>
+          <>
+            <span className='status st-wrapped' data-comment={`prod-done-${batchKey}`}>
+              <Check style={{ width: '14px', height: '14px' }} />
+              Done
+            </span>
+            <span className='done-stamp' data-comment={`prod-donestamp-${batchKey}`}>
+              {fmtStamp(
+                isSlinet ? batch.doneSlinetAt : (batch.doneMachineAt || {})[machineId!]
+              )}
+            </span>
+          </>
         ) : (
           <button
             className='btn btn-sm'
@@ -1221,7 +1301,7 @@ export const Production = () => {
   if (prodMode === 'stock')
     return (
       <>
-        {modeBar}
+        <FreezeBar>{modeBar}</FreezeBar>
         <StockMfg />
       </>
     )
@@ -1242,6 +1322,18 @@ export const Production = () => {
           {machine.name}
         </button>
       ))}
+      <span className='toolbar-spacer' />
+      {/* #213: the worker reaches the coils from where he is standing — the same list the Coils tab
+          shows, under the Manager's filter, with no filter of its own. */}
+      <Link
+        className='btn btn-sm'
+        data-comment='prod-coilsbtn'
+        to='/trim'
+        search={{ view: 'coils' }}
+      >
+        <Database style={{ width: '14px', height: '14px' }} />
+        Coils
+      </Link>
     </div>
   )
 
@@ -1249,8 +1341,10 @@ export const Production = () => {
   if (activeMachine === 7)
     return (
       <>
-        {modeBar}
-        {machineTabs}
+        <FreezeBar>
+          {modeBar}
+          {machineTabs}
+        </FreezeBar>
         <Wrapping />
       </>
     )
@@ -1299,12 +1393,15 @@ export const Production = () => {
 
   return (
     <>
-      {modeBar}
-      {machineTabs}
+      {/* #208: the mode bar, the machine tabs and the Active/Completed switch are the controls the
+          worker steers by — they stay put while the lists scroll under them. */}
+      <FreezeBar>
+        {modeBar}
+        {machineTabs}
 
-      {/* #192: every machine tab carries its own Active / Completed switch, and a completed list
-          renders in exactly the format the worker used — same cards, same columns, same expand. */}
-      <div className='prodlist-tabs' data-comment='prod-listtabs'>
+        {/* #192: every machine tab carries its own Active / Completed switch, and a completed list
+            renders in exactly the format the worker used — same cards, same columns, same expand. */}
+        <div className='prodlist-tabs' data-comment='prod-listtabs'>
         <button
           className={`seg ${doneMode ? '' : 'active'}`}
           data-comment='prod-listtab-active'
@@ -1318,12 +1415,13 @@ export const Production = () => {
           onClick={() => setProdListMode('completed')}
         >
           <History style={{ width: '14px', height: '14px' }} />
-          Completed {listWord} · past 90 days
-        </button>
-      </div>
+            Completed {listWord} · past 90 days
+          </button>
+        </div>
+      </FreezeBar>
 
-      {/* the totals strip is a machine's own capacity — Slinet and Wrapping have none */}
-      {!isSlinet && !doneMode ? <MachineTotals machineId={activeMachine} /> : null}
+      {/* #209: the Slinet gets the strip too, minus the daily max it does not have */}
+      {doneMode ? null : <MachineTotals machineId={activeMachine} slinet={isSlinet} />}
 
       {body()}
     </>

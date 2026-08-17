@@ -306,6 +306,37 @@ export const dayScheduledTotals = (iso: string, orders = trimStore.get().orders)
   return { pieces, bends, stockPieces, stockBends }
 }
 
+/**
+ * #209: the same strip for the Slinet, which is not a machine.
+ *
+ * Everything in the day's cutlists counts, whatever machine each line is routed to afterwards — the
+ * Slinet cuts all of it — and there is no daily max for it to be over.
+ */
+export const slinetTotals = (iso: string, state = trimStore.get()) => {
+  let pieces = 0
+  let bends = 0
+  let stockPieces = 0
+  let stockBends = 0
+
+  for (const cutlist of state.cutlists) {
+    if (cutlist.date !== iso) continue
+    for (const member of cutlist.members) {
+      const found = lineOf(member.orderId, member.lineId, state.orders)
+      if (!found) continue
+      const linePieces = qtyToMake(found.item)
+      const lineBendCount = lineBends(found.item)
+      pieces += linePieces
+      bends += lineBendCount
+      if (found.order.type === 'stock') {
+        stockPieces += linePieces
+        stockBends += lineBendCount
+      }
+    }
+  }
+
+  return { pieces, bends, stockPieces, stockBends, dailyMax: 0 }
+}
+
 /** What one machine has been given for one day — the numbers on the totals strip. */
 export const machineTotals = (machineId: number | null, iso: string, state = trimStore.get()) => {
   let pieces = 0

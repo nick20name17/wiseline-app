@@ -29,10 +29,16 @@ export const trimStore = createStore<TrimState>({
   ...(seed as unknown as TrimState),
   // not in the dump: the prototype keeps its open cards outside the store
   expandedBatches: [],
+  // #214: what the operator typed against a row, keyed the way the prototype keys it
+  opNotes: {},
   machines: withPublishedCaps(DEPARTMENT, (seed as unknown as TrimState).machines)
 })
 
 export const setSearch = (searchTerm: string) => trimStore.set({ searchTerm })
+
+/** Operator notes live on the row group, not on the line — a regroup is a different note. */
+export const setOpNote = (key: string, value: string) =>
+  trimStore.set(state => ({ opNotes: { ...state.opNotes, [key]: value } }))
 
 /** Follows the sidebar's «Viewing as» — see `useDeptRole`. */
 export const setDeptRole = (role: DeptRole) => trimStore.set({ role })
@@ -788,15 +794,24 @@ export const reassignMachine = (orderId: number, lineId: number, machineId: numb
 
 /** N-056: a station signs off its whole list. `key` is 'slinet' or a machine id. */
 export const markBatchDone = (batchId: string, key: 'slinet' | number) =>
-  trimStore.set(state => ({
-    cutlists: state.cutlists.map(batch =>
-      batch.id !== batchId
-        ? batch
-        : key === 'slinet'
-          ? { ...batch, doneSlinet: true }
-          : { ...batch, doneMachines: [...(batch.doneMachines || []), key] }
-    )
-  }))
+  trimStore.set(state => {
+    /* #215: the sign-off is stamped, so a completed list can say when it was finished. */
+    const at = new Date().toISOString()
+
+    return {
+      cutlists: state.cutlists.map(batch =>
+        batch.id !== batchId
+          ? batch
+          : key === 'slinet'
+            ? { ...batch, doneSlinet: true, doneSlinetAt: at }
+            : {
+                ...batch,
+                doneMachines: [...(batch.doneMachines || []), key],
+                doneMachineAt: { ...(batch.doneMachineAt || {}), [key]: at }
+              }
+      )
+    }
+  })
 
 /**
  * The two halves of a remanufacture close independently, and in order.
@@ -817,13 +832,21 @@ export const setRemanFlag = (id: string, flag: 'recut' | 'bent', value: boolean)
   }))
 
 export const remanListDone = (id: string, which: 'slinet' | 'machine') =>
-  trimStore.set(state => ({
-    remans: state.remans.map(reman =>
-      reman.id === id
-        ? { ...reman, [which === 'slinet' ? 'slinetDone' : 'machineDone']: true }
-        : reman
-    )
-  }))
+  trimStore.set(state => {
+    const at = new Date().toISOString()
+
+    return {
+      remans: state.remans.map(reman =>
+        reman.id === id
+          ? {
+              ...reman,
+              [which === 'slinet' ? 'slinetDone' : 'machineDone']: true,
+              [which === 'slinet' ? 'slinetDoneAt' : 'machineDoneAt']: at
+            }
+          : reman
+      )
+    }
+  })
 
 /* -- wrapping: locations and packages (N-081..095) ---------------------------------------------- */
 

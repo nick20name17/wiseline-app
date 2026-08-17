@@ -1,5 +1,7 @@
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
 
+import { Link } from '@tanstack/react-router'
+
 import { Fragment, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
@@ -212,9 +214,9 @@ export const Coils = () => {
         Coils imported from EBMS — one row per size, expand for its lots. Click a lot&apos;s Coil
         Thickness, Linear Feet or Weight to adjust it and push back to EBMS. Same inventory as the
         plant-wide{' '}
-        <a data-comment='coils-crosslink' href='/coils'>
+        <Link data-comment='coils-crosslink' to='/coils'>
           Coils
-        </a>{' '}
+        </Link>{' '}
         page.
       </div>
 

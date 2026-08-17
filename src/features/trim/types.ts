@@ -128,6 +128,8 @@ export type TrimState = {
    * function; here it has to be state something re-renders on, and the store is where state lives.
    */
   expandedBatches: string[]
+  /** Operator notes typed on a cutlist/bendlist row, keyed by row-group (`rem-<id>` for a reman). */
+  opNotes: Record<string, string>
   /** Rows of a stock order's wrapping window ticked for the next manufacturing batch (#185). */
   stockWrapChecked: number[]
   [key: string]: unknown
@@ -142,6 +144,9 @@ export type Cutlist = {
   slinetStarted?: boolean
   doneSlinet?: boolean
   doneMachines?: number[]
+  /** #215: when Done was pressed — the Slinet's own stamp, and one per machine that signed off. */
+  doneSlinetAt?: string
+  doneMachineAt?: Record<number, string>
 }
 
 /** A recut raised against one line — it fans out to both the Slinet and the machine that raised it. */
@@ -165,4 +170,6 @@ export type Reman = {
   bent: boolean
   slinetDone: boolean
   machineDone: boolean
+  slinetDoneAt?: string
+  machineDoneAt?: string
 }

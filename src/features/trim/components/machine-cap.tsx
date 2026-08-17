@@ -20,18 +20,28 @@ const Cell = ({
   stock: number
   comment: string
 }) => (
-  <td className='mcap-num' data-comment={comment}>
-    <span
-      className={`mcap-val${max && value > max ? ' over' : ''}`}
-      data-comment={`${comment}-val`}
-    >
-      {value}
-      {max ? ` / ${max}` : ''}
-    </span>
-    <span className='mcap-stock' data-comment={`${comment}-stock`}>
-      ({stock} - Stock)
-    </span>
-  </td>
+  <>
+    {/* #212: value, slash and max are three cells of one grid so the slashes line up down the column */}
+    <td className='mcap-num' data-comment={comment}>
+      <span
+        className={`mcap-val${max ? ' has-max' : ''}${max && value > max ? ' over' : ''}`}
+        data-comment={`${comment}-val`}
+      >
+        <span className='mcap-assigned' data-comment={`${comment}-assigned`}>
+          {value}
+        </span>
+        <span className='mcap-slash' data-comment={`${comment}-slash`}>
+          {max ? '/' : ''}
+        </span>
+        <span className='mcap-max' data-comment={`${comment}-max`}>
+          {max ? max : ''}
+        </span>
+      </span>
+    </td>
+    <td className='mcap-num mcap-stock' data-comment={`${comment}-stock`}>
+      {stock}
+    </td>
+  </>
 )
 
 /**
@@ -94,7 +104,9 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
               <tr>
                 <th data-comment='mcap-th-blank' />
                 <th data-comment='mcap-th-pieces'>Pieces</th>
+                <th data-comment='mcap-th-piecesstock'>Stock</th>
                 <th data-comment='mcap-th-bends'>Bends</th>
+                <th data-comment='mcap-th-bendsstock'>Stock</th>
               </tr>
             </thead>
             <tbody data-comment='mcap-tbody'>

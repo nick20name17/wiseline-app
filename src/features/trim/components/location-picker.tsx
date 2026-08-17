@@ -16,7 +16,6 @@ import {
 } from '../selectors'
 import { trimStore } from '../store'
 
-const WAREHOUSES = [1, 2, 3]
 const DEPTS = ['Trim', 'Rollforming', 'Accessories']
 
 /**
@@ -39,7 +38,6 @@ export const LocationPicker = ({
   onClose: () => void
   onPick: (locationId: number) => void
 }) => {
-  const [warehouse, setWarehouse] = useState(1)
   const [dept, setDept] = useState('Trim')
   const { orders, locations } = useStore(trimStore, state => state)
 
@@ -69,19 +67,8 @@ export const LocationPicker = ({
           data-comment='locpicker-body'
           style={{ flex: 1, overflow: 'auto' }}
         >
-          <div className='loc-whtabs' data-comment='loc-whtabs'>
-            {WAREHOUSES.map(id => (
-              <button
-                className={`loc-tab ${id === warehouse ? 'active' : ''}`}
-                data-comment={`loc-whtab-${id}`}
-                onClick={() => setWarehouse(id)}
-                key={id}
-              >
-                Warehouse #{id}
-              </button>
-            ))}
-          </div>
-
+          {/* #204: no warehouse tabs — location codes are globally unique, so which warehouse a
+              cell sits in tells the worker nothing they need. */}
           <div className='loc-depttabs' data-comment='loc-depttabs'>
             {DEPTS.map(name => (
               <button
@@ -112,7 +99,6 @@ export const LocationPicker = ({
                 {locations
                   .filter(
                     location =>
-                      location.wh === warehouse &&
                       location.dept === dept &&
                       location.code[0] === column.prefix
                   )

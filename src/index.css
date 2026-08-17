@@ -251,4 +251,17 @@ body {
     gap: 0.1in;
     justify-content: center;
   }
+
+  /* #206: 2 × 4 to a letter sheet, and never a card split across the fold */
+  #root.is-printing-cards > #print-sheet > .wl-print-cards > * {
+    break-inside: avoid;
+  }
+
+  #root.is-printing-cards > #print-sheet > .wl-print-cards > *:nth-child(8n + 1) {
+    break-before: page;
+  }
+
+  #root.is-printing-cards > #print-sheet > .wl-print-cards > *:first-child {
+    break-before: auto;
+  }
 }
