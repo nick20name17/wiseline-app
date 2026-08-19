@@ -2,14 +2,24 @@ import { Fragment } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { isReviewed, lineDay, lineStatus } from '../selectors'
 import { trimStore } from '../store'
+import { showToast } from '../ui'
 import { EmptyState } from './bits'
 import { colorOf } from './cutlist-coils'
 
 import type { Order } from '../types'
+
+/** N-166/#114 */
+const DATA_COLUMNS: Column[] = [
+  { key: 'color', label: 'Colour' },
+  { key: 'pid', label: 'Product ID', width: '140px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'qty', label: 'Qty allocated', width: '120px' }
+]
 
 /**
  * Stock that has been promised but not yet handed over.
@@ -57,6 +67,7 @@ const allocatedRows = (orders: Order[]) => {
 export const AllocStock = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const orders = useStore(trimStore, state => state.orders)
   const rows = allocatedRows(orders)
+  const { headers, cells } = useColumnOrder('trim-allocstock', DATA_COLUMNS, { notify: showToast })
 
   return (
     <Overlay id='overlay-allocstock' comment='overlay-allocstock' open={open} onClose={onClose}>
@@ -85,12 +96,7 @@ export const AllocStock = ({ open, onClose }: { open: boolean; onClose: () => vo
             <div className='table-wrap' data-comment='allocstock-wrap'>
               <table className='grid' data-comment='allocstock-table'>
                 <thead>
-                  <tr>
-                    <th>Colour</th>
-                    <th style={{ width: '140px' }}>Product ID</th>
-                    <th>Description</th>
-                    <th style={{ width: '120px' }}>Qty allocated</th>
-                  </tr>
+                  <tr>{headers}</tr>
                 </thead>
                 <tbody data-comment='allocstock-tbody'>
                   {rows.map((row, index) => {
@@ -108,16 +114,40 @@ export const AllocStock = ({ open, onClose }: { open: boolean; onClose: () => vo
                           </tr>
                         ) : null}
                         <tr data-comment={`allocstock-row-${index}`}>
-                          <td data-comment={`allocstock-color-${index}`}>{row.color}</td>
-                          <td className='mono' data-comment={`allocstock-pid-${index}`}>
-                            {row.productId}
-                          </td>
-                          <td className='trunc' data-comment={`allocstock-desc-${index}`}>
-                            {row.description}
-                          </td>
-                          <td className='mono' data-comment={`allocstock-qty-${index}`}>
-                            {row.qty}
-                          </td>
+                          {cells({
+                            color: (
+                              <td data-col='color' data-comment={`allocstock-color-${index}`}>
+                                {row.color}
+                              </td>
+                            ),
+                            pid: (
+                              <td
+                                data-col='pid'
+                                className='mono'
+                                data-comment={`allocstock-pid-${index}`}
+                              >
+                                {row.productId}
+                              </td>
+                            ),
+                            desc: (
+                              <td
+                                data-col='desc'
+                                className='trunc'
+                                data-comment={`allocstock-desc-${index}`}
+                              >
+                                {row.description}
+                              </td>
+                            ),
+                            qty: (
+                              <td
+                                data-col='qty'
+                                className='mono'
+                                data-comment={`allocstock-qty-${index}`}
+                              >
+                                {row.qty}
+                              </td>
+                            )
+                          })}
                         </tr>
                       </Fragment>
                     )

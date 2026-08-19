@@ -2,6 +2,8 @@ import { Calendar, CalendarDays, ChevronDown, Lock, MessageSquare, Split } from 
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { usePopover } from '@/components/shell/pop'
 
 import { fmtDate } from '../format'
@@ -23,7 +25,7 @@ import {
   toggleVented,
   trimStore
 } from '../store'
-import { openNotes, openSchedule } from '../ui'
+import { openNotes, openSchedule, showToast } from '../ui'
 import { LineStatusPill } from './bits'
 
 import type { LineItem, Order } from '../types'
@@ -37,11 +39,38 @@ import type { LineItem, Order } from '../types'
 
 type Context = 'uns' | 'sch'
 
+/**
+ * N-166/#114: the line-item grid moves its columns too. Which columns exist depends on the tab and on
+ * whether the order is a stock order, so the list is built per render — the hook keeps saved keys that
+ * are still declared and ignores the rest, which is exactly what a column that comes and goes needs.
+ */
+const columnsFor = (isScheduled: boolean, isStock: boolean): Column[] => [
+  { key: 'qty', label: 'Qty', width: '60px' },
+  ...(isScheduled
+    ? [
+        { key: 'vent', label: 'Vented', width: '72px' },
+        { key: 'machine', label: 'Machine', width: '128px' },
+        // N-032: a stock order has no «# From Stock» to take from
+        ...(isStock ? [] : [{ key: 'stock', label: 'Stock', width: '80px' }]),
+        { key: 'status', label: 'Status', width: '116px' }
+      ]
+    : []),
+  { key: 'pid', label: 'Product ID', width: '116px' },
+  { key: 'desc', label: 'Description' },
+  ...(isScheduled
+    ? [
+        { key: 'w', label: 'W"', width: '54px' },
+        { key: 'l', label: 'L"', width: '54px' }
+      ]
+    : []),
+  { key: 'notes', label: 'Notes', width: '48px' }
+]
+
 const LineNotes = ({ ctx, orderId, item }: { ctx: Context; orderId: number; item: LineItem }) => {
   const state = noteState(item.notes)
 
   return (
-    <td data-comment={`${ctx}-linote-${item.id}`}>
+    <td data-col='notes' data-comment={`${ctx}-linote-${item.id}`}>
       <button
         data-comment={`${ctx}-linotebtn-${item.id}`}
         className={`note-btn ${state === 'unread' ? 'has-unread' : state === 'read' ? 'all-read' : ''}`}
@@ -286,6 +315,11 @@ export const LineItemsSubrow = ({
   const selectedOrderIds = useStore(trimStore, state => state.selectedOrderIds)
 
   const orderSelectedForWhole = !isScheduled && selectedOrderIds.includes(order.id)
+  const { headers, cells } = useColumnOrder(
+    `${ctx}-li`,
+    columnsFor(isScheduled, order.type === 'stock'),
+    { notify: showToast }
+  )
   const { openPop, popNode } = usePopover()
 
   const pickMachine = (anchor: HTMLElement, item: LineItem) =>
@@ -308,25 +342,7 @@ export const LineItemsSubrow = ({
             <thead>
               <tr>
                 <th style={{ width: '30px' }} />
-                <th style={{ width: '60px' }}>Qty</th>
-                {isScheduled ? (
-                  <>
-                    <th style={{ width: '72px' }}>Vented</th>
-                    <th style={{ width: '128px' }}>Machine</th>
-                    {/* N-032: a stock order has no «# From Stock» to take from */}
-                    {order.type !== 'stock' ? <th style={{ width: '80px' }}>Stock</th> : null}
-                    <th style={{ width: '116px' }}>Status</th>
-                  </>
-                ) : null}
-                <th style={{ width: '116px' }}>Product ID</th>
-                <th>Description</th>
-                {isScheduled ? (
-                  <>
-                    <th style={{ width: '54px' }}>W&quot;</th>
-                    <th style={{ width: '54px' }}>L&quot;</th>
-                  </>
-                ) : null}
-                <th style={{ width: '48px' }}>Notes</th>
+                {headers}
               </tr>
             </thead>
             <tbody>
@@ -387,116 +403,159 @@ export const LineItemsSubrow = ({
                         />
                       )}
                     </td>
-                    <td className='cell-num' data-comment={`${ctx}-liqty-${item.id}`}>
-                      {item.qty}
-                    </td>
-
-                    {isScheduled ? (
-                      <>
-                        <td data-comment={`${ctx}-livent-${item.id}`}>
-                          <VentCell ctx={ctx} order={order} item={item} otherDay={otherDay} />
+                    {cells({
+                      qty: (
+                        <td
+                          data-col='qty'
+                          className='cell-num'
+                          data-comment={`${ctx}-liqty-${item.id}`}
+                        >
+                          {item.qty}
                         </td>
-                        <td data-comment={`${ctx}-limachine-${item.id}`}>
-                          <MachineCell
-                            ctx={ctx}
-                            order={order}
-                            item={item}
-                            otherDay={otherDay}
-                            onPick={pickMachine}
-                          />
-                        </td>
-                        {order.type !== 'stock' ? (
-                          otherDay ? (
-                            <td className='mono muted' data-comment={`${ctx}-listock-${item.id}`}>
-                              {item.fromStock || 0}
-                            </td>
-                          ) : (
-                            <td data-comment={`${ctx}-listock-${item.id}`}>
-                              <input
-                                className='field-input'
-                                type='number'
-                                min='0'
-                                max={item.qty}
-                                value={item.fromStock || 0}
-                                placeholder='0'
-                                data-comment={`${ctx}-stockinput-${item.id}`}
-                                onClick={event => event.stopPropagation()}
-                                onChange={event =>
-                                  setFromStock(
-                                    order.id,
-                                    item.id,
-                                    Number.parseInt(event.target.value, 10)
+                      ),
+                      ...(isScheduled
+                        ? {
+                            vent: (
+                              <td data-col='vent' data-comment={`${ctx}-livent-${item.id}`}>
+                                <VentCell ctx={ctx} order={order} item={item} otherDay={otherDay} />
+                              </td>
+                            ),
+                            machine: (
+                              <td data-col='machine' data-comment={`${ctx}-limachine-${item.id}`}>
+                                <MachineCell
+                                  ctx={ctx}
+                                  order={order}
+                                  item={item}
+                                  otherDay={otherDay}
+                                  onPick={pickMachine}
+                                />
+                              </td>
+                            ),
+                            ...(order.type === 'stock'
+                              ? {}
+                              : {
+                                  stock: otherDay ? (
+                                    <td
+                                      data-col='stock'
+                                      className='mono muted'
+                                      data-comment={`${ctx}-listock-${item.id}`}
+                                    >
+                                      {item.fromStock || 0}
+                                    </td>
+                                  ) : (
+                                    <td data-col='stock' data-comment={`${ctx}-listock-${item.id}`}>
+                                      <input
+                                        className='field-input'
+                                        type='number'
+                                        min='0'
+                                        max={item.qty}
+                                        value={item.fromStock || 0}
+                                        placeholder='0'
+                                        data-comment={`${ctx}-stockinput-${item.id}`}
+                                        onClick={event => event.stopPropagation()}
+                                        onChange={event =>
+                                          setFromStock(
+                                            order.id,
+                                            item.id,
+                                            Number.parseInt(event.target.value, 10)
+                                          )
+                                        }
+                                      />
+                                    </td>
                                   )
-                                }
-                              />
-                            </td>
-                          )
-                        ) : null}
-                        {/* Status sits right after Stock — the canvas order */}
-                        <td data-comment={`${ctx}-listat-${item.id}`}>
-                          <LineStatusPill order={order} item={item} />
-                        </td>
-                      </>
-                    ) : null}
-
-                    <td className='mono' data-comment={`${ctx}-lipid-${item.id}`}>
-                      {item.productId}
-                    </td>
-                    <td className='trunc' data-comment={`${ctx}-lidesc-${item.id}`}>
-                      {editable ? (
-                        <input
-                          className='field-input'
-                          type='text'
-                          style={{ width: '100%', fontFamily: 'inherit' }}
-                          value={item.description}
-                          data-comment={`${ctx}-descinput-${item.id}`}
-                          title='Description (editable)'
-                          onClick={event => event.stopPropagation()}
-                          onChange={event =>
-                            setLineField(order.id, item.id, { description: event.target.value })
+                                }),
+                            /* Status sits right after Stock — the canvas order */
+                            status: (
+                              <td data-col='status' data-comment={`${ctx}-listat-${item.id}`}>
+                                <LineStatusPill order={order} item={item} />
+                              </td>
+                            )
                           }
-                        />
-                      ) : (
-                        item.description
-                      )}
-                    </td>
-
-                    {isScheduled ? (
-                      <>
-                        <td className='mono' data-comment={`${ctx}-liw-${item.id}`}>
+                        : {}),
+                      pid: (
+                        <td
+                          data-col='pid'
+                          className='mono'
+                          data-comment={`${ctx}-lipid-${item.id}`}
+                        >
+                          {item.productId}
+                        </td>
+                      ),
+                      desc: (
+                        <td
+                          data-col='desc'
+                          className='trunc'
+                          data-comment={`${ctx}-lidesc-${item.id}`}
+                        >
                           {editable ? (
                             <input
                               className='field-input'
-                              type='number'
-                              min='0'
-                              step='0.1'
-                              style={{ width: '48px', padding: '0 4px', textAlign: 'center' }}
-                              value={item.width}
-                              data-comment={`${ctx}-widthinput-${item.id}`}
-                              title='Width in inches (editable)'
+                              type='text'
+                              style={{ width: '100%', fontFamily: 'inherit' }}
+                              value={item.description}
+                              data-comment={`${ctx}-descinput-${item.id}`}
+                              title='Description (editable)'
                               onClick={event => event.stopPropagation()}
-                              onChange={event => {
-                                const width = Number.parseFloat(event.target.value)
-                                setLineField(order.id, item.id, {
-                                  width: Number.isNaN(width) || width < 0 ? 0 : width
-                                })
-                              }}
+                              onChange={event =>
+                                setLineField(order.id, item.id, { description: event.target.value })
+                              }
                             />
                           ) : (
-                            item.width.toFixed(1)
+                            item.description
                           )}
                         </td>
-                        <td
-                          className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
-                          data-comment={`${ctx}-lil-${item.id}`}
-                          title={item.length !== 120 ? 'Non-standard length (not 120")' : undefined}
-                        >
-                          {item.length}&quot;
-                        </td>
-                      </>
-                    ) : null}
-
-                    <LineNotes ctx={ctx} orderId={order.id} item={item} />
+                      ),
+                      ...(isScheduled
+                        ? {
+                            w: (
+                              <td
+                                data-col='w'
+                                className='mono'
+                                data-comment={`${ctx}-liw-${item.id}`}
+                              >
+                                {editable ? (
+                                  <input
+                                    className='field-input'
+                                    type='number'
+                                    min='0'
+                                    step='0.1'
+                                    style={{
+                                      width: '48px',
+                                      padding: '0 4px',
+                                      textAlign: 'center'
+                                    }}
+                                    value={item.width}
+                                    data-comment={`${ctx}-widthinput-${item.id}`}
+                                    title='Width in inches (editable)'
+                                    onClick={event => event.stopPropagation()}
+                                    onChange={event => {
+                                      const width = Number.parseFloat(event.target.value)
+                                      setLineField(order.id, item.id, {
+                                        width: Number.isNaN(width) || width < 0 ? 0 : width
+                                      })
+                                    }}
+                                  />
+                                ) : (
+                                  item.width.toFixed(1)
+                                )}
+                              </td>
+                            ),
+                            l: (
+                              <td
+                                data-col='l'
+                                className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
+                                data-comment={`${ctx}-lil-${item.id}`}
+                                title={
+                                  item.length !== 120 ? 'Non-standard length (not 120")' : undefined
+                                }
+                              >
+                                {item.length}&quot;
+                              </td>
+                            )
+                          }
+                        : {}),
+                      notes: <LineNotes ctx={ctx} orderId={order.id} item={item} />
+                    })}
                   </tr>
                 )
               })}

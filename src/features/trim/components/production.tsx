@@ -18,6 +18,7 @@ import { Fragment, useEffect, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { usePopover } from '@/components/shell/pop'
 
 import { fmtDate, fmtStamp } from '../format'
@@ -237,24 +238,52 @@ const MachineTotals = ({ machineId, slinet }: { machineId: number | null; slinet
   )
 }
 
-const SLINET_COLUMNS = (
-  <>
-    <th style={{ width: '54px' }}>W&quot;</th>
-    <th style={{ width: '54px' }}>L&quot;</th>
-    <th style={{ width: '64px' }}>Total</th>
-    <th style={{ width: '52px' }} title='Press Brake'>
-      P.B.
-    </th>
-    <th style={{ width: '48px' }}>V1</th>
-    <th style={{ width: '48px' }}>V2</th>
-    <th style={{ width: '70px' }}>Rollformer</th>
-    <th style={{ width: '64px' }}>Vented</th>
-    <th style={{ width: '52px' }}>Caps</th>
-    <th style={{ width: '78px' }}>Flat Stock</th>
-    <th style={{ width: '150px' }}>Operator Notes</th>
-    <th style={{ width: '96px' }}>Complete</th>
-  </>
-)
+/**
+ * #114: Production's own columns move too, the way N-166 already moves Unscheduled's and Scheduled's.
+ *
+ * One saved order per column set, not per card: a cutlist and the recut card below it are the same
+ * table read twice, and an order that applied to only one of them would look like a rendering fault.
+ * So the Slinet cutlists and the Slinet's remanufacture cards share `prod-slinet`, and every machine
+ * bendlist and its remanufacture cards share `prod-bend`.
+ */
+const SLINET_COLUMNS: Column[] = [
+  { key: 'w', label: 'W"', width: '54px' },
+  { key: 'l', label: 'L"', width: '54px' },
+  { key: 'total', label: 'Total', width: '64px' },
+  { key: 'pb', label: 'P.B.', width: '52px', title: 'Press Brake' },
+  { key: 'v1', label: 'V1', width: '48px' },
+  { key: 'v2', label: 'V2', width: '48px' },
+  { key: 'roll', label: 'Rollformer', width: '70px' },
+  { key: 'vent', label: 'Vented', width: '64px' },
+  { key: 'caps', label: 'Caps', width: '52px' },
+  { key: 'flat', label: 'Flat Stock', width: '78px' },
+  { key: 'op', label: 'Operator Notes', width: '150px' },
+  { key: 'complete', label: 'Complete', width: '96px' }
+]
+
+const BENDLIST_COLUMNS: Column[] = [
+  { key: 'w', label: 'W"', width: '54px' },
+  { key: 'l', label: 'L"', width: '54px' },
+  { key: 'ordqty', label: 'Qty Ordered', width: '74px' },
+  { key: 'stock', label: 'Stock', width: '72px' },
+  { key: 'qty', label: 'Qty to Manufacture', width: '96px' },
+  { key: 'pid', label: 'ID', width: '116px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'rem', label: 'Remanufacture', width: '80px' },
+  { key: 'mach', label: 'Machine', width: '118px' },
+  { key: 'status', label: 'Status', width: '116px' },
+  { key: 'complete', label: 'Complete', width: '88px' },
+  { key: 'draw', label: 'Drawing', width: '60px' },
+  { key: 'note', label: 'Line Item Notes', width: '56px' }
+]
+
+/** The Slinet's machine columns, in the order the cutlist declares them. */
+const SLINET_MACHINE_COLUMNS = [
+  { key: 'pb', name: 'Press Brake' },
+  { key: 'v1', name: 'V1' },
+  { key: 'v2', name: 'V2' },
+  { key: 'roll', name: 'Rollformer' }
+] as const
 
 /** N-054: ticking is silent, unticking asks — reopening a row is undoing someone's sign-off. */
 const CompleteToggle = ({
@@ -325,6 +354,11 @@ const BatchRows = ({
 }) => {
   const { openPop, popNode } = usePopover()
   const opNotes = useStore(trimStore, state => state.opNotes)
+  // the header is rendered by the card above; both read the same saved order, so they stay in step
+  const { cells } = useColumnOrder(
+    isSlinet ? 'prod-slinet' : 'prod-bend',
+    isSlinet ? SLINET_COLUMNS : BENDLIST_COLUMNS
+  )
 
   return (
     <>
@@ -405,221 +439,287 @@ const BatchRows = ({
           />
         )
 
+        const machineCells = Object.fromEntries(
+          SLINET_MACHINE_COLUMNS.map(({ key, name }) => {
+            const { machine, count } = machineCount(name)
+            return [
+              key,
+              <td
+                key={key}
+                data-col={key}
+                className='mono'
+                data-comment={`prod-i-m${machine.id}-${rowKey}`}
+              >
+                {count ? count : <span className='subtle'>—</span>}
+              </td>
+            ]
+          })
+        )
+        const caps = machineCount('Caps')
+
+        const sizeCells = {
+          w: (
+            <td data-col='w' className='mono' data-comment={`prod-i-w-${rowKey}`}>
+              {group.width.toFixed(1)}
+            </td>
+          ),
+          l: (
+            <td
+              data-col='l'
+              className={`mono ${lenAlert ? 'len-alert' : ''}`}
+              data-comment={`prod-i-l-${rowKey}`}
+            >
+              {group.length}&quot;
+            </td>
+          )
+        }
+
         return (
           <tr
             key={rowKey}
             className={done ? 'row-complete' : ''}
             data-comment={`prod-row-${rowKey}`}
           >
-            <td className='mono' data-comment={`prod-i-w-${rowKey}`}>
-              {group.width.toFixed(1)}
-            </td>
-            <td
-              className={`mono ${lenAlert ? 'len-alert' : ''}`}
-              data-comment={`prod-i-l-${rowKey}`}
-            >
-              {group.length}&quot;
-            </td>
-
-            {isSlinet ? (
-              <>
-                <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
-                  {totalLink}
-                </td>
-                {['Press Brake', 'V1', 'V2', 'Rollformer'].map(name => {
-                  const { machine, count } = machineCount(name)
-                  return (
-                    <td
-                      key={machine.id}
-                      className='mono'
-                      data-comment={`prod-i-m${machine.id}-${rowKey}`}
-                    >
-                      {count ? count : <span className='subtle'>—</span>}
-                    </td>
-                  )
-                })}
-                <td className='mono' data-comment={`prod-i-vent-${rowKey}`}>
-                  {totalVented ? (
-                    <span className='vent-pill'>{totalVented}</span>
-                  ) : (
-                    <span className='subtle'>—</span>
-                  )}
-                </td>
-                {(() => {
-                  const { machine, count } = machineCount('Caps')
-                  return (
-                    <td className='mono' data-comment={`prod-i-m${machine.id}-${rowKey}`}>
-                      {count ? count : <span className='subtle'>—</span>}
-                    </td>
-                  )
-                })()}
-                <td
-                  className='mono'
-                  data-comment={`prod-i-flat-${rowKey}`}
-                  title='Pieces cut for flat stock during this cut (N-116)'
-                >
-                  {totalFlat ? totalFlat : <span className='subtle'>—</span>}
-                </td>
-                <td data-comment={`prod-i-op-${rowKey}`}>
-                  <input
-                    className='op-note'
-                    type='text'
-                    data-comment={`prod-opnote-${rowKey}`}
-                    placeholder='Notes…'
-                    value={opNotes[rowKey] ?? ''}
-                    onChange={event => setOpNote(rowKey, event.target.value)}
-                    onClick={event => event.stopPropagation()}
-                  />
-                </td>
-                <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
-              </>
-            ) : (
-              <>
-                <td className='mono' data-comment={`prod-i-ordqty-${rowKey}`}>
-                  {totalOrdered}
-                </td>
-                <td data-comment={`prod-i-stock-${rowKey}`}>
-                  {done || !solo ? (
-                    <span className='mono'>{totalFlat}</span>
-                  ) : (
-                    <button
-                      className='field-btn'
-                      style={{ minWidth: '52px', justifyContent: 'center' }}
-                      data-comment={`prod-stockbtn-${rowKey}`}
-                      onClick={event => {
-                        event.stopPropagation()
-                        openPad({
-                          kind: 'stock',
-                          orderId: first.orderId,
-                          lineId: first.id,
-                          locked: first.status === 'wrapped'
-                        })
-                      }}
-                    >
-                      {first.fromStock || 0}
-                    </button>
-                  )}
-                </td>
-                <td className='mono' data-comment={`prod-i-qty-${rowKey}`}>
-                  {totalLink}
-                </td>
-                <td className='mono' data-comment={`prod-i-pid-${rowKey}`}>
-                  {pidSet.length === 1 ? pidSet[0] : 'Multiple'}
-                </td>
-                <td className='trunc' data-comment={`prod-i-desc-${rowKey}`}>
-                  {descSet.length === 1 ? descSet[0] : 'Multiple'}
-                </td>
-                <td data-comment={`prod-i-remc-${rowKey}`}>
-                  {solo ? (
-                    done ? (
-                      <span
-                        className='subtle'
-                        data-comment={`prod-i-rem-${rowKey}`}
-                        style={{ fontSize: '11px' }}
+            {cells(
+              isSlinet
+                ? {
+                    ...sizeCells,
+                    total: (
+                      <td data-col='total' className='mono' data-comment={`prod-i-qty-${rowKey}`}>
+                        {totalLink}
+                      </td>
+                    ),
+                    ...machineCells,
+                    vent: (
+                      <td data-col='vent' className='mono' data-comment={`prod-i-vent-${rowKey}`}>
+                        {totalVented ? (
+                          <span className='vent-pill'>{totalVented}</span>
+                        ) : (
+                          <span className='subtle'>—</span>
+                        )}
+                      </td>
+                    ),
+                    caps: (
+                      <td
+                        data-col='caps'
+                        className='mono'
+                        data-comment={`prod-i-m${caps.machine.id}-${rowKey}`}
                       >
-                        —
-                      </span>
-                    ) : (
-                      <button
-                        className='btn btn-sm btn-ghost rem-btn'
-                        title='Remanufacture'
-                        data-comment={`prod-i-rem-${rowKey}`}
-                        onClick={event => {
-                          event.stopPropagation()
-                          openPad({
-                            kind: 'reman',
-                            source: 'machine',
-                            orderId: first.orderId,
-                            lineId: first.id
-                          })
-                        }}
+                        {caps.count ? caps.count : <span className='subtle'>—</span>}
+                      </td>
+                    ),
+                    flat: (
+                      <td
+                        data-col='flat'
+                        className='mono'
+                        data-comment={`prod-i-flat-${rowKey}`}
+                        title='Pieces cut for flat stock during this cut (N-116)'
                       >
-                        <RefreshCw style={{ width: '14px', height: '14px' }} />
-                      </button>
+                        {totalFlat ? totalFlat : <span className='subtle'>—</span>}
+                      </td>
+                    ),
+                    op: (
+                      <td data-col='op' data-comment={`prod-i-op-${rowKey}`}>
+                        <input
+                          className='op-note'
+                          type='text'
+                          data-comment={`prod-opnote-${rowKey}`}
+                          placeholder='Notes…'
+                          value={opNotes[rowKey] ?? ''}
+                          onChange={event => setOpNote(rowKey, event.target.value)}
+                          onClick={event => event.stopPropagation()}
+                        />
+                      </td>
+                    ),
+                    complete: (
+                      <td data-col='complete' data-comment={`prod-i-complete-${rowKey}`}>
+                        {completeCell}
+                      </td>
                     )
-                  ) : (
-                    <span
-                      className='subtle'
-                      data-comment={`prod-i-rem-${rowKey}`}
-                      style={{ fontSize: '11px' }}
-                      title='Open the order to remanufacture a specific line'
-                    >
-                      {gitems.length} orders
-                    </span>
-                  )}
-                </td>
-                <td data-comment={`prod-i-mc-${rowKey}`}>
-                  {done || !solo ? (
-                    <span className='mono' data-comment={`prod-i-mach-${rowKey}`}>
-                      {machineById(group.machineId)?.name || '—'}
-                    </span>
-                  ) : (
-                    <button
-                      className='field-btn field-sel'
-                      data-pop-anchor
-                      data-comment={`prod-i-mach-${rowKey}`}
-                      onClick={event => {
-                        event.stopPropagation()
-                        openPop(
-                          event.currentTarget,
-                          trimStore
-                            .get()
-                            .machines.filter(machine => machine.id !== group.machineId)
-                            .map(machine => ({ label: machine.name, value: machine.id })),
-                          value => {
-                            reassignMachine(first.orderId, first.id, value as number)
-                            showToast(
-                              `Reassigned to ${machineById(value as number)?.name || 'machine'} · new single-item bendlist`
-                            )
-                            setActiveMachine(value as number)
-                          }
-                        )
-                      }}
-                    >
-                      <span>{machineById(group.machineId)?.name || '—'}</span>
-                      <ChevronDown style={{ width: '13px', height: '13px' }} />
-                    </button>
-                  )}
-                </td>
-                <td data-comment={`prod-i-st-${rowKey}`}>
-                  {state === 'partial' && !solo ? (
-                    <span className='status st-inprogress' data-comment={`prod-stp-${rowKey}`}>
-                      <span className='st-dot' />
-                      Mixed
-                    </span>
-                  ) : (
-                    <ProdStatusPill status={first.status} comment={`prod-stp-${rowKey}`} />
-                  )}
-                </td>
-                <td data-comment={`prod-i-complete-${rowKey}`}>{completeCell}</td>
-                <td data-comment={`prod-i-draw-${rowKey}`}>
-                  <DrawingThumb />
-                </td>
-                <td data-comment={`prod-i-note-${rowKey}`}>
-                  {solo ? (
-                    <button
-                      className={`note-btn ${noteState(first.notes) === 'unread' ? 'has-unread' : noteState(first.notes) === 'read' ? 'all-read' : ''}`}
-                      data-comment={`prod-note-${rowKey}`}
-                      title='Line notes'
-                      onClick={event => {
-                        event.stopPropagation()
-                        openNotes({ orderId: first.orderId, lineId: first.id })
-                      }}
-                    >
-                      <MessageSquare style={{ width: '14px', height: '14px' }} />
-                      {noteState(first.notes) !== 'none' ? <span className='note-dot' /> : null}
-                    </button>
-                  ) : (
-                    <span
-                      className='subtle'
-                      data-comment={`prod-note-${rowKey}`}
-                      style={{ fontSize: '11px' }}
-                    >
-                      {gitems.length}
-                    </span>
-                  )}
-                </td>
-              </>
+                  }
+                : {
+                    ...sizeCells,
+                    ordqty: (
+                      <td
+                        data-col='ordqty'
+                        className='mono'
+                        data-comment={`prod-i-ordqty-${rowKey}`}
+                      >
+                        {totalOrdered}
+                      </td>
+                    ),
+                    stock: (
+                      <td data-col='stock' data-comment={`prod-i-stock-${rowKey}`}>
+                        {/* #113: a stock order manufactures stock — there is nothing to pull it from */}
+                        {first.isStock ? (
+                          <span className='subtle'>—</span>
+                        ) : done || !solo ? (
+                          <span className='mono'>{totalFlat}</span>
+                        ) : (
+                          <button
+                            className='field-btn'
+                            style={{ minWidth: '52px', justifyContent: 'center' }}
+                            data-comment={`prod-stockbtn-${rowKey}`}
+                            onClick={event => {
+                              event.stopPropagation()
+                              openPad({
+                                kind: 'stock',
+                                orderId: first.orderId,
+                                lineId: first.id,
+                                locked: first.status === 'wrapped'
+                              })
+                            }}
+                          >
+                            {first.fromStock || 0}
+                          </button>
+                        )}
+                      </td>
+                    ),
+                    qty: (
+                      <td data-col='qty' className='mono' data-comment={`prod-i-qty-${rowKey}`}>
+                        {totalLink}
+                      </td>
+                    ),
+                    pid: (
+                      <td data-col='pid' className='mono' data-comment={`prod-i-pid-${rowKey}`}>
+                        {pidSet.length === 1 ? pidSet[0] : 'Multiple'}
+                      </td>
+                    ),
+                    desc: (
+                      <td data-col='desc' className='trunc' data-comment={`prod-i-desc-${rowKey}`}>
+                        {descSet.length === 1 ? descSet[0] : 'Multiple'}
+                      </td>
+                    ),
+                    rem: (
+                      <td data-col='rem' data-comment={`prod-i-remc-${rowKey}`}>
+                        {solo ? (
+                          done ? (
+                            <span
+                              className='subtle'
+                              data-comment={`prod-i-rem-${rowKey}`}
+                              style={{ fontSize: '11px' }}
+                            >
+                              —
+                            </span>
+                          ) : (
+                            <button
+                              className='btn btn-sm btn-ghost rem-btn'
+                              title='Remanufacture'
+                              data-comment={`prod-i-rem-${rowKey}`}
+                              onClick={event => {
+                                event.stopPropagation()
+                                openPad({
+                                  kind: 'reman',
+                                  source: 'machine',
+                                  orderId: first.orderId,
+                                  lineId: first.id
+                                })
+                              }}
+                            >
+                              <RefreshCw style={{ width: '14px', height: '14px' }} />
+                            </button>
+                          )
+                        ) : (
+                          <span
+                            className='subtle'
+                            data-comment={`prod-i-rem-${rowKey}`}
+                            style={{ fontSize: '11px' }}
+                            title='Open the order to remanufacture a specific line'
+                          >
+                            {gitems.length} orders
+                          </span>
+                        )}
+                      </td>
+                    ),
+                    mach: (
+                      <td data-col='mach' data-comment={`prod-i-mc-${rowKey}`}>
+                        {done || !solo ? (
+                          <span className='mono' data-comment={`prod-i-mach-${rowKey}`}>
+                            {machineById(group.machineId)?.name || '—'}
+                          </span>
+                        ) : (
+                          <button
+                            className='field-btn field-sel'
+                            data-pop-anchor
+                            data-comment={`prod-i-mach-${rowKey}`}
+                            onClick={event => {
+                              event.stopPropagation()
+                              openPop(
+                                event.currentTarget,
+                                trimStore
+                                  .get()
+                                  .machines.filter(machine => machine.id !== group.machineId)
+                                  .map(machine => ({ label: machine.name, value: machine.id })),
+                                value => {
+                                  reassignMachine(first.orderId, first.id, value as number)
+                                  showToast(
+                                    `Reassigned to ${machineById(value as number)?.name || 'machine'} · new single-item bendlist`
+                                  )
+                                  setActiveMachine(value as number)
+                                }
+                              )
+                            }}
+                          >
+                            <span>{machineById(group.machineId)?.name || '—'}</span>
+                            <ChevronDown style={{ width: '13px', height: '13px' }} />
+                          </button>
+                        )}
+                      </td>
+                    ),
+                    status: (
+                      <td data-col='status' data-comment={`prod-i-st-${rowKey}`}>
+                        {state === 'partial' && !solo ? (
+                          <span
+                            className='status st-inprogress'
+                            data-comment={`prod-stp-${rowKey}`}
+                          >
+                            <span className='st-dot' />
+                            Mixed
+                          </span>
+                        ) : (
+                          <ProdStatusPill status={first.status} comment={`prod-stp-${rowKey}`} />
+                        )}
+                      </td>
+                    ),
+                    complete: (
+                      <td data-col='complete' data-comment={`prod-i-complete-${rowKey}`}>
+                        {completeCell}
+                      </td>
+                    ),
+                    draw: (
+                      <td data-col='draw' data-comment={`prod-i-draw-${rowKey}`}>
+                        <DrawingThumb />
+                      </td>
+                    ),
+                    note: (
+                      <td data-col='note' data-comment={`prod-i-note-${rowKey}`}>
+                        {solo ? (
+                          <button
+                            className={`note-btn ${noteState(first.notes) === 'unread' ? 'has-unread' : noteState(first.notes) === 'read' ? 'all-read' : ''}`}
+                            data-comment={`prod-note-${rowKey}`}
+                            title='Line notes'
+                            onClick={event => {
+                              event.stopPropagation()
+                              openNotes({ orderId: first.orderId, lineId: first.id })
+                            }}
+                          >
+                            <MessageSquare style={{ width: '14px', height: '14px' }} />
+                            {noteState(first.notes) !== 'none' ? (
+                              <span className='note-dot' />
+                            ) : null}
+                          </button>
+                        ) : (
+                          <span
+                            className='subtle'
+                            data-comment={`prod-note-${rowKey}`}
+                            style={{ fontSize: '11px' }}
+                          >
+                            {gitems.length}
+                          </span>
+                        )}
+                      </td>
+                    )
+                  }
             )}
           </tr>
         )
@@ -631,10 +731,12 @@ const BatchRows = ({
 const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
   const expandedBatches = useStore(trimStore, state => state.expandedBatches)
   const opNotes = useStore(trimStore, state => state.opNotes)
+  const { headers, cells } = useColumnOrder('prod-slinet', SLINET_COLUMNS, { notify: showToast })
   const expKey = `RS|${reman.id}`
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(reman.priorityId)
   const machine = machineById(reman.machineId)
+  const caps = BENDLIST_MACHINES.find(candidate => candidate.name === 'Caps')!
 
   return (
     <div
@@ -727,82 +829,109 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           style={{ border: 'none', borderRadius: 0 }}
         >
           <thead>
-            <tr>{SLINET_COLUMNS}</tr>
+            <tr>{headers}</tr>
           </thead>
           <tbody>
             <tr
               className={reman.recut ? 'row-complete' : ''}
               data-comment={`remcut-row-${reman.id}`}
             >
-              <td className='mono' data-comment={`remcut-w-${reman.id}`}>
-                {reman.width.toFixed(1)}
-              </td>
-              <td
-                className={`mono ${reman.length !== 120 ? 'len-alert' : ''}`}
-                data-comment={`remcut-l-${reman.id}`}
-              >
-                {reman.length}&quot;
-              </td>
-              <td className='mono' data-comment={`remcut-total-${reman.id}`}>
-                <b>{reman.qty}</b>
-              </td>
-              {['Press Brake', 'V1', 'V2', 'Rollformer', 'Vented', 'Caps'].map(name => {
-                if (name === 'Vented')
-                  return (
-                    <td key={name} className='mono' data-comment={`remcut-vent-${reman.id}`}>
-                      <span className='subtle'>—</span>
-                    </td>
-                  )
-                const machineForColumn = BENDLIST_MACHINES.find(
-                  candidate => candidate.name === name
-                )!
-                return (
+              {cells({
+                w: (
+                  <td data-col='w' className='mono' data-comment={`remcut-w-${reman.id}`}>
+                    {reman.width.toFixed(1)}
+                  </td>
+                ),
+                l: (
                   <td
-                    key={name}
-                    className='mono'
-                    data-comment={`remcut-m${machineForColumn.id}-${reman.id}`}
+                    data-col='l'
+                    className={`mono ${reman.length !== 120 ? 'len-alert' : ''}`}
+                    data-comment={`remcut-l-${reman.id}`}
                   >
-                    {machineForColumn.id === reman.machineId ? (
-                      reman.qty
-                    ) : (
-                      <span className='subtle'>—</span>
-                    )}
+                    {reman.length}&quot;
+                  </td>
+                ),
+                total: (
+                  <td data-col='total' className='mono' data-comment={`remcut-total-${reman.id}`}>
+                    <b>{reman.qty}</b>
+                  </td>
+                ),
+                ...Object.fromEntries(
+                  SLINET_MACHINE_COLUMNS.map(({ key, name }) => {
+                    const machineForColumn = BENDLIST_MACHINES.find(
+                      candidate => candidate.name === name
+                    )!
+                    return [
+                      key,
+                      <td
+                        key={key}
+                        data-col={key}
+                        className='mono'
+                        data-comment={`remcut-m${machineForColumn.id}-${reman.id}`}
+                      >
+                        {machineForColumn.id === reman.machineId ? (
+                          reman.qty
+                        ) : (
+                          <span className='subtle'>—</span>
+                        )}
+                      </td>
+                    ]
+                  })
+                ),
+                vent: (
+                  <td data-col='vent' className='mono' data-comment={`remcut-vent-${reman.id}`}>
+                    <span className='subtle'>—</span>
+                  </td>
+                ),
+                caps: (
+                  <td
+                    data-col='caps'
+                    className='mono'
+                    data-comment={`remcut-m${caps.id}-${reman.id}`}
+                  >
+                    {caps.id === reman.machineId ? reman.qty : <span className='subtle'>—</span>}
+                  </td>
+                ),
+                flat: (
+                  <td data-col='flat' className='mono' data-comment={`remcut-flat-${reman.id}`}>
+                    <span className='subtle'>—</span>
+                  </td>
+                ),
+                op: (
+                  <td data-col='op' data-comment={`remcut-op-${reman.id}`}>
+                    <input
+                      className='op-note'
+                      type='text'
+                      data-comment={`remcut-opnote-${reman.id}`}
+                      placeholder='Notes…'
+                      value={opNotes[`rem-${reman.id}`] ?? ''}
+                      onChange={event => setOpNote(`rem-${reman.id}`, event.target.value)}
+                    />
+                  </td>
+                ),
+                complete: (
+                  <td data-col='complete' data-comment={`remcut-complete-${reman.id}`}>
+                    <label
+                      className='complete-toggle'
+                      data-comment={`remcut-completelbl-${reman.id}`}
+                      title={
+                        reman.recut
+                          ? 'Marked complete — uncheck to reopen (asks first)'
+                          : 'Mark the recut complete'
+                      }
+                    >
+                      <input
+                        type='checkbox'
+                        className='chk'
+                        data-comment={`remcut-completechk-${reman.id}`}
+                        checked={reman.recut}
+                        onChange={() => askRemanFlag(reman.id, 'recut', !reman.recut)}
+                      />
+                      <span className='complete-yn'>{reman.recut ? 'Yes' : 'No'}</span>
+                    </label>
                   </td>
                 )
               })}
-              <td className='mono' data-comment={`remcut-flat-${reman.id}`}>
-                <span className='subtle'>—</span>
-              </td>
-              <td data-comment={`remcut-op-${reman.id}`}>
-                <input
-                  className='op-note'
-                  type='text'
-                  data-comment={`remcut-opnote-${reman.id}`}
-                  placeholder='Notes…'
-                  value={opNotes[`rem-${reman.id}`] ?? ''}
-                  onChange={event => setOpNote(`rem-${reman.id}`, event.target.value)}
-                />
-              </td>
-              <td data-comment={`remcut-complete-${reman.id}`}>
-                <label
-                  className='complete-toggle'
-                  data-comment={`remcut-completelbl-${reman.id}`}
-                  title={
-                    reman.recut
-                      ? 'Marked complete — uncheck to reopen (asks first)'
-                      : 'Mark the recut complete'
-                  }
-                >
-                  <input
-                    type='checkbox'
-                    className='chk'
-                    data-comment={`remcut-completechk-${reman.id}`}
-                    checked={reman.recut}
-                    onChange={() => askRemanFlag(reman.id, 'recut', !reman.recut)}
-                  />
-                  <span className='complete-yn'>{reman.recut ? 'Yes' : 'No'}</span>
-                </label>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -822,6 +951,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
 const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
   const expandedBatches = useStore(trimStore, state => state.expandedBatches)
   const orders = useStore(trimStore, state => state.orders)
+  const { headers, cells } = useColumnOrder('prod-bend', BENDLIST_COLUMNS, { notify: showToast })
   const expKey = `RM|${reman.id}`
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(reman.priorityId)
@@ -906,103 +1036,118 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
           style={{ border: 'none', borderRadius: 0 }}
         >
           <thead>
-            <tr>
-              <th style={{ width: '54px' }}>W&quot;</th>
-              <th style={{ width: '54px' }}>L&quot;</th>
-              <th style={{ width: '74px' }}>Qty Ordered</th>
-              <th style={{ width: '72px' }}>Stock</th>
-              <th style={{ width: '96px' }}>Qty to Manufacture</th>
-              <th style={{ width: '116px' }}>ID</th>
-              <th>Description</th>
-              <th style={{ width: '80px' }}>Remanufacture</th>
-              <th style={{ width: '118px' }}>Machine</th>
-              <th style={{ width: '116px' }}>Status</th>
-              <th style={{ width: '88px' }}>Complete</th>
-              <th style={{ width: '60px' }}>Drawing</th>
-              <th style={{ width: '56px' }}>Line Item Notes</th>
-            </tr>
+            <tr>{headers}</tr>
           </thead>
           <tbody>
             <tr className={reman.bent ? 'row-complete' : ''} data-comment={`reman-row-${reman.id}`}>
-              <td className='mono' data-comment={`reman-w-${reman.id}`}>
-                {reman.width.toFixed(1)}
-              </td>
-              <td
-                className={`mono ${reman.length !== 120 ? 'len-alert' : ''}`}
-                data-comment={`reman-l-${reman.id}`}
-              >
-                {reman.length}&quot;
-              </td>
-              <td className='mono' data-comment={`reman-ordqty-${reman.id}`}>
-                {ordered}
-              </td>
-              <td className='mono' data-comment={`reman-stock-${reman.id}`}>
-                <span className='subtle'>—</span>
-              </td>
-              <td className='mono' data-comment={`reman-mfg-${reman.id}`}>
-                <b>{reman.qty}</b>
-              </td>
-              <td className='mono' data-comment={`reman-pid-${reman.id}`}>
-                {reman.productId}
-              </td>
-              <td className='trunc' data-comment={`reman-desc-${reman.id}`}>
-                {reman.description}
-              </td>
-              <td data-comment={`reman-remc-cell-${reman.id}`}>
-                <RemanCell
-                  label=''
-                  qty={reman.qty}
-                  green={reman.recut}
-                  comment={`reman-remcellbadge-${reman.id}`}
-                />
-              </td>
-              <td className='mono' data-comment={`reman-mach-${reman.id}`}>
-                {machineById(reman.machineId)?.name || '—'}
-              </td>
-              <td data-comment={`reman-st-${reman.id}`}>
-                <ProdStatusPill
-                  status={reman.recut ? 'cut' : 'in_progress'}
-                  comment={`reman-stp-${reman.id}`}
-                />
-              </td>
-              <td data-comment={`reman-complete-${reman.id}`}>
-                <label
-                  className='complete-toggle'
-                  data-comment={`reman-completelbl-${reman.id}`}
-                  title={
-                    reman.bent
-                      ? 'Marked complete — uncheck to reopen (asks first)'
-                      : 'Mark the remanufacture Bent (Complete)'
-                  }
-                >
-                  <input
-                    type='checkbox'
-                    className='chk'
-                    data-comment={`reman-completechk-${reman.id}`}
-                    checked={reman.bent}
-                    onChange={() => askRemanFlag(reman.id, 'bent', !reman.bent)}
-                  />
-                  <span className='complete-yn'>{reman.bent ? 'Yes' : 'No'}</span>
-                </label>
-              </td>
-              <td data-comment={`reman-draw-${reman.id}`}>
-                <DrawingThumb />
-              </td>
-              <td data-comment={`reman-note-${reman.id}`}>
-                {line ? (
-                  <button
-                    className={`note-btn ${notes === 'unread' ? 'has-unread' : notes === 'read' ? 'all-read' : ''}`}
-                    data-comment={`reman-notebtn-${reman.id}`}
-                    title='Line notes'
-                    onClick={() => openNotes({ orderId: reman.orderId, lineId: reman.lineId })}
+              {cells({
+                w: (
+                  <td data-col='w' className='mono' data-comment={`reman-w-${reman.id}`}>
+                    {reman.width.toFixed(1)}
+                  </td>
+                ),
+                l: (
+                  <td
+                    data-col='l'
+                    className={`mono ${reman.length !== 120 ? 'len-alert' : ''}`}
+                    data-comment={`reman-l-${reman.id}`}
                   >
-                    <MessageSquare style={{ width: '14px', height: '14px' }} />
-                    {notes !== 'none' ? <span className='note-dot' /> : null}
-                  </button>
-                ) : (
-                  <span className='subtle'>—</span>
-                )}
-              </td>
+                    {reman.length}&quot;
+                  </td>
+                ),
+                ordqty: (
+                  <td data-col='ordqty' className='mono' data-comment={`reman-ordqty-${reman.id}`}>
+                    {ordered}
+                  </td>
+                ),
+                stock: (
+                  <td data-col='stock' className='mono' data-comment={`reman-stock-${reman.id}`}>
+                    <span className='subtle'>—</span>
+                  </td>
+                ),
+                qty: (
+                  <td data-col='qty' className='mono' data-comment={`reman-mfg-${reman.id}`}>
+                    <b>{reman.qty}</b>
+                  </td>
+                ),
+                pid: (
+                  <td data-col='pid' className='mono' data-comment={`reman-pid-${reman.id}`}>
+                    {reman.productId}
+                  </td>
+                ),
+                desc: (
+                  <td data-col='desc' className='trunc' data-comment={`reman-desc-${reman.id}`}>
+                    {reman.description}
+                  </td>
+                ),
+                rem: (
+                  <td data-col='rem' data-comment={`reman-remc-cell-${reman.id}`}>
+                    <RemanCell
+                      label=''
+                      qty={reman.qty}
+                      green={reman.recut}
+                      comment={`reman-remcellbadge-${reman.id}`}
+                    />
+                  </td>
+                ),
+                mach: (
+                  <td data-col='mach' className='mono' data-comment={`reman-mach-${reman.id}`}>
+                    {machineById(reman.machineId)?.name || '—'}
+                  </td>
+                ),
+                status: (
+                  <td data-col='status' data-comment={`reman-st-${reman.id}`}>
+                    <ProdStatusPill
+                      status={reman.recut ? 'cut' : 'in_progress'}
+                      comment={`reman-stp-${reman.id}`}
+                    />
+                  </td>
+                ),
+                complete: (
+                  <td data-col='complete' data-comment={`reman-complete-${reman.id}`}>
+                    <label
+                      className='complete-toggle'
+                      data-comment={`reman-completelbl-${reman.id}`}
+                      title={
+                        reman.bent
+                          ? 'Marked complete — uncheck to reopen (asks first)'
+                          : 'Mark the remanufacture Bent (Complete)'
+                      }
+                    >
+                      <input
+                        type='checkbox'
+                        className='chk'
+                        data-comment={`reman-completechk-${reman.id}`}
+                        checked={reman.bent}
+                        onChange={() => askRemanFlag(reman.id, 'bent', !reman.bent)}
+                      />
+                      <span className='complete-yn'>{reman.bent ? 'Yes' : 'No'}</span>
+                    </label>
+                  </td>
+                ),
+                draw: (
+                  <td data-col='draw' data-comment={`reman-draw-${reman.id}`}>
+                    <DrawingThumb />
+                  </td>
+                ),
+                note: (
+                  <td data-col='note' data-comment={`reman-note-${reman.id}`}>
+                    {line ? (
+                      <button
+                        className={`note-btn ${notes === 'unread' ? 'has-unread' : notes === 'read' ? 'all-read' : ''}`}
+                        data-comment={`reman-notebtn-${reman.id}`}
+                        title='Line notes'
+                        onClick={() => openNotes({ orderId: reman.orderId, lineId: reman.lineId })}
+                      >
+                        <MessageSquare style={{ width: '14px', height: '14px' }} />
+                        {notes !== 'none' ? <span className='note-dot' /> : null}
+                      </button>
+                    ) : (
+                      <span className='subtle'>—</span>
+                    )}
+                  </td>
+                )
+              })}
             </tr>
           </tbody>
         </table>
@@ -1023,6 +1168,11 @@ const BatchCard = ({
   isSlinet: boolean
 }) => {
   const expandedBatches = useStore(trimStore, state => state.expandedBatches)
+  const { headers } = useColumnOrder(
+    isSlinet ? 'prod-slinet' : 'prod-bend',
+    isSlinet ? SLINET_COLUMNS : BENDLIST_COLUMNS,
+    { notify: showToast }
+  )
   const expKey = `${isSlinet ? 'S' : `M${machineId}`}|${batch.id}`
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(batch.priorityId)
@@ -1160,27 +1310,7 @@ const BatchCard = ({
           style={{ border: 'none', borderRadius: 0 }}
         >
           <thead>
-            <tr>
-              {isSlinet ? (
-                SLINET_COLUMNS
-              ) : (
-                <>
-                  <th style={{ width: '54px' }}>W&quot;</th>
-                  <th style={{ width: '54px' }}>L&quot;</th>
-                  <th style={{ width: '74px' }}>Qty Ordered</th>
-                  <th style={{ width: '72px' }}>Stock</th>
-                  <th style={{ width: '96px' }}>Qty to Manufacture</th>
-                  <th style={{ width: '116px' }}>ID</th>
-                  <th>Description</th>
-                  <th style={{ width: '80px' }}>Remanufacture</th>
-                  <th style={{ width: '118px' }}>Machine</th>
-                  <th style={{ width: '116px' }}>Status</th>
-                  <th style={{ width: '88px' }}>Complete</th>
-                  <th style={{ width: '60px' }}>Drawing</th>
-                  <th style={{ width: '56px' }}>Line Item Notes</th>
-                </>
-              )}
-            </tr>
+            <tr>{headers}</tr>
           </thead>
           <tbody>
             <BatchRows

@@ -3,6 +3,8 @@ import { Ban, Check, MapPin, MessageSquare, Package, Printer, RefreshCw } from '
 import { useState } from 'react'
 
 import { useStore } from '@/store/create-store'
+
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { maxPackageWeight } from '@/store/shared/settings'
 
 import { fmtDate } from '../format'
@@ -38,6 +40,20 @@ import {
 import { StockWrapWindow } from './stock-wrap'
 
 import type { LineItem, Order } from '../types'
+
+/** N-166/#114: the wrapping window's columns move, and the order is kept per person. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'pid', label: 'Product ID', width: '120px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'len', label: 'Length', width: '70px' },
+  { key: 'qty', label: 'Qty', width: '60px' },
+  { key: 'stock', label: 'Stock', width: '72px' },
+  { key: 'left', label: 'Left To Wrap', width: '70px' },
+  { key: 'status', label: 'Status', width: '116px' },
+  { key: 'rem', label: 'Remanufacture', width: '118px' },
+  { key: 'wrapping', label: 'Wrapping', width: '210px' },
+  { key: 'notes', label: 'Notes', width: '96px' }
+]
 
 const PRODUCTION_STATUS: Record<string, [string, string]> = {
   stock: ['st-stock', 'Stock'],
@@ -153,6 +169,8 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
   const { remans } = useStore(trimStore, current => current)
   // the draft quantities are the operator's scratch pad, cleared by printing rather than persisted
   const [draft, setDraft] = useState<Record<number, string>>({})
+  // before the stock branch below: a hook cannot sit behind an early return
+  const { headers, cells } = useColumnOrder('trim-wrapdetail', DATA_COLUMNS, { notify: showToast })
 
   if (order.type === 'stock') return <StockWrapWindow order={order} />
 
@@ -296,18 +314,7 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
         style={{ border: 'none', borderRadius: 0 }}
       >
         <thead>
-          <tr>
-            <th style={{ width: '120px' }}>Product ID</th>
-            <th>Description</th>
-            <th style={{ width: '70px' }}>Length</th>
-            <th style={{ width: '60px' }}>Qty</th>
-            <th style={{ width: '72px' }}>Stock</th>
-            <th style={{ width: '70px' }}>Left To Wrap</th>
-            <th style={{ width: '116px' }}>Status</th>
-            <th style={{ width: '118px' }}>Remanufacture</th>
-            <th style={{ width: '210px' }}>Wrapping</th>
-            <th style={{ width: '96px' }}>Notes</th>
-          </tr>
+          <tr>{headers}</tr>
         </thead>
         <tbody>
           {order.lineItems.map((item, index) => {
@@ -322,163 +329,188 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
 
             return (
               <tr key={item.id} data-comment={`wrap-row-${key}`}>
-                <td className='mono' data-comment={`wrap-pid-${key}`}>
-                  {item.productId}
-                </td>
-                <td className='trunc' data-comment={`wrap-desc-${key}`}>
-                  {item.description}
-                </td>
-                <td
-                  className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
-                  data-comment={`wrap-len-${key}`}
-                >
-                  {item.length}&quot;
-                </td>
-                <td className='mono' data-comment={`wrap-qty-${key}`}>
-                  {item.qty}
-                </td>
-                <td data-comment={`wrap-stockcell-${key}`}>
-                  <button
-                    className='field-btn'
-                    style={{ minWidth: '52px', justifyContent: 'center' }}
-                    disabled={stockLocked}
-                    title={stockLocked ? 'Locked — line already wrapped' : undefined}
-                    data-comment={`wrap-stockbtn-${key}`}
-                    onClick={() =>
-                      openPad({
-                        kind: 'stock',
-                        orderId: order.id,
-                        lineId: item.id,
-                        locked: !!stockLocked
-                      })
-                    }
-                  >
-                    {item.fromStock || 0}
-                  </button>
-                </td>
-                <td className='mono' data-comment={`wrap-left-${key}`} title='Left To Wrap'>
-                  {left}
-                  {left !== item.qty ? ` / ${item.qty}` : ''}
-                </td>
-                <td data-comment={`wrap-st-${key}`}>
-                  <StatusPill status={item.status} comment={`wrap-stp-${key}`} />
-                </td>
-
-                {/* the cell holds orange from the moment a qty is entered and greens only when the
-                    machine marks the reman Bent; a bypassed line never had a machine */}
-                <td data-comment={`wrap-remc-${key}`}>
-                  {lineRemans.length ? (
-                    <span
-                      className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
-                      data-comment={`wrap-rembadge-${key}`}
-                      title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
+                {cells({
+                  pid: (
+                    <td data-col='pid' className='mono' data-comment={`wrap-pid-${key}`}>
+                      {item.productId}
+                    </td>
+                  ),
+                  desc: (
+                    <td data-col='desc' className='trunc' data-comment={`wrap-desc-${key}`}>
+                      {item.description}
+                    </td>
+                  ),
+                  len: (
+                    <td
+                      data-col='len'
+                      className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
+                      data-comment={`wrap-len-${key}`}
                     >
-                      <RefreshCw style={{ width: '14px', height: '14px' }} />
-                      {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
-                    </span>
-                  ) : order.bypassed ? (
-                    <span
-                      className='subtle'
-                      data-comment={`wrap-remna-${key}`}
-                      style={{ fontSize: '11px' }}
-                      title='Bypassed orders skip production — Remanufacture N/A'
-                    >
-                      N/A
-                    </span>
-                  ) : (status === 'bent' || status === 'wrapped') && item.machineId ? (
-                    <button
-                      className='btn btn-sm btn-ghost rem-btn'
-                      title='Remanufacture'
-                      data-comment={`wrap-rem-${key}`}
-                      onClick={() =>
-                        openPad({
-                          kind: 'reman',
-                          source: 'wrapping',
-                          orderId: order.id,
-                          lineId: item.id
-                        })
-                      }
-                    >
-                      <RefreshCw style={{ width: '14px', height: '14px' }} />
-                    </button>
-                  ) : (
-                    <span
-                      className='subtle'
-                      data-comment={`wrap-remnone-${key}`}
-                      style={{ fontSize: '11px' }}
-                      title='Available once the line is Bent'
-                    >
-                      —
-                    </span>
-                  )}
-                </td>
-
-                <td data-comment={`wrap-wrapcell-${key}`}>
-                  {status === 'wrapped' ? (
-                    <span
-                      className='subtle'
-                      data-comment={`wrap-a-${key}`}
-                      style={{ fontSize: '11px' }}
-                    >
-                      Wrapped ✓
-                    </span>
-                  ) : eligible ? (
-                    <div className='wrap-qty-group' data-comment={`wrap-qtygrp-${key}`}>
-                      <input
-                        type='number'
-                        className='field-input wrap-qty-input'
-                        min='0'
-                        max={left}
-                        value={stagedQty(item) || ''}
-                        placeholder='0'
-                        data-comment={`wrap-qtyinput-${key}`}
-                        title={`Qty to wrap (1–${left})`}
-                        onClick={event => event.stopPropagation()}
-                        onChange={event =>
-                          setDraft(current => ({ ...current, [item.id]: event.target.value }))
-                        }
-                      />
-                      {/* N-076/077: Auto Fill copies Left To Wrap, and is reversible */}
+                      {item.length}&quot;
+                    </td>
+                  ),
+                  qty: (
+                    <td data-col='qty' className='mono' data-comment={`wrap-qty-${key}`}>
+                      {item.qty}
+                    </td>
+                  ),
+                  stock: (
+                    <td data-col='stock' data-comment={`wrap-stockcell-${key}`}>
                       <button
-                        className='btn btn-sm btn-ghost'
-                        data-comment={`wrap-autofill-${key}`}
-                        title={stagedQty(item) > 0 ? 'Clear' : `Auto Fill — all ${left}`}
+                        className='field-btn'
+                        style={{ minWidth: '52px', justifyContent: 'center' }}
+                        disabled={stockLocked}
+                        title={stockLocked ? 'Locked — line already wrapped' : undefined}
+                        data-comment={`wrap-stockbtn-${key}`}
                         onClick={() =>
-                          setDraft(current => ({
-                            ...current,
-                            [item.id]: stagedQty(item) > 0 ? '' : String(left)
-                          }))
+                          openPad({
+                            kind: 'stock',
+                            orderId: order.id,
+                            lineId: item.id,
+                            locked: !!stockLocked
+                          })
                         }
                       >
-                        {stagedQty(item) > 0 ? 'Clear' : 'Auto Fill'}
+                        {item.fromStock || 0}
                       </button>
-                    </div>
-                  ) : (
-                    <span
-                      className='subtle'
-                      data-comment={`wrap-a-${key}`}
-                      style={{ fontSize: '11px' }}
-                      title='N-075: needs Bent or Stock status'
+                    </td>
+                  ),
+                  left: (
+                    <td
+                      data-col='left'
+                      className='mono'
+                      data-comment={`wrap-left-${key}`}
+                      title='Left To Wrap'
                     >
-                      <Ban style={{ width: '13px', height: '13px', verticalAlign: '-2px' }} /> Not
-                      eligible
-                    </span>
-                  )}
-                </td>
-
-                <td data-comment={`wrap-act-${key}`}>
-                  <div className='act-cell'>
-                    <button
-                      className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
-                      data-comment={`wrap-note-${key}`}
-                      title='Line notes'
-                      onClick={() => openNotes({ orderId: order.id, lineId: item.id })}
-                    >
-                      <MessageSquare style={{ width: '14px', height: '14px' }} />
-                      {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}
-                    </button>
-                  </div>
-                </td>
+                      {left}
+                      {left !== item.qty ? ` / ${item.qty}` : ''}
+                    </td>
+                  ),
+                  status: (
+                    <td data-col='status' data-comment={`wrap-st-${key}`}>
+                      <StatusPill status={item.status} comment={`wrap-stp-${key}`} />
+                    </td>
+                  ),
+                  /* the cell holds orange from the moment a qty is entered and greens only when the
+                     machine marks the reman Bent; a bypassed line never had a machine */
+                  rem: (
+                    <td data-col='rem' data-comment={`wrap-remc-${key}`}>
+                      {lineRemans.length ? (
+                        <span
+                          className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
+                          data-comment={`wrap-rembadge-${key}`}
+                          title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
+                        >
+                          <RefreshCw style={{ width: '14px', height: '14px' }} />
+                          {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
+                        </span>
+                      ) : order.bypassed ? (
+                        <span
+                          className='subtle'
+                          data-comment={`wrap-remna-${key}`}
+                          style={{ fontSize: '11px' }}
+                          title='Bypassed orders skip production — Remanufacture N/A'
+                        >
+                          N/A
+                        </span>
+                      ) : (status === 'bent' || status === 'wrapped') && item.machineId ? (
+                        <button
+                          className='btn btn-sm btn-ghost rem-btn'
+                          title='Remanufacture'
+                          data-comment={`wrap-rem-${key}`}
+                          onClick={() =>
+                            openPad({
+                              kind: 'reman',
+                              source: 'wrapping',
+                              orderId: order.id,
+                              lineId: item.id
+                            })
+                          }
+                        >
+                          <RefreshCw style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      ) : (
+                        <span
+                          className='subtle'
+                          data-comment={`wrap-remnone-${key}`}
+                          style={{ fontSize: '11px' }}
+                          title='Available once the line is Bent'
+                        >
+                          —
+                        </span>
+                      )}
+                    </td>
+                  ),
+                  wrapping: (
+                    <td data-col='wrapping' data-comment={`wrap-wrapcell-${key}`}>
+                      {status === 'wrapped' ? (
+                        <span
+                          className='subtle'
+                          data-comment={`wrap-a-${key}`}
+                          style={{ fontSize: '11px' }}
+                        >
+                          Wrapped ✓
+                        </span>
+                      ) : eligible ? (
+                        <div className='wrap-qty-group' data-comment={`wrap-qtygrp-${key}`}>
+                          <input
+                            type='number'
+                            className='field-input wrap-qty-input'
+                            min='0'
+                            max={left}
+                            value={stagedQty(item) || ''}
+                            placeholder='0'
+                            data-comment={`wrap-qtyinput-${key}`}
+                            title={`Qty to wrap (1–${left})`}
+                            onClick={event => event.stopPropagation()}
+                            onChange={event =>
+                              setDraft(current => ({ ...current, [item.id]: event.target.value }))
+                            }
+                          />
+                          {/* N-076/077: Auto Fill copies Left To Wrap, and is reversible */}
+                          <button
+                            className='btn btn-sm btn-ghost'
+                            data-comment={`wrap-autofill-${key}`}
+                            title={stagedQty(item) > 0 ? 'Clear' : `Auto Fill — all ${left}`}
+                            onClick={() =>
+                              setDraft(current => ({
+                                ...current,
+                                [item.id]: stagedQty(item) > 0 ? '' : String(left)
+                              }))
+                            }
+                          >
+                            {stagedQty(item) > 0 ? 'Clear' : 'Auto Fill'}
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          className='subtle'
+                          data-comment={`wrap-a-${key}`}
+                          style={{ fontSize: '11px' }}
+                          title='N-075: needs Bent or Stock status'
+                        >
+                          <Ban style={{ width: '13px', height: '13px', verticalAlign: '-2px' }} />{' '}
+                          Not eligible
+                        </span>
+                      )}
+                    </td>
+                  ),
+                  notes: (
+                    <td data-col='notes' data-comment={`wrap-act-${key}`}>
+                      <div className='act-cell'>
+                        <button
+                          className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
+                          data-comment={`wrap-note-${key}`}
+                          title='Line notes'
+                          onClick={() => openNotes({ orderId: order.id, lineId: item.id })}
+                        >
+                          <MessageSquare style={{ width: '14px', height: '14px' }} />
+                          {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}
+                        </button>
+                      </div>
+                    </td>
+                  )
+                })}
               </tr>
             )
           })}

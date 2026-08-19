@@ -9,7 +9,14 @@ import type { ReactNode } from 'react'
  * the default is the prototype's `${table}-colh-${key}`, but an anchor that predates this must not be
  * renamed out from under the comments joined to it.
  */
-export type Column = { key: string; label: string; width?: string; comment?: string }
+export type Column = {
+  key: string
+  label: string
+  width?: string
+  comment?: string
+  /** a header whose label is an abbreviation says what it means; the drag hint is appended to it */
+  title?: string
+}
 
 /**
  * Movable table columns (N-166): drag a header, and the order is kept for that person.
@@ -90,7 +97,7 @@ export const useColumnOrder = (
           dropTarget === key ? ' col-drop-target' : ''
         }`}
         data-comment={column.comment ?? `${table}-colh-${key}`}
-        title='Drag to reorder column'
+        title={column.title ? `${column.title} · drag to reorder` : 'Drag to reorder column'}
         style={column.width ? { width: column.width } : undefined}
         onDragStart={event => {
           event.dataTransfer.effectAllowed = 'move'

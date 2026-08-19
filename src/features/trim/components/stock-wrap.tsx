@@ -2,6 +2,8 @@ import { Factory } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { createStockWrapBatch, toggleStockWrapCheck, trimStore } from '../store'
 import { askConfirm, closeConfirm, openPad, showToast } from '../ui'
 
@@ -17,6 +19,18 @@ const PRODUCTION_STATUS: Record<string, [string, string]> = {
   bypassed: ['st-bypassed', 'Bypassed']
 }
 
+/** N-166/#114: this window's columns move too, and the move is kept for the person who made it. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'qty', label: 'Qty Ordered', width: '92px' },
+  { key: 'left', label: 'Left To Wrap', width: '104px' },
+  { key: 'wrapped', label: 'Wrapped', width: '110px' },
+  { key: 'mfg', label: 'Qty. Manufactured', width: '130px' },
+  { key: 'status', label: 'Status', width: '116px' },
+  { key: 'pid', label: 'ID', width: '116px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'len', label: 'Length', width: '70px' }
+]
+
 /**
  * #185: a stock order's wrapping window is a different screen from a customer's, not a variant of it.
  * No location, no packages, no labels, no order-info footer — the heading just reads «Stock», and the
@@ -24,6 +38,7 @@ const PRODUCTION_STATUS: Record<string, [string, string]> = {
  */
 export const StockWrapWindow = ({ order }: { order: Order }) => {
   const checkedIds = useStore(trimStore, state => state.stockWrapChecked as number[])
+  const { headers, cells } = useColumnOrder('trim-swrap', DATA_COLUMNS, { notify: showToast })
 
   const picked = order.lineItems.filter(
     item => checkedIds.includes(item.id) && (item.wrapped || 0) > 0
@@ -39,14 +54,7 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
         <thead>
           <tr>
             <th style={{ width: '44px' }} />
-            <th style={{ width: '92px' }}>Qty Ordered</th>
-            <th style={{ width: '104px' }}>Left To Wrap</th>
-            <th style={{ width: '110px' }}>Wrapped</th>
-            <th style={{ width: '130px' }}>Qty. Manufactured</th>
-            <th style={{ width: '116px' }}>Status</th>
-            <th style={{ width: '116px' }}>ID</th>
-            <th>Description</th>
-            <th style={{ width: '70px' }}>Length</th>
+            {headers}
           </tr>
         </thead>
         <tbody>
@@ -93,56 +101,77 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
                     />
                   )}
                 </td>
-                <td className='mono' data-comment={`swrap-qty-${key}`}>
-                  {item.qty}
-                </td>
-                <td className='mono' data-comment={`swrap-left-${key}`}>
-                  {done ? <span className='subtle'>—</span> : left}
-                </td>
-                <td data-comment={`swrap-wrapcell-${key}`}>
-                  {done ? (
-                    <span className='subtle' data-comment={`swrap-wrapblank-${key}`}>
-                      —
-                    </span>
-                  ) : (
-                    <button
-                      className='field-btn'
-                      style={{ minWidth: '56px', justifyContent: 'center' }}
-                      data-comment={`swrap-wrapbtn-${key}`}
-                      title='Enter what has been wrapped'
-                      onClick={() => openPad({ kind: 'wrap', orderId: order.id, lineId: item.id })}
+                {cells({
+                  qty: (
+                    <td data-col='qty' className='mono' data-comment={`swrap-qty-${key}`}>
+                      {item.qty}
+                    </td>
+                  ),
+                  left: (
+                    <td data-col='left' className='mono' data-comment={`swrap-left-${key}`}>
+                      {done ? <span className='subtle'>—</span> : left}
+                    </td>
+                  ),
+                  wrapped: (
+                    <td data-col='wrapped' data-comment={`swrap-wrapcell-${key}`}>
+                      {done ? (
+                        <span className='subtle' data-comment={`swrap-wrapblank-${key}`}>
+                          —
+                        </span>
+                      ) : (
+                        <button
+                          className='field-btn'
+                          style={{ minWidth: '56px', justifyContent: 'center' }}
+                          data-comment={`swrap-wrapbtn-${key}`}
+                          title='Enter what has been wrapped'
+                          onClick={() =>
+                            openPad({ kind: 'wrap', orderId: order.id, lineId: item.id })
+                          }
+                        >
+                          {wrapped}
+                        </button>
+                      )}
+                    </td>
+                  ),
+                  mfg: (
+                    <td data-col='mfg' className='mono' data-comment={`swrap-mfg-${key}`}>
+                      {manufactured > 0 ? (
+                        <>
+                          <b>{manufactured}</b> / {item.qty}
+                        </>
+                      ) : (
+                        <span className='subtle'>—</span>
+                      )}
+                    </td>
+                  ),
+                  status: (
+                    <td data-col='status' data-comment={`swrap-st-${key}`}>
+                      <span className={`status ${cls}`} data-comment={`swrap-stp-${key}`}>
+                        <span className='st-dot' />
+                        {label}
+                      </span>
+                    </td>
+                  ),
+                  pid: (
+                    <td data-col='pid' className='mono' data-comment={`swrap-pid-${key}`}>
+                      {item.productId}
+                    </td>
+                  ),
+                  desc: (
+                    <td data-col='desc' className='trunc' data-comment={`swrap-desc-${key}`}>
+                      {item.description}
+                    </td>
+                  ),
+                  len: (
+                    <td
+                      data-col='len'
+                      className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
+                      data-comment={`swrap-len-${key}`}
                     >
-                      {wrapped}
-                    </button>
-                  )}
-                </td>
-                <td className='mono' data-comment={`swrap-mfg-${key}`}>
-                  {manufactured > 0 ? (
-                    <>
-                      <b>{manufactured}</b> / {item.qty}
-                    </>
-                  ) : (
-                    <span className='subtle'>—</span>
-                  )}
-                </td>
-                <td data-comment={`swrap-st-${key}`}>
-                  <span className={`status ${cls}`} data-comment={`swrap-stp-${key}`}>
-                    <span className='st-dot' />
-                    {label}
-                  </span>
-                </td>
-                <td className='mono' data-comment={`swrap-pid-${key}`}>
-                  {item.productId}
-                </td>
-                <td className='trunc' data-comment={`swrap-desc-${key}`}>
-                  {item.description}
-                </td>
-                <td
-                  className={`mono ${item.length !== 120 ? 'len-alert' : ''}`}
-                  data-comment={`swrap-len-${key}`}
-                >
-                  {item.length}&quot;
-                </td>
+                      {item.length}&quot;
+                    </td>
+                  )
+                })}
               </tr>
             )
           })}

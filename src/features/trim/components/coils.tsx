@@ -6,6 +6,8 @@ import { Fragment, useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import {
   coilFilterActive,
   coilInRange,
@@ -23,6 +25,19 @@ import { openCoilAdjust, requestCoilLocation, showToast } from '../ui'
 import { EmptyState } from './bits'
 
 import type { Coil } from '@/store/shared/coils'
+
+/**
+ * N-166/#114: the group grid's columns move. The lot sub-table below keeps its fixed order — its head
+ * is two rows deep, with «Location» spanning three of them, and a dragged column cannot cross that.
+ */
+const GROUP_COLUMNS: Column[] = [
+  { key: 'pid', label: 'Product ID', width: '130px' },
+  { key: 'color', label: 'Color' },
+  { key: 'width', label: 'Width (in.)', width: '90px' },
+  { key: 'count', label: 'Count', width: '70px' },
+  { key: 'lf', label: 'Total Linear Feet', width: '140px' },
+  { key: 'weight', label: 'Total Weight (lbs.)', width: '150px' }
+]
 
 /**
  * The coil drop-down: every lot of one size that EBMS knows about, with the canvas's Location group
@@ -153,6 +168,7 @@ export const Coils = () => {
   // seeded from the department's saved filter, then held here: applying it has to redraw the folders
   const [filter, setFilter] = useState(loadCoilFilter)
   const [filterOpen, setFilterOpen] = useState(false)
+  const { headers, cells } = useColumnOrder('trim-coils', GROUP_COLUMNS, { notify: showToast })
   /**
    * He sees the filter and works within it, but cannot set it.
    *
@@ -297,12 +313,7 @@ export const Coils = () => {
             <thead>
               <tr>
                 <th style={{ width: '30px' }} />
-                <th style={{ width: '130px' }}>Product ID</th>
-                <th>Color</th>
-                <th style={{ width: '90px' }}>Width (in.)</th>
-                <th style={{ width: '70px' }}>Count</th>
-                <th style={{ width: '140px' }}>Total Linear Feet</th>
-                <th style={{ width: '150px' }}>Total Weight (lbs.)</th>
+                {headers}
               </tr>
             </thead>
             <tbody data-comment='coils-tbody'>
@@ -330,24 +341,50 @@ export const Coils = () => {
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
                       </td>
-                      <td className='mono' data-comment={`coilg-pid-${index}`}>
-                        {group.productId}
-                      </td>
-                      <td data-comment={`coilg-color-${index}`}>{group.color}</td>
-                      <td className='mono' data-comment={`coilg-width-${index}`}>
-                        {group.width}
-                      </td>
-                      <td className='mono' data-comment={`coilg-count-${index}`}>
-                        {group.coils.length}
-                      </td>
-                      <td className='mono' data-comment={`coilg-lf-${index}`}>
-                        {group.coils
-                          .reduce((sum, coil) => sum + coil.linearFeet, 0)
-                          .toLocaleString()}
-                      </td>
-                      <td className='mono' data-comment={`coilg-w-${index}`}>
-                        {group.coils.reduce((sum, coil) => sum + coil.weight, 0).toLocaleString()}
-                      </td>
+                      {cells({
+                        pid: (
+                          <td data-col='pid' className='mono' data-comment={`coilg-pid-${index}`}>
+                            {group.productId}
+                          </td>
+                        ),
+                        color: (
+                          <td data-col='color' data-comment={`coilg-color-${index}`}>
+                            {group.color}
+                          </td>
+                        ),
+                        width: (
+                          <td
+                            data-col='width'
+                            className='mono'
+                            data-comment={`coilg-width-${index}`}
+                          >
+                            {group.width}
+                          </td>
+                        ),
+                        count: (
+                          <td
+                            data-col='count'
+                            className='mono'
+                            data-comment={`coilg-count-${index}`}
+                          >
+                            {group.coils.length}
+                          </td>
+                        ),
+                        lf: (
+                          <td data-col='lf' className='mono' data-comment={`coilg-lf-${index}`}>
+                            {group.coils
+                              .reduce((sum, coil) => sum + coil.linearFeet, 0)
+                              .toLocaleString()}
+                          </td>
+                        ),
+                        weight: (
+                          <td data-col='weight' className='mono' data-comment={`coilg-w-${index}`}>
+                            {group.coils
+                              .reduce((sum, coil) => sum + coil.weight, 0)
+                              .toLocaleString()}
+                          </td>
+                        )
+                      })}
                     </tr>
 
                     {expanded ? (

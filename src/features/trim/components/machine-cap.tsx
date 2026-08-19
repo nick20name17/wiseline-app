@@ -111,13 +111,30 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
             <thead>
               <tr>
                 <th data-comment='mcap-th-blank' />
-                {/* #219: the canvas's own two headings — the stock figure lives inside each of them */}
-                <th data-comment='mcap-th-pieces'>Total # of Pieces</th>
-                <th data-comment='mcap-th-bends'>Total Bends / Daily Max.</th>
+                {/*
+                  #109: the canvas heads these two columns «Pieces» and «Bends». The longer wording
+                  this had is Kevin's note about what each column *holds* — total pieces, total bends
+                  over the daily max — which is the figure below, not the heading above it.
+                */}
+                <th data-comment='mcap-th-pieces'>Pieces</th>
+                <th data-comment='mcap-th-bends'>Bends</th>
               </tr>
             </thead>
             <tbody data-comment='mcap-tbody'>
-              <tr className='mcap-dayrow' data-comment='mcap-row-day'>
+              {/*
+                #109: the canvas draws the sheet with nothing under the table, so the paragraph that
+                used to explain the two populations is gone. What it carried that the figures cannot —
+                how much of the day is still unrouted — moves onto the row it was about.
+              */}
+              <tr
+                className='mcap-dayrow'
+                data-comment='mcap-row-day'
+                title={
+                  hasUnrouted
+                    ? `${unassigned.bends} bends (${unassigned.pieces} pcs) scheduled but not routed to a machine yet`
+                    : undefined
+                }
+              >
                 <th scope='row' data-comment='mcap-name-day'>
                   {fmtDate(iso)}
                   {iso === TODAY ? <span className='subtle'> · today</span> : null}
@@ -161,20 +178,6 @@ export const MachineCap = ({ day, onClose }: { day: string | null; onClose: () =
               ))}
             </tbody>
           </table>
-
-          <p className='mcap-note' data-comment='mcap-note'>
-            The top row is everything scheduled for the day; the machine rows are what has been
-            assigned to each machine
-            {unassigned.bends > 0 ? (
-              <>
-                {' — '}
-                <b>{unassigned.bends} bends</b> ({unassigned.pieces} pcs) are scheduled but not
-                routed to a machine yet
-              </>
-            ) : null}
-            . Stock figures are part of the totals, not additional — they come only from Stock
-            Orders. Daily maxes are set in Settings › Machines.
-          </p>
 
           <div className='mcap-actions mcap-print-hide' data-comment='mcap-actions'>
             <button

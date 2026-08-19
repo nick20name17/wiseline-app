@@ -2127,31 +2127,42 @@
                #218: the canvas draws every row as its own rounded card, so the rows are separated by
                border-spacing rather than by rules, and each row paints its own background and edges.
                #219: it also writes the stock inside the figure rather than in a column of its own. */
-            [data-page="home"] .mcap-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 12px 14px; text-align: left; }
+            /* #109: the canvas centres the report's title over the sheet and hangs the close button off
+               the corner, rather than the left-aligned head every other window has. */
+            [data-page="home"] #overlay-machinecap .modal-head { position: relative; justify-content: center; text-align: center; }
+            [data-page="home"] #overlay-machinecap .modal-x { position: absolute; top: 14px; right: 16px; }
+            [data-page="home"] .mcap-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 16px 14px; text-align: left; }
             /* the machine name takes the slack; the figures keep the width their digits need */
             [data-page="home"] .mcap-table :is(th, td):first-child { width: 40%; }
             /* the canvas draws this heavy; on screen it keeps the app's own type scale — the layout is
                what the report needed, not shop-sign lettering. Paper grows it, in the print block below. */
-            [data-page="home"] .mcap-table thead th { font-size: 12px; font-weight: 700; color: var(--text); border-bottom: 2px solid var(--text); padding-bottom: 4px; text-align: center; }
-            [data-page="home"] .mcap-table thead th:first-child { border-bottom: none; text-align: left; }
+            /* #109: the canvas rules each heading separately, so the two lines have a gap between them.
+               A border would run edge to edge — the cells sit flush, `border-spacing` is vertical only —
+               so the rule is drawn inset instead. */
+            [data-page="home"] .mcap-table thead th { position: relative; font-size: 12px; font-weight: 700; color: var(--text); padding-bottom: 4px; text-align: center; }
+            /* the rule starts where the figure under it starts — same inset as the cell's own padding */
+            [data-page="home"] .mcap-table thead th:not(:first-child)::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; background: var(--text); }
+            [data-page="home"] .mcap-table thead th:first-child { text-align: left; }
             [data-page="home"] .mcap-table tbody th { font-size: 13px; font-weight: 600; white-space: nowrap; }
             [data-page="home"] .mcap-table tbody :is(th, td) { background: var(--surface-3); border-block: 1px solid var(--border-strong); }
             [data-page="home"] .mcap-table tbody :is(th, td):first-child { border-left: 1px solid var(--border-strong); border-start-start-radius: var(--r-lg); border-end-start-radius: var(--r-lg); }
             [data-page="home"] .mcap-table tbody :is(th, td):last-child { border-right: 1px solid var(--border-strong); border-start-end-radius: var(--r-lg); border-end-end-radius: var(--r-lg); }
             /* the day is the report's headline figure, so its card is white against the machines' grey */
             [data-page="home"] .mcap-table tbody .mcap-dayrow :is(th, td) { background: var(--surface); }
-            [data-page="home"] .mcap-num { white-space: nowrap; text-align: center; }
+            /* the figures hang off the left edge of their column, under the start of its rule */
+            [data-page="home"] .mcap-num { white-space: nowrap; text-align: left; }
             [data-page="home"] .mcap-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
-            [data-page="home"] .mcap-dayrow .mcap-val { font-size: 17px; }
-            /* fixed tracks, not 1fr: the slashes and the stock note line up down the column, not inside
-               each cell. #219: the fourth track is the parenthetical, reserved on every row so a machine
-               with no stock does not let its figure slide right. */
-            [data-page="home"] .mcap-val { display: inline-grid; grid-template-columns: 4ch 0 0 11ch; align-items: baseline; gap: 0 4px; }
-            [data-page="home"] .mcap-val.has-max { grid-template-columns: 4ch auto 4ch 11ch; }
-            [data-page="home"] .mcap-assigned { text-align: right; }
-            [data-page="home"] .mcap-slash { color: var(--text-subtle); }
-            [data-page="home"] .mcap-max { text-align: left; }
+            /* the day row is the same size as the machines': a bigger figure would resolve `4ch` to a
+               different width and its «/» would sit a few pixels off the ones below it (#27) */
+            /* the figure reads as one thing — «240 / 320» stays tight — and starts at the column's left
+               edge. The parenthetical is what lines up down the column instead: the cell is a fixed
+               width and the stock note is pushed to its end, so every row's «(n - Stock)» shares an
+               edge without the slash being dragged away from its own number (#27, #219). */
+            [data-page="home"] .mcap-val { display: inline-flex; align-items: baseline; width: 150px; }
+            [data-page="home"] .mcap-val.has-max { width: 196px; }
+            [data-page="home"] .mcap-slash:not(:empty) { color: var(--text-subtle); margin: 0 5px; }
+            [data-page="home"] .mcap-stock { margin-left: auto; flex: none; width: 88px; }
             /* #216: the day's own figure, not the plant's max beside it — that is a limit, not a total */
             [data-page="home"] .mcap-val.unrouted .mcap-assigned { color: var(--warn); }
             /* over the max outranks not-yet-routed: it colours the whole cell and is declared after */
@@ -2159,33 +2170,56 @@
             /* the stock note rides with its figure, quieter and smaller — it is a part of that number,
                not a second one, which is the whole point of the canvas writing it in brackets */
             [data-page="home"] .mcap-stock { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--accent); text-align: left; }
-            [data-page="home"] .mcap-note { margin-top: 16px; font-size: 11.5px; line-height: 1.5; color: var(--text-subtle); }
+            [data-page="home"] .mcap-num { padding-right: 8px; }
             [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 18px; }
             /* #174: only the capacity report's own Print button prints report-only — an ordinary Ctrl+P
                anywhere else in Trim must still print the page it is looking at. */
             @media print {
                 @page { size: letter portrait; margin: 0.5in; }
                 [data-page="home"].is-printing-report > *:not(#overlay-machinecap) { display: none !important; }
+                [data-page="home"].is-printing-report { background: #fff; }
                 [data-page="home"].is-printing-report #overlay-machinecap { position: static; display: block !important; padding: 0; background: none; }
-                [data-page="home"].is-printing-report #overlay-machinecap .modal { max-width: none; width: 100%; border: none; border-radius: 0; box-shadow: none; }
                 [data-page="home"] .mcap-print-hide, [data-page="home"] .modal-x { display: none !important; }
-                [data-page="home"] .mcap-table { break-inside: avoid; }
                 [data-page="home"] .mcap-stock { color: #4a5aa8; }
 
-                /* #218: one report, one sheet — it is read at arm's length on a shop floor, so the type
-                   grows to fill 8½ × 11 instead of sitting as a screen-sized block at the top of it.
-                   #219: two columns wide now, so the widest row needs 692px of the 7.5in the page leaves
-                   at these sizes, and six rows reach ~89% of its 10in. Growing either further is what
-                   puts a seventh row on a second sheet. */
-                [data-page="home"] .modal-title { font-size: 24px; }
-                [data-page="home"] .modal-head { padding-bottom: 10px; }
-                [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 32px 8px; }
-                [data-page="home"] .mcap-table thead th { font-size: 13px; padding-bottom: 6px; }
-                [data-page="home"] .mcap-table tbody th { font-size: 15px; }
-                [data-page="home"] .mcap-val { font-size: 17px; }
-                [data-page="home"] .mcap-dayrow .mcap-val { font-size: 19px; }
-                [data-page="home"] .mcap-stock { font-size: 11px; }
-                [data-page="home"] .mcap-note { font-size: 13px; }
+                /* #109: the sheet is the report, not a screen-sized block at the top of one. The modal
+                   takes the whole 10in the page leaves and hands the slack to the table, so the six rows
+                   grow to fill it however tall the head and the note happen to be. Slightly under 10in:
+                   at exactly 10in a rounded-up fraction of a pixel starts a second, empty sheet. */
+                /* !important: the window carries its screen width as an inline style, and on paper the
+                   sheet is the window */
+                [data-page="home"].is-printing-report #overlay-machinecap .modal {
+                    max-width: none !important; width: 100%; border: none; border-radius: 0; box-shadow: none;
+                    height: 9.9in; display: flex; flex-direction: column;
+                }
+                /* the window's own gutters go: the sheet's margin is the @page margin */
+                [data-page="home"].is-printing-report #machinecap-body {
+                    flex: 1; min-height: 0; display: flex; flex-direction: column;
+                    padding: 0 !important;
+                }
+                [data-page="home"].is-printing-report .mcap-table { flex: 1; }
+                [data-page="home"] .mcap-table { break-inside: avoid; }
+
+                /* read at arm's length on a shop floor, so the type grows with the sheet */
+                [data-page="home"] .modal-title { font-size: 26px; }
+                [data-page="home"] .modal-head { padding: 0 0 14px; }
+                /* the standfirst is a screen hint about the report; the printed sheet is the report */
+                [data-page="home"] .modal-desc { display: none; }
+                [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 10px 8px; }
+                /* the figures need more of the 7.5in than they do on screen; the names still fit 30% */
+                /* the card's own gutter: the name starts off its rounded edge, not against it */
+                [data-page="home"] .mcap-table :is(th, td):first-child { width: 30%; padding-left: 22px; }
+                [data-page="home"] .mcap-table :is(th, td):last-child { padding-right: 22px; }
+                [data-page="home"] .mcap-table thead th { font-size: 16px; padding-bottom: 8px; }
+                [data-page="home"] .mcap-table thead th:not(:first-child)::after { left: 8px; right: 8px; }
+                [data-page="home"] .mcap-table tbody th { font-size: 18px; }
+                /* the stock parenthetical sets its own track in px, not in the figure's own `ch`:
+                   at print sizes 11ch of the 24px figure reserves ~196px for text drawn at 13px, and
+                   the two number columns then push the table past the 7.5in the page leaves */
+                [data-page="home"] .mcap-val { font-size: 23px; width: 170px; }
+                [data-page="home"] .mcap-val.has-max { width: 240px; }
+                [data-page="home"] .mcap-stock { width: 100px; }
+                [data-page="home"] .mcap-stock { font-size: 14px; }
                 /* the grey cards are the layout, not decoration — keep them on paper */
                 [data-page="home"] .mcap-table tbody :is(th, td) { print-color-adjust: exact; }
             }

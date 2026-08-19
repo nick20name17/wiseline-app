@@ -2,10 +2,18 @@ import { Printer, Trash2 } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { deletePackage, trimStore } from '../store'
 import { askConfirm, closeConfirm, showToast } from '../ui'
+
+/** N-166/#114: the action column is a service column and stays where it is. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'bc', label: 'Package', width: '150px' },
+  { key: 'ct', label: 'Contents' },
+  { key: 'loc', label: 'Location', width: '90px' }
+]
 
 /**
  * The labels this order has printed (N-090).
@@ -22,6 +30,7 @@ export const PackagesModal = ({
   onClose: () => void
 }) => {
   const orders = useStore(trimStore, state => state.orders)
+  const { headers, cells } = useColumnOrder('trim-pkgs', DATA_COLUMNS, { notify: showToast })
   const order = orderId == null ? null : orders.find(candidate => candidate.id === orderId)
   const packages = order?.packages ?? []
 
@@ -55,9 +64,7 @@ export const PackagesModal = ({
             <table className='sub' data-comment='pkg-table'>
               <thead>
                 <tr>
-                  <th style={{ width: '150px' }}>Package</th>
-                  <th>Contents</th>
-                  <th style={{ width: '90px' }}>Location</th>
+                  {headers}
                   <th style={{ width: '190px' }} />
                 </tr>
               </thead>
@@ -68,26 +75,35 @@ export const PackagesModal = ({
                     style={pkg.deleted ? { opacity: 0.5 } : undefined}
                     key={pkg.barcode}
                   >
-                    <td className='mono' data-comment={`pkg-bc-${index}`}>
-                      {pkg.barcode}
-                      {pkg.deleted ? (
-                        <>
-                          {' '}
-                          <span className='status st-none' data-comment={`pkg-del-${index}`}>
-                            Deleted
-                          </span>
-                        </>
-                      ) : null}
-                    </td>
-                    <td
-                      data-comment={`pkg-ct-${index}`}
-                      style={pkg.deleted ? { textDecoration: 'line-through' } : undefined}
-                    >
-                      {pkg.contents}
-                    </td>
-                    <td className='mono muted' data-comment={`pkg-loc-${index}`}>
-                      {pkg.deleted ? '—' : pkg.locName || '—'}
-                    </td>
+                    {cells({
+                      bc: (
+                        <td data-col='bc' className='mono' data-comment={`pkg-bc-${index}`}>
+                          {pkg.barcode}
+                          {pkg.deleted ? (
+                            <>
+                              {' '}
+                              <span className='status st-none' data-comment={`pkg-del-${index}`}>
+                                Deleted
+                              </span>
+                            </>
+                          ) : null}
+                        </td>
+                      ),
+                      ct: (
+                        <td
+                          data-col='ct'
+                          data-comment={`pkg-ct-${index}`}
+                          style={pkg.deleted ? { textDecoration: 'line-through' } : undefined}
+                        >
+                          {pkg.contents}
+                        </td>
+                      ),
+                      loc: (
+                        <td data-col='loc' className='mono muted' data-comment={`pkg-loc-${index}`}>
+                          {pkg.deleted ? '—' : pkg.locName || '—'}
+                        </td>
+                      )
+                    })}
                     <td data-comment={`pkg-act-${index}`}>
                       {pkg.deleted ? (
                         <span

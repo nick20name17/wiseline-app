@@ -4,6 +4,8 @@ import { useState } from 'react'
 
 import { useStore } from '@/store/create-store'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
+
 import { PRODUCT_CATALOG } from '../catalog'
 import { createManufacturingBatch, trimStore } from '../store'
 import { askConfirm, closeConfirm, showToast } from '../ui'
@@ -21,6 +23,21 @@ const validRows = (rows: SmfgRow[]) =>
 
 type StockBatch = { ts: string; pid: string; desc: string; qty: number }
 
+/** N-166/#114: both grids here move their columns; the delete button is a service column and stays. */
+const ENTRY_COLUMNS: Column[] = [
+  { key: 'qty', label: 'Qty', width: '90px' },
+  { key: 'pid', label: 'Product ID', width: '170px' },
+  { key: 'desc', label: 'Description' }
+]
+
+const HISTORY_COLUMNS: Column[] = [
+  { key: 'time', label: 'Time', width: '90px' },
+  { key: 'pid', label: 'Product ID', width: '130px' },
+  { key: 'desc', label: 'Description' },
+  { key: 'qty', label: 'Qty', width: '70px' },
+  { key: 'ebms', label: 'EBMS', width: '120px' }
+]
+
 /**
  * The other half of Production's mode switch: extra pieces the floor made that no order asked for,
  * typed straight in and pushed to EBMS as a C_MFG batch. The grid grows a row as soon as the last one
@@ -28,6 +45,8 @@ type StockBatch = { ts: string; pid: string; desc: string; qty: number }
  */
 export const StockMfg = () => {
   const stockBatches = useStore(trimStore, state => state.stockBatches as StockBatch[])
+  const entry = useColumnOrder('trim-smfg', ENTRY_COLUMNS, { notify: showToast })
+  const history = useColumnOrder('trim-smfg-hist', HISTORY_COLUMNS, { notify: showToast })
   const [rows, setRows] = useState<SmfgRow[]>([{ ...BLANK }])
 
   const valid = validRows(rows)
@@ -101,49 +120,55 @@ export const StockMfg = () => {
         <table className='grid' data-comment='smfg-table'>
           <thead>
             <tr>
-              <th style={{ width: '90px' }}>Qty</th>
-              <th style={{ width: '170px' }}>Product ID</th>
-              <th>Description</th>
+              {entry.headers}
               <th style={{ width: '44px' }} />
             </tr>
           </thead>
           <tbody data-comment='smfg-tbody'>
             {rows.map((row, index) => (
               <tr key={index} data-comment={`smfg-row-${index}`}>
-                <td>
-                  <input
-                    className='field-input mono'
-                    style={{ width: '100%' }}
-                    type='number'
-                    min='1'
-                    value={row.qty}
-                    placeholder='0'
-                    data-comment={`smfg-qty-${index}`}
-                    onChange={event => edit(index, 'qty', event.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    className='field-input mono'
-                    style={{ width: '100%' }}
-                    type='text'
-                    value={row.pid}
-                    placeholder='TSWB262'
-                    data-comment={`smfg-pid-${index}`}
-                    onChange={event => edit(index, 'pid', event.target.value)}
-                  />
-                </td>
-                <td>
-                  <input
-                    className='field-input'
-                    type='text'
-                    style={{ width: '100%' }}
-                    value={row.desc}
-                    placeholder='Auto-fills from Product ID'
-                    data-comment={`smfg-desc-${index}`}
-                    onChange={event => edit(index, 'desc', event.target.value)}
-                  />
-                </td>
+                {entry.cells({
+                  qty: (
+                    <td data-col='qty'>
+                      <input
+                        className='field-input mono'
+                        style={{ width: '100%' }}
+                        type='number'
+                        min='1'
+                        value={row.qty}
+                        placeholder='0'
+                        data-comment={`smfg-qty-${index}`}
+                        onChange={event => edit(index, 'qty', event.target.value)}
+                      />
+                    </td>
+                  ),
+                  pid: (
+                    <td data-col='pid'>
+                      <input
+                        className='field-input mono'
+                        style={{ width: '100%' }}
+                        type='text'
+                        value={row.pid}
+                        placeholder='TSWB262'
+                        data-comment={`smfg-pid-${index}`}
+                        onChange={event => edit(index, 'pid', event.target.value)}
+                      />
+                    </td>
+                  ),
+                  desc: (
+                    <td data-col='desc'>
+                      <input
+                        className='field-input'
+                        type='text'
+                        style={{ width: '100%' }}
+                        value={row.desc}
+                        placeholder='Auto-fills from Product ID'
+                        data-comment={`smfg-desc-${index}`}
+                        onChange={event => edit(index, 'desc', event.target.value)}
+                      />
+                    </td>
+                  )
+                })}
                 <td>
                   {rows.length > 1 ? (
                     <button
@@ -171,35 +196,45 @@ export const StockMfg = () => {
           <div className='table-wrap' data-comment='smfg-hist-wrap'>
             <table className='grid' data-comment='smfg-hist-table'>
               <thead>
-                <tr>
-                  <th style={{ width: '90px' }}>Time</th>
-                  <th style={{ width: '130px' }}>Product ID</th>
-                  <th>Description</th>
-                  <th style={{ width: '70px' }}>Qty</th>
-                  <th style={{ width: '120px' }}>EBMS</th>
-                </tr>
+                <tr>{history.headers}</tr>
               </thead>
               <tbody data-comment='smfg-hist-tbody'>
                 {stockBatches.map((batch, index) => (
                   <tr key={index} data-comment={`smfg-hrow-${index}`}>
-                    <td className='mono muted' data-comment={`smfg-htime-${index}`}>
-                      {batch.ts}
-                    </td>
-                    <td className='mono' data-comment={`smfg-hpid-${index}`}>
-                      {batch.pid}
-                    </td>
-                    <td className='trunc' data-comment={`smfg-hdesc-${index}`}>
-                      {batch.desc}
-                    </td>
-                    <td className='mono' data-comment={`smfg-hqty-${index}`}>
-                      {batch.qty}
-                    </td>
-                    <td data-comment={`smfg-hebms-${index}`}>
-                      <span className='status st-wrapped'>
-                        <Check style={{ width: '14px', height: '14px' }} />
-                        C_MFG
-                      </span>
-                    </td>
+                    {history.cells({
+                      time: (
+                        <td
+                          data-col='time'
+                          className='mono muted'
+                          data-comment={`smfg-htime-${index}`}
+                        >
+                          {batch.ts}
+                        </td>
+                      ),
+                      pid: (
+                        <td data-col='pid' className='mono' data-comment={`smfg-hpid-${index}`}>
+                          {batch.pid}
+                        </td>
+                      ),
+                      desc: (
+                        <td data-col='desc' className='trunc' data-comment={`smfg-hdesc-${index}`}>
+                          {batch.desc}
+                        </td>
+                      ),
+                      qty: (
+                        <td data-col='qty' className='mono' data-comment={`smfg-hqty-${index}`}>
+                          {batch.qty}
+                        </td>
+                      ),
+                      ebms: (
+                        <td data-col='ebms' data-comment={`smfg-hebms-${index}`}>
+                          <span className='status st-wrapped'>
+                            <Check style={{ width: '14px', height: '14px' }} />
+                            C_MFG
+                          </span>
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))}
               </tbody>

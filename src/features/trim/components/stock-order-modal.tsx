@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { QrCode, Trash2 } from 'lucide-react'
 
+import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { PRODUCT_CATALOG } from '../catalog'
@@ -30,8 +31,16 @@ const MOCK_STOCK_CARDS = [
  * scanner is live the whole time the modal is open — a worker holding a scanner in one hand should not
  * have to click anything with the other.
  */
+/** N-166/#114 — the heads keep the anchors they already carry; the delete column is a service one. */
+const DATA_COLUMNS: Column[] = [
+  { key: 'qty', label: 'Qty', width: '90px', comment: 'stock-th-qty' },
+  { key: 'pid', label: 'Product ID', width: '150px', comment: 'stock-th-pid' },
+  { key: 'desc', label: 'Description', comment: 'stock-th-desc' }
+]
+
 export const StockOrderModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [rows, setRows] = useState<Row[]>([BLANK])
+  const { headers, cells } = useColumnOrder('trim-stockorder', DATA_COLUMNS, { notify: showToast })
   const [error, setError] = useState('')
   const scanSeq = useRef(0)
 
@@ -160,49 +169,51 @@ export const StockOrderModal = ({ open, onClose }: { open: boolean; onClose: () 
           <table className='stock-edit' data-comment='stock-edit-table'>
             <thead data-comment='stock-edit-thead'>
               <tr data-comment='stock-edit-headrow'>
-                <th data-comment='stock-th-qty' style={{ width: '90px' }}>
-                  Qty
-                </th>
-                <th data-comment='stock-th-pid' style={{ width: '150px' }}>
-                  Product ID
-                </th>
-                <th data-comment='stock-th-desc'>Description</th>
+                {headers}
                 <th data-comment='stock-th-act' style={{ width: '40px' }} />
               </tr>
             </thead>
             <tbody id='stock-rows' data-comment='stock-edit-rows'>
               {rows.map((row, index) => (
                 <tr data-comment={`stock-row-${index}`} key={index}>
-                  <td>
-                    <input
-                      type='number'
-                      min='1'
-                      className='mono'
-                      value={row.qty}
-                      data-comment={`stock-qty-${index}`}
-                      placeholder='0'
-                      onChange={event => edit(index, 'qty', event.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type='text'
-                      className='mono'
-                      value={row.pid}
-                      data-comment={`stock-pid-${index}`}
-                      placeholder='TSWB262'
-                      onChange={event => edit(index, 'pid', event.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type='text'
-                      value={row.desc}
-                      data-comment={`stock-desc-${index}`}
-                      placeholder='Auto-fills from Product ID'
-                      onChange={event => edit(index, 'desc', event.target.value)}
-                    />
-                  </td>
+                  {cells({
+                    qty: (
+                      <td data-col='qty'>
+                        <input
+                          type='number'
+                          min='1'
+                          className='mono'
+                          value={row.qty}
+                          data-comment={`stock-qty-${index}`}
+                          placeholder='0'
+                          onChange={event => edit(index, 'qty', event.target.value)}
+                        />
+                      </td>
+                    ),
+                    pid: (
+                      <td data-col='pid'>
+                        <input
+                          type='text'
+                          className='mono'
+                          value={row.pid}
+                          data-comment={`stock-pid-${index}`}
+                          placeholder='TSWB262'
+                          onChange={event => edit(index, 'pid', event.target.value)}
+                        />
+                      </td>
+                    ),
+                    desc: (
+                      <td data-col='desc'>
+                        <input
+                          type='text'
+                          value={row.desc}
+                          data-comment={`stock-desc-${index}`}
+                          placeholder='Auto-fills from Product ID'
+                          onChange={event => edit(index, 'desc', event.target.value)}
+                        />
+                      </td>
+                    )
+                  })}
                   <td>
                     {/* the trailing blank row is the grow-row — there is nothing to delete there */}
                     {index < rows.length - 1 ? (
