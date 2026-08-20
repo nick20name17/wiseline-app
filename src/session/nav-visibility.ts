@@ -7,7 +7,8 @@ import { isScoped, type Department, type Role } from './viewer'
  *
  *  1. an allowlist per role — `null` means everything;
  *  2. Settings is admin-only, whatever the allowlist says;
- *  3. a Manager or Worker scoped to one department sees that department's item and not the others'.
+ *  3. what a department's own people have no use for, even though their role allows it (#120/#121);
+ *  4. a Manager or Worker scoped to one department sees that department's item and not the others'.
  *
  * A section label then disappears when everything under it has. This lives outside the department
  * features because every page in the prototype ships the same copy of it, and it decides what a
@@ -19,6 +20,16 @@ const ALLOWED: Record<Role, string[] | null> = {
   worker: ['nav-trim', 'nav-rollforming', 'nav-accessories', 'nav-loading'],
   shipping: ['nav-dashboard', 'nav-shipping', 'nav-driver', 'nav-loading'],
   driver: ['nav-driver']
+}
+
+/**
+ * #120/#121: Trim reads its coils inside its own Coils tab and its stock cards inside Unscheduled, so
+ * the plant-wide items only repeat them; Driver and Loading are somebody else's job. Warehouse stays
+ * until #119 says what it is for.
+ */
+const DENIED_BY_DEPARTMENT: Partial<Record<Role, Partial<Record<Department, string[]>>>> = {
+  manager: { trim: ['nav-driver', 'nav-loading', 'nav-coils', 'nav-stockcards'] },
+  worker: { trim: ['nav-loading'] }
 }
 
 /** The four items that stand for a department, and so the ones department scoping narrows. */
@@ -52,6 +63,7 @@ export const canSeeNav = (comment: string, role: Role, department: Department) =
   const allowed = ALLOWED[role]
   if (allowed && !allowed.includes(comment)) return false
   if (comment === 'nav-settings' && role !== 'admin') return false
+  if (DENIED_BY_DEPARTMENT[role]?.[department]?.includes(comment)) return false
 
   if (isScoped(role) && department !== 'all' && DEPARTMENT_NAV.includes(comment))
     return comment === NAV_OF_DEPARTMENT[department]

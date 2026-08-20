@@ -383,6 +383,11 @@
             }
             [data-page="coils"] .coil-note-input:hover { border-color: var(--border); }
             [data-page="coils"] .coil-note-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+            /* #118: the flat All Coils tab — a two-deep head with «Location» spanning its two columns */
+            [data-page="coils"] .coil-flat th.lot-locgroup { text-align: center; border-bottom: 1px solid var(--border); }
+            [data-page="coils"] .coil-flat td { vertical-align: middle; }
+            [data-page="coils"] .flat-adjust { cursor: pointer; }
+            [data-page="coils"] .flat-adjust:hover { background: var(--accent-soft); color: var(--accent); }
 
             [data-page="coils"] .total-link {
                 font-family: var(--font-mono); font-size: 12px; cursor: pointer; color: var(--accent); font-weight: 600;

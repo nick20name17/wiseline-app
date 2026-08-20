@@ -11,6 +11,7 @@ import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import {
   coilFilterActive,
   coilInRange,
+  EMPTY_COIL_FILTER,
   loadCoilFilter,
   qualifyingCoilFolders,
   rfEligible,
@@ -30,9 +31,13 @@ import type { Coil } from '@/store/shared/coils'
  * N-166/#114: the group grid's columns move. The lot sub-table below keeps its fixed order — its head
  * is two rows deep, with «Location» spanning three of them, and a dragged column cannot cross that.
  */
+/** The folder-tab key of the flat per-coil list, which is a sibling of the folders, not one of them. */
+const FLAT_FOLDER = '__flat__'
+
 const GROUP_COLUMNS: Column[] = [
   { key: 'pid', label: 'Product ID', width: '130px' },
   { key: 'color', label: 'Color' },
+  { key: 'gauge', label: 'Gauge', width: '70px' },
   { key: 'width', label: 'Width (in.)', width: '90px' },
   { key: 'count', label: 'Count', width: '70px' },
   { key: 'lf', label: 'Total Linear Feet', width: '140px' },
@@ -43,125 +48,202 @@ const GROUP_COLUMNS: Column[] = [
  * The coil drop-down: every lot of one size that EBMS knows about, with the canvas's Location group
  * (Rollforming · Trim · Slinet In/Out) and the always-visible per-coil note (#177).
  */
+/**
+ * The eight cells every lot row has, wherever it is drawn: the drop-down under a size (`CoilLots`) and
+ * the flat All Coils list (#116/#118) show the same coil, so they share one row and differ only in the
+ * anchor prefix their `data-comment`s carry.
+ */
+const LotCells = ({ coil, prefix }: { coil: Coil; prefix: string }) => (
+  <>
+    <td className='mono' data-comment={`${prefix}num-${coil.id}`}>
+      {coil.coilNumber}
+    </td>
+    <td
+      className='mono lot-adjust'
+      data-comment={`${prefix}thickness-${coil.id}`}
+      title='Click to open the Coil Adjustment window'
+      onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'thickness' })}
+    >
+      {coil.thickness != null ? coil.thickness : <span className='subtle'>—</span>}
+    </td>
+    <td
+      className='mono lot-adjust'
+      data-comment={`${prefix}linearFeet-${coil.id}`}
+      title='Click to open the Coil Adjustment window'
+      onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'linearFeet' })}
+    >
+      {coil.linearFeet.toLocaleString()}
+    </td>
+    <td
+      className='mono lot-adjust'
+      data-comment={`${prefix}weight-${coil.id}`}
+      title='Click to open the Coil Adjustment window'
+      onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'weight' })}
+    >
+      {coil.weight.toLocaleString()}
+    </td>
+    <td data-comment={`${prefix}locrfcell-${coil.id}`}>
+      <input
+        type='checkbox'
+        className='chk'
+        data-comment={`${prefix}locrf-${coil.id}`}
+        checked={coil.locRollforming}
+        disabled={!rfEligible(coil)}
+        onChange={() => requestCoilLocation(coil, 'locRollforming')}
+        title={
+          rfEligible(coil) ? undefined : 'Coil is mounted in the Slinet — take it off the Slinet first'
+        }
+      />
+    </td>
+    <td data-comment={`${prefix}loctrimcell-${coil.id}`}>
+      <input
+        type='checkbox'
+        className='chk'
+        data-comment={`${prefix}loctrim-${coil.id}`}
+        checked={coil.locTrim}
+        onChange={() => requestCoilLocation(coil, 'locTrim')}
+      />
+    </td>
+    <td data-comment={`${prefix}slinetcell-${coil.id}`}>
+      <input
+        type='checkbox'
+        className='chk'
+        data-comment={`${prefix}slinet-${coil.id}`}
+        checked={coil.slinetIn}
+        disabled={!slinetEligible(coil)}
+        onChange={() => toggleSlinet(coil.id)}
+        title={slinetEligible(coil) ? undefined : 'Needs the coil in Trim and a Coil Thickness'}
+      />
+    </td>
+    <td data-comment={`${prefix}notecell-${coil.id}`}>
+      <input
+        className='coil-note-input'
+        data-comment={`${prefix}note-${coil.id}`}
+        value={coil.note}
+        placeholder='Add note…'
+        onChange={event => setCoilNote(coil.id, event.target.value)}
+      />
+    </td>
+  </>
+)
+
+/** The «Location»/«Slinet»/«Note» head the lot columns sit under, two rows deep in both tables. */
+const LotHead = () => (
+  <>
+    <th rowSpan={2} style={{ width: '120px' }}>
+      Coil #
+    </th>
+    <th rowSpan={2} style={{ width: '110px' }}>
+      Coil Thickness
+    </th>
+    <th rowSpan={2} style={{ width: '100px' }}>
+      Linear Feet
+    </th>
+    <th rowSpan={2} style={{ width: '110px' }}>
+      Weight (lbs.)
+    </th>
+    <th colSpan={3} className='lot-locgroup'>
+      Location
+    </th>
+    <th rowSpan={2}>Note</th>
+  </>
+)
+
+const LotHeadRow2 = () => (
+  <tr>
+    <th style={{ width: '96px' }}>Rollforming</th>
+    <th style={{ width: '70px' }}>Trim</th>
+    <th style={{ width: '96px' }}>Slinet In / Out</th>
+  </tr>
+)
+
+/**
+ * The coil drop-down: every lot of one size that EBMS knows about, with the canvas's Location group
+ * (Rollforming · Trim · Slinet In/Out) and the always-visible per-coil note (#177).
+ */
 const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
   <table className='sub coil-lots' data-comment={`coilg-subtable-${index}`}>
     <thead>
       <tr>
-        <th rowSpan={2} style={{ width: '120px' }}>
-          Coil #
-        </th>
-        <th rowSpan={2} style={{ width: '110px' }}>
-          Coil Thickness
-        </th>
-        <th rowSpan={2} style={{ width: '100px' }}>
-          Linear Feet
-        </th>
-        <th rowSpan={2} style={{ width: '110px' }}>
-          Weight (lbs.)
-        </th>
-        <th colSpan={3} className='lot-locgroup'>
-          Location
-        </th>
-        <th rowSpan={2}>Note</th>
+        <LotHead />
       </tr>
-      <tr>
-        <th style={{ width: '96px' }}>Rollforming</th>
-        <th style={{ width: '70px' }}>Trim</th>
-        <th style={{ width: '96px' }}>Slinet In / Out</th>
-      </tr>
+      <LotHeadRow2 />
     </thead>
     <tbody>
       {group.coils.map(coil => (
         <tr key={coil.id} data-comment={`coil-row-${coil.id}`}>
-          <td className='mono' data-comment={`coil-num-${coil.id}`}>
-            {coil.coilNumber}
-          </td>
-          <td
-            className='mono lot-adjust'
-            data-comment={`coil-thickness-${coil.id}`}
-            title='Click to open the Coil Adjustment window'
-            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'thickness' })}
-          >
-            {coil.thickness != null ? coil.thickness : <span className='subtle'>—</span>}
-          </td>
-          <td
-            className='mono lot-adjust'
-            data-comment={`coil-linearFeet-${coil.id}`}
-            title='Click to open the Coil Adjustment window'
-            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'linearFeet' })}
-          >
-            {coil.linearFeet.toLocaleString()}
-          </td>
-          <td
-            className='mono lot-adjust'
-            data-comment={`coil-weight-${coil.id}`}
-            title='Click to open the Coil Adjustment window'
-            onClick={() => openCoilAdjust({ coilId: coil.id, focusField: 'weight' })}
-          >
-            {coil.weight.toLocaleString()}
-          </td>
-          <td data-comment={`coil-locrfcell-${coil.id}`}>
-            <input
-              type='checkbox'
-              className='chk'
-              data-comment={`coil-locrf-${coil.id}`}
-              checked={coil.locRollforming}
-              disabled={!rfEligible(coil)}
-              onChange={() => requestCoilLocation(coil, 'locRollforming')}
-              title={
-                rfEligible(coil)
-                  ? undefined
-                  : 'Coil is mounted in the Slinet — take it off the Slinet first'
-              }
-            />
-          </td>
-          <td data-comment={`coil-loctrimcell-${coil.id}`}>
-            <input
-              type='checkbox'
-              className='chk'
-              data-comment={`coil-loctrim-${coil.id}`}
-              checked={coil.locTrim}
-              onChange={() => requestCoilLocation(coil, 'locTrim')}
-            />
-          </td>
-          <td data-comment={`coil-slinetcell-${coil.id}`}>
-            <input
-              type='checkbox'
-              className='chk'
-              data-comment={`coil-slinet-${coil.id}`}
-              checked={coil.slinetIn}
-              disabled={!slinetEligible(coil)}
-              onChange={() => toggleSlinet(coil.id)}
-              title={
-                slinetEligible(coil) ? undefined : 'Needs the coil in Trim and a Coil Thickness'
-              }
-            />
-          </td>
-          <td data-comment={`coil-notecell-${coil.id}`}>
-            <input
-              className='coil-note-input'
-              data-comment={`coil-note-${coil.id}`}
-              value={coil.note}
-              placeholder='Add note…'
-              onChange={event => setCoilNote(coil.id, event.target.value)}
-            />
-          </td>
+          <LotCells coil={coil} prefix='coil-' />
         </tr>
       ))}
     </tbody>
   </table>
 )
 
+/**
+ * #116: one row per individual coil rather than per size — the list a Manager reads when he wants coil
+ * numbers, not totals. Same rows as the drop-downs, with the size the row belongs to spelled out in
+ * front of them, and no grouping to expand.
+ */
+const AllCoilsFlat = ({ coils }: { coils: Coil[] }) => (
+  <div className='table-wrap' data-comment='coils-flat-wrap'>
+    <table className='coils-grid grid coil-lots' data-comment='coils-flat-table'>
+      <thead>
+        <tr>
+          <th rowSpan={2} style={{ width: '130px' }}>
+            Product ID
+          </th>
+          <th rowSpan={2}>Color</th>
+          <th rowSpan={2} style={{ width: '70px' }}>
+            Gauge
+          </th>
+          <th rowSpan={2} style={{ width: '90px' }}>
+            Width (in.)
+          </th>
+          <LotHead />
+        </tr>
+        <LotHeadRow2 />
+      </thead>
+      <tbody data-comment='coils-flat-tbody'>
+        {coils.map(coil => (
+          <tr key={coil.id} data-comment={`flatcoil-row-${coil.id}`}>
+            <td className='mono' data-comment={`flatcoil-pid-${coil.id}`}>
+              {coil.productId}
+            </td>
+            <td data-comment={`flatcoil-color-${coil.id}`}>{coil.color}</td>
+            <td className='mono' data-comment={`flatcoil-gauge-${coil.id}`}>
+              {coil.gauge != null ? coil.gauge : <span className='subtle'>—</span>}
+            </td>
+            <td className='mono' data-comment={`flatcoil-width-${coil.id}`}>
+              {coil.width}
+            </td>
+            <LotCells coil={coil} prefix='flatcoil-' />
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)
+
 type CoilGroup = {
   key: string
   productId: string
   color: string
+  /** #115: a Product ID carries its gauge, so every lot of one size reports the same one. */
+  gauge: number | null
   width: number
   coils: Coil[]
 }
 
+/** #117: the two coil lists a Manager has. `all` ignores the department's Coil Filter entirely. */
+type Scope = 'trim' | 'all'
+
 export const Coils = () => {
   const { coils, expandedCoilGroups, role } = useStore(trimStore, current => current)
+  /**
+   * The Coils tab always opens on Trim Coils (#117), which it gets for free: `trim.tsx` mounts one view
+   * at a time, so leaving the tab unmounts this and the next visit starts here again.
+   */
+  const [scope, setScope] = useState<Scope>('trim')
   const [folder, setFolder] = useState('all')
   const [query, setQuery] = useState('')
 
@@ -177,6 +259,10 @@ export const Coils = () => {
    * compute it once and never again.
    */
   const managersFilter = role === 'worker'
+  /** He only ever has the one list, so the scope tabs are not drawn for him at all. */
+  const scoped: Scope = managersFilter ? 'trim' : scope
+  /** «All Coils» is every coil in the company — the Manager's own filter does not narrow it. */
+  const activeFilter = scoped === 'all' ? EMPTY_COIL_FILTER : filter
 
   if (!coils.length)
     return (
@@ -186,14 +272,16 @@ export const Coils = () => {
       />
     )
 
-  const folders = qualifyingCoilFolders(coils, filter)
-  const activeFolder = folder !== 'all' && !folders.includes(folder) ? 'all' : folder
+  const folders = qualifyingCoilFolders(coils, activeFilter)
+  const activeFolder =
+    folder !== 'all' && folder !== FLAT_FOLDER && !folders.includes(folder) ? 'all' : folder
+  const flat = activeFolder === FLAT_FOLDER
 
   const needle = query.trim().toLowerCase()
   const filtered = coils.filter(
     coil =>
-      coilInRange(coil, filter) &&
-      (activeFolder === 'all' || coil.folder === activeFolder) &&
+      coilInRange(coil, activeFilter) &&
+      (activeFolder === 'all' || flat || coil.folder === activeFolder) &&
       (!needle ||
         `${coil.productId} ${coil.color} ${coil.coilNumber}`.toLowerCase().includes(needle))
   )
@@ -206,6 +294,7 @@ export const Coils = () => {
       key,
       productId: coil.productId,
       color: coil.color,
+      gauge: coil.gauge,
       width: coil.width,
       coils: []
     }
@@ -214,6 +303,14 @@ export const Coils = () => {
   }
   const list = [...groups.values()].sort(
     (a, b) => a.color.localeCompare(b.color) || a.productId.localeCompare(b.productId)
+  )
+
+  // the flat list reads in the same order the grouped one does, coil # deciding within a size
+  const flatList = [...filtered].sort(
+    (a, b) =>
+      a.color.localeCompare(b.color) ||
+      a.productId.localeCompare(b.productId) ||
+      a.coilNumber.localeCompare(b.coilNumber)
   )
 
   const toggleGroup = (key: string) =>
@@ -225,6 +322,32 @@ export const Coils = () => {
 
   return (
     <>
+      {managersFilter ? null : (
+        <div className='machine-tabs coils-scope-tabs' data-comment='coils-scopes'>
+          <button
+            className={`mtab ${scoped === 'trim' ? 'active' : ''}`}
+            data-comment='coils-scope-trim'
+            onClick={() => {
+              setScope('trim')
+              setFolder('all')
+            }}
+          >
+            Trim Coils
+          </button>
+          <button
+            className={`mtab ${scoped === 'all' ? 'active' : ''}`}
+            data-comment='coils-scope-all'
+            title='Every coil in the company — the Coil Filter does not narrow this list'
+            onClick={() => {
+              setScope('all')
+              setFolder('all')
+            }}
+          >
+            All Coils
+          </button>
+        </div>
+      )}
+
       <div className='preview-note' data-comment='coils-note'>
         <Database style={{ width: '14px', height: '14px' }} />
         Coils imported from EBMS — one row per size, expand for its lots. Click a lot&apos;s Coil
@@ -254,8 +377,15 @@ export const Coils = () => {
             {name}
           </button>
         ))}
+        <button
+          className={`mtab ${flat ? 'active' : ''}`}
+          data-comment='coils-folder-flat'
+          onClick={() => setFolder(FLAT_FOLDER)}
+        >
+          {scoped === 'all' ? 'All Coils' : 'All Trim Coils'}
+        </button>
         <span className='toolbar-spacer' />
-        {managersFilter ? null : (
+        {managersFilter || scoped === 'all' ? null : (
           <button
             className='btn btn-primary btn-sm'
             data-comment='coils-filter-btn'
@@ -271,7 +401,7 @@ export const Coils = () => {
         <span className='toolbar-info' data-comment='coils-count'>
           <b>{filtered.length}</b> coil{filtered.length !== 1 ? 's' : ''}
         </span>
-        {coilFilterActive(filter) ? (
+        {coilFilterActive(activeFilter) ? (
           <span
             className='split-badge'
             data-comment='coils-rangebadge'
@@ -298,7 +428,9 @@ export const Coils = () => {
         </div>
       </div>
 
-      {list.length === 0 ? (
+      {flat && filtered.length ? (
+        <AllCoilsFlat coils={flatList} />
+      ) : list.length === 0 ? (
         <EmptyState
           title='No coils match'
           text={
@@ -352,6 +484,15 @@ export const Coils = () => {
                             {group.color}
                           </td>
                         ),
+                        gauge: (
+                          <td
+                            data-col='gauge'
+                            className='mono'
+                            data-comment={`coilg-gauge-${index}`}
+                          >
+                            {group.gauge != null ? group.gauge : <span className='subtle'>—</span>}
+                          </td>
+                        ),
                         width: (
                           <td
                             data-col='width'
@@ -389,7 +530,7 @@ export const Coils = () => {
 
                     {expanded ? (
                       <tr className='subrow' data-comment={`coilg-sub-${index}`}>
-                        <td colSpan={7}>
+                        <td colSpan={GROUP_COLUMNS.length + 1}>
                           <div className='subwrap' data-comment={`coilg-subwrap-${index}`}>
                             <CoilLots group={group} index={index} />
                           </div>

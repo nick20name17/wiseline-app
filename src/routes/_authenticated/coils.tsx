@@ -52,6 +52,12 @@ export const Route = createFileRoute('/_authenticated/coils')({
 const num = (value: number) => value.toLocaleString()
 
 /**
+ * #118: the tab key of the flat per-coil list. It sits beside the folders rather than among them —
+ * every coil the Coil Filter admits, one row each, coil numbers instead of totals.
+ */
+const FLAT_TAB = '__flat__'
+
+/**
  * The coil inventory as EBMS hands it over: folders across the top, one row per colour/product group,
  * and the individual coils underneath.
  *
@@ -89,14 +95,30 @@ function Coils() {
   const folders = qualifyingFolders(state)
   // the prototype resets the folder in its render; deriving it does the same without a write
   const activeFolder =
-    state.activeFolder !== 'all' && !folders.includes(state.activeFolder)
+    state.activeFolder !== 'all' &&
+    state.activeFolder !== FLAT_TAB &&
+    !folders.includes(state.activeFolder)
       ? 'all'
       : state.activeFolder
 
-  const tabs = [{ key: 'all', label: 'All folders' }, ...folders.map(f => ({ key: f, label: f }))]
+  const tabs = [
+    { key: 'all', label: 'All folders' },
+    ...folders.map(f => ({ key: f, label: f })),
+    { key: FLAT_TAB, label: 'All Coils' }
+  ]
+  const flat = activeFolder === FLAT_TAB
 
-  const coils = filteredCoils({ ...state, activeFolder })
+  // the flat list spans the folders, so it asks for the same rows «All folders» would give it
+  const coils = filteredCoils({ ...state, activeFolder: flat ? 'all' : activeFolder })
   const groups = buildGroups(coils)
+
+  // the flat list reads in the grouped table's order, coil # deciding within a size
+  const flatCoils = [...coils].sort(
+    (a, b) =>
+      a.color.localeCompare(b.color) ||
+      a.productId.localeCompare(b.productId) ||
+      a.coilNumber.localeCompare(b.coilNumber)
+  )
 
   const totalLF = coils.reduce((total, coil) => total + coil.linearFeet, 0)
   const totalWeight = coils.reduce((total, coil) => total + coil.weight, 0)
@@ -210,7 +232,9 @@ function Coils() {
               {tabs.map(tab => (
                 <button
                   className={`subtab ${activeFolder === tab.key ? 'active' : ''}`}
-                  data-comment={`folder-tab-${folderSlug(tab.key)}`}
+                  data-comment={
+                    tab.key === FLAT_TAB ? 'folder-tab-flat' : `folder-tab-${folderSlug(tab.key)}`
+                  }
                   onClick={() => setActiveFolder(tab.key)}
                   key={tab.key}
                 >
@@ -261,7 +285,9 @@ function Coils() {
             </div>
 
             <div id='coils-table-container' data-comment='coils-table-container'>
-              {!groups.length ? (
+              {flat && coils.length ? (
+                <FlatCoils coils={flatCoils} onMove={move} onAdjust={setAdjustId} />
+              ) : !groups.length ? (
                 <div className='table-wrap' data-comment='coils-empty-wrap'>
                   <div className='empty' data-comment='coils-empty'>
                     <Inbox className='empty-ico' data-comment='coils-empty-icon' />
@@ -419,6 +445,145 @@ function Coils() {
     </>
   )
 }
+
+/**
+ * #118: one row per individual coil, with the size it belongs to spelled out in front of it. Columns
+ * follow Kevin's attachment; the controls are this page's own — the same location toggles and Slinet
+ * tag the drop-down rows use, rather than a second idiom on one screen.
+ */
+const FlatCoils = ({
+  coils,
+  onMove,
+  onAdjust
+}: {
+  coils: Coil[]
+  onMove: (coil: Coil, flag: DeptFlag) => void
+  onAdjust: (id: Coil['id']) => void
+}) => (
+  <div className='table-wrap' data-comment='coils-flat-wrap'>
+    <table className='grid coil-flat' data-comment='coils-flat-table' data-component='table'>
+      <thead>
+        <tr>
+          <th rowSpan={2} style={{ width: '130px' }}>
+            Product ID
+          </th>
+          <th rowSpan={2} style={{ width: '160px' }}>
+            Color
+          </th>
+          <th rowSpan={2} style={{ width: '70px' }}>
+            Gauge
+          </th>
+          <th rowSpan={2} style={{ width: '80px' }}>
+            Width (in.)
+          </th>
+          <th rowSpan={2} style={{ width: '120px' }}>
+            Coil #
+          </th>
+          <th rowSpan={2} style={{ width: '110px' }}>
+            Coil Thickness
+          </th>
+          <th rowSpan={2} style={{ width: '100px' }}>
+            Linear Feet
+          </th>
+          <th rowSpan={2} style={{ width: '110px' }}>
+            Weight (lbs.)
+          </th>
+          <th colSpan={2} className='lot-locgroup'>
+            Location
+          </th>
+          <th rowSpan={2} style={{ width: '96px' }}>
+            Slinet In / Out
+          </th>
+          <th rowSpan={2}>Note</th>
+        </tr>
+        <tr>
+          <th style={{ width: '96px' }}>Rollforming</th>
+          <th style={{ width: '70px' }}>Trim</th>
+        </tr>
+      </thead>
+      <tbody data-comment='coils-flat-tbody'>
+        {coils.map(coil => {
+          const slinetOk = slinetEligible(coil)
+          const rfOk = rfEligible(coil)
+
+          return (
+            <tr key={coil.id} data-comment={`flatcoil-row-${coil.id}`}>
+              <td className='mono-cell' data-comment={`flatcoil-pid-${coil.id}`}>
+                {coil.productId}
+              </td>
+              <td data-comment={`flatcoil-color-${coil.id}`}>{coil.color}</td>
+              <td className='mono-cell' data-comment={`flatcoil-gauge-${coil.id}`}>
+                {coil.gauge != null ? `${coil.gauge}ga` : <span className='subtle'>—</span>}
+              </td>
+              <td className='mono-cell' data-comment={`flatcoil-width-${coil.id}`}>
+                {coil.width}"
+              </td>
+              <td className='mono-cell' data-comment={`flatcoil-num-${coil.id}`}>
+                {coil.coilNumber}
+              </td>
+              <td
+                className='mono-cell flat-adjust'
+                data-comment={`flatcoil-thick-${coil.id}`}
+                title='Click to open the Coil Adjustment window'
+                onClick={() => onAdjust(coil.id)}
+              >
+                {coil.thickness != null ? `${coil.thickness}"` : <span className='subtle'>—</span>}
+              </td>
+              <td className='mono-cell' data-comment={`flatcoil-lf-${coil.id}`}>
+                {num(coil.linearFeet)}
+              </td>
+              <td className='mono-cell' data-comment={`flatcoil-weight-${coil.id}`}>
+                {num(coil.weight)}
+              </td>
+              <td data-comment={`flatcoil-locrfcell-${coil.id}`}>
+                <button
+                  className={`loc-flag ${coil.locRollforming ? 'on' : ''}`}
+                  data-comment={`flatcoil-locrf-${coil.id}`}
+                  disabled={!rfOk}
+                  title={
+                    rfOk ? undefined : 'Coil is mounted in the Slinet — take it off Slinet first'
+                  }
+                  onClick={() => onMove(coil, 'locRollforming')}
+                >
+                  RF
+                </button>
+              </td>
+              <td data-comment={`flatcoil-loctrimcell-${coil.id}`}>
+                <button
+                  className={`loc-flag ${coil.locTrim ? 'on' : ''}`}
+                  data-comment={`flatcoil-loctrim-${coil.id}`}
+                  onClick={() => onMove(coil, 'locTrim')}
+                >
+                  Trim
+                </button>
+              </td>
+              <td data-comment={`flatcoil-slinetcell-${coil.id}`}>
+                <button
+                  className={`slinet-tag ${coil.slinetIn ? 'slinet-in' : 'slinet-out'}`}
+                  data-comment={`flatcoil-slinet-${coil.id}`}
+                  title={slinetOk ? undefined : 'Requires Trim location + Coil Thickness'}
+                  disabled={!slinetOk}
+                  onClick={() => toggleSlinet(coil.id)}
+                >
+                  {coil.slinetIn ? 'In' : 'Out'}
+                </button>
+              </td>
+              <td data-comment={`flatcoil-notecell-${coil.id}`}>
+                <input
+                  className='coil-note-input'
+                  data-comment={`flatcoil-note-${coil.id}`}
+                  value={coil.note}
+                  placeholder='Add note…'
+                  onChange={event => setCoilNote(coil.id, event.target.value)}
+                />
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  </div>
+)
 
 const CoilRow = ({
   coil,
