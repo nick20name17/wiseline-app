@@ -220,6 +220,14 @@ export const CoilAdjust = ({
                 <span data-comment='cadjust-coil-pid'>
                   <b>Product ID:</b> <span className='mono'>{coil.productId}</span>
                 </span>
+                <span data-comment='cadjust-coil-gauge'>
+                  <b>Gauge:</b>{' '}
+                  {coil.gauge != null ? (
+                    <span className='mono'>{coil.gauge}</span>
+                  ) : (
+                    <span className='subtle'>—</span>
+                  )}
+                </span>
                 <span data-comment='cadjust-coil-color'>
                   <b>Color:</b> {coil.color}
                 </span>

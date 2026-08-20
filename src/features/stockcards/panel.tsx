@@ -36,7 +36,14 @@ import {
  * document, as the last child of its body, and a second one inside a dialog would be two toasts on one
  * page — and a `data-comment` the baseline does not have at that depth.
  */
-export const StockCardsPanel = ({ show }: { show: (message: string) => void }) => {
+export const StockCardsPanel = ({
+  show,
+  scope
+}: {
+  show: (message: string) => void
+  /** #123: set by the Trim dialog that hosts this screen — the element its own stylesheet is scoped to. */
+  scope?: HTMLElement | null
+}) => {
   const state = useStore(stockcardsStore, current => current)
   const { openPop, popNode } = usePopover()
 
@@ -250,14 +257,16 @@ export const StockCardsPanel = ({ show }: { show: (message: string) => void }) =
         cards={state.stockCards}
         onClose={() => setFormOpen(false)}
         onSaved={show}
+        scope={scope}
       />
       <CreateOrderModal
         key={`order-${scanned?.id ?? 'none'}`}
         card={scanned}
         onClose={() => setScanned(null)}
         onCreated={show}
+        scope={scope}
       />
-      <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} />
+      <ConfirmOverlay confirm={confirm} onClose={() => setConfirm(null)} scope={scope} />
       {popNode}
     </>
   )

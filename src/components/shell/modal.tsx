@@ -17,18 +17,27 @@ import type { ReactNode } from 'react'
  * the prototype keeps every overlay: a sibling of the app, not a descendant of the view that opened it.
  * Rendered in place it still *looked* right, being `position: fixed`, and the gate said `body: 3 children
  * became 2` the first time a state opened one.
+ *
+ * `scope` overrides that target, and #123 is why it exists. A page's stylesheet is confined to its
+ * `data-page`, so a screen hosted inside another page — Stock Cards inside Trim — has its overlays land
+ * under the *host's* `data-page` and be dressed by the wrong sheet. The prototype does not have the
+ * problem: there the hosted screen is an `<iframe>`, and its overlays are children of its own document.
+ * Passing that screen's scoped element is this port's equivalent of that document.
  */
 export const Overlay = ({
   id,
   comment,
   open,
   onClose,
+  scope,
   children
 }: {
   id: string
   comment: string
   open: boolean
   onClose: () => void
+  /** Where to portal, when the opener is a screen hosted inside another page (#123). */
+  scope?: HTMLElement | null
   children: ReactNode
 }) => {
   useEffect(() => {
@@ -41,7 +50,7 @@ export const Overlay = ({
     return () => document.removeEventListener('keydown', escaped)
   }, [open, onClose])
 
-  const root = document.getElementById('root')
+  const root = scope ?? document.getElementById('root')
   const overlay = (
     <div
       className={`overlay${open ? ' is-open' : ''}`}
@@ -145,8 +154,22 @@ export type Confirm = {
  * comments anchored to `confirm-title` and `confirm-ok` are about the pattern rather than any one
  * question. This keeps that.
  */
-export const ConfirmOverlay = ({ confirm, onClose }: { confirm: Confirm; onClose: () => void }) => (
-  <Overlay id='overlay-confirm' comment='overlay-confirm' open={!!confirm} onClose={onClose}>
+export const ConfirmOverlay = ({
+  confirm,
+  onClose,
+  scope
+}: {
+  confirm: Confirm
+  onClose: () => void
+  scope?: HTMLElement | null
+}) => (
+  <Overlay
+    id='overlay-confirm'
+    comment='overlay-confirm'
+    open={!!confirm}
+    onClose={onClose}
+    scope={scope}
+  >
     <div
       className='modal'
       style={{ maxWidth: '380px' }}

@@ -26,13 +26,15 @@ export const NewCardModal = ({
   editing,
   cards,
   onClose,
-  onSaved
+  onSaved,
+  scope
 }: {
   open: boolean
   editing: StockCard | null
   cards: StockCard[]
   onClose: () => void
   onSaved: (message: string) => void
+  scope?: HTMLElement | null
 }) => {
   // the parent remounts this on open, so the draft starts from the card being edited without an effect
   const [draft, setDraft] = useState<Draft>(() =>
@@ -86,7 +88,13 @@ export const NewCardModal = ({
   }
 
   return (
-    <Overlay id='overlay-newcard' comment='overlay-newcard' open={open} onClose={onClose}>
+    <Overlay
+      id='overlay-newcard'
+      comment='overlay-newcard'
+      open={open}
+      onClose={onClose}
+      scope={scope}
+    >
       <div className='modal' data-comment='newcard-modal' data-component='dialog'>
         <ModalHead
           comment='newcard-head'
@@ -299,11 +307,13 @@ export const NewCardModal = ({
 export const CreateOrderModal = ({
   card,
   onClose,
-  onCreated
+  onCreated,
+  scope
 }: {
   card: StockCard | null
   onClose: () => void
   onCreated: (message: string) => void
+  scope?: HTMLElement | null
 }) => {
   const [qty, setQty] = useState(() => (card ? String(card.orderQty) : ''))
   const [error, setError] = useState('')
@@ -331,7 +341,13 @@ export const CreateOrderModal = ({
   }
 
   return (
-    <Overlay id='overlay-createorder' comment='overlay-createorder' open={!!card} onClose={onClose}>
+    <Overlay
+      id='overlay-createorder'
+      comment='overlay-createorder'
+      open={!!card}
+      onClose={onClose}
+      scope={scope}
+    >
       <div
         className='modal'
         style={{ maxWidth: '400px' }}

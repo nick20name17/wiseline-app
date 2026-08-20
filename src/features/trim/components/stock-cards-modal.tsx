@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { StockCardsPanel } from '@/features/stockcards/panel'
@@ -17,22 +19,35 @@ import { showToast } from '../ui'
  * for. Trim's own rules match the same class names, and the two sheets are loaded in a fixed order for
  * exactly that reason — see `styles/home-hosts-stockcards.css`.
  */
-export const StockCardsModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
-  <Overlay id='overlay-stockcards' comment='overlay-stockcards' open={open} onClose={onClose}>
-    <div className='modal stockcards-modal' data-comment='stockcards-modal' data-component='dialog'>
-      <ModalHead
-        comment='stockcards-head'
-        titleComment='stockcards-title'
-        descComment='stockcards-desc'
-        title='Stock Cards'
-        desc="Reorder cards for common trim items · scan a card's QR to create a stock order"
-        onClose={onClose}
-      />
-      <div className='modal-body stockcards-body' data-comment='stockcards-body'>
-        <div className='wl-stockcards-host wl-stockcards-panel' data-page='stockcards'>
-          {open ? <StockCardsPanel show={showToast} /> : null}
+export const StockCardsModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  /**
+   * #123: the panel's own modals are portalled in here rather than to `#root`, so the Stock Cards
+   * stylesheet reaches them. Held as state and not a ref because the panel has to re-render once the
+   * element exists.
+   */
+  const [scope, setScope] = useState<HTMLDivElement | null>(null)
+
+  return (
+    <Overlay id='overlay-stockcards' comment='overlay-stockcards' open={open} onClose={onClose}>
+      <div className='modal stockcards-modal' data-comment='stockcards-modal' data-component='dialog'>
+        <ModalHead
+          comment='stockcards-head'
+          titleComment='stockcards-title'
+          descComment='stockcards-desc'
+          title='Stock Cards'
+          desc="Reorder cards for common trim items · scan a card's QR to create a stock order"
+          onClose={onClose}
+        />
+        <div className='modal-body stockcards-body' data-comment='stockcards-body'>
+          <div
+            ref={setScope}
+            className='wl-stockcards-host wl-stockcards-panel'
+            data-page='stockcards'
+          >
+            {open ? <StockCardsPanel show={showToast} scope={scope} /> : null}
+          </div>
         </div>
       </div>
-    </div>
-  </Overlay>
-)
+    </Overlay>
+  )
+}
