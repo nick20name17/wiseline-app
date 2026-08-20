@@ -24,12 +24,14 @@ type PopState = {
  *
  * It is portalled into `#root` and not into `<body>`: every page's stylesheet is scoped to
  * `[data-page="…"]`, which `#root` carries, so a popover parked on the body would come out unstyled.
+ * `scope` moves it for the same reason `Overlay` takes one (#123) — a screen hosted inside another
+ * page carries its own scope somewhere below `#root`, and that is the element its dropdowns belong in.
  *
  * Position is measured from the anchor at open time and clamped to the viewport, exactly as the
  * prototype does it — the list is `position: fixed`, so it does not move with a scrolled panel, and
  * scrolling closes it for that reason.
  */
-export const usePopover = () => {
+export const usePopover = (scope?: HTMLElement | null) => {
   const [pop, setPop] = useState<PopState | null>(null)
 
   const closePop = useCallback(() => setPop(null), [])
@@ -44,10 +46,23 @@ export const usePopover = () => {
     []
   )
 
-  return { pop, openPop, closePop, popNode: pop ? <Pop pop={pop} onClose={closePop} /> : null }
+  return {
+    pop,
+    openPop,
+    closePop,
+    popNode: pop ? <Pop pop={pop} onClose={closePop} scope={scope} /> : null
+  }
 }
 
-const Pop = ({ pop, onClose }: { pop: PopState; onClose: () => void }) => {
+const Pop = ({
+  pop,
+  onClose,
+  scope
+}: {
+  pop: PopState
+  onClose: () => void
+  scope?: HTMLElement | null
+}) => {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -74,7 +89,7 @@ const Pop = ({ pop, onClose }: { pop: PopState; onClose: () => void }) => {
     }
   }, [element, onClose])
 
-  const root = document.getElementById('root')
+  const root = scope ?? document.getElementById('root')
   if (!root) return null
 
   const rect = pop.anchor.getBoundingClientRect()

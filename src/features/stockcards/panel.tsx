@@ -45,7 +45,7 @@ export const StockCardsPanel = ({
   scope?: HTMLElement | null
 }) => {
   const state = useStore(stockcardsStore, current => current)
-  const { openPop, popNode } = usePopover()
+  const { openPop, popNode } = usePopover(scope)
 
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<StockCard | null>(null)

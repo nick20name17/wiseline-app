@@ -220,6 +220,21 @@ are the exceptions the gate should not be read as failures:
 `cal-dow-<n>` is emitted twice by the prototype itself (the calendar tab and the schedule modal). That
 duplication is copied as-is: the markup is verbatim, and the gate compares it against the same source.
 
+**Kevin's v3 batch adds anchors the prototype does not have (#115–#123).** These are new features, not
+ported markup, so the `data-comment` gate reports them as *added* on `/trim` and `/coils` and that is
+expected — read the gate against this list rather than as a regression, and record a state for the new
+tabs when the batch settles:
+
+| Anchor | Where | Comment |
+|---|---|---|
+| `coilg-gauge-<i>` | Trim → Coils group grid | #115, the Gauge column |
+| `coils-scopes`, `coils-scope-trim`, `coils-scope-all` | Trim → Coils | #117, Trim Coils / All Coils |
+| `coils-folder-flat`, `coils-flat-wrap`, `coils-flat-table`, `coils-flat-tbody`, `flatcoil-*` | Trim → Coils, `/coils` | #116/#118, the flat per-coil lists. The same names on both pages, the way `coil-row-<id>` already is |
+| `folder-tab-flat` | `/coils` folder tabs | #118 |
+| `cadjust-coil-gauge` | Coil Adjustment window | #122 |
+
+Nothing was renamed or dropped, so every anchor a comment is already joined to still resolves.
+
 **Each page keeps its whole stylesheet.** An early version factored the rules common to all fifteen pages
 into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts _last_;
 loading them _first_ flipped the cascade, `.btn` went 30px → 36px and the sign-in card grew 6px. Only 23
