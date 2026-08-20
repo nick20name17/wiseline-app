@@ -99,15 +99,31 @@ export const useCoilAdjustDraft = (coil: Coil | undefined) => {
 }
 
 /**
- * The window's body: the three numbers, the geometry that unlocks them, and the coil they belong to.
+ * The two anchor sets this window is drawn under, named rather than built from a loose string: a
+ * `data-comment` is the key a review comment is joined to, so the set has to be enumerable and no
+ * caller may mint a third one.
  *
- * `anchor` prefixes every `data-comment`, the way the coil lot rows do — Trim's window keeps the
- * `cadjust-*` names its review comments are joined to (#122/#124), and the Coils page keeps its own
- * `adjust-*` namespace.
+ * `coilRow` is spelled out because the two pages disagree. Trim's strip has been `cadjust-coilrow`
+ * since #193 and carries #122/#124; on the Coils page `adjust-coilrow` already means something else in
+ * the prototype — the summary table's row — so the strip takes a name of its own rather than landing
+ * that page's comments on the wrong element.
  */
+export type CoilAdjustAnchors = { prefix: string; coilRow: string }
+
+export const TRIM_ADJUST_ANCHORS: CoilAdjustAnchors = {
+  prefix: 'cadjust',
+  coilRow: 'cadjust-coilrow'
+}
+
+export const COILS_ADJUST_ANCHORS: CoilAdjustAnchors = {
+  prefix: 'adjust',
+  coilRow: 'adjust-coilinfo'
+}
+
+/** The window's body: the three numbers, the geometry that unlocks them, and the coil they belong to. */
 export const CoilAdjustFields = ({
   coil,
-  anchor,
+  anchors,
   focusField,
   draft,
   geom,
@@ -115,7 +131,7 @@ export const CoilAdjustFields = ({
   setSetup
 }: {
   coil: Coil
-  anchor: string
+  anchors: CoilAdjustAnchors
   focusField?: CoilAdjustField
   draft: Draft
   geom: { mt: number; od: number } | null
@@ -123,15 +139,15 @@ export const CoilAdjustFields = ({
   setSetup: (field: 'materialThickness' | 'coreOD', raw: string) => void
 }) => (
   <>
-    <div className='cadj-row' data-comment={`${anchor}-row-main`}>
+    <div className='cadj-row' data-comment={`${anchors.prefix}-row-main`}>
       {FIELDS.map(field => (
-        <label className='cadj-field' key={field.key} data-comment={`${anchor}-field-${field.key}`}>
+        <label className='cadj-field' key={field.key} data-comment={`${anchors.prefix}-field-${field.key}`}>
           <span className='cadj-label'>{field.label}:</span>
           <input
             type='number'
             step={field.step}
             className='cadj-input mono'
-            data-comment={`${anchor}-input-${field.key}`}
+            data-comment={`${anchors.prefix}-input-${field.key}`}
             autoFocus={focusField === field.key}
             value={draft[field.key]}
             disabled={!geom}
@@ -142,26 +158,26 @@ export const CoilAdjustFields = ({
       ))}
     </div>
 
-    <div className='cadj-row cadj-row-setup' data-comment={`${anchor}-row-setup`}>
-      <label className='cadj-field' data-comment={`${anchor}-field-mt`}>
+    <div className='cadj-row cadj-row-setup' data-comment={`${anchors.prefix}-row-setup`}>
+      <label className='cadj-field' data-comment={`${anchors.prefix}-field-mt`}>
         <span className='cadj-label cadj-label-soft'>Material Thickness:</span>
         <input
           type='number'
           step='0.001'
           className='cadj-input mono'
-          data-comment={`${anchor}-input-mt`}
+          data-comment={`${anchors.prefix}-input-mt`}
           value={draft.materialThickness}
           onChange={event => setSetup('materialThickness', event.target.value)}
         />
         <span className='cadj-unit subtle'>inches</span>
       </label>
-      <label className='cadj-field' data-comment={`${anchor}-field-od`}>
+      <label className='cadj-field' data-comment={`${anchors.prefix}-field-od`}>
         <span className='cadj-label cadj-label-soft'>Core OD:</span>
         <input
           type='number'
           step='0.1'
           className='cadj-input mono'
-          data-comment={`${anchor}-input-od`}
+          data-comment={`${anchors.prefix}-input-od`}
           value={draft.coreOD}
           onChange={event => setSetup('coreOD', event.target.value)}
         />
@@ -170,16 +186,16 @@ export const CoilAdjustFields = ({
     </div>
 
     {geom ? null : (
-      <div className='cadj-gate' data-comment={`${anchor}-gate`}>
+      <div className='cadj-gate' data-comment={`${anchors.prefix}-gate`}>
         Enter Material Thickness and Core OD to unlock the three fields above and the Apply button.
       </div>
     )}
 
-    <div className='cadj-coilrow' data-comment={`${anchor}-coilrow`}>
-      <span data-comment={`${anchor}-coil-pid`}>
+    <div className='cadj-coilrow' data-comment={anchors.coilRow}>
+      <span data-comment={`${anchors.prefix}-coil-pid`}>
         <b>Product ID:</b> <span className='mono'>{coil.productId}</span>
       </span>
-      <span data-comment={`${anchor}-coil-gauge`}>
+      <span data-comment={`${anchors.prefix}-coil-gauge`}>
         <b>Gauge:</b>{' '}
         {coil.gauge != null ? (
           <span className='mono'>{coil.gauge}</span>
@@ -187,13 +203,13 @@ export const CoilAdjustFields = ({
           <span className='subtle'>—</span>
         )}
       </span>
-      <span data-comment={`${anchor}-coil-color`}>
+      <span data-comment={`${anchors.prefix}-coil-color`}>
         <b>Color:</b> {coil.color}
       </span>
-      <span data-comment={`${anchor}-coil-width`}>
+      <span data-comment={`${anchors.prefix}-coil-width`}>
         <b>Width (in.):</b> <span className='mono'>{coil.width}</span>
       </span>
-      <span data-comment={`${anchor}-coil-num`}>
+      <span data-comment={`${anchors.prefix}-coil-num`}>
         <b>Coil #:</b> <span className='mono'>{coil.coilNumber}</span>
       </span>
     </div>

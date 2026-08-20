@@ -240,8 +240,29 @@ tabs when the batch settles:
 | `coils-folder-flat`, `coils-flat-wrap`, `coils-flat-table`, `coils-flat-tbody`, `flatcoil-*` | Trim → Coils, `/coils` | #116/#118, the flat per-coil lists. The same names on both pages, the way `coil-row-<id>` already is |
 | `folder-tab-flat` | `/coils` folder tabs | #118 |
 | `cadjust-coil-gauge` | Coil Adjustment window | #122 |
+| `swrap-wrapbtn-*` (gated) | Trim → Production, stock wrapping | #125, disabled until the line is Bent |
+| `adjust-coilinfo` | `/coils` Coil Adjustment window | #128, and see below |
 
-Nothing was renamed or dropped, so every anchor a comment is already joined to still resolves.
+**#128 drops the `/coils` keypad window, and its anchors with it.** Kevin asked for the Coil Adjustment
+window on the Coils page to be the one Trim already had, so that page loses the summary table, the three
+«current» cards and the numeric keypad — and with them `adjust-coiltable*`, `adjust-setup*`,
+`adjust-info*`, `adjust-fieldselect*`, `adjust-field-btn-*`, `adjust-display`, `adjust-keypad`,
+`adjust-key-*` and `adjust-gate-note`. The gate reports them as missing on `coils__page+modal-adjust`;
+that is the window being replaced, not markup lost by accident. No review comment was anchored to any of
+them — the only thread on that window is #128 itself, anchored to `adjust-body`, which stays.
+
+`adjust-coilrow` is the one name that could *not* be reused: in the prototype it is the summary table's
+row, so the new coil strip is `adjust-coilinfo` and a comment joined to the old name lands on nothing
+rather than on the wrong element. Trim's strip keeps `cadjust-coilrow`, which carries #122/#124.
+
+**Rules this port adds to a page live in `<page>.port.css`.** `tools/port/extract-css.ts` rewrites
+`src/styles/<page>.css` wholesale from the prototype's `<style>` blocks, so anything hand-written in
+there is destroyed the next time the CSS is lifted. `coils.port.css` holds the Coils page's additions
+(#118, #128) and the route imports it after the generated sheet; both are unlayered, so the later rule
+wins at equal specificity. `stockcards-host.css` is the same idea for the Stock Cards seam.
+
+⚠️ `home.css` still carries hand-written rules from earlier batches (#29, #117, #208, #213, the
+`compdetail-*` and `done-stamp` rules) — a re-extract silently loses them. They want the same treatment.
 
 **Each page keeps its whole stylesheet.** An early version factored the rules common to all fifteen pages
 into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts _last_;

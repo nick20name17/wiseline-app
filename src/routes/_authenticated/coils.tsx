@@ -4,6 +4,8 @@ import { ChevronRight, Filter, Inbox, Search, SlidersHorizontal } from 'lucide-r
 
 import { FLAT_COIL_TAB, sortCoilsFlat, type Coil } from '@/store/shared/coils'
 
+import type { CoilAdjustField } from '@/features/coils/adjust-form'
+
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
 import { useViewer } from '@/session/use-viewer'
@@ -44,6 +46,8 @@ import {
 } from '@/features/coils/store'
 
 import '@/styles/coils.css'
+// after the generated sheet, and for that reason — see the file's own note
+import '@/styles/coils.port.css'
 
 export const Route = createFileRoute('/_authenticated/coils')({
   component: Coils
@@ -86,6 +90,8 @@ function Coils() {
 
   const [usageOf, setUsageOf] = useState<string | null>(null)
   const [adjustId, setAdjustId] = useState<Coil['id'] | null>(null)
+  // #128: Trim opens the window from whichever number was clicked, and focuses it
+  const [adjustField, setAdjustField] = useState<CoilAdjustField>('thickness')
   const [filterOpen, setFilterOpen] = useState(false)
   const [confirm, setConfirm] = useState<Confirm>(null)
 
@@ -135,6 +141,11 @@ function Coils() {
         setConfirm(null)
       }
     })
+  }
+
+  const openAdjust = (id: Coil['id'], field: CoilAdjustField = 'thickness') => {
+    setAdjustField(field)
+    setAdjustId(id)
   }
 
   const deplete = (coil: Coil) =>
@@ -278,7 +289,7 @@ function Coils() {
 
             <div id='coils-table-container' data-comment='coils-table-container'>
               {flat && coils.length ? (
-                <FlatCoils coils={flatCoils} onMove={move} onAdjust={setAdjustId} />
+                <FlatCoils coils={flatCoils} onMove={move} onAdjust={openAdjust} />
               ) : !groups.length ? (
                 <div className='table-wrap' data-comment='coils-empty-wrap'>
                   <div className='empty' data-comment='coils-empty'>
@@ -402,18 +413,19 @@ function Coils() {
 
       <UsageModal coil={usageCoil} onClose={() => setUsageOf(null)} />
       <AdjustModal
-        // keyed on the coil, so the keypad opens showing that coil's thickness rather than the last one's
+        // keyed on the coil, so the window opens seeded from it rather than from the last one adjusted
         key={`adjust-${adjustId ?? 'none'}`}
         coil={adjusting}
+        focusField={adjustField}
         onClose={() => setAdjustId(null)}
-        onConfirm={question =>
+        onConfirm={({ done, ...question }) =>
           setConfirm({
             ...question,
             onOk: () => {
               question.onOk()
               setConfirm(null)
               setAdjustId(null)
-              show('Pushed updated linear feet to EBMS')
+              show(done)
             }
           })
         }
@@ -450,7 +462,7 @@ const FlatCoils = ({
 }: {
   coils: Coil[]
   onMove: (coil: Coil, flag: DeptFlag) => void
-  onAdjust: (id: Coil['id']) => void
+  onAdjust: (id: Coil['id'], field?: CoilAdjustField) => void
 }) => (
   <div className='table-wrap' data-comment='coils-flat-wrap'>
     <table className='grid coil-flat' data-comment='coils-flat-table' data-component='table'>
@@ -517,14 +529,24 @@ const FlatCoils = ({
                 className='mono-cell flat-adjust'
                 data-comment={`flatcoil-thick-${coil.id}`}
                 title='Click to open the Coil Adjustment window'
-                onClick={() => onAdjust(coil.id)}
+                onClick={() => onAdjust(coil.id, 'thickness')}
               >
                 {coil.thickness != null ? `${coil.thickness}"` : <span className='subtle'>—</span>}
               </td>
-              <td className='mono-cell' data-comment={`flatcoil-lf-${coil.id}`}>
+              <td
+                className='mono-cell flat-adjust'
+                data-comment={`flatcoil-lf-${coil.id}`}
+                title='Click to open the Coil Adjustment window'
+                onClick={() => onAdjust(coil.id, 'linearFeet')}
+              >
                 {num(coil.linearFeet)}
               </td>
-              <td className='mono-cell' data-comment={`flatcoil-weight-${coil.id}`}>
+              <td
+                className='mono-cell flat-adjust'
+                data-comment={`flatcoil-weight-${coil.id}`}
+                title='Click to open the Coil Adjustment window'
+                onClick={() => onAdjust(coil.id, 'weight')}
+              >
                 {num(coil.weight)}
               </td>
               <td data-comment={`flatcoil-locrfcell-${coil.id}`}>

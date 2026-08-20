@@ -5,7 +5,12 @@ import type { Coil } from '@/store/shared/coils'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 import { NumberInput } from '@/components/shell/number-input'
 
-import { CoilAdjustFields, useCoilAdjustDraft } from './adjust-form'
+import {
+  COILS_ADJUST_ANCHORS,
+  CoilAdjustFields,
+  useCoilAdjustDraft,
+  type CoilAdjustField
+} from './adjust-form'
 import {
   applyCoilAdjust,
   COIL_USAGE,
@@ -102,12 +107,22 @@ export const UsageModal = ({
  */
 export const AdjustModal = ({
   coil,
+  focusField,
   onClose,
   onConfirm
 }: {
   coil: Coil | null
+  focusField?: CoilAdjustField
   onClose: () => void
-  onConfirm: (question: { title: string; desc: string; onOk: () => void }) => void
+  onConfirm: (question: {
+    title: string
+    desc: string
+    ok: string
+    cancel: string
+    /** what the toast says once it is done — a deleted coil and an adjusted one are not the same news */
+    done: string
+    onOk: () => void
+  }) => void
 }) => {
   const { draft, geom, ready, setField, setSetup, values } = useCoilAdjustDraft(coil ?? undefined)
 
@@ -118,8 +133,11 @@ export const AdjustModal = ({
 
     if (next.thickness <= 0) {
       onConfirm({
-        title: 'Deplete & delete coil?',
-        desc: `You have entered the coil size as 0 — this will completely deplete coil ${coil.coilNumber} and delete it. This can't be undone.`,
+        title: 'Deplete & delete this coil?',
+        desc: `You have entered the coil size as 0 — this will completely deplete coil ${coil.coilNumber} and delete it. Are you sure you want to continue?`,
+        ok: 'Yes, Deplete & Delete Coil',
+        cancel: 'No',
+        done: `Coil ${coil.coilNumber} zeroed out in EBMS and deleted`,
         onOk: () => removeCoil(coil.id)
       })
       return
@@ -128,6 +146,9 @@ export const AdjustModal = ({
     onConfirm({
       title: 'Make this adjustment?',
       desc: `By clicking Yes, the new Linear Feet amount (${next.linearFeet.toLocaleString()} ft) gets pushed back into EBMS for coil ${coil.coilNumber}.`,
+      ok: 'Yes, Make Adjustment',
+      cancel: 'No',
+      done: 'Adjustment pushed to EBMS (linear feet updated)',
       onOk: () => applyCoilAdjust(coil.id, next)
     })
   }
@@ -147,7 +168,8 @@ export const AdjustModal = ({
           {coil ? (
             <CoilAdjustFields
               coil={coil}
-              anchor='adjust'
+              anchors={COILS_ADJUST_ANCHORS}
+              focusField={focusField}
               draft={draft}
               geom={geom}
               setField={setField}

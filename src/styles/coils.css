@@ -383,11 +383,6 @@
             }
             [data-page="coils"] .coil-note-input:hover { border-color: var(--border); }
             [data-page="coils"] .coil-note-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
-            /* #118: the flat All Coils tab — a two-deep head with «Location» spanning its two columns */
-            [data-page="coils"] .coil-flat th.lot-locgroup { text-align: center; border-bottom: 1px solid var(--border); }
-            [data-page="coils"] .coil-flat td { vertical-align: middle; }
-            [data-page="coils"] .flat-adjust { cursor: pointer; }
-            [data-page="coils"] .flat-adjust:hover { background: var(--accent-soft); color: var(--accent); }
 
             [data-page="coils"] .total-link {
                 font-family: var(--font-mono); font-size: 12px; cursor: pointer; color: var(--accent); font-weight: 600;
@@ -406,31 +401,6 @@
             }
             [data-page="coils"] .keypad-key:hover { background: var(--surface-3); }
 
-            /* #128: Apply raises a confirm over the still-open Coil Adjustment window, so Cancel comes
-               back to it — the prototype stacks the same way on `home` (`#overlay-confirm { z-index: 95 }`),
-               and this page never had to until the window moved here. */
-            [data-page="coils"] #overlay-confirm { z-index: 95; }
-            /* #128: the Coil Adjustment window is Trim's now, so its dress comes across with it. Same
-               rules as `home.css`, scoped to this page — the two sheets stay separate on purpose. */
-            [data-page="coils"] .modal.wide { max-width: 720px; }
-            [data-page="coils"] .cadj-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-bottom: 14px; }
-            [data-page="coils"] .cadj-row-setup { flex-direction: column; align-items: flex-start; gap: 10px; }
-            [data-page="coils"] .cadj-field { display: inline-flex; align-items: center; gap: 8px; }
-            [data-page="coils"] .cadj-label { font-size: 13px; font-weight: 600; color: var(--text); }
-            [data-page="coils"] .cadj-label-soft { font-weight: 500; color: var(--text-muted); min-width: 132px; }
-            [data-page="coils"] .cadj-input {
-                width: 86px; height: 30px; border: 1px solid var(--border); border-radius: var(--r-sm);
-                background: var(--surface); padding: 0 8px; font-size: 12px; color: var(--text); text-align: right;
-            }
-            [data-page="coils"] .cadj-input:focus { outline: none; border-color: var(--accent); }
-            [data-page="coils"] .cadj-input:disabled { background: var(--surface-3); color: var(--text-subtle); }
-            [data-page="coils"] .cadj-unit { font-size: 11px; }
-            [data-page="coils"] .cadj-gate { font-size: 11.5px; color: var(--text-subtle); margin: -6px 0 12px; }
-            [data-page="coils"] .cadj-coilrow {
-                display: flex; flex-wrap: wrap; gap: 6px 26px; font-size: 12px; color: var(--text-muted);
-                border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 12px; background: var(--surface-2);
-            }
-            [data-page="coils"] .cadj-coilrow b { color: var(--text); font-weight: 500; }
             [data-page="coils"] .coil-adjust-tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 14px; }
             [data-page="coils"] .coil-adjust-table { width: 100%; border-collapse: collapse; font-size: 11.5px; white-space: nowrap; }
             [data-page="coils"] .coil-adjust-table th { text-align: left; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; padding: 7px 9px; background: var(--surface-2); border-bottom: 1px solid var(--border); }

@@ -343,7 +343,14 @@ export const STATES: State[] = [
     page: 'coils',
     view: null,
     name: 'group-expanded',
-    clicks: ['coilg-exp-0']
+    clicks: ['folder-tab-all', 'coilg-exp-0']
+  },
+  // #118/#127: the tab this page now opens on — one row per coil rather than per size
+  {
+    page: 'coils',
+    view: null,
+    name: 'flat-all-coils',
+    clicks: []
   },
   // Low stock is the one chip that filters on a number rather than a location
   {
@@ -357,7 +364,7 @@ export const STATES: State[] = [
     page: 'coils',
     view: null,
     name: 'unassigned-expanded',
-    clicks: ['filter-chip-rollforming', 'coilg-exp-0']
+    clicks: ['folder-tab-all', 'filter-chip-rollforming', 'coilg-exp-0']
   },
   // Print Selected is gated on a selection, so the enabled button is only reachable with one made
   {
@@ -509,7 +516,7 @@ export const STATES: State[] = [
     page: 'coils',
     view: null,
     name: 'modal-adjust',
-    clicks: ['coilg-exp-0', 'coil-adjust-3']
+    clicks: ['folder-tab-all', 'coilg-exp-0', 'coil-adjust-3']
   },
   {
     page: 'home',
@@ -665,13 +672,13 @@ export const STATES: State[] = [
     page: 'coils',
     view: null,
     name: 'modal-usage',
-    clicks: ['coilg-total-0']
+    clicks: ['folder-tab-all', 'coilg-total-0']
   },
   {
     page: 'coils',
     view: null,
     name: 'modal-confirm',
-    clicks: ['coilg-exp-0', 'coil-deplete-3']
+    clicks: ['folder-tab-all', 'coilg-exp-0', 'coil-deplete-3']
   },
   {
     page: 'settings',

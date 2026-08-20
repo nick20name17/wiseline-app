@@ -4,6 +4,7 @@ import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import {
   CoilAdjustFields,
+  TRIM_ADJUST_ANCHORS,
   useCoilAdjustDraft,
   type CoilAdjustField
 } from '@/features/coils/adjust-form'
@@ -83,7 +84,7 @@ export const CoilAdjust = ({
           {coil ? (
             <CoilAdjustFields
               coil={coil}
-              anchor='cadjust'
+              anchors={TRIM_ADJUST_ANCHORS}
               focusField={ctx?.focusField}
               draft={draft}
               geom={geom}
