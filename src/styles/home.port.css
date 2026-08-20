@@ -1,18 +1,13 @@
-/* Rules this port added to the Trim board, kept out of `home.css` because that file is generated:
-   `tools/port/extract-css.ts` rewrites it wholesale from the prototype's `<style>` blocks, so anything
-   hand-written there is destroyed the next time the CSS is lifted. Loaded straight after the generated
-   sheet by `routes/_authenticated/trim.tsx` — before the hosted Stock Cards sheets, which are meant to
-   outrank the Trim page for the class names both define.
+/* Rules this port added to the Trim board. They live here rather than in the generated `home.css`
+   because `tools/port/extract-css.ts` would overwrite them — PORT.md, «Decisions already made», holds
+   the convention and the two rules for adding to a sheet like this one.
 
-   Both sheets are unlayered, so at equal specificity the rule declared here wins. Three kinds of thing
-   live in this file, and the third is the one to be careful with:
+   Loaded straight after `home.css` by `routes/_authenticated/trim.tsx`, and before the hosted Stock
+   Cards sheets, which are meant to outrank the Trim page for the class names both define.
 
-     1. rules the prototype does not have at all;
-     2. properties this port changed on a rule the prototype does have — restated here, same selector;
-     3. properties this port *removed* — a later rule cannot delete a declaration, so it has to set the
-        property back to its initial value. Those are marked «neutralises».
-
-   `coils.port.css` and `stockcards.port.css` are the same idea for their pages. */
+   Three kinds of thing live here: rules the prototype does not have; properties this port changed on a
+   rule it does have, restated under the same selector; and properties this port *removed*, which a
+   later rule cannot delete and so has to set back to their initial value — those say «neutralises». */
 
 /* ---------- #208: the frozen production controls ---------- */
 /* The controls freeze; only the lists scroll. The negative top/side margins cancel .content's padding
@@ -74,6 +69,8 @@
 /* the rule starts where the figure under it starts — same inset as the cell's own padding */
 [data-page="home"] .mcap-table thead th:not(:first-child)::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; background: var(--text); }
 [data-page="home"] .mcap-table thead th:first-child { text-align: left; }
+/* the canvas draws this heavy; on screen it keeps the app's own type scale — the layout is what the
+   report needed, not shop-sign lettering. Paper grows it, in the print block below. */
 [data-page="home"] .mcap-table tbody th { font-weight: 600; }
 /* the cards: each cell paints the row's background and its own edges. Neutralises the prototype's
    per-row and day-row rules, which drew the separation as lines instead. */
@@ -86,6 +83,9 @@
 [data-page="home"] .mcap-table tbody .mcap-dayrow :is(th, td) { background: var(--surface); }
 /* the figures hang off the left edge of their column, under the start of its rule */
 [data-page="home"] .mcap-num { text-align: left; padding-right: 8px; }
+/* the day row is the same size as the machines' (the size itself is the prototype's, in `home.css`): a
+   bigger figure would resolve `4ch` to a different width and its «/» would sit a few pixels off the ones
+   below it (#27) */
 /* the figure reads as one thing — «240 / 320» stays tight — and starts at the column's left edge. The
    parenthetical is what lines up down the column instead: the cell is a fixed width and the stock note
    is pushed to its end, so every row's «(n - Stock)» shares an edge without the slash being dragged
@@ -140,7 +140,9 @@
        push the table past the 7.5in the page leaves */
     [data-page="home"] .mcap-val { font-size: 23px; width: 170px; }
     [data-page="home"] .mcap-val.has-max { width: 240px; }
-    [data-page="home"] .mcap-stock { width: 100px; font-size: 14px; }
+    /* the colour is restated because this sheet loads after the generated one and `@media print` adds
+       no specificity — without it the screen rule above would win on paper too */
+    [data-page="home"] .mcap-stock { width: 100px; font-size: 14px; color: #4a5aa8; }
     /* the grey cards are the layout, not decoration — keep them on paper */
     [data-page="home"] .mcap-table tbody :is(th, td) { print-color-adjust: exact; }
 }

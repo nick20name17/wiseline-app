@@ -1,12 +1,15 @@
-/* Rules this port added to the Stock Cards screen, kept out of `stockcards.css` and
-   `stockcards.hosted.css` because both are generated — `tools/port/extract-css.ts` rewrites them from
-   the prototype's `<style>` blocks, and hand-written rules there are lost on the next lift.
+/* Rules this port added to the Stock Cards screen, kept out of the two generated sheets that dress it —
+   see PORT.md, «Decisions already made», for why this file exists.
 
    The screen is shown in two places and so dressed by two scopes: its own page, and the dialog Trim
    hosts it in (`.wl-stockcards-host`). The generator emits both from one source; here they are written
    out twice, which is the price of the rules being ours rather than the prototype's.
 
-   See `home.port.css` for the convention. */
+   Unlike the other port sheets, this one must not depend on load order: two routes import it, so Vite
+   hoists it into a shared asset that `index.html` lists *before* the Trim chunk carrying
+   `stockcards.hosted.css`. Every rule here therefore out-specifies the generated one it refines —
+   `.input.is-invalid` over `.input`, `.field-help.is-invalid` over `.field-help` — rather than merely
+   coming after it. */
 
 /* #217: a Product ID that EBMS will not accept — underlined, not blocked from being typed */
 [data-page="stockcards"] .input.is-invalid,

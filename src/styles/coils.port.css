@@ -1,9 +1,6 @@
-/* Rules this port added to the Coils page, kept out of `coils.css` because that file is generated:
-   `tools/port/extract-css.ts` rewrites it wholesale from the prototype's `<style>` blocks, so anything
-   hand-written there is lost the next time the CSS is lifted. Loaded after the generated sheet by
-   `routes/_authenticated/coils.tsx`; both are unlayered, so the later rule wins at equal specificity.
-
-   `stockcards-host.css` is the same idea for the seam Trim hosts Stock Cards through. */
+/* Rules this port added to the Coils page, kept out of the generated `coils.css` — see PORT.md,
+   «Decisions already made», for why this file exists. Loaded after the generated sheet by
+   `routes/_authenticated/coils.tsx`. */
 
 /* #118: the flat All Coils tab — a two-deep head with «Location» spanning its two columns */
 [data-page="coils"] .coil-flat th.lot-locgroup { text-align: center; border-bottom: 1px solid var(--border); }
