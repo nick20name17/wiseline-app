@@ -2,25 +2,17 @@ import { useState } from 'react'
 
 import type { Coil } from '@/store/shared/coils'
 
-import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 import { NumberInput } from '@/components/shell/number-input'
 
+import { CoilAdjustFields, useCoilAdjustDraft } from './adjust-form'
 import {
-  ADJUST_FIELDS,
   applyCoilAdjust,
   COIL_USAGE,
-  coilLfFromThickness,
-  coilLfFromWeight,
-  coilThicknessFromLf,
-  coilWeightFromLf,
   EMPTY_COIL_FILTER,
-  setCoilSetup,
-  type AdjustField,
+  removeCoil,
   type CoilFilter
 } from './store'
-
-const num = (value: number) => value.toLocaleString()
 
 /** N-111: the customer line items and Sales Orders behind a coil group's Total column. */
 export const UsageModal = ({
@@ -100,29 +92,14 @@ export const UsageModal = ({
   )
 }
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫']
-
 /**
- * The Coil Adjustment window: a keypad over three fields that are one measurement in three units.
+ * #128: the Coil Adjustment window, the same one Trim shows.
  *
- * Material Thickness and Core OD gate everything else — without both, the coil's geometry is unknown,
- * so Coil Thickness stays blank and neither Linear Feet nor Weight can be adjusted. Those two write
- * straight to the coil as they are typed, exactly as the prototype does; the keypad's value does not,
- * because it is pushed to EBMS and so goes through a confirm.
+ * It used to be this page's own thing — a summary table, three «current» cards and a keypad — while
+ * Trim typed into three fields (#193). Kevin asked for one window; the fields and the geometry behind
+ * them now come from `adjust-form`, and what is left here is the page's own confirm and the anchors its
+ * comments are joined to.
  */
-/** N-166 / Kevin #177. Shares Trim's `cadj` key — it is the same table on another page. */
-const DATA_COLUMNS: Column[] = [
-  { key: 'pid', label: 'Product ID' },
-  { key: 'width', label: 'Width' },
-  { key: 'gauge', label: 'Gauge' },
-  { key: 'colour', label: 'Color' },
-  { key: 'num', label: 'Coil #' },
-  { key: 'thick', label: 'Coil Thickness' },
-  { key: 'lf', label: 'Linear Feet' },
-  { key: 'weight', label: 'Weight' },
-  { key: 'note', label: 'Note' }
-]
-
 export const AdjustModal = ({
   coil,
   onClose,
@@ -132,252 +109,51 @@ export const AdjustModal = ({
   onClose: () => void
   onConfirm: (question: { title: string; desc: string; onOk: () => void }) => void
 }) => {
-  const { headers, cells } = useColumnOrder('cadj', DATA_COLUMNS)
-  const [field, setField] = useState<AdjustField>('thickness')
-  // the window opens on Coil Thickness showing what it currently is, not on an empty keypad
-  const [value, setValue] = useState(() => (coil?.thickness != null ? String(coil.thickness) : ''))
-
-  const matThk = coil?.materialThickness ?? NaN
-  const coreOD = coil?.coreOD ?? NaN
-  const gate = !isNaN(matThk) && matThk > 0 && !isNaN(coreOD) && coreOD > 0
-
-  const pickField = (next: AdjustField) => {
-    if (!gate || !coil) return
-    setField(next)
-    const current =
-      next === 'thickness' ? coil.thickness : next === 'linearFeet' ? coil.linearFeet : coil.weight
-    setValue(current != null ? String(current) : '')
-  }
-
-  const press = (key: string) => {
-    if (!gate) return
-    if (key === '⌫') setValue(current => current.slice(0, -1))
-    else if (key === '.' && value.includes('.')) return
-    else setValue(current => current + key)
-  }
+  const { draft, geom, ready, setField, setSetup, values } = useCoilAdjustDraft(coil ?? undefined)
 
   const apply = () => {
-    const parsed = parseFloat(value)
-    if (!coil || !gate || isNaN(parsed)) return
+    if (!ready || !coil) return
 
-    const linearFeet =
-      field === 'thickness'
-        ? coilLfFromThickness(parsed, matThk, coreOD)
-        : field === 'weight'
-          ? coilLfFromWeight(parsed, coil.width, matThk)
-          : Math.round(parsed)
-    const thickness =
-      field === 'thickness' ? parsed : coilThicknessFromLf(linearFeet, matThk, coreOD)
-    const weight =
-      field === 'weight' ? Math.round(parsed) : coilWeightFromLf(linearFeet, coil.width, matThk)
+    const next = values()
 
-    if (linearFeet <= 0) {
+    if (next.thickness <= 0) {
       onConfirm({
         title: 'Deplete & delete coil?',
-        desc: `This zeroes out coil ${coil.coilNumber} in EBMS and deletes it from the app. This can't be undone.`,
-        onOk: () => applyCoilAdjust(coil.id, { thickness, linearFeet, weight })
+        desc: `You have entered the coil size as 0 — this will completely deplete coil ${coil.coilNumber} and delete it. This can't be undone.`,
+        onOk: () => removeCoil(coil.id)
       })
       return
     }
 
     onConfirm({
-      title: 'Push updated linear feet to EBMS?',
-      desc: `Coil ${coil.coilNumber} → ${thickness}" thick, ${num(linearFeet)} ft, ${num(weight)} lb. Push to EBMS?`,
-      onOk: () => applyCoilAdjust(coil.id, { thickness, linearFeet, weight })
+      title: 'Make this adjustment?',
+      desc: `By clicking Yes, the new Linear Feet amount (${next.linearFeet.toLocaleString()} ft) gets pushed back into EBMS for coil ${coil.coilNumber}.`,
+      onOk: () => applyCoilAdjust(coil.id, next)
     })
   }
 
   return (
     <Overlay id='overlay-adjust' comment='overlay-adjust' open={!!coil} onClose={onClose}>
-      <div
-        className='modal'
-        style={{ maxWidth: '840px' }}
-        data-comment='adjust-modal'
-        data-component='dialog'
-      >
+      <div className='modal wide' data-comment='adjust-modal' data-component='dialog'>
         <ModalHead
           comment='adjust-head'
           titleComment='adjust-title'
           descComment='adjust-desc'
-          title={coil ? `Adjust coil ${coil.coilNumber}` : 'Adjust coil'}
-          desc='Enter Coil Thickness, Linear Feet or Weight — the others recompute automatically.'
+          title='Coil Adjustment'
+          desc='Enter Coil Thickness, Linear Feet or Weight — the other two follow from the Material Thickness and Core OD.'
           onClose={onClose}
         />
         <div className='modal-body' data-comment='adjust-body'>
-          <div id='adjust-coiltable' data-comment='adjust-coiltable'>
-            {coil ? (
-              <div className='coil-adjust-tablewrap' data-comment='adjust-coiltable-wrap'>
-                <table
-                  className='coil-adjust-table'
-                  data-comment='adjust-coiltable-tbl'
-                  data-component='table'
-                >
-                  <thead>
-                    <tr>{headers}</tr>
-                  </thead>
-                  <tbody>
-                    <tr data-comment='adjust-coilrow'>
-                      {cells({
-                        pid: (
-                          <td data-col='pid' className='mono-cell'>
-                            {coil.productId}
-                          </td>
-                        ),
-                        width: (
-                          <td data-col='width' className='mono-cell'>
-                            {coil.width}"
-                          </td>
-                        ),
-                        gauge: (
-                          <td data-col='gauge' className='mono-cell'>
-                            {coil.gauge}ga
-                          </td>
-                        ),
-                        colour: <td data-col='colour'>{coil.color}</td>,
-                        num: (
-                          <td data-col='num' className='mono-cell'>
-                            {coil.coilNumber}
-                          </td>
-                        ),
-                        thick: (
-                          <td data-col='thick' className='mono-cell'>
-                            {coil.thickness != null ? (
-                              `${coil.thickness}"`
-                            ) : (
-                              <span className='subtle'>—</span>
-                            )}
-                          </td>
-                        ),
-                        lf: (
-                          <td data-col='lf' className='mono-cell'>
-                            {num(coil.linearFeet)}
-                          </td>
-                        ),
-                        weight: (
-                          <td data-col='weight' className='mono-cell'>
-                            {num(coil.weight)}
-                          </td>
-                        ),
-                        note: (
-                          <td data-col='note'>
-                            {coil.note ? coil.note : <span className='subtle'>—</span>}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </div>
-
-          <div id='adjust-setup' data-comment='adjust-setup'>
-            <div className='setup-row' data-comment='adjust-setup-row'>
-              <div
-                className='field'
-                data-comment='adjust-field-mt'
-                style={{ flex: 1, marginBottom: 0 }}
-              >
-                <label className='field-label' data-comment='adjust-field-mt-label'>
-                  Material thickness (in)
-                </label>
-                <NumberInput
-                  comment='adjust-field-mt-input'
-                  step={0.001}
-                  placeholder='e.g. 0.018'
-                  value={coil?.materialThickness == null ? '' : String(coil.materialThickness)}
-                  onValueChange={next =>
-                    coil && setCoilSetup(coil.id, { materialThickness: next === '' ? null : +next })
-                  }
-                />
-              </div>
-              <div
-                className='field'
-                data-comment='adjust-field-od'
-                style={{ flex: 1, marginBottom: 0 }}
-              >
-                <label className='field-label' data-comment='adjust-field-od-label'>
-                  Core OD (in)
-                </label>
-                <NumberInput
-                  comment='adjust-field-od-input'
-                  step={0.1}
-                  placeholder='e.g. 3'
-                  value={coil?.coreOD == null ? '' : String(coil.coreOD)}
-                  onValueChange={next =>
-                    coil && setCoilSetup(coil.id, { coreOD: next === '' ? null : +next })
-                  }
-                />
-              </div>
-            </div>
-            {gate ? null : (
-              <div className='gate-note' data-comment='adjust-gate-note'>
-                Coil Thickness stays blank, and Linear Feet / Weight can't be adjusted, until both
-                fields above are set.
-              </div>
-            )}
-          </div>
-
-          <div className='adjust-info' id='adjust-info' data-comment='adjust-info'>
-            <div className='adjust-info-item' data-comment='adjust-info-lf'>
-              <div className='adjust-info-label' data-comment='adjust-info-lf-label'>
-                Current Lin. Ft
-              </div>
-              <div className='adjust-info-value' data-comment='adjust-info-lf-value'>
-                {coil ? num(coil.linearFeet) : ''}
-              </div>
-            </div>
-            <div className='adjust-info-item' data-comment='adjust-info-weight'>
-              <div className='adjust-info-label' data-comment='adjust-info-weight-label'>
-                Current weight
-              </div>
-              <div className='adjust-info-value' data-comment='adjust-info-weight-value'>
-                {coil ? num(coil.weight) : ''}
-              </div>
-            </div>
-            <div className='adjust-info-item' data-comment='adjust-info-thick'>
-              <div className='adjust-info-label' data-comment='adjust-info-thick-label'>
-                Current thickness
-              </div>
-              <div className='adjust-info-value' data-comment='adjust-info-thick-value'>
-                {coil?.thickness != null ? `${coil.thickness}"` : '—'}
-              </div>
-            </div>
-          </div>
-
-          <div id='adjust-fieldselect' data-comment='adjust-fieldselect'>
-            <div className='field-select' data-comment='adjust-fieldselect-row'>
-              {ADJUST_FIELDS.map(entry => (
-                <button
-                  className={`subtab ${field === entry.key ? 'active' : ''}`}
-                  data-comment={`adjust-field-btn-${entry.key}`}
-                  disabled={!gate}
-                  onClick={() => pickField(entry.key)}
-                  key={entry.key}
-                >
-                  {entry.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className='keypad-display mono' id='adjust-display' data-comment='adjust-display'>
-            {gate ? value || '0' : '—'}
-          </div>
-
-          <div className='keypad-grid' id='adjust-keypad' data-comment='adjust-keypad'>
-            {KEYS.map((key, index) => (
-              <button
-                className='keypad-key'
-                data-comment={`adjust-key-${index}`}
-                disabled={!gate}
-                onClick={() => press(key)}
-                key={key}
-              >
-                {key}
-              </button>
-            ))}
-          </div>
+          {coil ? (
+            <CoilAdjustFields
+              coil={coil}
+              anchor='adjust'
+              draft={draft}
+              geom={geom}
+              setField={setField}
+              setSetup={setSetup}
+            />
+          ) : null}
         </div>
         <div className='modal-foot' data-comment='adjust-foot'>
           <button className='btn btn-ghost' data-comment='adjust-cancel' onClick={onClose}>
@@ -387,7 +163,7 @@ export const AdjustModal = ({
             className='btn btn-primary'
             id='adjust-apply'
             data-comment='adjust-apply'
-            disabled={!gate || value === '' || isNaN(parseFloat(value))}
+            disabled={!ready}
             onClick={apply}
           >
             Apply

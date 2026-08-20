@@ -240,7 +240,8 @@ export const Coils = () => {
    * at a time, so leaving the tab unmounts this and the next visit starts here again.
    */
   const [scope, setScope] = useState<Scope>('trim')
-  const [folder, setFolder] = useState('all')
+  /** #126: coil numbers are what he opens this for, so the flat list is the tab he lands on. */
+  const [folder, setFolder] = useState(FLAT_FOLDER)
   const [query, setQuery] = useState('')
 
   // seeded from the department's saved filter, then held here: applying it has to redraw the folders
@@ -319,7 +320,7 @@ export const Coils = () => {
             data-comment='coils-scope-trim'
             onClick={() => {
               setScope('trim')
-              setFolder('all')
+              setFolder(FLAT_FOLDER)
             }}
           >
             Trim Coils
@@ -330,7 +331,7 @@ export const Coils = () => {
             title='Every coil in the company — the Coil Filter does not narrow this list'
             onClick={() => {
               setScope('all')
-              setFolder('all')
+              setFolder(FLAT_FOLDER)
             }}
           >
             All Coils
@@ -351,6 +352,14 @@ export const Coils = () => {
 
       <div className='machine-tabs coils-folder-tabs' data-comment='coils-folders'>
         <button
+          className={`mtab ${flat ? 'active' : ''}`}
+          data-comment='coils-folder-flat'
+          onClick={() => setFolder(FLAT_FOLDER)}
+        >
+          {/* inside the All Coils scope the outer tab already says «All Coils» — this one says whose */}
+          {scoped === 'all' ? 'All Company Coils' : 'All Trim Coils'}
+        </button>
+        <button
           className={`mtab ${activeFolder === 'all' ? 'active' : ''}`}
           data-comment='coils-folder-all'
           onClick={() => setFolder('all')}
@@ -367,14 +376,6 @@ export const Coils = () => {
             {name}
           </button>
         ))}
-        <button
-          className={`mtab ${flat ? 'active' : ''}`}
-          data-comment='coils-folder-flat'
-          onClick={() => setFolder(FLAT_FOLDER)}
-        >
-          {/* inside the All Coils scope the outer tab already says «All Coils» — this one says whose */}
-          {scoped === 'all' ? 'All Company Coils' : 'All Trim Coils'}
-        </button>
         <span className='toolbar-spacer' />
         {managersFilter || scoped === 'all' ? null : (
           <button
@@ -544,7 +545,7 @@ export const Coils = () => {
           setFilter(next)
           // #209: the filter outlives the session — the Worker inherits whatever the Manager set
           setCoilFilterFor(DEPARTMENT, next)
-          setFolder('all')
+          setFolder(FLAT_FOLDER)
           setFilterOpen(false)
           showToast(
             coilFilterActive(next)

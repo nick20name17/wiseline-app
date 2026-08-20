@@ -69,6 +69,12 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
              * the Qty. Manufactured is not equal to the Qty. Ordered.»
              */
             const done = manufactured > 0
+            /**
+             * #125: nothing can be wrapped before it has been bent, so the Wrapped keypad stays shut
+             * until then. `setWrapped` does not move the status on — only the batch does — so a typo
+             * is still correctable while the row is Bent.
+             */
+            const bent = item.status === 'bent'
             const left = Math.max(0, item.qty - wrapped - manufactured)
             const [cls, label] =
               PRODUCTION_STATUS[item.status ?? ''] ?? PRODUCTION_STATUS.not_started!
@@ -123,7 +129,12 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
                           className='field-btn'
                           style={{ minWidth: '56px', justifyContent: 'center' }}
                           data-comment={`swrap-wrapbtn-${key}`}
-                          title='Enter what has been wrapped'
+                          disabled={!bent}
+                          title={
+                            bent
+                              ? 'Enter what has been wrapped'
+                              : 'Available once the line is Bent'
+                          }
                           onClick={() =>
                             openPad({ kind: 'wrap', orderId: order.id, lineId: item.id })
                           }

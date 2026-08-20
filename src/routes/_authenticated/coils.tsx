@@ -98,10 +98,11 @@ function Coils() {
       ? 'all'
       : state.activeFolder
 
+  // #127: the flat list leads, and `coilsStore` opens on it
   const tabs = [
+    { key: FLAT_TAB, label: 'All Coils' },
     { key: 'all', label: 'All folders' },
-    ...folders.map(f => ({ key: f, label: f })),
-    { key: FLAT_TAB, label: 'All Coils' }
+    ...folders.map(f => ({ key: f, label: f }))
   ]
   const flat = activeFolder === FLAT_TAB
 

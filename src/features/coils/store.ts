@@ -1,20 +1,4 @@
-import {
-  canonicalCoils,
-  coilLbPerFoot,
-  coilLfFromThickness,
-  coilLfFromWeight,
-  coilThicknessFromLf,
-  coilWeightFromLf,
-  type Coil
-} from '@/store/shared/coils'
-
-export {
-  coilLbPerFoot,
-  coilLfFromThickness,
-  coilLfFromWeight,
-  coilThicknessFromLf,
-  coilWeightFromLf
-}
+import { canonicalCoils, FLAT_COIL_TAB, type Coil } from '@/store/shared/coils'
 
 import { createStore } from '@/store/create-store'
 
@@ -273,7 +257,9 @@ if (!hydrated) canonicalCoils.set(seeded.coils)
 
 export const coilsStore = createStore<CoilsState>({
   ...seeded,
-  coils: hydrated?.length ? hydrated : seeded.coils
+  coils: hydrated?.length ? hydrated : seeded.coils,
+  // #127: the seed is the prototype's and keeps its own «all»; the tab this page opens on is ours
+  activeFolder: FLAT_COIL_TAB
 })
 
 coilsStore.subscribe(() => canonicalCoils.set(coilsStore.get().coils))
@@ -438,29 +424,24 @@ export const folderSlug = (value: string) => value.toLowerCase().replace(/\s+/g,
 
 /* -- geometry (#193) -------------------------------------------------------------------------- */
 
-export const ADJUST_FIELDS = [
-  { key: 'thickness', label: 'Coil Thickness' },
-  { key: 'linearFeet', label: 'Linear Feet' },
-  { key: 'weight', label: 'Weight' }
-] as const
-
-export type AdjustField = (typeof ADJUST_FIELDS)[number]['key']
-
-export const setCoilSetup = (
-  id: Coil['id'],
-  patch: { materialThickness?: number | null; coreOD?: number | null }
-) =>
-  coilsStore.set(state => ({
-    coils: state.coils.map(coil => (coil.id === id ? { ...coil, ...patch } : coil))
-  }))
-
+/**
+ * #128: the geometry the window was solved with is saved along with the three numbers, the way Trim's
+ * `adjustCoil` does it. The old keypad wrote Material Thickness and Core OD as they were typed; the
+ * shared window holds them in its draft, so they arrive here or not at all.
+ */
 export const applyCoilAdjust = (
   id: Coil['id'],
-  patch: { thickness: number; linearFeet: number; weight: number }
+  patch: {
+    thickness: number
+    linearFeet: number
+    weight: number
+    materialThickness: number
+    coreOD: number
+  }
 ) =>
   coilsStore.set(state => ({
     coils: state.coils.map(coil => (coil.id === id ? { ...coil, ...patch } : coil))
   }))
 
 export const setFolderFilter = (folderFilter: CoilFilter) =>
-  coilsStore.set({ folderFilter, activeFolder: 'all' })
+  coilsStore.set({ folderFilter, activeFolder: FLAT_COIL_TAB })
