@@ -24,11 +24,13 @@ const ALLOWED: Record<Role, string[] | null> = {
 
 /**
  * #120/#121: Trim reads its coils inside its own Coils tab and its stock cards inside Unscheduled, so
- * the plant-wide items only repeat them; Driver and Loading are somebody else's job. Warehouse stays
- * until #119 says what it is for.
+ * the plant-wide items only repeat them; Driver, Loading and Warehouse are somebody else's job. The
+ * Warehouse page itself stays — #119 asks what it is for, and only the Trim Manager's link is gone.
  */
 const DENIED_BY_DEPARTMENT: Partial<Record<Role, Partial<Record<Department, string[]>>>> = {
-  manager: { trim: ['nav-driver', 'nav-loading', 'nav-coils', 'nav-stockcards'] },
+  manager: {
+    trim: ['nav-driver', 'nav-loading', 'nav-coils', 'nav-stockcards', 'nav-warehouse']
+  },
   worker: { trim: ['nav-loading'] }
 }
 
