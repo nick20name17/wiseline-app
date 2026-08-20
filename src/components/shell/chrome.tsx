@@ -10,7 +10,6 @@ import {
   Search,
   Settings,
   Truck,
-  Warehouse,
   Waypoints
 } from 'lucide-react'
 
@@ -103,12 +102,6 @@ const NAV_SECTIONS: { label: string; comment: string; links: NavLink[] }[] = [
         to: '/stock-cards',
         label: 'Stock Cards',
         icon: <QrCode className='nav-ico' />
-      },
-      {
-        comment: 'nav-warehouse',
-        to: '/warehouse',
-        label: 'Warehouse',
-        icon: <Warehouse className='nav-ico' />
       },
       {
         comment: 'nav-settings',

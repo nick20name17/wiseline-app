@@ -41,7 +41,7 @@ export const collectSource = `(${((ignoredTags: string[]) => {
       .trim()
 
     /**
-     * A countdown is the clock, not the build. Warehouse shows how long a location has left before it
+     * A countdown is the clock, not the build. Accessories shows how long a location has left before it
      * frees itself, and the two sides are recorded minutes apart — «Auto-releases in 14:55» against
      * «15:01» is a true statement about when each screenshot was taken and nothing about the port. The
      * digits go; that the element is there, says this, and sits here does not.

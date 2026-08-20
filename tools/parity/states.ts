@@ -324,20 +324,6 @@ export const STATES: State[] = [
     name: 'no-matches',
     clicks: ['activity-pause-btn', 'activity-dept-chip-shipping', 'activity-type-chip-coil']
   },
-  // one location type, which rescopes every stat above the grid as well as the grid
-  {
-    page: 'warehouse',
-    view: null,
-    name: 'type-loading',
-    clicks: ['legend-chip-loading']
-  },
-  // two types at once: the legend is a set of toggles, not a single choice
-  {
-    page: 'warehouse',
-    view: null,
-    name: 'type-stock-staging',
-    clicks: ['legend-chip-stock', 'legend-chip-staging']
-  },
   // Failed filters on the status, not the type — the one chip in that strip that reads a different field
   {
     page: 'ebms',
@@ -674,18 +660,6 @@ export const STATES: State[] = [
     view: null,
     name: 'modal-createorder',
     clicks: ['stock-card-1-qr']
-  },
-  {
-    page: 'warehouse',
-    view: null,
-    name: 'modal-dropdown',
-    clicks: ['wh-warehouse-select']
-  },
-  {
-    page: 'warehouse',
-    view: null,
-    name: 'modal-detail',
-    clicks: ['wh-tile-1']
   },
   {
     page: 'coils',

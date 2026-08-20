@@ -6,14 +6,14 @@ import { persisted } from '@/store/persisted'
  * When each order arrived at each warehouse location, which is what the 15-minute release countdown
  * counts from.
  *
- * One store per department, deliberately. Trim, Rollforming, Accessories and the warehouse screen each
- * number their locations from 1, so a single shared key would have Trim's location 3 and Accessories'
- * location 3 overwriting each other's timestamps.
+ * One store per department, deliberately. Trim, Rollforming and Accessories each number their locations
+ * from 1, so a single shared key would have Trim's location 3 and Accessories' location 3 overwriting
+ * each other's timestamps.
  *
  * Two kinds of entry live in the same map: `<loc>::<order>` is when the order was put there, and
  * `ship::<loc>::<order>` is when Shipping loaded its last package. The second wins when it exists.
  */
-export type LocationScope = 'trim' | 'rf' | 'acc' | 'wh'
+export type LocationScope = 'trim' | 'rf' | 'acc'
 
 const StampsSchema = z.record(z.string(), z.number())
 

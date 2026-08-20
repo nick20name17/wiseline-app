@@ -24,7 +24,7 @@ is ~3–4 minutes — run it in the background and wait for `NN captures →`, d
 
 **Every page is across** — the four departments (Trim, Rollforming, Shipping, Accessories), the three
 scan tools (driver, scanner, loading station), and Coils, Stock Cards, Settings, Dashboard, Activity,
-EBMS, Warehouse and the sign-in. Every view green at both widths, modals included, with the one
+EBMS and the sign-in. Every view green at both widths, modals included, with the one
 exemption below.
 
 **Port the requirement, not the mechanism.** The prototype is fifteen documents, so it hosts one page
@@ -220,6 +220,14 @@ are the exceptions the gate should not be read as failures:
 `cal-dow-<n>` is emitted twice by the prototype itself (the calendar tab and the schedule modal). That
 duplication is copied as-is: the markup is verbatim, and the gate compares it against the same source.
 
+**The Warehouse screen is gone, and with it `nav-warehouse` (#119).** It was never in the canvas — the
+prototype invented an occupancy page, and the rules it displayed (the 15-minute release, the soft weight
+override, greyed-out locations) all live in the location picker and in Settings, where the canvas puts
+them. Kevin asked what it was for and the answer was that nobody needed it. The route, `features/warehouse/`
+and `styles/warehouse.css` are deleted; `parity/demo` still holds the prototype's six warehouse captures,
+so `bun run parity` prints them as «not ported yet» — that is the page staying dropped, not work pending.
+The sidebar link is listed in `ABSENT_BY_DESIGN`, since a lost anchor is otherwise fatal on all fifteen pages.
+
 **Kevin's v3 batch adds anchors the prototype does not have (#115–#123).** These are new features, not
 ported markup, so the `data-comment` gate reports them as *added* on `/trim` and `/coils` and that is
 expected — read the gate against this list rather than as a regression, and record a state for the new
@@ -316,7 +324,7 @@ side. `wl_loc_release_*` is deliberately four keys, one per department: they eac
 | ✅ Accessories' reachable states    | 7, incl. the split order and the package builder                                       |
 | ✅ The three scan tools             | `/driver`, `/scanner`, `/loading` — green, with 5 states                               |
 | ✅ `/activity`                      | green, with 3 states — paused, filtered, and no matches                                |
-| ✅ `/dashboard` and `/warehouse`    | green, warehouse with 2 legend states                                                  |
+| ✅ `/dashboard`                     | green                                                                                  |
 | ✅ `/ebms`                          | green, with 2 states — the Failed filter and a retry                                   |
 | ⬜ The last 3 pages                 | coils, stockcards, settings                                                            |
 

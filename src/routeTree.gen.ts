@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedWarehouseRouteImport } from './routes/_authenticated/warehouse'
 import { Route as AuthenticatedTrimRouteImport } from './routes/_authenticated/trim'
 import { Route as AuthenticatedStockCardsRouteImport } from './routes/_authenticated/stock-cards'
 import { Route as AuthenticatedShippingRouteImport } from './routes/_authenticated/shipping'
@@ -40,11 +39,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedWarehouseRoute = AuthenticatedWarehouseRouteImport.update({
-  id: '/warehouse',
-  path: '/warehouse',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTrimRoute = AuthenticatedTrimRouteImport.update({
   id: '/trim',
@@ -130,7 +124,6 @@ export interface FileRoutesByFullPath {
   '/shipping': typeof AuthenticatedShippingRoute
   '/stock-cards': typeof AuthenticatedStockCardsRoute
   '/trim': typeof AuthenticatedTrimRoute
-  '/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/shipping': typeof AuthenticatedShippingRoute
   '/stock-cards': typeof AuthenticatedStockCardsRoute
   '/trim': typeof AuthenticatedTrimRoute
-  '/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,7 +160,6 @@ export interface FileRoutesById {
   '/_authenticated/shipping': typeof AuthenticatedShippingRoute
   '/_authenticated/stock-cards': typeof AuthenticatedStockCardsRoute
   '/_authenticated/trim': typeof AuthenticatedTrimRoute
-  '/_authenticated/warehouse': typeof AuthenticatedWarehouseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -188,7 +179,6 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/stock-cards'
     | '/trim'
-    | '/warehouse'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -206,7 +196,6 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/stock-cards'
     | '/trim'
-    | '/warehouse'
   id:
     | '__root__'
     | '/'
@@ -225,7 +214,6 @@ export interface FileRouteTypes {
     | '/_authenticated/shipping'
     | '/_authenticated/stock-cards'
     | '/_authenticated/trim'
-    | '/_authenticated/warehouse'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -256,13 +244,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/warehouse': {
-      id: '/_authenticated/warehouse'
-      path: '/warehouse'
-      fullPath: '/warehouse'
-      preLoaderRoute: typeof AuthenticatedWarehouseRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/trim': {
       id: '/_authenticated/trim'
@@ -372,7 +353,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedShippingRoute: typeof AuthenticatedShippingRoute
   AuthenticatedStockCardsRoute: typeof AuthenticatedStockCardsRoute
   AuthenticatedTrimRoute: typeof AuthenticatedTrimRoute
-  AuthenticatedWarehouseRoute: typeof AuthenticatedWarehouseRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -389,7 +369,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedShippingRoute: AuthenticatedShippingRoute,
   AuthenticatedStockCardsRoute: AuthenticatedStockCardsRoute,
   AuthenticatedTrimRoute: AuthenticatedTrimRoute,
-  AuthenticatedWarehouseRoute: AuthenticatedWarehouseRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

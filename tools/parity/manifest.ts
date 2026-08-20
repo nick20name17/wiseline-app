@@ -19,7 +19,6 @@ export const PAGES: Page[] = [
   { demo: 'accessories.html', route: '/accessories' },
   { demo: 'coils.html', route: '/coils' },
   { demo: 'stockcards.html', route: '/stock-cards' },
-  { demo: 'warehouse.html', route: '/warehouse' },
   { demo: 'loading.html', route: '/loading' },
   { demo: 'driver.html', route: '/driver' },
   { demo: 'scanner.html', route: '/scanner' },

@@ -37,8 +37,12 @@ const keyOf = (capture: Capture) =>
  * `stockcards-frame` is the prototype's `<iframe>`. Trim hosts the Stock Cards screen as a component
  * here (the prototype's own note asks for exactly that), so there is no frame element for a comment to
  * land on. A comment written against it belongs to the window, which is `stockcards-modal`, still there.
+ *
+ * `nav-warehouse` is the link to a page this port no longer has. #119 asked what the Warehouse screen was
+ * for; it was never in the canvas — the prototype invented it — and the answer was to drop it. The link
+ * therefore goes from every sidebar, which is fifteen pages' worth of one missing anchor.
  */
-const ABSENT_BY_DESIGN = new Set(['stockcards-frame'])
+const ABSENT_BY_DESIGN = new Set(['stockcards-frame', 'nav-warehouse'])
 
 /**
  * Walks both trees together and stops at the first disagreement, reporting the path to it. One
