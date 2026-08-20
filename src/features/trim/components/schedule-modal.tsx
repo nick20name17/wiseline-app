@@ -82,11 +82,15 @@ const iso = (year: number, month: number, day: number) =>
  *
  * Each day carries the Trim day budget — bends already scheduled against the plant's daily capacity —
  * because the question being answered is never «which date» on its own, it is «which date has room».
- * Non-work days come from Settings › Work Days and are greyed but still pickable: work does slip onto
- * them, and the board has to be able to say so.
  *
- * Past days are closed except when the board is only looking (peek, jump), where an overdue day is
- * exactly what someone wants to focus on.
+ * Two kinds of day are closed, and both open again when the board is only looking (peek, jump), where
+ * an overdue Sunday is exactly what someone wants to focus on:
+ *
+ *  - a past day;
+ *  - #129: a day Settings › Work Days says the shop is shut. This used to be greyed but pickable, on
+ *    the theory that work slips onto Sundays and the board should be able to say so. Kevin's answer is
+ *    that the setting means what it says — «even if days are marked as NOT work day here, it still lets
+ *    me schedule orders into those day» — so nothing can be scheduled onto one.
  */
 export const ScheduleModal = ({
   ctx,
@@ -184,14 +188,15 @@ export const ScheduleModal = ({
 
               const title = workDay
                 ? `${bends} of ${dayCap} bends scheduled${over ? ' — over the daily capacity' : ''}`
-                : 'Non-work day (Settings › Work Days)'
+                : 'Non-work day (Settings › Work Days) — nothing can be scheduled here'
+              const closed = (past || !workDay) && !allowPast
 
               return (
                 <button
                   className={`cal-day ${date === TODAY ? 'today' : ''} ${date === selected ? 'selected' : ''} ${past ? 'other' : ''} ${workDay ? '' : 'nonwork'}`}
                   data-comment={`cal-day-${date}`}
                   title={past && !allowPast ? `Past date · ${title}` : title}
-                  disabled={past && !allowPast}
+                  disabled={closed}
                   onClick={() => setSelected(date)}
                   key={date}
                 >

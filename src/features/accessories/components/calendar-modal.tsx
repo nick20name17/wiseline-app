@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
+import { isWorkDay } from '@/store/shared/settings'
 
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
@@ -169,16 +170,21 @@ export const CalendarModal = ({
             {Array.from({ length: daysInMonth }, (_, index) => {
               const date = iso(year, month, index + 1)
               const overdue = overdueDates.has(date)
+              // #129: Work Days is a plant setting, so a day the shop is shut takes no prep date either
+              const shut = !isWorkDay(date)
               const cls = [
                 date === TODAY ? 'today' : '',
                 date === selected ? 'selected' : '',
-                overdue ? 'overdue' : ''
+                overdue ? 'overdue' : '',
+                shut ? 'other' : ''
               ].join(' ')
 
               return (
                 <button
                   className={`cal-day ${cls}`}
                   data-comment={`cal-day-${date}`}
+                  disabled={shut}
+                  title={shut ? 'Non-work day (Settings › Work Days)' : undefined}
                   onClick={() => setSelected(date)}
                   // a day carrying overdue work is called out even when it is not the chosen one
                   style={
