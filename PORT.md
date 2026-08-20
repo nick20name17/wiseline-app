@@ -220,6 +220,18 @@ are the exceptions the gate should not be read as failures:
 `cal-dow-<n>` is emitted twice by the prototype itself (the calendar tab and the schedule modal). That
 duplication is copied as-is: the markup is verbatim, and the gate compares it against the same source.
 
+**#129: a non-work day cannot be scheduled onto, which the prototype allows.** `home.html` greys a day
+Settings › Work Days excludes and lets you pick it anyway; `rollforming.html` and `accessories.html` do
+not consult the setting at all. Kevin's answer is that the setting means what it says — «even if days are
+marked as NOT work day here, it still lets me schedule orders into those day» — so all three production
+calendars now close those cells *and* refuse to commit one that arrived as the preset. Two consequences
+for the gate: Rollforming and Accessories gain a `.cal-day.nonwork` class the baseline does not have
+(their `<page>.port.css` dresses it, and it is deliberately not the prototype's `.cal-day.other`, which
+means a day spilling in from the next month), and every weekend cell in those two calendars reads
+differently. Peek and jump still reach a non-work day: pinning an overdue Sunday to look at it is what
+they are for. Shipping's Ship Date picker is exempt on purpose — Work Days is about production, not
+about when a truck may leave, and a load that went out on a Saturday still has to be enterable.
+
 **The Warehouse screen is gone, and with it `nav-warehouse` (#119).** It was never in the canvas — the
 prototype invented an occupancy page, and the rules it displayed (the 15-minute release, the soft weight
 override, greyed-out locations) all live in the location picker and in Settings, where the canvas puts
@@ -266,6 +278,7 @@ specificity. `stockcards-host.css` is the same idea for the seam Trim hosts Stoc
 | `home.port.css` | the frozen production controls and the sticky day (#208/#213), a stock order's wrapping heading (#29), the Completed-orders stamps, the Coils scope tabs (#117), and the Machine Capacities report — screen and print (#174/#109/#218/#219/#27/#216) |
 | `coils.port.css` | the flat All Coils tab (#118) and the Coil Adjustment window moved onto this page (#128) |
 | `stockcards.port.css` | the invalid-Product-ID state (#217), written once per scope because the screen is dressed both as a page and inside Trim's dialog |
+| `rollforming.port.css`, `accessories.port.css` | the non-work day their calendars had no class for (#129) |
 
 `bun tools/port/extract-css.ts ../wiseline-demo` is now safe to re-run: it rewrites only the generated
 sheets, and they are what it would generate. Two things to know when adding to a port sheet:

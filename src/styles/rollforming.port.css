@@ -1,0 +1,9 @@
+/* Rules this port added to the rollforming screen, kept out of the generated `rollforming.css` — see PORT.md,
+   «Decisions already made», for why this file exists. Loaded after the generated sheet by
+   `routes/_authenticated/rollforming.tsx`. */
+
+/* #129: a day Settings › Work Days marks non-work. `home.css` has this class already; these two pages
+   never had to draw one, because their calendars did not consult the setting until now. It is not the
+   prototype's `.cal-day.other` — that means a day spilling in from the next month, and the gate
+   compares class names. */
+[data-page="rollforming"] .cal-day.nonwork { color: var(--text-subtle); }

@@ -176,7 +176,7 @@ export const CalendarModal = ({
                 date === TODAY ? 'today' : '',
                 date === selected ? 'selected' : '',
                 overdue ? 'overdue' : '',
-                shut ? 'other' : ''
+                shut ? 'nonwork' : ''
               ].join(' ')
 
               return (
@@ -219,7 +219,8 @@ export const CalendarModal = ({
             className='btn btn-primary'
             id='calendar-set'
             data-comment='calendar-set'
-            disabled={!selected}
+            // #129: a day the shop is shut cannot be committed, even when it arrived as the preset
+            disabled={!selected || !isWorkDay(selected)}
             onClick={apply}
           >
             Set Prep Date

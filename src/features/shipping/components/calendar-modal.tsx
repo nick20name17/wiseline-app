@@ -37,6 +37,10 @@ const iso = (year: number, month: number, day: number) =>
  * Every day of the month is pickable, including a past one — dispatch backdates a load that went out
  * before it was entered. An overdue day is marked rather than blocked, and that mark is why the grid
  * still reads the board's orders.
+ *
+ * #129 closed the production calendars on days Settings › Work Days marks non-work; this one stays open
+ * deliberately. Work Days is «include it in the production schedule» — it says when the shop makes
+ * things, not when a truck may leave, and a load that went out on a Saturday still has to be enterable.
  */
 export const CalendarModal = ({ ctx, onClose }: { ctx: CalCtx | null; onClose: () => void }) => {
   const orders = useStore(shippingStore, state => state.orders)

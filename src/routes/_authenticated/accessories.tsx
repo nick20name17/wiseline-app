@@ -48,6 +48,7 @@ import {
 import { RELEASE_CHECK_MS } from '@/features/accessories/use-now'
 
 import '@/styles/accessories.css'
+import '@/styles/accessories.port.css'
 
 /** The prototype's four `.view` sections become one search param — see the note on Trim's route. */
 const ViewSchema = z.enum(['unscheduled', 'scheduled', 'packaging', 'completed'])

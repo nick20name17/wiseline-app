@@ -111,6 +111,13 @@ export const ScheduleModal = ({
   const text = ctx ? copy(ctx) : { title: 'Set production date', desc: '', action: 'Set date' }
   const allowPast = ctx?.mode === 'peek' || ctx?.mode === 'jump'
 
+  /**
+   * #129: the action is gated on the same rule as the cells, not just on something being selected —
+   * a reschedule opens with the order's current day already picked, and an order sitting on a Sunday
+   * would otherwise be re-committed to it without a click landing on a closed cell.
+   */
+  const canPick = !!selected && (allowPast || isWorkDay(selected))
+
   const bendsByDay = new Map(scheduledDays().map(day => [day.date, day.bends]))
   const dayCap = totalDailyCap()
 
@@ -188,7 +195,7 @@ export const ScheduleModal = ({
 
               const title = workDay
                 ? `${bends} of ${dayCap} bends scheduled${over ? ' — over the daily capacity' : ''}`
-                : 'Non-work day (Settings › Work Days) — nothing can be scheduled here'
+                : `Non-work day (Settings › Work Days)${allowPast ? '' : ' — nothing can be scheduled here'}`
               const closed = (past || !workDay) && !allowPast
 
               return (
@@ -233,7 +240,7 @@ export const ScheduleModal = ({
             className='btn btn-primary'
             id='calendar-set'
             data-comment='calendar-set'
-            disabled={!selected}
+            disabled={!canPick}
             onClick={() => ctx && selected && onPick(ctx, selected)}
           >
             {text.action}
