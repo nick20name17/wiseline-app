@@ -9,7 +9,7 @@ import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { fmtDate } from '../format'
 import { isOverdue, lineDay, lineReleased, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
-import { showToast } from '../ui'
+import { openNotes, showToast } from '../ui'
 import { EmptyState } from './bits'
 import { WrapOrderDetail } from './wrap-detail'
 
@@ -252,7 +252,12 @@ export const Wrapping = () => {
                           className={`note-btn ${noteState(item.notes) === 'unread' ? 'has-unread' : noteState(item.notes) === 'read' ? 'all-read' : ''}`}
                           data-comment={`wrap-li-notebtn-${key}`}
                           title='Line notes'
-                          onClick={event => event.stopPropagation()}
+                          // #130: the row drills into the order, so the button has to stop the click
+                          // *and* do its own job — it used to only stop it
+                          onClick={event => {
+                            event.stopPropagation()
+                            openNotes({ orderId: order.id, lineId: item.id })
+                          }}
                         >
                           <MessageSquare style={{ width: '14px', height: '14px' }} />
                           {noteState(item.notes) !== 'none' ? <span className='note-dot' /> : null}

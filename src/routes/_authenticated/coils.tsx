@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { ChevronRight, Filter, Inbox, Search, SlidersHorizontal } from 'lucide-react'
 
 import { FLAT_COIL_TAB, sortCoilsFlat, type Coil } from '@/store/shared/coils'
@@ -94,6 +94,12 @@ function Coils() {
   const [adjustField, setAdjustField] = useState<CoilAdjustField>('thickness')
   const [filterOpen, setFilterOpen] = useState(false)
   const [confirm, setConfirm] = useState<Confirm>(null)
+
+  /**
+   * #127: «still not the default tab» — the store is module-level, so the tab survived leaving the page
+   * and coming back. Trim's equivalent resets because its view unmounts; this one has to say so.
+   */
+  useEffect(() => setActiveFolder(FLAT_TAB), [])
 
   const folders = qualifyingFolders(state)
   // the prototype resets the folder in its render; deriving it does the same without a write
