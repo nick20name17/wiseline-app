@@ -1,0 +1,24 @@
+/* Rules this port added to the Stock Cards screen, kept out of `stockcards.css` and
+   `stockcards.hosted.css` because both are generated — `tools/port/extract-css.ts` rewrites them from
+   the prototype's `<style>` blocks, and hand-written rules there are lost on the next lift.
+
+   The screen is shown in two places and so dressed by two scopes: its own page, and the dialog Trim
+   hosts it in (`.wl-stockcards-host`). The generator emits both from one source; here they are written
+   out twice, which is the price of the rules being ours rather than the prototype's.
+
+   See `home.port.css` for the convention. */
+
+/* #217: a Product ID that EBMS will not accept — underlined, not blocked from being typed */
+[data-page="stockcards"] .input.is-invalid,
+.wl-stockcards-host[data-page="stockcards"] .input.is-invalid {
+    border-color: var(--danger);
+    box-shadow: inset 0 -2px 0 var(--danger);
+}
+[data-page="stockcards"] .input.is-invalid:focus,
+.wl-stockcards-host[data-page="stockcards"] .input.is-invalid:focus {
+    border-color: var(--danger);
+}
+[data-page="stockcards"] .field-help.is-invalid,
+.wl-stockcards-host[data-page="stockcards"] .field-help.is-invalid {
+    color: var(--danger);
+}

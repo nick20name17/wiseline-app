@@ -13,6 +13,7 @@ import { StockCardsPanel } from '@/features/stockcards/panel'
 import { stockcardsStore } from '@/features/stockcards/store'
 
 import '@/styles/stockcards.css'
+import '@/styles/stockcards.port.css'
 
 export const Route = createFileRoute('/_authenticated/stock-cards')({
   component: Stockcards

@@ -319,10 +319,6 @@
             /* ---------- Stock card form additions ---------- */
             .wl-stockcards-host[data-page="stockcards"] .input.is-readonly { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
             .wl-stockcards-host[data-page="stockcards"] .field-help { font-size: 11px; color: var(--text-subtle); margin-top: 5px; }
-            /* #217: a Product ID that EBMS will not accept — underlined, not blocked from being typed */
-            .wl-stockcards-host[data-page="stockcards"] .input.is-invalid { border-color: var(--danger); box-shadow: inset 0 -2px 0 var(--danger); }
-            .wl-stockcards-host[data-page="stockcards"] .input.is-invalid:focus { border-color: var(--danger); }
-            .wl-stockcards-host[data-page="stockcards"] .field-help.is-invalid { color: var(--danger); }
             .wl-stockcards-host[data-page="stockcards"] .pop-item.disabled { opacity: 0.4; cursor: not-allowed; }
             .wl-stockcards-host[data-page="stockcards"] .pop-item.disabled:hover { background: none; }
             .wl-stockcards-host[data-page="stockcards"] .image-drop {

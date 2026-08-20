@@ -717,9 +717,7 @@
                 border-bottom: 1px solid var(--border);
                 white-space: nowrap;
                 position: sticky;
-                /* #208: parks under the frozen production controls where there are any (--freeze-h is
-                   published by the FreezeBar); every other table keeps the plain scrollport top. */
-                top: var(--freeze-h, 0px);
+                top: 0;
                 z-index: 1;
             }
             [data-page="home"] table.grid td {
@@ -1410,12 +1408,9 @@
             [data-page="home"] .pkgbuilder { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--border); }
             /* #185: a Stock order's wrapping window — "Stock" heading instead of the order-info footer,
                and one centred Create Manufacturing Batch action. */
-            /* #29: the canvas prints this large under the lines, with a rule beneath it, where a
-               customer order carries its Customer / PO / Salesman block — so the button below reads as
-               belonging to the stock order rather than to the list. */
-            [data-page="home"] .stockwrap-head { display: flex; align-items: baseline; justify-content: center; gap: 12px; padding: 22px 14px 14px; border-bottom: 1px solid var(--text); }
-            [data-page="home"] .stockwrap-title { font-size: 30px; font-weight: 700; letter-spacing: .01em; }
-            [data-page="home"] .swrap-foot { display: flex; justify-content: center; padding: 16px 14px 4px; }
+            [data-page="home"] .stockwrap-head { display: flex; align-items: baseline; justify-content: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); }
+            [data-page="home"] .stockwrap-title { font-size: 17px; font-weight: 700; letter-spacing: .01em; }
+            [data-page="home"] .swrap-foot { display: flex; justify-content: center; padding: 14px; border-top: 1px solid var(--border); }
             [data-page="home"] .mfg-ico { display: inline-flex; color: var(--success); }
             [data-page="home"] .mfg-ico i, [data-page="home"] .mfg-ico svg { pointer-events: none; }
             /* #190: stock marker beside a production date */
@@ -1435,9 +1430,6 @@
             [data-page="home"] .wrap-foot-item { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--border); padding: 3px 0; font-size: 12px; }
             [data-page="home"] .wrap-foot-label { color: var(--text-subtle); font-weight: 600; }
             [data-page="home"] .wrap-foot-val { color: var(--text); text-align: right; }
-            [data-page="home"] .done-stamp { font-size: 11px; color: var(--text-subtle); white-space: nowrap; }
-            [data-page="home"] .compdetail-loc { display: inline-flex; align-items: center; gap: 8px; }
-            [data-page="home"] .compdetail-stamp { text-align: center; padding: 10px 14px 2px; font-size: 12px; color: var(--text-subtle); }
 
             /* ---------- Calendar ---------- */
             [data-page="home"] .cal-head {
@@ -1792,17 +1784,6 @@
             }
 
             /* ---------- Production preview ---------- */
-            /* #208: the controls freeze; only the lists scroll. The negative top/side margins cancel
-               .content's padding so the bar is opaque edge to edge as rows pass under it. */
-            [data-page="home"] .prod-freeze {
-                position: sticky;
-                top: calc(-1 * var(--pad-t, 0px));
-                z-index: 30;
-                background: var(--bg);
-                padding: var(--pad-t, 0px) var(--pad-x, 0px) 0;
-                margin: calc(-1 * var(--pad-t, 0px)) calc(-1 * var(--pad-x, 0px)) 0;
-            }
-            [data-page="home"] .prod-freeze > *:last-child { margin-bottom: 10px; }
             [data-page="home"] .machine-tabs {
                 display: flex;
                 gap: 4px;
@@ -1935,7 +1916,7 @@
                    top cancels .content's padding so it pins flush to the scrollport edge (otherwise a card
                    edge shows through the gap); the side bleed keeps it opaque edge to edge. Under .pop (z 90). */
                 position: sticky;
-                top: calc(var(--freeze-h, 0px) - var(--pad-t, 0px));
+                top: calc(-1 * var(--pad-t, 0px));
                 z-index: 20;
                 background: var(--bg);
                 padding: 8px var(--pad-x, 0px);
@@ -1954,11 +1935,6 @@
             [data-page="home"] .day-count { font-weight: 500; color: var(--text-subtle); text-transform: none; letter-spacing: 0; }
             [data-page="home"] table.grid tr.day-row td {
                 background: var(--surface-3);
-                /* #213: the wrapping list freezes its day the way the cutlists do, parked directly under
-                   the sticky header row (which is 33px: 7px padding × 2 + 19px line). */
-                position: sticky;
-                top: calc(var(--freeze-h, 0px) + 33px);
-                z-index: 2;
                 border-top: 2px solid rgba(71, 84, 103, 0.5); /* --text-subtle @ 50%, matches .day-sep line */
                 font-size: 11px;
                 font-weight: 600;
@@ -2050,8 +2026,6 @@
             [data-page="home"] .coil-note-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
             /* #196: folder tabs wrap (eight EBMS folders) and keep the Coil Filter button on the same row */
             [data-page="home"] .coils-folder-tabs { flex-wrap: wrap; row-gap: 6px; }
-            /* #117: Trim Coils / All Coils sits above the folders, so it reads as the outer level */
-            [data-page="home"] .coils-scope-tabs { margin-bottom: 12px; font-weight: 600; }
             /* #193: coil lots drop-down — Location spans three checkbox columns (canvas) */
             [data-page="home"] .coil-lots th.lot-locgroup { text-align: center; border-bottom: 1px solid var(--border); }
             [data-page="home"] .coil-lots td { vertical-align: middle; }
@@ -2125,105 +2099,32 @@
             [data-page="home"] .rework-pending { background: var(--pri-asap-soft); color: var(--pri-asap); }
             [data-page="home"] .rework-done { background: var(--success-soft); color: var(--success); }
 
-            /* ---------- #174: Machine Capacities report (canvas layout, printable on 8½ × 11) ----------
-               #218: the canvas draws every row as its own rounded card, so the rows are separated by
-               border-spacing rather than by rules, and each row paints its own background and edges.
-               #219: it also writes the stock inside the figure rather than in a column of its own. */
-            /* #109: the canvas centres the report's title over the sheet and hangs the close button off
-               the corner, rather than the left-aligned head every other window has. */
-            [data-page="home"] #overlay-machinecap .modal-head { position: relative; justify-content: center; text-align: center; }
-            [data-page="home"] #overlay-machinecap .modal-x { position: absolute; top: 14px; right: 16px; }
-            [data-page="home"] .mcap-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
-            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 16px 14px; text-align: left; }
-            /* the machine name takes the slack; the figures keep the width their digits need */
-            [data-page="home"] .mcap-table :is(th, td):first-child { width: 40%; }
-            /* the canvas draws this heavy; on screen it keeps the app's own type scale — the layout is
-               what the report needed, not shop-sign lettering. Paper grows it, in the print block below. */
-            /* #109: the canvas rules each heading separately, so the two lines have a gap between them.
-               A border would run edge to edge — the cells sit flush, `border-spacing` is vertical only —
-               so the rule is drawn inset instead. */
-            [data-page="home"] .mcap-table thead th { position: relative; font-size: 12px; font-weight: 700; color: var(--text); padding-bottom: 4px; text-align: center; }
-            /* the rule starts where the figure under it starts — same inset as the cell's own padding */
-            [data-page="home"] .mcap-table thead th:not(:first-child)::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; background: var(--text); }
-            [data-page="home"] .mcap-table thead th:first-child { text-align: left; }
-            [data-page="home"] .mcap-table tbody th { font-size: 13px; font-weight: 600; white-space: nowrap; }
-            [data-page="home"] .mcap-table tbody :is(th, td) { background: var(--surface-3); border-block: 1px solid var(--border-strong); }
-            [data-page="home"] .mcap-table tbody :is(th, td):first-child { border-left: 1px solid var(--border-strong); border-start-start-radius: var(--r-lg); border-end-start-radius: var(--r-lg); }
-            [data-page="home"] .mcap-table tbody :is(th, td):last-child { border-right: 1px solid var(--border-strong); border-start-end-radius: var(--r-lg); border-end-end-radius: var(--r-lg); }
-            /* the day is the report's headline figure, so its card is white against the machines' grey */
-            [data-page="home"] .mcap-table tbody .mcap-dayrow :is(th, td) { background: var(--surface); }
-            /* the figures hang off the left edge of their column, under the start of its rule */
-            [data-page="home"] .mcap-num { white-space: nowrap; text-align: left; }
+            /* ---------- #174: Machine Capacities report (canvas layout, printable on 8½ × 11) ---------- */
+            [data-page="home"] .mcap-daylabel { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+            [data-page="home"] .mcap-table { width: 100%; border-collapse: collapse; }
+            [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 9px 12px; text-align: left; }
+            [data-page="home"] .mcap-table thead th { font-size: 12px; font-weight: 700; color: var(--text); border-bottom: 2px solid var(--text); }
+            [data-page="home"] .mcap-table thead th:first-child { border-bottom: none; }
+            [data-page="home"] .mcap-table tbody th { font-size: 13px; font-weight: 500; white-space: nowrap; }
+            [data-page="home"] .mcap-table tbody tr { border-bottom: 1px solid var(--border); }
+            [data-page="home"] .mcap-dayrow th, [data-page="home"] .mcap-dayrow td { border-bottom: 2px solid var(--border-strong); }
+            [data-page="home"] .mcap-dayrow th { font-weight: 700; }
+            [data-page="home"] .mcap-num { white-space: nowrap; }
             [data-page="home"] .mcap-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
-            /* the day row is the same size as the machines': a bigger figure would resolve `4ch` to a
-               different width and its «/» would sit a few pixels off the ones below it (#27) */
-            /* the figure reads as one thing — «240 / 320» stays tight — and starts at the column's left
-               edge. The parenthetical is what lines up down the column instead: the cell is a fixed
-               width and the stock note is pushed to its end, so every row's «(n - Stock)» shares an
-               edge without the slash being dragged away from its own number (#27, #219). */
-            [data-page="home"] .mcap-val { display: inline-flex; align-items: baseline; width: 150px; }
-            [data-page="home"] .mcap-val.has-max { width: 196px; }
-            [data-page="home"] .mcap-slash:not(:empty) { color: var(--text-subtle); margin: 0 5px; }
-            [data-page="home"] .mcap-stock { margin-left: auto; flex: none; width: 88px; }
-            /* #216: the day's own figure, not the plant's max beside it — that is a limit, not a total */
-            [data-page="home"] .mcap-val.unrouted .mcap-assigned { color: var(--warn); }
-            /* over the max outranks not-yet-routed: it colours the whole cell and is declared after */
             [data-page="home"] .mcap-val.over { color: var(--danger); }
-            /* the stock note rides with its figure, quieter and smaller — it is a part of that number,
-               not a second one, which is the whole point of the canvas writing it in brackets */
-            [data-page="home"] .mcap-stock { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--accent); text-align: left; }
-            [data-page="home"] .mcap-num { padding-right: 8px; }
-            [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 18px; }
+            [data-page="home"] .mcap-stock { margin-left: 8px; font-size: 11.5px; color: var(--accent); }
+            [data-page="home"] .mcap-note { margin-top: 14px; font-size: 11.5px; line-height: 1.5; color: var(--text-subtle); }
+            [data-page="home"] .mcap-actions { display: flex; justify-content: center; margin-top: 16px; }
             /* #174: only the capacity report's own Print button prints report-only — an ordinary Ctrl+P
                anywhere else in Trim must still print the page it is looking at. */
             @media print {
                 @page { size: letter portrait; margin: 0.5in; }
                 [data-page="home"].is-printing-report > *:not(#overlay-machinecap) { display: none !important; }
-                [data-page="home"].is-printing-report { background: #fff; }
                 [data-page="home"].is-printing-report #overlay-machinecap { position: static; display: block !important; padding: 0; background: none; }
+                [data-page="home"].is-printing-report #overlay-machinecap .modal { max-width: none; width: 100%; border: none; border-radius: 0; box-shadow: none; }
                 [data-page="home"] .mcap-print-hide, [data-page="home"] .modal-x { display: none !important; }
-                [data-page="home"] .mcap-stock { color: #4a5aa8; }
-
-                /* #109: the sheet is the report, not a screen-sized block at the top of one. The modal
-                   takes the whole 10in the page leaves and hands the slack to the table, so the six rows
-                   grow to fill it however tall the head and the note happen to be. Slightly under 10in:
-                   at exactly 10in a rounded-up fraction of a pixel starts a second, empty sheet. */
-                /* !important: the window carries its screen width as an inline style, and on paper the
-                   sheet is the window */
-                [data-page="home"].is-printing-report #overlay-machinecap .modal {
-                    max-width: none !important; width: 100%; border: none; border-radius: 0; box-shadow: none;
-                    height: 9.9in; display: flex; flex-direction: column;
-                }
-                /* the window's own gutters go: the sheet's margin is the @page margin */
-                [data-page="home"].is-printing-report #machinecap-body {
-                    flex: 1; min-height: 0; display: flex; flex-direction: column;
-                    padding: 0 !important;
-                }
-                [data-page="home"].is-printing-report .mcap-table { flex: 1; }
                 [data-page="home"] .mcap-table { break-inside: avoid; }
-
-                /* read at arm's length on a shop floor, so the type grows with the sheet */
-                [data-page="home"] .modal-title { font-size: 26px; }
-                [data-page="home"] .modal-head { padding: 0 0 14px; }
-                /* the standfirst is a screen hint about the report; the printed sheet is the report */
-                [data-page="home"] .modal-desc { display: none; }
-                [data-page="home"] .mcap-table th, [data-page="home"] .mcap-table td { padding: 10px 8px; }
-                /* the figures need more of the 7.5in than they do on screen; the names still fit 30% */
-                /* the card's own gutter: the name starts off its rounded edge, not against it */
-                [data-page="home"] .mcap-table :is(th, td):first-child { width: 30%; padding-left: 22px; }
-                [data-page="home"] .mcap-table :is(th, td):last-child { padding-right: 22px; }
-                [data-page="home"] .mcap-table thead th { font-size: 16px; padding-bottom: 8px; }
-                [data-page="home"] .mcap-table thead th:not(:first-child)::after { left: 8px; right: 8px; }
-                [data-page="home"] .mcap-table tbody th { font-size: 18px; }
-                /* the stock parenthetical sets its own track in px, not in the figure's own `ch`:
-                   at print sizes 11ch of the 24px figure reserves ~196px for text drawn at 13px, and
-                   the two number columns then push the table past the 7.5in the page leaves */
-                [data-page="home"] .mcap-val { font-size: 23px; width: 170px; }
-                [data-page="home"] .mcap-val.has-max { width: 240px; }
-                [data-page="home"] .mcap-stock { width: 100px; }
-                [data-page="home"] .mcap-stock { font-size: 14px; }
-                /* the grey cards are the layout, not decoration — keep them on paper */
-                [data-page="home"] .mcap-table tbody :is(th, td) { print-color-adjust: exact; }
+                [data-page="home"] .mcap-stock { color: #4a5aa8; }
             }
 
             /* ---------- Machine capacity totals (gap: Machine Capacities) ---------- */

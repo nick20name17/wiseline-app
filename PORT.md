@@ -257,12 +257,24 @@ rather than on the wrong element. Trim's strip keeps `cadjust-coilrow`, which ca
 
 **Rules this port adds to a page live in `<page>.port.css`.** `tools/port/extract-css.ts` rewrites
 `src/styles/<page>.css` wholesale from the prototype's `<style>` blocks, so anything hand-written in
-there is destroyed the next time the CSS is lifted. `coils.port.css` holds the Coils page's additions
-(#118, #128) and the route imports it after the generated sheet; both are unlayered, so the later rule
-wins at equal specificity. `stockcards-host.css` is the same idea for the Stock Cards seam.
+there is destroyed the next time the CSS is lifted. Each page that needed additions has a sibling sheet
+the route imports straight after the generated one; both are unlayered, so the later rule wins at equal
+specificity. `stockcards-host.css` is the same idea for the seam Trim hosts Stock Cards through.
 
-⚠️ `home.css` still carries hand-written rules from earlier batches (#29, #117, #208, #213, the
-`compdetail-*` and `done-stamp` rules) — a re-extract silently loses them. They want the same treatment.
+| Sheet | Holds |
+|---|---|
+| `home.port.css` | the frozen production controls and the sticky day (#208/#213), a stock order's wrapping heading (#29), the Completed-orders stamps, the Coils scope tabs (#117), and the Machine Capacities report — screen and print (#174/#109/#218/#219/#27/#216) |
+| `coils.port.css` | the flat All Coils tab (#118) and the Coil Adjustment window moved onto this page (#128) |
+| `stockcards.port.css` | the invalid-Product-ID state (#217), written once per scope because the screen is dressed both as a page and inside Trim's dialog |
+
+`bun tools/port/extract-css.ts ../wiseline-demo` is now safe to re-run: it rewrites only the generated
+sheets, and they are what it would generate. Two things to know when adding to a port sheet:
+
+- **A later rule cannot delete a declaration.** Where this port dropped one of the prototype's
+  properties, the port sheet has to set it back to its initial value — the report's row separators are
+  three such lines, marked «neutralises» in `home.port.css`.
+- The extractor also re-creates `warehouse.css`, since the Warehouse page is still in the prototype and
+  gone from here (#119). Delete it after a re-extract.
 
 **Each page keeps its whole stylesheet.** An early version factored the rules common to all fifteen pages
 into a `base.css`. Those rules are the prototype's density overrides, which it deliberately puts _last_;

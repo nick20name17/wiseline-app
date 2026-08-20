@@ -68,9 +68,12 @@ import {
 } from '@/features/trim/ui'
 
 import '@/styles/home.css'
+// the page's own additions, after the sheet they override — see the file's note on why they are not in it
+import '@/styles/home.port.css'
 // the hosted Stock Cards screen: its own rules, scoped under the host class, then the seam itself
 import '@/styles/stockcards.hosted.css'
 import '@/styles/stockcards-host.css'
+import '@/styles/stockcards.port.css'
 
 /**
  * The prototype's six `.view` sections become one search param.
