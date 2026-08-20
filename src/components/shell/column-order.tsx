@@ -18,6 +18,19 @@ export type Column = {
   title?: string
 }
 
+const withNewColumns = (savedOrder: string[], declared: string[]) => {
+  const next = [...savedOrder]
+
+  declared.forEach((key, index) => {
+    if (next.includes(key)) return
+    const previous = index > 0 ? declared[index - 1] : undefined
+    const at = previous ? next.indexOf(previous) + 1 : 0
+    next.splice(at, 0, key)
+  })
+
+  return next
+}
+
 /**
  * Movable table columns (N-166): drag a header, and the order is kept for that person.
  *
@@ -52,15 +65,12 @@ export const useColumnOrder = (
   const declared = columns.map(column => column.key)
   /**
    * A saved order outlives the table it was saved from: a column can be renamed or dropped, and a
-   * release can add one. Saved keys keep their places, anything the table has since gained lands at
-   * the end in declaration order, and anything it has lost is ignored rather than rendered blank.
+   * release can add one. Saved keys keep their places, anything it has lost is ignored rather than
+   * rendered blank, and anything the table has since gained lands where the table declares it —
+   * #115's Gauge column belongs between Color and Width, and appending it would have hidden it at the
+   * far end of the grid for everyone who had ever dragged a column.
    */
-  const order = saved
-    ? [
-        ...saved.filter(key => declared.includes(key)),
-        ...declared.filter(key => !saved.includes(key))
-      ]
-    : declared
+  const order = saved ? withNewColumns(saved.filter(key => declared.includes(key)), declared) : declared
 
   const clear = () => {
     dragging.current = null

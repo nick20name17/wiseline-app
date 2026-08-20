@@ -25,15 +25,15 @@ import { DEPARTMENT, setCoilNote, toggleSlinet, trimStore } from '../store'
 import { openCoilAdjust, requestCoilLocation, showToast } from '../ui'
 import { EmptyState } from './bits'
 
-import type { Coil } from '@/store/shared/coils'
+import { FLAT_COIL_TAB, sortCoilsFlat, type Coil } from '@/store/shared/coils'
+
+/** The folder-tab key of the flat per-coil list, which is a sibling of the folders, not one of them. */
+const FLAT_FOLDER = FLAT_COIL_TAB
 
 /**
  * N-166/#114: the group grid's columns move. The lot sub-table below keeps its fixed order — its head
  * is two rows deep, with «Location» spanning three of them, and a dragged column cannot cross that.
  */
-/** The folder-tab key of the flat per-coil list, which is a sibling of the folders, not one of them. */
-const FLAT_FOLDER = '__flat__'
-
 const GROUP_COLUMNS: Column[] = [
   { key: 'pid', label: 'Product ID', width: '130px' },
   { key: 'color', label: 'Color' },
@@ -44,10 +44,6 @@ const GROUP_COLUMNS: Column[] = [
   { key: 'weight', label: 'Total Weight (lbs.)', width: '150px' }
 ]
 
-/**
- * The coil drop-down: every lot of one size that EBMS knows about, with the canvas's Location group
- * (Rollforming · Trim · Slinet In/Out) and the always-visible per-coil note (#177).
- */
 /**
  * The eight cells every lot row has, wherever it is drawn: the drop-down under a size (`CoilLots`) and
  * the flat All Coils list (#116/#118) show the same coil, so they share one row and differ only in the
@@ -305,13 +301,7 @@ export const Coils = () => {
     (a, b) => a.color.localeCompare(b.color) || a.productId.localeCompare(b.productId)
   )
 
-  // the flat list reads in the same order the grouped one does, coil # deciding within a size
-  const flatList = [...filtered].sort(
-    (a, b) =>
-      a.color.localeCompare(b.color) ||
-      a.productId.localeCompare(b.productId) ||
-      a.coilNumber.localeCompare(b.coilNumber)
-  )
+  const flatList = sortCoilsFlat(filtered)
 
   const toggleGroup = (key: string) =>
     trimStore.set(state => ({
@@ -382,7 +372,8 @@ export const Coils = () => {
           data-comment='coils-folder-flat'
           onClick={() => setFolder(FLAT_FOLDER)}
         >
-          {scoped === 'all' ? 'All Coils' : 'All Trim Coils'}
+          {/* inside the All Coils scope the outer tab already says «All Coils» — this one says whose */}
+          {scoped === 'all' ? 'All Company Coils' : 'All Trim Coils'}
         </button>
         <span className='toolbar-spacer' />
         {managersFilter || scoped === 'all' ? null : (

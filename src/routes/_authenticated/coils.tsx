@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Fragment, useState } from 'react'
 import { ChevronRight, Filter, Inbox, Search, SlidersHorizontal } from 'lucide-react'
 
-import type { Coil } from '@/store/shared/coils'
+import { FLAT_COIL_TAB, sortCoilsFlat, type Coil } from '@/store/shared/coils'
 
 import { viewingAsLabel } from '@/session/nav-visibility'
 import { usePage } from '@/session/use-page'
@@ -51,11 +51,8 @@ export const Route = createFileRoute('/_authenticated/coils')({
 
 const num = (value: number) => value.toLocaleString()
 
-/**
- * #118: the tab key of the flat per-coil list. It sits beside the folders rather than among them —
- * every coil the Coil Filter admits, one row each, coil numbers instead of totals.
- */
-const FLAT_TAB = '__flat__'
+/** #118: the flat per-coil list sits beside the folders rather than among them. */
+const FLAT_TAB = FLAT_COIL_TAB
 
 /**
  * The coil inventory as EBMS hands it over: folders across the top, one row per colour/product group,
@@ -112,13 +109,7 @@ function Coils() {
   const coils = filteredCoils({ ...state, activeFolder: flat ? 'all' : activeFolder })
   const groups = buildGroups(coils)
 
-  // the flat list reads in the grouped table's order, coil # deciding within a size
-  const flatCoils = [...coils].sort(
-    (a, b) =>
-      a.color.localeCompare(b.color) ||
-      a.productId.localeCompare(b.productId) ||
-      a.coilNumber.localeCompare(b.coilNumber)
-  )
+  const flatCoils = sortCoilsFlat(coils)
 
   const totalLF = coils.reduce((total, coil) => total + coil.linearFeet, 0)
   const totalWeight = coils.reduce((total, coil) => total + coil.weight, 0)

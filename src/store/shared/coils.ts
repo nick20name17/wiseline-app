@@ -43,6 +43,20 @@ export const CoilSchema = z.object({
 export type Coil = z.infer<typeof CoilSchema>
 
 /**
+ * #116/#118: the two flat «All Coils» lists are one list drawn on two pages, so the tab key and the
+ * order they read in live with the record rather than in either page.
+ */
+export const FLAT_COIL_TAB = '__flat__'
+
+export const sortCoilsFlat = (coils: Coil[]) =>
+  [...coils].sort(
+    (a, b) =>
+      a.color.localeCompare(b.color) ||
+      a.productId.localeCompare(b.productId) ||
+      a.coilNumber.localeCompare(b.coilNumber)
+  )
+
+/**
  * Nominal sheet thickness per gauge, in inches, and the diameter of the cardboard core a coil is
  * wound on. These are facts about steel rather than about a page, so the Coils screen and the Trim
  * cutlist answer the same geometry — a coil nobody has measured falls back to them.
