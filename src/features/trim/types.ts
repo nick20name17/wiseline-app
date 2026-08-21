@@ -116,7 +116,8 @@ export type TrimState = {
   cutlists: Cutlist[]
   remans: Reman[]
   coils: Coil[]
-  expandedIds: number[]
+  /** An order id on Unscheduled, a `partKey` on Scheduled — a split order's parts open apart (#6). */
+  expandedIds: string[]
   selectedOrderIds: number[]
   selectedLineIds: number[]
   splitOrderId: number | null

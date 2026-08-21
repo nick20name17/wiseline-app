@@ -362,7 +362,8 @@ export const Scheduled = () => {
             </thead>
             <tbody data-comment='sch-tbody'>
               {dayParts.map(({ order, day }) => {
-                const expanded = expandedIds.includes(order.id)
+                // #6: expansion is per part — opening one half of a split order leaves the other shut
+                const expanded = expandedIds.includes(partKey(order.id, day))
                 const relSelected = releaseIds.includes(partKey(order.id, day))
                 const mutexLocked = !!relType && order.type !== relType && !relSelected
                 /**
@@ -390,7 +391,7 @@ export const Scheduled = () => {
                           )
                         )
                           return
-                        toggleExpand(order.id)
+                        toggleExpand(partKey(order.id, day))
                       }}
                     >
                       <td data-comment={`sch-sel-${rowKey}`}>
@@ -401,7 +402,7 @@ export const Scheduled = () => {
                           aria-label='Toggle details'
                           className={`expander ${expanded ? 'open' : ''}`}
                           data-comment={`sch-exp-${rowKey}`}
-                          onClick={() => toggleExpand(order.id)}
+                          onClick={() => toggleExpand(partKey(order.id, day))}
                         >
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
@@ -449,12 +450,12 @@ export const Scheduled = () => {
                                     mode: 'reschedule',
                                     orderId: order.id,
                                     order: order.order,
-                                    current: order.productionDate
+                                    current: day
                                   })
                                 }}
                               >
                                 <Calendar style={{ width: '13px', height: '13px' }} />
-                                {fmtDate(order.productionDate)}
+                                {fmtDate(day)}
                               </button>
                             )}
                           </td>

@@ -242,7 +242,8 @@ const SubHead = ({
               mode: 'reschedule',
               orderId: order.id,
               order: order.order,
-              current: order.productionDate
+              // #6: the panel belongs to one part, so it reschedules that day and not the order's first
+              current: activeDay ?? order.productionDate
             })
           }
         >

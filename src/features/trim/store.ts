@@ -63,11 +63,11 @@ export const setOpNote = (key: string, value: string) =>
 /** Follows the sidebar's «Viewing as» — see `useDeptRole`. */
 export const setDeptRole = (role: DeptRole) => trimStore.set({ role })
 
-export const toggleExpand = (orderId: number) =>
+export const toggleExpand = (key: string) =>
   trimStore.set(state => ({
-    expandedIds: state.expandedIds.includes(orderId)
-      ? state.expandedIds.filter(id => id !== orderId)
-      : [...state.expandedIds, orderId]
+    expandedIds: state.expandedIds.includes(key)
+      ? state.expandedIds.filter(candidate => candidate !== key)
+      : [...state.expandedIds, key]
   }))
 
 export const toggleOrderSelect = (orderId: number) =>

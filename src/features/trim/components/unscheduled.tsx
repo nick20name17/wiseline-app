@@ -232,7 +232,7 @@ export const Unscheduled = () => {
             <tbody data-comment='uns-tbody'>
               {rows.map(order => {
                 const selected = state.selectedOrderIds.includes(order.id)
-                const expanded = state.expandedIds.includes(order.id)
+                const expanded = state.expandedIds.includes(String(order.id))
                 const splitCount =
                   state.splitOrderId === order.id ? state.selectedLineIds.length : 0
                 // picking line items for a split and selecting the whole order are mutually exclusive
@@ -251,7 +251,7 @@ export const Unscheduled = () => {
                           )
                         )
                           return
-                        toggleExpand(order.id)
+                        toggleExpand(String(order.id))
                       }}
                     >
                       <td>
@@ -274,7 +274,7 @@ export const Unscheduled = () => {
                           aria-label='Toggle details'
                           className={`expander ${expanded ? 'open' : ''}`}
                           data-comment={`uns-exp-${order.id}`}
-                          onClick={() => toggleExpand(order.id)}
+                          onClick={() => toggleExpand(String(order.id))}
                         >
                           <ChevronRight style={{ width: '14px', height: '14px' }} />
                         </button>
