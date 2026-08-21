@@ -5,13 +5,21 @@ import { useStore } from '@/store/create-store'
 import { DIGITS, Keypad } from '@/components/shell/keypad'
 
 import { lineOf, machineById } from '../selectors'
+import { remanRoom } from '../reman'
 import { addReman, setFromStock, setWrapped, trimStore, wrapMax } from '../store'
 import { closePad, showToast, trimUi } from '../ui'
 
 /** Which quantity is being typed. The pads differ in their keys and in what Enter does with the string. */
 export type PadCtx =
   | { kind: 'stock'; orderId: number; lineId: number; locked: boolean }
-  | { kind: 'reman'; source: 'machine' | 'wrapping'; orderId: number; lineId: number }
+  /** #28: `parentRemanId` is the reman list the request was raised against, when it was raised on one. */
+  | {
+      kind: 'reman'
+      source: 'machine' | 'wrapping'
+      orderId: number
+      lineId: number
+      parentRemanId?: string
+    }
   | { kind: 'wrap'; orderId: number; lineId: number }
 
 const WRAP_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '0', '−', '⌫']
@@ -29,7 +37,8 @@ const digitPress = (value: string, key: string) =>
  */
 export const Keypads = () => {
   const pad = useStore(trimUi, state => state.pad)
-  const key = pad ? `${pad.kind}-${pad.orderId}-${pad.lineId}` : 'none'
+  const parent = pad?.kind === 'reman' ? (pad.parentRemanId ?? '') : ''
+  const key = pad ? `${pad.kind}-${pad.orderId}-${pad.lineId}-${parent}` : 'none'
 
   return <Pad ctx={pad} key={key} />
 }
@@ -38,10 +47,18 @@ const Pad = ({ ctx }: { ctx: PadCtx | null }) => {
   const [value, setValue] = useState('')
   // subscribed, not `get()`: what a pad shows is the row it is writing to
   const orders = useStore(trimStore, state => state.orders)
+  const remans = useStore(trimStore, state => state.remans)
 
   const order = ctx ? orders.find(candidate => candidate.id === ctx.orderId) : null
   const item = ctx ? order?.lineItems.find(candidate => candidate.id === ctx.lineId) : null
   const open = (kind: PadCtx['kind']) => !!ctx && ctx.kind === kind && !!item
+
+  // #28: one cap rule, shared with the action that will refuse anything over it — see `remanRoom`
+  const parentReman =
+    ctx?.kind === 'reman' && ctx.parentRemanId
+      ? remans.find(candidate => candidate.id === ctx.parentRemanId)
+      : null
+  const remanMax = order && item ? remanRoom(remans, order, item, parentReman) : 0
 
   const wrapNow = item?.wrapped || 0
   const wrapCap = item ? wrapMax(item) : 0
@@ -87,15 +104,19 @@ const Pad = ({ ctx }: { ctx: PadCtx | null }) => {
         keyComment='remkey'
         open={open('reman')}
         title='Remanufacture'
-        desc={`Pieces to remake · 1–${item?.qty ?? 0}`}
+        desc={
+          parentReman
+            ? `Pieces to remake · 1–${remanMax} · pass ${parentReman.pass + 1} of this line`
+            : remanMax < (item?.qty ?? 0)
+              ? `Pieces to remake · 1–${remanMax} · ${(item?.qty ?? 0) - remanMax} of ${item?.qty ?? 0} already awaited`
+              : `Pieces to remake · 1–${remanMax}`
+        }
         keys={DIGITS}
         display={value || '0'}
-        // verbatim: "Should only be able to enter a number between 1 and the Qty Ordered."
         onPress={pressed =>
           setValue(current => {
             const next = digitPress(current, pressed)
-            const max = item?.qty ?? 0
-            return Number.parseInt(next, 10) > max ? String(max) : next
+            return Number.parseInt(next, 10) > remanMax ? String(remanMax) : next
           })
         }
         onClose={closePad}
@@ -104,10 +125,10 @@ const Pad = ({ ctx }: { ctx: PadCtx | null }) => {
           const qty = Number.parseInt(value, 10)
           if (!qty || qty < 1) return
 
-          addReman(ctx.source, ctx.orderId, ctx.lineId, qty)
+          addReman(ctx.source, ctx.orderId, ctx.lineId, qty, ctx.parentRemanId ?? null)
           closePad()
           showToast(
-            `Remanufacture ${qty} pcs → recut cutlist on Slinet + new bendlist on ${machineById(item.machineId)?.name || 'machine'}`
+            `Remanufacture ${qty} pcs${parentReman ? ` (pass ${parentReman.pass + 1})` : ''} → recut cutlist on Slinet + new bendlist on ${machineById(item.machineId)?.name || 'machine'}`
           )
         }}
       />

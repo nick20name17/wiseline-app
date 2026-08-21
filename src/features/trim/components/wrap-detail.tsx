@@ -26,6 +26,7 @@ import {
   wrapEligible,
   wrapLeftOf
 } from '../selectors'
+import { lineRemansOf, remanRoom } from '../reman'
 import { completeOrder, createPackage, DEPARTMENT, trimStore } from '../store'
 import {
   askConfirm,
@@ -37,6 +38,7 @@ import {
   pickLocation,
   showToast
 } from '../ui'
+import { RemanBadge } from './bits'
 import { StockWrapWindow } from './stock-wrap'
 
 import type { LineItem, Order } from '../types'
@@ -191,6 +193,14 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
   const activeLoc = locById(activeLocationId(order) ?? -1)
   const canSelectLoc = staged.length > 0
   const canCreate = canSelectLoc && (order.locationIds ?? []).length > 0
+  /*
+   * Verbatim, and it is the whole gate: «Once the Left To Wrap column is ALL zeros, then the Order
+   * Complete button becomes available.» A remanufacture is deliberately *not* a second gate here — the
+   * canvas routes pieces that have to come back through deleting the package, which puts them back
+   * into Left To Wrap and drops the line's Status to Bent, closing this button on its own. See
+   * `deletePackage`. Whether a reman raised without deleting the package should also hold the batch is
+   * a question for Kevin, not something to answer by inventing a gate he did not ask for.
+   */
   const canComplete = productionStatus(order) === 'complete'
 
   const maxPkg = maxPackageWeight(DEPARTMENT)
@@ -322,9 +332,8 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
             const status = item.status || lineStatus(order, item)
             const left = wrapLeftOf(item)
             const eligible = wrapEligible(order, item)
-            const lineRemans = remans.filter(
-              reman => reman.orderId === order.id && reman.lineId === item.id
-            )
+            const lineRemans = lineRemansOf(remans, order.id, item.id)
+            const remanRoomLeft = remanRoom(remans, order, item)
             const stockLocked = item.status === 'wrapped' || order.completed
 
             return (
@@ -392,19 +401,14 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                     </td>
                   ),
                   /* the cell holds orange from the moment a qty is entered and greens only when the
-                     machine marks the reman Bent; a bypassed line never had a machine */
+                     machine marks the reman Bent; a bypassed line never had a machine.
+
+                     #28: the qty read-out no longer stands in for the button. A Worker who spoils a
+                     piece of the remake has to be able to ask for it again, and again — so the cell
+                     shows what is outstanding *and* keeps offering the request beside it. */
                   rem: (
                     <td data-col='rem' data-comment={`wrap-remc-${key}`}>
-                      {lineRemans.length ? (
-                        <span
-                          className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
-                          data-comment={`wrap-rembadge-${key}`}
-                          title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
-                        >
-                          <RefreshCw style={{ width: '14px', height: '14px' }} />
-                          {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
-                        </span>
-                      ) : order.bypassed ? (
+                      {order.bypassed ? (
                         <span
                           className='subtle'
                           data-comment={`wrap-remna-${key}`}
@@ -413,31 +417,45 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                         >
                           N/A
                         </span>
-                      ) : (status === 'bent' || status === 'wrapped') && item.machineId ? (
-                        <button
-                          className='btn btn-sm btn-ghost rem-btn'
-                          title='Remanufacture'
-                          data-comment={`wrap-rem-${key}`}
-                          onClick={() =>
-                            openPad({
-                              kind: 'reman',
-                              source: 'wrapping',
-                              orderId: order.id,
-                              lineId: item.id
-                            })
-                          }
-                        >
-                          <RefreshCw style={{ width: '14px', height: '14px' }} />
-                        </button>
                       ) : (
-                        <span
-                          className='subtle'
-                          data-comment={`wrap-remnone-${key}`}
-                          style={{ fontSize: '11px' }}
-                          title='Available once the line is Bent'
-                        >
-                          —
-                        </span>
+                        <>
+                          {lineRemans.length ? (
+                            <RemanBadge lineRemans={lineRemans} comment={`wrap-rembadge-${key}`} />
+                          ) : null}
+                          {(status === 'bent' || status === 'wrapped') && item.machineId ? (
+                            <button
+                              className='btn btn-sm btn-ghost rem-btn'
+                              disabled={!remanRoomLeft}
+                              title={
+                                remanRoomLeft
+                                  ? lineRemans.length
+                                    ? 'Remanufacture again'
+                                    : 'Remanufacture'
+                                  : `All ${item.qty} pcs. are already awaiting remanufacture`
+                              }
+                              data-comment={`wrap-rem-${key}`}
+                              onClick={() =>
+                                openPad({
+                                  kind: 'reman',
+                                  source: 'wrapping',
+                                  orderId: order.id,
+                                  lineId: item.id
+                                })
+                              }
+                            >
+                              <RefreshCw style={{ width: '14px', height: '14px' }} />
+                            </button>
+                          ) : lineRemans.length ? null : (
+                            <span
+                              className='subtle'
+                              data-comment={`wrap-remnone-${key}`}
+                              style={{ fontSize: '11px' }}
+                              title='Available once the line is Bent'
+                            >
+                              —
+                            </span>
+                          )}
+                        </>
                       )}
                     </td>
                   ),

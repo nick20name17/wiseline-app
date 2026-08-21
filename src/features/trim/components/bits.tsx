@@ -1,9 +1,10 @@
-import { Inbox, MessageSquare } from 'lucide-react'
+import { Inbox, MessageSquare, RefreshCw } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
 import { usePopover } from '@/components/shell/pop'
 
+import { lineRemanSummary } from '../reman'
 import {
   isReleased,
   isReviewed,
@@ -15,7 +16,7 @@ import {
 import { setPriority, trimStore } from '../store'
 import { openNotes, requestToggleReviewed } from '../ui'
 
-import type { LineItem, Order } from '../types'
+import type { LineItem, Order, Reman } from '../types'
 
 /** The pieces every view of this page reuses. Each is one render function in the prototype. */
 
@@ -295,3 +296,27 @@ export const DrawingThumb = () => (
     </svg>
   </span>
 )
+
+/**
+ * What a line's Remanufacture column reads, in the order window and in the main Wrapping list alike.
+ *
+ * Verbatim: the qty «should show up within the order window and also within the main Wrapping window on
+ * that line item», so the two cannot be allowed to drift — one component, two anchors. Orange while the
+ * line owes pieces and green once it does not, which for the Wrapping tab means every request Bent:
+ * «The Remanufacture column in the Wrapping tab should only change to green once the Machine has marked
+ * it as Bent (Complete).»
+ */
+export const RemanBadge = ({ lineRemans, comment }: { lineRemans: Reman[]; comment: string }) => {
+  const { owed, shown } = lineRemanSummary(lineRemans)
+
+  return (
+    <span
+      className={`rework-badge ${owed ? 'rework-pending' : 'rework-done'}`}
+      data-comment={comment}
+      title={`Remanufacture${owed ? ' outstanding' : ' complete'} · ${lineRemans.length} request${lineRemans.length > 1 ? 's' : ''}`}
+    >
+      <RefreshCw style={{ width: '14px', height: '14px' }} />
+      {shown}
+    </span>
+  )
+}

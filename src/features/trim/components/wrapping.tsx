@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageSquare, RefreshCw, Warehouse } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Warehouse } from 'lucide-react'
 
 import { Fragment, useState } from 'react'
 
@@ -7,10 +7,11 @@ import { useStore } from '@/store/create-store'
 import { useColumnOrder, type Column } from '@/components/shell/column-order'
 
 import { fmtDate } from '../format'
+import { lineRemansOf } from '../reman'
 import { isOverdue, lineDay, lineReleased, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
 import { openNotes, showToast } from '../ui'
-import { EmptyState } from './bits'
+import { EmptyState, RemanBadge } from './bits'
 import { WrapOrderDetail } from './wrap-detail'
 
 import type { LineItem, Order } from '../types'
@@ -134,9 +135,7 @@ export const Wrapping = () => {
             const key = `${order.id}-${index}`
             const priority = priorityById(order.priorityId)
             const status = item.status || lineStatus(order, item)
-            const lineRemans = remans.filter(
-              reman => reman.orderId === order.id && reman.lineId === item.id
-            )
+            const lineRemans = lineRemansOf(remans, order.id, item.id)
             const overdue = isOverdue(day) && status !== 'wrapped'
 
             const newDay = day !== lastDay
@@ -218,14 +217,7 @@ export const Wrapping = () => {
                     remfg: (
                       <td data-col='remfg' data-comment={`wrap-li-rem-${key}`}>
                         {lineRemans.length ? (
-                          <span
-                            className={`rework-badge ${lineRemans.every(reman => reman.bent) ? 'rework-done' : 'rework-pending'}`}
-                            data-comment={`wrap-li-rembadge-${key}`}
-                            title={`Remanufacture${lineRemans.every(reman => reman.bent) ? ' complete' : ' outstanding'}`}
-                          >
-                            <RefreshCw style={{ width: '14px', height: '14px' }} />
-                            {lineRemans.reduce((sum, reman) => sum + reman.qty, 0)}
-                          </span>
+                          <RemanBadge lineRemans={lineRemans} comment={`wrap-li-rembadge-${key}`} />
                         ) : (
                           <span className='subtle'>—</span>
                         )}

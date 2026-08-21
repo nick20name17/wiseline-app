@@ -41,6 +41,7 @@ import {
   ventedOf,
   type BatchItem
 } from '../selectors'
+import { remanOrdered } from '../reman'
 import {
   machineCompleteGroup,
   markBatchDone,
@@ -103,6 +104,49 @@ const ProdStatusPill = ({ status, comment }: { status: string | null; comment: s
     </span>
   )
 }
+
+/**
+ * Verbatim, and it says nothing about which kind of list: «Overdue bendlists need to be highlighted.
+ * Example: If it is Thursday, May 09/2024 and there are bendlists from Wednesday, May 08/2024 that are
+ * not complete yet, then we need those Wednesday bendlists to be highlighted as overdue.» A reman list
+ * from an earlier day that is not closed is one of those, so it is painted like one.
+ *
+ * #23/#214: a closed list is not late — it is finished, and nothing about it matters any more.
+ */
+const OverdueBadge = ({ comment }: { comment: string }) => (
+  <span
+    className='split-badge'
+    style={{
+      color: 'var(--danger)',
+      background: 'var(--danger-soft)',
+      borderColor: 'var(--danger)'
+    }}
+    data-comment={comment}
+  >
+    Overdue
+  </span>
+)
+
+/** The paint that goes with it, on a list head. */
+const overdueHead = (overdue: boolean) =>
+  overdue ? { background: 'var(--overdue-soft)' } : undefined
+
+/**
+ * #28: how many times this line has come back. Kevin asked for «an endless loop of Remanufacturing»,
+ * and a loop nobody can see the depth of is the same complaint over again — so a pass past the first
+ * says so, in both reman cards.
+ */
+const RemanPass = ({ pass, comment }: { pass: number; comment: string }) =>
+  pass > 1 ? (
+    <span
+      className='subtle'
+      data-comment={comment}
+      style={{ fontSize: '11px' }}
+      title={`Remanufacture of a remanufacture — pass ${pass}`}
+    >
+      pass {pass}
+    </span>
+  ) : null
 
 /**
  * #214: the one Recut/Remanufacture cell in a reman head, so it carries the provenance that used to
@@ -736,6 +780,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(reman.priorityId)
   const machine = machineById(reman.machineId)
+  const overdue = !reman.slinetDone && isOverdue(reman.date)
   const caps = BENDLIST_MACHINES.find(candidate => candidate.name === 'Caps')!
 
   return (
@@ -743,7 +788,11 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
       className={`bendlist${expanded ? ' is-expanded' : ''}`}
       data-comment={`remcut-card-${reman.id}`}
     >
-      <div className='bendlist-head prod-head' data-comment={`remcut-head-${reman.id}`}>
+      <div
+        className='bendlist-head prod-head'
+        data-comment={`remcut-head-${reman.id}`}
+        style={overdueHead(overdue)}
+      >
         <button
           aria-label='Toggle rows'
           className={`expander ${expanded ? 'open' : ''}`}
@@ -755,6 +804,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
         <span className='bendlist-key' data-comment={`remcut-key-${reman.id}`}>
           {reman.gaugeColour}
           {remanIsStock(reman) ? <StockIco comment={`remcut-stockico-${reman.id}`} /> : null}
+          <RemanPass pass={reman.pass} comment={`remcut-pass-${reman.id}`} />
         </span>
         <span className='pri-slot' data-comment={`remcut-prislot-${reman.id}`}>
           {priority && !reman.slinetDone ? (
@@ -782,6 +832,7 @@ const RemanCutlistCard = ({ reman }: { reman: Reman }) => {
           >
             {reman.orderNo}
           </span>
+          {overdue ? <OverdueBadge comment={`remcut-over-${reman.id}`} /> : null}
         </span>
         <span className='toolbar-spacer' />
         {/* #214: a completed recut keeps only its Done stamp */}
@@ -956,10 +1007,11 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
   const expanded = expandedBatches.includes(expKey)
   const priority = priorityById(reman.priorityId)
 
+  const overdue = !reman.machineDone && isOverdue(reman.date)
   const line = orders
     .find(order => order.id === reman.orderId)
     ?.lineItems.find(item => item.id === reman.lineId)
-  const ordered = reman.source === 'machine' ? (line?.qty ?? reman.qty) : reman.qty
+  const ordered = remanOrdered(reman, line)
   const notes = noteState(line?.notes)
 
   return (
@@ -967,7 +1019,11 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
       className={`bendlist${expanded ? ' is-expanded' : ''}`}
       data-comment={`reman-card-${reman.id}`}
     >
-      <div className='bendlist-head prod-head' data-comment={`reman-head-${reman.id}`}>
+      <div
+        className='bendlist-head prod-head'
+        data-comment={`reman-head-${reman.id}`}
+        style={overdueHead(overdue)}
+      >
         <button
           aria-label='Toggle rows'
           className={`expander ${expanded ? 'open' : ''}`}
@@ -979,6 +1035,7 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
         <span className='bendlist-key' data-comment={`reman-key-${reman.id}`}>
           {reman.gaugeColour}
           {remanIsStock(reman) ? <StockIco comment={`reman-stockico-${reman.id}`} /> : null}
+          <RemanPass pass={reman.pass} comment={`reman-pass-${reman.id}`} />
         </span>
         <span className='pri-slot' data-comment={`reman-prislot-${reman.id}`}>
           {priority && !reman.machineDone ? (
@@ -1003,6 +1060,7 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
           >
             {reman.orderNo}
           </span>
+          {overdue ? <OverdueBadge comment={`reman-over-${reman.id}`} /> : null}
         </span>
         <span className='toolbar-spacer' />
         {/* #214: same as the recut card — done means done */}
@@ -1065,9 +1123,13 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
                     <span className='subtle'>—</span>
                   </td>
                 ),
+                /* N-066/069: on a reman list Qty to Manufacture *is* its Qty Ordered — the canvas draws
+                   both as 19 on a pulled line and both as 2 on a Wrapping request. The reman qty is
+                   what the Slinet has to re-cut, and it belongs in the Remanufacture column, not here:
+                   a machine that pulled a whole line still has the whole line to bend. */
                 qty: (
                   <td data-col='qty' className='mono' data-comment={`reman-mfg-${reman.id}`}>
-                    <b>{reman.qty}</b>
+                    <b>{ordered}</b>
                   </td>
                 ),
                 pid: (
@@ -1080,14 +1142,29 @@ const RemanBendlistCard = ({ reman }: { reman: Reman }) => {
                     {reman.description}
                   </td>
                 ),
+                /* The canvas leaves this cell blank — the qty asked for is in the head, not repeated on
+                   the row. #28: what does belong here is the next request, because a remake is
+                   spoilable too and the loop has no last pass. A closed list raises nothing (#23). */
                 rem: (
                   <td data-col='rem' data-comment={`reman-remc-cell-${reman.id}`}>
-                    <RemanCell
-                      label=''
-                      qty={reman.qty}
-                      green={reman.recut}
-                      comment={`reman-remcellbadge-${reman.id}`}
-                    />
+                    {reman.machineDone ? null : (
+                      <button
+                        className='btn btn-sm btn-ghost rem-btn'
+                        title={`Remanufacture again — pass ${reman.pass + 1}`}
+                        data-comment={`reman-rembtn-${reman.id}`}
+                        onClick={() =>
+                          openPad({
+                            kind: 'reman',
+                            source: 'machine',
+                            orderId: reman.orderId,
+                            lineId: reman.lineId,
+                            parentRemanId: reman.id
+                          })
+                        }
+                      >
+                        <RefreshCw style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    )}
                   </td>
                 ),
                 mach: (
@@ -1195,7 +1272,7 @@ const BatchCard = ({
       <div
         className='bendlist-head prod-head'
         data-comment={`prod-batchhead-${batchKey}`}
-        style={overdue ? { background: 'var(--overdue-soft)' } : undefined}
+        style={overdueHead(overdue)}
       >
         <button
           aria-label='Toggle rows'
@@ -1240,19 +1317,7 @@ const BatchCard = ({
               In Progress
             </span>
           ) : null}
-          {overdue ? (
-            <span
-              className='split-badge'
-              style={{
-                color: 'var(--danger)',
-                background: 'var(--danger-soft)',
-                borderColor: 'var(--danger)'
-              }}
-              data-comment={`prod-batchover-${batchKey}`}
-            >
-              Overdue
-            </span>
-          ) : null}
+          {overdue ? <OverdueBadge comment={`prod-batchover-${batchKey}`} /> : null}
         </span>
 
         <span className='toolbar-spacer' />

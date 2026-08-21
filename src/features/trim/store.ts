@@ -6,6 +6,7 @@ import { withPublishedCaps } from '@/store/shared/settings'
 
 import { PRODUCT_CATALOG } from './catalog'
 import { isReleased, isReviewed, lineDay, parsePartKey, partDays, partKey } from './parts'
+import { isPulledFromBendlist, remanRoom } from './reman'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
@@ -45,8 +46,20 @@ const withParts = (state: TrimState): TrimState => ({
   })
 })
 
+/**
+ * #28: the dump predates the reman chain, and a dumped reman is a first request against its own line.
+ */
+const withRemanChain = (state: TrimState): TrimState => ({
+  ...state,
+  remans: state.remans.map(reman => ({
+    ...reman,
+    parentId: reman.parentId ?? null,
+    pass: reman.pass ?? 1
+  }))
+})
+
 export const trimStore = createStore<TrimState>({
-  ...withParts(seed as unknown as TrimState),
+  ...withRemanChain(withParts(seed as unknown as TrimState)),
   // not in the dump: the prototype keeps its open cards outside the store
   expandedBatches: [],
   // #214: what the operator typed against a row, keyed the way the prototype keys it
@@ -296,23 +309,42 @@ export const setWrapped = (orderId: number, lineId: number, value: number) =>
   }))
 
 /**
+ * Ids a `parentId` joins on cannot be reissued, and a clock can hand out the same millisecond twice —
+ * so the sequence, not the clock, is what makes them distinct.
+ */
+let remanSeq = 0
+
+/**
  * A remanufacture request fans out into two lists that inherit the line's date, colour, priority and
  * machine: a recut cutlist for the Slinet and a bendlist for the machine. One record holds both, and
  * its two flags are the two gates the colour of the Remanufacture column reads.
  *
  * A machine-raised request also pulls the line out of the bendlist it is in (N-061); one raised from
  * Wrapping leaves it where it is, because it is already cut and bent and only needs remaking.
+ *
+ * #28: `parent` is the reman being remade, when the row that raised this one was itself a reman. The
+ * chain has no floor — the request against the fourth pass is the same request as the one against the
+ * first. What a parented request does *not* do is repeat the pull: the line left its bendlist when the
+ * first machine request was raised, and there is nothing left in a cutlist to take it out of.
  */
 export const addReman = (
   source: 'machine' | 'wrapping',
   orderId: number,
   lineId: number,
-  qty: number
+  qty: number,
+  parentId: string | null = null
 ) =>
   trimStore.set(state => {
     const order = state.orders.find(candidate => candidate.id === orderId)
     const item = order?.lineItems.find(candidate => candidate.id === lineId)
-    if (!order || !item || qty < 1 || qty > item.qty) return {}
+    if (!order || !item) return {}
+    // verbatim: a bypassed order skipped production, so «the Remanufacturing function needs to be
+    // unavailable from these orders» — gated here as well as in the cells, so no route round it
+    if (order.bypassed) return {}
+
+    const parent = parentId ? state.remans.find(candidate => candidate.id === parentId) : null
+    if (parentId && !parent) return {}
+    if (qty < 1 || qty > remanRoom(state.remans, order, item, parent)) return {}
 
     const from = state.cutlists.find(cutlist =>
       cutlist.members.some(member => member.orderId === orderId && member.lineId === lineId)
@@ -322,7 +354,9 @@ export const addReman = (
       remans: [
         ...state.remans,
         {
-          id: `R${Date.now()}`,
+          id: `R${Date.now()}-${++remanSeq}`,
+          parentId: parent ? parent.id : null,
+          pass: parent ? parent.pass + 1 : 1,
           orderId,
           lineId,
           orderNo: order.order,
@@ -338,21 +372,31 @@ export const addReman = (
           // raised on the later part must not land on the earlier part's strip
           date: (lineDay(order, item) ?? order.productionDate) as string,
           source,
-          fromCutlistId: from ? from.id : null,
+          fromCutlistId: parent ? parent.fromCutlistId : from ? from.id : null,
           recut: false,
           bent: false,
           slinetDone: false,
           machineDone: false
         }
       ],
+      /**
+       * N-061: «that line item gets removed from the current bendlist and a new bendlist is created
+       * with only that line item in it» — the *bendlist*. One record backs both views here, so the
+       * line is marked pulled rather than deleted: delete it and the Slinet's cutlist loses work it
+       * had already done, and its day's Total # Pieces drops with it.
+       */
       cutlists:
-        source === 'machine'
-          ? state.cutlists.map(cutlist => ({
-              ...cutlist,
-              members: cutlist.members.filter(
-                member => !(member.orderId === orderId && member.lineId === lineId)
-              )
-            }))
+        source === 'machine' && !parent
+          ? state.cutlists.map(cutlist =>
+              cutlist.members.some(
+                member => member.orderId === orderId && member.lineId === lineId
+              ) && !isPulledFromBendlist(cutlist, orderId, lineId)
+                ? {
+                    ...cutlist,
+                    pulledMembers: [...(cutlist.pulledMembers || []), { orderId, lineId }]
+                  }
+                : cutlist
+            )
           : state.cutlists
     }
   })

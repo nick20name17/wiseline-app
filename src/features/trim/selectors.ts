@@ -1,6 +1,7 @@
 import { isWorkDay } from '@/store/shared/settings'
 
 import { lineDay, lineReleased, parsePartKey } from './parts'
+import { isPulledFromBendlist, remanCarriesWholeLine } from './reman'
 import { RANK, TODAY, trimStore } from './store'
 
 import type { LineItem, Location, Note, Order, Priority, Reman, TrimState } from './types'
@@ -266,7 +267,11 @@ export const computeBatches = (
           } satisfies BatchItem
         })
         .filter((item): item is BatchItem => !!item)
-        .filter(item => isSlinet || item.machineId === machineId)
+        .filter(
+          item =>
+            isSlinet ||
+            (item.machineId === machineId && !isPulledFromBendlist(cutlist, item.orderId, item.id))
+        )
     }))
     .filter(cutlist => cutlist.items.length)
     .sort(
@@ -335,9 +340,10 @@ const remanTotals = (
    * the damaged pieces — «Opening it shows just what needs to be Remanufactured» — while a machine
    * that raised the request took the whole line with it into a bendlist of its own, which the canvas
    * draws with the full Qty Ordered beside the requested quantity. A request raised in Wrapping left
-   * the line where it was, so for either station it is only the pieces being remade.
+   * the line where it was, so for either station it is only the pieces being remade — and so did one
+   * raised against a reman list, whatever tab raised it (#28).
    */
-  wholeLineForMachineRequests: boolean
+  countPulledLineWhole: boolean
 ) => {
   let pieces = 0
   let bends = 0
@@ -348,7 +354,7 @@ const remanTotals = (
     if (reman.date !== iso || !keep(reman)) continue
 
     const found = lineOf(reman.orderId, reman.lineId, state.orders)
-    const whole = wholeLineForMachineRequests && reman.source === 'machine' && found
+    const whole = countPulledLineWhole && remanCarriesWholeLine(reman) && found
     const remanPieces = whole ? qtyToMake(found.item) : reman.qty
     const remanBends = whole ? lineBends(found.item) : reman.qty * bendsPerPiece(reman.productId)
 
@@ -414,6 +420,8 @@ export const machineTotals = (machineId: number | null, iso: string, state = tri
     for (const member of cutlist.members) {
       const found = lineOf(member.orderId, member.lineId, state.orders)
       if (!found || found.item.machineId !== machineId) continue
+      // pulled out for a remanufacture: `remanTotals` counts it, on the reman list it moved to
+      if (isPulledFromBendlist(cutlist, member.orderId, member.lineId)) continue
       const linePieces = qtyToMake(found.item)
       const lineBendCount = lineBends(found.item)
       pieces += linePieces

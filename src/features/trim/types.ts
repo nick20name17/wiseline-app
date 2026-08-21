@@ -153,11 +153,26 @@ export type Cutlist = {
   /** #215: when Done was pressed — the Slinet's own stamp, and one per machine that signed off. */
   doneSlinetAt?: string
   doneMachineAt?: Record<number, string>
+  /**
+   * #28: members that left the *bendlist* for a reman list of their own — «that line item gets removed
+   * from the current bendlist» — while staying in the cutlist, because the Slinet already cut them and
+   * its own day's work does not un-happen.
+   */
+  pulledMembers?: { orderId: number; lineId: number }[]
 }
 
-/** A recut raised against one line — it fans out to both the Slinet and the machine that raised it. */
+/**
+ * A recut raised against one line — it fans out to both the Slinet and the machine that raised it.
+ *
+ * #28: a remanufacture is itself remanufacturable, without a floor — a Worker can spoil the remake, and
+ * the remake of the remake. `parentId` is the reman this one was raised against and `pass` how deep the
+ * chain runs, 1 being a request raised against the order's own line. `pass` is the word every screen
+ * uses for it, so it is the word the field uses too.
+ */
 export type Reman = {
   id: string
+  parentId: string | null
+  pass: number
   orderId: number
   lineId: number
   orderNo: string
