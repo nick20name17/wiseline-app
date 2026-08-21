@@ -7,6 +7,13 @@
     "context7": {
       "command": "bunx",
       "args": ["@upstash/context7-mcp"]
+    },
+    "review": {
+      "type": "http",
+      "url": "https://mcp-v2.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${REVIEW_MCP_TOKEN}"
+      }
     }
   }
 }
