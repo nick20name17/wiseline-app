@@ -6,4 +6,6 @@
    never had to draw one, because their calendars did not consult the setting until now. It is not the
    prototype's `.cal-day.other` — that means a day spilling in from the next month, and the gate
    compares class names. */
-[data-page="accessories"] .cal-day.nonwork { color: var(--text-subtle); }
+[data-page='accessories'] .cal-day.nonwork {
+  color: var(--text-subtle);
+}

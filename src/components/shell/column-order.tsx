@@ -70,7 +70,12 @@ export const useColumnOrder = (
    * #115's Gauge column belongs between Color and Width, and appending it would have hidden it at the
    * far end of the grid for everyone who had ever dragged a column.
    */
-  const order = saved ? withNewColumns(saved.filter(key => declared.includes(key)), declared) : declared
+  const order = saved
+    ? withNewColumns(
+        saved.filter(key => declared.includes(key)),
+        declared
+      )
+    : declared
 
   const clear = () => {
     dragging.current = null

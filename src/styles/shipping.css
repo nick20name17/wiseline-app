@@ -1,425 +1,2456 @@
+/* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
+[data-page='shipping'] button i,
+[data-page='shipping'] button svg,
+[data-page='shipping'] a i,
+[data-page='shipping'] a svg,
+[data-page='shipping'] [onclick] i,
+[data-page='shipping'] [onclick] svg {
+  pointer-events: none;
+}
+[data-page='shipping'] *,
+[data-page='shipping'] *::before,
+[data-page='shipping'] *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+[data-page='shipping'] {
+  --bg: #f5f6f8;
+  --surface: #fff;
+  --surface-2: #fbfcfd;
+  --surface-3: #f2f4f7;
+  --border: #e7eaef;
+  --border-strong: #d6dbe2;
+  --text: #14181f;
+  --text-muted: #344054;
+  --text-subtle: #475467;
+  --accent: #3b5bdb;
+  --accent-hover: #2f49bd;
+  --accent-soft: #eef1fe;
+  --accent-border: #c8d2f7;
+  --success: #0f7a54;
+  --success-soft: #e4f5ee;
+  --warn: #b5760a;
+  --warn-soft: #fbf1df;
+  --danger: #c4362f;
+  --danger-soft: #fbebea;
+  --overdue-soft: #fdf0ee;
+  --pri-now: #d64545;
+  --pri-now-soft: #fcecec;
+  --pri-asap: #cf6f21;
+  --pri-asap-soft: #fbf0e6;
+  --pri-by: #b58608;
+  --pri-by-soft: #faf5e2;
+  --queued: #6941c6;
+  --queued-soft: #f1edfb;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Inter', system-ui, sans-serif;
+  --r-sm: 6px;
+  --r-md: 9px;
+  --r-lg: 13px;
+  --shadow-sm: 0 1px 2px rgba(20, 24, 31, 0.05);
+  --shadow-md: 0 6px 24px rgba(20, 24, 31, 0.1);
+  --shadow-lg: 0 16px 48px rgba(20, 24, 31, 0.18);
+}
+[data-page='shipping'] {
+  height: 100%;
+}
+[data-page='shipping'] {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+[data-page='shipping'] .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+[data-page='shipping'] .muted {
+  color: var(--text-muted);
+}
+[data-page='shipping'] .subtle {
+  color: var(--text-subtle);
+}
+[data-page='shipping'] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-page='shipping'] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+[data-page='shipping'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-subtle);
+}
 
-            /* Icons never capture pointer events: lucide swaps <i data-lucide> to <svg> on every render, and if that swap lands between a real mousedown and mouseup the click target detaches and the browser drops the click (button needs a 2nd press). Keeping the press on the stable button avoids it. */
-            [data-page="shipping"] button i, [data-page="shipping"] button svg, [data-page="shipping"] a i, [data-page="shipping"] a svg, [data-page="shipping"] [onclick] i, [data-page="shipping"] [onclick] svg { pointer-events: none; }
-            [data-page="shipping"] *,[data-page="shipping"] *::before,[data-page="shipping"] *::after{box-sizing:border-box;margin:0;padding:0}
-            [data-page="shipping"]{
-                --bg:#f5f6f8;--surface:#fff;--surface-2:#fbfcfd;--surface-3:#f2f4f7;--border:#e7eaef;--border-strong:#d6dbe2;
-                --text:#14181f;--text-muted: #344054;--text-subtle: #475467;
-                --accent:#3b5bdb;--accent-hover:#2f49bd;--accent-soft:#eef1fe;--accent-border:#c8d2f7;
-                --success:#0f7a54;--success-soft:#e4f5ee;--warn:#b5760a;--warn-soft:#fbf1df;--danger:#c4362f;--danger-soft:#fbebea;--overdue-soft:#fdf0ee;
-                --pri-now:#d64545;--pri-now-soft:#fcecec;--pri-asap:#cf6f21;--pri-asap-soft:#fbf0e6;--pri-by:#b58608;--pri-by-soft:#faf5e2;--queued:#6941c6;--queued-soft:#f1edfb;
-                --font-ui:"Inter",system-ui,sans-serif;--font-mono:"Inter",system-ui,sans-serif;
-                --r-sm:6px;--r-md:9px;--r-lg:13px;--shadow-sm:0 1px 2px rgba(20,24,31,.05);--shadow-md:0 6px 24px rgba(20,24,31,.1);--shadow-lg:0 16px 48px rgba(20,24,31,.18)
-            }
-            [data-page="shipping"]{height:100%}
-            [data-page="shipping"]{font-family:var(--font-ui);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
-            [data-page="shipping"] .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-            [data-page="shipping"] .muted{color:var(--text-muted)}[data-page="shipping"] .subtle{color:var(--text-subtle)}
-            [data-page="shipping"] ::-webkit-scrollbar{width:10px;height:10px}[data-page="shipping"] ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid var(--bg)}[data-page="shipping"] ::-webkit-scrollbar-thumb:hover{background:var(--text-subtle)}
+/* ---------- App shell ---------- */
+[data-page='shipping'] .app {
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+[data-page='shipping'] .sidebar {
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  gap: 4px;
+  overflow-y: auto;
+}
+[data-page='shipping'] .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px 14px;
+}
+[data-page='shipping'] .brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #6d84ea);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-sm);
+  flex: none;
+}
+[data-page='shipping'] .brand-mark span {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #fff;
+  transform: rotate(45deg);
+}
+[data-page='shipping'] .brand-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+[data-page='shipping'] .brand-sub {
+  font-size: 10px;
+  color: var(--text-subtle);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-page='shipping'] .nav-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  padding: 12px 8px 6px;
+  font-weight: 600;
+}
+[data-page='shipping'] .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: none;
+}
+[data-page='shipping'] .nav-item:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='shipping'] .nav-item.active .nav-ico {
+  color: var(--accent);
+}
+[data-page='shipping'] .nav-item:focus-visible,
+[data-page='shipping'] .tab:focus-visible,
+[data-page='shipping'] .btn:focus-visible,
+[data-page='shipping'] .day-tab:focus-visible,
+[data-page='shipping'] .subtab:focus-visible,
+[data-page='shipping'] .seq-mv:focus-visible,
+[data-page='shipping'] a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[data-page='shipping'] .nav-item.is-disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+[data-page='shipping'] .nav-item.is-disabled:hover {
+  background: none;
+}
+[data-page='shipping'] .nav-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .sidebar-foot {
+  margin-top: auto;
+  padding: 10px 8px 2px;
+  border-top: 1px solid var(--border);
+}
 
-            /* ---------- App shell ---------- */
-            [data-page="shipping"] .app{display:grid;grid-template-columns:236px 1fr;height:100vh;overflow:hidden}
-            [data-page="shipping"] .sidebar{background:var(--surface-2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:14px 12px;gap:4px;overflow-y:auto}
-            [data-page="shipping"] .brand{display:flex;align-items:center;gap:9px;padding:6px 8px 14px}
-            [data-page="shipping"] .brand-mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#6d84ea);display:grid;place-items:center;box-shadow:var(--shadow-sm);flex:none}
-            [data-page="shipping"] .brand-mark span{width:11px;height:11px;border:2px solid #fff;transform:rotate(45deg)}
-            [data-page="shipping"] .brand-name{font-weight:600;font-size:14px;letter-spacing:-.02em}[data-page="shipping"] .brand-sub{font-size:10px;color:var(--text-subtle);letter-spacing:.06em;text-transform:uppercase}
-            [data-page="shipping"] .nav-label{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-subtle);padding:12px 8px 6px;font-weight:600}
-            [data-page="shipping"] .nav-item{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:var(--r-sm);color:var(--text-muted);font-weight:500;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;font-size:13px;text-decoration:none}
-            [data-page="shipping"] .nav-item:hover{background:var(--surface-3);color:var(--text)}[data-page="shipping"] .nav-item.active{background:var(--accent-soft);color:var(--accent)}[data-page="shipping"] .nav-item.active .nav-ico{color:var(--accent)}
-            [data-page="shipping"] .nav-item:focus-visible,[data-page="shipping"] .tab:focus-visible,[data-page="shipping"] .btn:focus-visible,[data-page="shipping"] .day-tab:focus-visible,[data-page="shipping"] .subtab:focus-visible,[data-page="shipping"] .seq-mv:focus-visible,[data-page="shipping"] a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-            [data-page="shipping"] .nav-item.is-disabled{color:var(--text-subtle);cursor:not-allowed}[data-page="shipping"] .nav-item.is-disabled:hover{background:none}
-            [data-page="shipping"] .nav-ico{width:14px;height:14px;flex:none;color:var(--text-subtle)}
-            [data-page="shipping"] .sidebar-foot{margin-top:auto;padding:10px 8px 2px;border-top:1px solid var(--border)}
+/* ---------- Main / topbar / dept-bar ---------- */
+[data-page='shipping'] .main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+[data-page='shipping'] .topbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  flex: none;
+}
+[data-page='shipping'] .crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .crumb strong {
+  color: var(--text);
+  font-weight: 600;
+}
+[data-page='shipping'] .crumb-sep {
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .search {
+  margin-left: 8px;
+  flex: 1;
+  max-width: 340px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+[data-page='shipping'] .search input {
+  border: none;
+  background: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  width: 100%;
+}
+[data-page='shipping'] .topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-page='shipping'] .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+[data-page='shipping'] .dept-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 18px 0;
+  flex: none;
+}
+[data-page='shipping'] .dept-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+[data-page='shipping'] .dept-title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+[data-page='shipping'] .dept-chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+[data-page='shipping'] .tabs {
+  display: flex;
+  gap: 2px;
+}
+[data-page='shipping'] .tab {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 9px 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+[data-page='shipping'] .tab:hover {
+  color: var(--text);
+}
+[data-page='shipping'] .tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+[data-page='shipping'] .tab-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 20px;
+  min-width: 18px;
+  text-align: center;
+}
+[data-page='shipping'] .tab.active .tab-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='shipping'] .content {
+  flex: 1;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 18px;
+}
+[data-page='shipping'] .view {
+  display: none;
+}
+[data-page='shipping'] .view.active {
+  display: block;
+}
 
-            /* ---------- Main / topbar / dept-bar ---------- */
-            [data-page="shipping"] .main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
-            [data-page="shipping"] .topbar{height:52px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:14px;padding:0 18px;flex:none}
-            [data-page="shipping"] .crumb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted)}[data-page="shipping"] .crumb strong{color:var(--text);font-weight:600}[data-page="shipping"] .crumb-sep{color:var(--text-subtle)}
-            [data-page="shipping"] .search{margin-left:8px;flex:1;max-width:340px;height:36px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:0 10px;color:var(--text-subtle)}
-            [data-page="shipping"] .search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-            [data-page="shipping"] .search input{border:none;background:none;outline:none;font-family:inherit;font-size:13px;color:var(--text);width:100%}
-            [data-page="shipping"] .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-            [data-page="shipping"] .avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;flex:none}
-            [data-page="shipping"] .dept-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 18px 0;flex:none}
-            [data-page="shipping"] .dept-title-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}[data-page="shipping"] .dept-title{font-size:19px;font-weight:600;letter-spacing:-.03em}
-            [data-page="shipping"] .dept-chip{font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);background:var(--surface-3);border:1px solid var(--border);padding:2px 9px;border-radius:20px}
-            [data-page="shipping"] .tabs{display:flex;gap:2px}[data-page="shipping"] .tab{border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-muted);padding:9px 13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px}
-            [data-page="shipping"] .tab:hover{color:var(--text)}[data-page="shipping"] .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-            [data-page="shipping"] .tab-count{font-family:var(--font-mono);font-size:10.5px;background:var(--surface-3);color:var(--text-muted);padding:1px 6px;border-radius:20px;min-width:18px;text-align:center}
-            [data-page="shipping"] .tab.active .tab-count{background:var(--accent-soft);color:var(--accent)}
-            [data-page="shipping"] .content{flex:1;overflow:auto;scrollbar-gutter:stable;padding:18px}
-            [data-page="shipping"] .view{display:none}[data-page="shipping"] .view.active{display:block}
+/* ---------- Toolbar / day-tabs ---------- */
+[data-page='shipping'] .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+[data-page='shipping'] .toolbar-info {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .toolbar-info b {
+  color: var(--text);
+  font-weight: 600;
+}
+[data-page='shipping'] .toolbar-spacer {
+  flex: 1;
+}
+[data-page='shipping'] .day-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+[data-page='shipping'] .ldg-crosslink {
+  font-size: 11.5px;
+  color: var(--text-subtle);
+  margin-bottom: 10px;
+}
+[data-page='shipping'] .ldg-crosslink a {
+  color: var(--accent);
+  text-decoration: none;
+}
+[data-page='shipping'] .ldg-crosslink a:hover {
+  text-decoration: underline;
+}
+[data-page='shipping'] .day-tab {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  padding: 7px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  min-width: 118px;
+}
+[data-page='shipping'] .day-tab:hover {
+  border-color: var(--border-strong);
+}
+[data-page='shipping'] .day-tab.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+[data-page='shipping'] .day-tab.overdue {
+  border-color: var(--danger);
+  background: var(--overdue-soft);
+}
+[data-page='shipping'] .day-tab-date {
+  font-size: 12.5px;
+  font-weight: 600;
+  display: block;
+}
+[data-page='shipping'] .day-tab-cap {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+[data-page='shipping'] .day-tab.active .day-tab-cap {
+  color: var(--accent);
+}
 
-            /* ---------- Toolbar / day-tabs ---------- */
-            [data-page="shipping"] .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-            [data-page="shipping"] .toolbar-info{font-size:12.5px;color:var(--text-muted)}[data-page="shipping"] .toolbar-info b{color:var(--text);font-weight:600}
-            [data-page="shipping"] .toolbar-spacer{flex:1}
-            [data-page="shipping"] .day-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-            [data-page="shipping"] .ldg-crosslink{font-size:11.5px;color:var(--text-subtle);margin-bottom:10px}
-            [data-page="shipping"] .ldg-crosslink a{color:var(--accent);text-decoration:none}
-            [data-page="shipping"] .ldg-crosslink a:hover{text-decoration:underline}
-            [data-page="shipping"] .day-tab{border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:7px 12px;cursor:pointer;font-family:inherit;text-align:left;min-width:118px}
-            [data-page="shipping"] .day-tab:hover{border-color:var(--border-strong)}
-            [data-page="shipping"] .day-tab.active{border-color:var(--accent);background:var(--accent-soft)}
-            [data-page="shipping"] .day-tab.overdue{border-color:var(--danger);background:var(--overdue-soft)}
-            [data-page="shipping"] .day-tab-date{font-size:12.5px;font-weight:600;display:block}
-            [data-page="shipping"] .day-tab-cap{font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);display:block;margin-top:2px;padding-top:1px;padding-bottom:1px}
-            [data-page="shipping"] .day-tab.active .day-tab-cap{color:var(--accent)}
+/* ---------- Buttons ---------- */
+[data-page='shipping'] .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+[data-page='shipping'] .btn:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .btn svg {
+  width: 14px;
+  height: 14px;
+}
+[data-page='shipping'] .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+[data-page='shipping'] .btn-primary:hover {
+  background: var(--accent-hover);
+}
+[data-page='shipping'] .btn-green {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+[data-page='shipping'] .btn-green:hover {
+  background: #0c6344;
+}
+[data-page='shipping'] .btn-red {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+[data-page='shipping'] .btn-red:hover {
+  background: #a52d27;
+}
+[data-page='shipping'] .btn-ghost {
+  border-color: transparent;
+  background: none;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .btn-ghost:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+[data-page='shipping'] .btn-primary:disabled:hover {
+  background: var(--accent);
+}
+[data-page='shipping'] .btn-green:disabled:hover {
+  background: var(--success);
+}
+[data-page='shipping'] .btn-sm {
+  padding: 0 9px;
+  font-size: 12px;
+}
 
-            /* ---------- Buttons ---------- */
-            [data-page="shipping"] .btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;font-weight:500;height:36px;padding:0 12px;border-radius:var(--r-sm);cursor:pointer;white-space:nowrap}
-            [data-page="shipping"] .btn:hover{background:var(--surface-3)}[data-page="shipping"] .btn svg{width:14px;height:14px}
-            [data-page="shipping"] .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}[data-page="shipping"] .btn-primary:hover{background:var(--accent-hover)}
-            [data-page="shipping"] .btn-green{background:var(--success);border-color:var(--success);color:#fff}[data-page="shipping"] .btn-green:hover{background:#0c6344}
-            [data-page="shipping"] .btn-red{background:var(--danger);border-color:var(--danger);color:#fff}[data-page="shipping"] .btn-red:hover{background:#a52d27}
-            [data-page="shipping"] .btn-ghost{border-color:transparent;background:none;color:var(--text-muted)}[data-page="shipping"] .btn-ghost:hover{background:var(--surface-3);color:var(--text)}
-            [data-page="shipping"] .btn:disabled{opacity:.45;cursor:not-allowed}[data-page="shipping"] .btn-primary:disabled:hover{background:var(--accent)}[data-page="shipping"] .btn-green:disabled:hover{background:var(--success)}
-            [data-page="shipping"] .btn-sm{padding:0 9px;font-size:12px}
+/* ---------- Table ---------- */
+[data-page='shipping'] .table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+[data-page='shipping'] .table-scroll {
+  overflow-x: auto;
+}
+[data-page='shipping'] .table-wrap::before,
+[data-page='shipping'] .table-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 26px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+[data-page='shipping'] .table-wrap::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(20, 24, 31, 0.09), transparent);
+}
+[data-page='shipping'] .table-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(20, 24, 31, 0.09), transparent);
+}
+[data-page='shipping'] .table-wrap.can-scroll-l::before {
+  opacity: 1;
+}
+[data-page='shipping'] .table-wrap.can-scroll-r::after {
+  opacity: 1;
+}
+[data-page='shipping'] table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+[data-page='shipping'] table.grid th,
+[data-page='shipping'] table.grid td {
+  overflow: hidden;
+}
+[data-page='shipping'] table.grid td:has(> .chk),
+[data-page='shipping'] table.grid td:has(> .expander) {
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+}
+[data-page='shipping'] table.grid th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+  padding: 7px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+[data-page='shipping'] table.grid td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+[data-page='shipping'] .trunc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-page='shipping'] table.grid tr:last-child td {
+  border-bottom: none;
+}
+[data-page='shipping'] .row-order {
+  cursor: pointer;
+}
+[data-page='shipping'] .row-order:hover td {
+  background: var(--surface-2);
+}
+[data-page='shipping'] .row-order.selected td {
+  background: var(--accent-soft);
+}
+[data-page='shipping'] .row-order.selected:hover td {
+  background: #e6ebfd;
+}
+[data-page='shipping'] .row-order.overdue td {
+  background: var(--overdue-soft);
+}
+[data-page='shipping'] .noterow td {
+  padding: 0;
+}
+[data-page='shipping'] .note-peek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 52px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+}
+[data-page='shipping'] .note-peek:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .note-peek.unread {
+  color: var(--text);
+}
+[data-page='shipping'] .note-peek svg {
+  color: var(--text-subtle);
+  flex: none;
+}
+[data-page='shipping'] .note-peek.unread svg {
+  color: var(--danger);
+}
+[data-page='shipping'] .note-peek b {
+  color: var(--text);
+  font-weight: 600;
+}
+[data-page='shipping'] .note-peek .np-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-page='shipping'] .btn-green.is-on {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+[data-page='shipping'] .cell-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+[data-page='shipping'] .cell-order {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12.5px;
+}
+[data-page='shipping'] .cell-cust {
+  font-weight: 500;
+}
 
-            /* ---------- Table ---------- */
-            [data-page="shipping"] .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-sm);position:relative}
-            [data-page="shipping"] .table-scroll{overflow-x:auto}
-            [data-page="shipping"] .table-wrap::before,[data-page="shipping"] .table-wrap::after{content:"";position:absolute;top:0;bottom:0;width:26px;pointer-events:none;opacity:0;transition:opacity .15s ease;z-index:3}
-            [data-page="shipping"] .table-wrap::before{left:0;background:linear-gradient(to right,rgba(20,24,31,.09),transparent)}
-            [data-page="shipping"] .table-wrap::after{right:0;background:linear-gradient(to left,rgba(20,24,31,.09),transparent)}
-            [data-page="shipping"] .table-wrap.can-scroll-l::before{opacity:1}
-            [data-page="shipping"] .table-wrap.can-scroll-r::after{opacity:1}
-            [data-page="shipping"] table.grid{width:100%;border-collapse:collapse;table-layout:fixed}
-            [data-page="shipping"] table.grid th,[data-page="shipping"] table.grid td{overflow:hidden}
-            [data-page="shipping"] table.grid td:has(>.chk),[data-page="shipping"] table.grid td:has(>.expander){padding-left:0;padding-right:0;text-align:center}
-            [data-page="shipping"] table.grid th{text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);font-weight:600;padding:7px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1}
-            [data-page="shipping"] table.grid td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
-            [data-page="shipping"] .trunc{overflow:hidden;text-overflow:ellipsis}
-            [data-page="shipping"] table.grid tr:last-child td{border-bottom:none}
-            [data-page="shipping"] .row-order{cursor:pointer}[data-page="shipping"] .row-order:hover td{background:var(--surface-2)}
-            [data-page="shipping"] .row-order.selected td{background:var(--accent-soft)}[data-page="shipping"] .row-order.selected:hover td{background:#e6ebfd}
-            [data-page="shipping"] .row-order.overdue td{background:var(--overdue-soft)}
-            [data-page="shipping"] .noterow td{padding:0}
-            [data-page="shipping"] .note-peek{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 52px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);cursor:pointer;width:100%;border:none;font-family:inherit;text-align:left}
-            [data-page="shipping"] .note-peek:hover{background:var(--surface-3)}
-            [data-page="shipping"] .note-peek.unread{color:var(--text)}
-            [data-page="shipping"] .note-peek svg{color:var(--text-subtle);flex:none}[data-page="shipping"] .note-peek.unread svg{color:var(--danger)}
-            [data-page="shipping"] .note-peek b{color:var(--text);font-weight:600}
-            [data-page="shipping"] .note-peek .np-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-            [data-page="shipping"] .btn-green.is-on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
-            [data-page="shipping"] .cell-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12px}
-            [data-page="shipping"] .cell-order{font-family:var(--font-mono);font-weight:500;font-size:12.5px}
-            [data-page="shipping"] .cell-cust{font-weight:500}
+[data-page='shipping'] .expander {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-subtle);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: transform 0.15s ease;
+}
+[data-page='shipping'] .expander:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .expander.open {
+  transform: rotate(90deg);
+}
+[data-page='shipping'] .subrow > td {
+  padding: 0;
+  background: var(--surface-2);
+}
+[data-page='shipping'] .subwrap {
+  padding: 4px 12px 14px 42px;
+}
+[data-page='shipping'] .exp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 48px;
+  padding: 12px 2px;
+}
+[data-page='shipping'] .exp-grid > div {
+  min-width: 160px;
+}
+[data-page='shipping'] .exp-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+[data-page='shipping'] .exp-val {
+  font-size: 12.5px;
+  margin-top: 3px;
+}
+[data-page='shipping'] .exp-note {
+  padding: 0 2px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .exp-li-cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-subtle);
+  padding: 2px 2px 0;
+}
+[data-page='shipping'] .pkg-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+[data-page='shipping'] .pkg-table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+[data-page='shipping'] .pkg-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+[data-page='shipping'] .pkg-table tbody tr:last-child td {
+  border-bottom: none;
+}
+[data-page='shipping'] .pkg-table tr.is-loaded td {
+  background: var(--success-soft);
+}
+[data-page='shipping'] .pkg-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+[data-page='shipping'] .pkg-table .pkg-chkcell {
+  width: 34px;
+  text-align: center;
+}
+[data-page='shipping'] .pkg-table tfoot td {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  background: var(--surface-2);
+}
+[data-page='shipping'] .pkg-table tfoot .li-total td:first-child {
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+}
+[data-page='shipping'] .pkg-status {
+  display: inline-flex;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .pkg-status.is-loaded {
+  color: var(--success);
+}
+[data-page='shipping'] .pkg-bc {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-subtle);
+  margin-top: 1px;
+}
+[data-page='shipping'] .pkg-name {
+  font-weight: 500;
+}
 
-            [data-page="shipping"] .expander{background:none;border:none;cursor:pointer;color:var(--text-subtle);display:grid;place-items:center;width:20px;height:20px;border-radius:4px;transition:transform .15s ease}
-            [data-page="shipping"] .expander:hover{background:var(--surface-3);color:var(--text)}[data-page="shipping"] .expander.open{transform:rotate(90deg)}
-            [data-page="shipping"] .subrow>td{padding:0;background:var(--surface-2)}
-            [data-page="shipping"] .subwrap{padding:4px 12px 14px 42px}
-            [data-page="shipping"] .exp-grid{display:flex;flex-wrap:wrap;gap:12px 48px;padding:12px 2px}
-            [data-page="shipping"] .exp-grid>div{min-width:160px}
-            [data-page="shipping"] .exp-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600}
-            [data-page="shipping"] .exp-val{font-size:12.5px;margin-top:3px}
-            [data-page="shipping"] .exp-note{padding:0 2px 10px;font-size:12px;color:var(--text-muted)}
-            [data-page="shipping"] .exp-li-cap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-subtle);padding:2px 2px 0}
-            [data-page="shipping"] .pkg-table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
-            [data-page="shipping"] .pkg-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600;padding:6px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
-            [data-page="shipping"] .pkg-table td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
-            [data-page="shipping"] .pkg-table tbody tr:last-child td{border-bottom:none}
-            [data-page="shipping"] .pkg-table tr.is-loaded td{background:var(--success-soft)}
-            [data-page="shipping"] .pkg-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-            [data-page="shipping"] .pkg-table .pkg-chkcell{width:34px;text-align:center}
-            [data-page="shipping"] .pkg-table tfoot td{padding:6px 12px;border-top:1px solid var(--border);font-weight:600;background:var(--surface-2)}
-            [data-page="shipping"] .pkg-table tfoot .li-total td:first-child{color:var(--text-subtle);text-transform:uppercase;letter-spacing:.05em;font-size:10px}
-            [data-page="shipping"] .pkg-status{display:inline-flex;color:var(--text-subtle)}[data-page="shipping"] .pkg-status.is-loaded{color:var(--success)}
-            [data-page="shipping"] .pkg-bc{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--text-subtle);margin-top:1px}
-            [data-page="shipping"] .pkg-name{font-weight:500}
+/* ---------- Checkbox ---------- */
+[data-page='shipping'] .chk {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  flex: none;
+  vertical-align: middle;
+}
+[data-page='shipping'] .chk:hover {
+  border-color: var(--accent);
+}
+[data-page='shipping'] .chk:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+[data-page='shipping'] .chk:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+[data-page='shipping'] .chk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-            /* ---------- Checkbox ---------- */
-            [data-page="shipping"] .chk{appearance:none;width:16px;height:16px;border:1.5px solid var(--border-strong);border-radius:4px;background:var(--surface);cursor:pointer;position:relative;flex:none;vertical-align:middle}
-            [data-page="shipping"] .chk:hover{border-color:var(--accent)}[data-page="shipping"] .chk:checked{background:var(--accent);border-color:var(--accent)}
-            [data-page="shipping"] .chk:checked::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-            [data-page="shipping"] .chk:disabled{opacity:.4;cursor:not-allowed}
+/* ---------- Priority / status badges ---------- */
+[data-page='shipping'] .pri {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+[data-page='shipping'] .pri-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+[data-page='shipping'] .pri-now {
+  background: var(--pri-now-soft);
+  color: var(--pri-now);
+}
+[data-page='shipping'] .pri-now .pri-dot {
+  background: var(--pri-now);
+}
+[data-page='shipping'] .pri-asap {
+  background: var(--pri-asap-soft);
+  color: var(--pri-asap);
+}
+[data-page='shipping'] .pri-asap .pri-dot {
+  background: var(--pri-asap);
+}
+[data-page='shipping'] .pri-by {
+  background: var(--pri-by-soft);
+  color: var(--pri-by);
+}
+[data-page='shipping'] .pri-by .pri-dot {
+  background: var(--pri-by);
+}
+[data-page='shipping'] .pri-none {
+  background: var(--surface-3);
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .pri-none .pri-dot {
+  background: var(--text-subtle);
+}
+[data-page='shipping'] .pri.readonly {
+  cursor: default;
+}
+[data-page='shipping'] .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+[data-page='shipping'] .st-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+[data-page='shipping'] .ss-blank {
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .ss-unreleased {
+  background: var(--queued-soft);
+  color: var(--queued);
+}
+[data-page='shipping'] .ss-notstarted {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .ss-loading {
+  background: var(--pri-by-soft);
+  color: var(--pri-by);
+}
+[data-page='shipping'] .ss-loaded {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-page='shipping'] .ss-shipping {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+[data-page='shipping'] .ss-delivered {
+  background: var(--success-soft);
+  color: var(--success);
+}
+[data-page='shipping'] .over-txt {
+  color: var(--warn);
+  font-weight: 600;
+}
+[data-page='shipping'] .pickup-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+[data-page='shipping'] .overdue-flag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  color: #fff;
+  background: var(--danger);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+[data-page='shipping'] .unavail-flag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  color: #fff;
+  background: var(--warn);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+[data-page='shipping'] .strow.unavail {
+  opacity: 0.55;
+}
+[data-page='shipping'] .load-num-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+[data-page='shipping'] .shipvia {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
-            /* ---------- Priority / status badges ---------- */
-            [data-page="shipping"] .pri{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;cursor:pointer;border:1px solid transparent;font-family:inherit;white-space:nowrap}
-            [data-page="shipping"] .pri-dot{width:6px;height:6px;border-radius:50%;flex:none}
-            [data-page="shipping"] .pri-now{background:var(--pri-now-soft);color:var(--pri-now)}[data-page="shipping"] .pri-now .pri-dot{background:var(--pri-now)}
-            [data-page="shipping"] .pri-asap{background:var(--pri-asap-soft);color:var(--pri-asap)}[data-page="shipping"] .pri-asap .pri-dot{background:var(--pri-asap)}
-            [data-page="shipping"] .pri-by{background:var(--pri-by-soft);color:var(--pri-by)}[data-page="shipping"] .pri-by .pri-dot{background:var(--pri-by)}
-            [data-page="shipping"] .pri-none{background:var(--surface-3);color:var(--text-subtle)}[data-page="shipping"] .pri-none .pri-dot{background:var(--text-subtle)}
-            [data-page="shipping"] .pri.readonly{cursor:default}
-            [data-page="shipping"] .status{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;white-space:nowrap}
-            [data-page="shipping"] .st-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-            [data-page="shipping"] .ss-blank{color:var(--text-subtle)}
-            [data-page="shipping"] .ss-unreleased{background:var(--queued-soft);color:var(--queued)}
-            [data-page="shipping"] .ss-notstarted{background:var(--surface-3);color:var(--text)}
-            [data-page="shipping"] .ss-loading{background:var(--pri-by-soft);color:var(--pri-by)}
-            [data-page="shipping"] .ss-loaded{background:var(--accent-soft);color:var(--accent)}
-            [data-page="shipping"] .ss-shipping{background:var(--warn-soft);color:var(--warn)}
-            [data-page="shipping"] .ss-delivered{background:var(--success-soft);color:var(--success)}
-            [data-page="shipping"] .over-txt{color:var(--warn);font-weight:600}
-            [data-page="shipping"] .pickup-badge{display:inline-flex;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn);padding:2px 6px;border-radius:4px;margin-left:6px}
-            [data-page="shipping"] .overdue-flag{display:inline-flex;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:#fff;background:var(--danger);padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
-            [data-page="shipping"] .unavail-flag{display:inline-flex;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:#fff;background:var(--warn);padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
-            [data-page="shipping"] .strow.unavail{opacity:.55}
-            [data-page="shipping"] .load-num-pill{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 9px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-family:var(--font-mono);font-size:11px;font-weight:600}
-            [data-page="shipping"] .shipvia{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)}
+/* ---------- Notes / map buttons ---------- */
+[data-page='shipping'] .note-btn,
+[data-page='shipping'] .map-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  position: relative;
+  color: var(--text-subtle);
+  flex: none;
+}
+[data-page='shipping'] .note-btn:hover,
+[data-page='shipping'] .map-btn:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .map-btn:hover {
+  color: var(--accent);
+}
+[data-page='shipping'] .note-btn.has-unread {
+  color: var(--danger);
+}
+[data-page='shipping'] .note-btn.all-read {
+  color: var(--success);
+}
+[data-page='shipping'] .note-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+}
+[data-page='shipping'] .note-btn.has-unread .note-dot {
+  background: var(--danger);
+}
+[data-page='shipping'] .note-btn.all-read .note-dot {
+  background: var(--success);
+}
 
-            /* ---------- Notes / map buttons ---------- */
-            [data-page="shipping"] .note-btn,[data-page="shipping"] .map-btn{border:none;background:none;cursor:pointer;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:var(--r-sm);position:relative;color:var(--text-subtle); flex:none;}
-            [data-page="shipping"] .note-btn:hover,[data-page="shipping"] .map-btn:hover{background:var(--surface-3)}[data-page="shipping"] .map-btn:hover{color:var(--accent)}
-            [data-page="shipping"] .note-btn.has-unread{color:var(--danger)}[data-page="shipping"] .note-btn.all-read{color:var(--success)}
-            [data-page="shipping"] .note-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;border:1.5px solid var(--surface)}
-            [data-page="shipping"] .note-btn.has-unread .note-dot{background:var(--danger)}[data-page="shipping"] .note-btn.all-read .note-dot{background:var(--success)}
+/* ---------- Field buttons (custom dropdown triggers) ---------- */
+[data-page='shipping'] .field-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  height: 36px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  justify-content: space-between;
+}
+[data-page='shipping'] .field-btn:hover {
+  border-color: var(--border-strong);
+}
+[data-page='shipping'] .field-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-subtle);
+}
 
-            /* ---------- Field buttons (custom dropdown triggers) ---------- */
-            [data-page="shipping"] .field-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);height:36px;padding:0 10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;justify-content:space-between}
-            [data-page="shipping"] .field-btn:hover{border-color:var(--border-strong)}
-            [data-page="shipping"] .field-btn svg{width:14px;height:14px;color:var(--text-subtle)}
+/* ---------- Dropdown popover ---------- */
+[data-page='shipping'] .pop {
+  position: fixed;
+  z-index: 90;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 5px;
+  min-width: 168px;
+  max-height: 280px;
+  overflow: auto;
+}
+[data-page='shipping'] .pop-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+[data-page='shipping'] .pop-item:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .pop-item.selected {
+  color: var(--accent);
+  font-weight: 500;
+}
+[data-page='shipping'] .pop-check {
+  margin-left: auto;
+  color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
 
-            /* ---------- Dropdown popover ---------- */
-            [data-page="shipping"] .pop{position:fixed;z-index:90;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-md);padding:5px;min-width:168px;max-height:280px;overflow:auto}
-            [data-page="shipping"] .pop-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px;border:none;background:none;width:100%;text-align:left;font-family:inherit;color:var(--text)}
-            [data-page="shipping"] .pop-item:hover{background:var(--surface-3)}[data-page="shipping"] .pop-item.selected{color:var(--accent);font-weight:500}
-            [data-page="shipping"] .pop-check{margin-left:auto;color:var(--accent);width:14px;height:14px}
-
-            /* ---------- Modal ---------- */
-            [data-page="shipping"] .overlay{position:fixed;inset:0;background:rgba(20,24,31,.4);backdrop-filter:blur(2px);z-index:80;display:none;align-items:center;justify-content:center;padding:24px}
-            [data-page="shipping"] .overlay.is-open{display:flex}
-            [data-page="shipping"] #overlay-notes{z-index:85}[data-page="shipping"] #overlay-mapdetail{z-index:86}[data-page="shipping"] #overlay-calendar{z-index:88}[data-page="shipping"] #overlay-newpkg-kp{z-index:89}
-            [data-page="shipping"] .modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);width:100%;max-width:560px;max-height:88vh;overflow:auto}
-            [data-page="shipping"] .modal.wide{max-width:920px}
-            /* near-fullscreen modal for the Loading truck detail (compact card → big modal) */
-            [data-page="shipping"] .modal.full{max-width:1400px;width:92vw;height:90vh;max-height:90vh;display:flex;flex-direction:column}
-            [data-page="shipping"] .modal.full .modal-body{flex:1;overflow:auto;min-height:0}
-            /* in the big modal the grid sizes to its content (not stretched to fill), so columns stay
+/* ---------- Modal ---------- */
+[data-page='shipping'] .overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 31, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+[data-page='shipping'] .overlay.is-open {
+  display: flex;
+}
+[data-page='shipping'] #overlay-notes {
+  z-index: 85;
+}
+[data-page='shipping'] #overlay-mapdetail {
+  z-index: 86;
+}
+[data-page='shipping'] #overlay-calendar {
+  z-index: 88;
+}
+[data-page='shipping'] #overlay-newpkg-kp {
+  z-index: 89;
+}
+[data-page='shipping'] .modal {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow: auto;
+}
+[data-page='shipping'] .modal.wide {
+  max-width: 920px;
+}
+/* near-fullscreen modal for the Loading truck detail (compact card → big modal) */
+[data-page='shipping'] .modal.full {
+  max-width: 1400px;
+  width: 92vw;
+  height: 90vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+[data-page='shipping'] .modal.full .modal-body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+/* in the big modal the grid sizes to its content (not stretched to fill), so columns stay
                tight/aligned instead of spreading apart on a very wide modal; the card hugs the table */
-            [data-page="shipping"] .modal.full .table-wrap{display:inline-block;max-width:100%;vertical-align:top}
-            [data-page="shipping"] .modal.full table.grid{table-layout:auto;width:auto;min-width:0}
-            [data-page="shipping"] .modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px 12px}
-            [data-page="shipping"] .modal-title{font-size:15px;font-weight:600;letter-spacing:-.02em}
-            [data-page="shipping"] .modal-desc{font-size:12px;color:var(--text-muted);margin-top:3px}
-            [data-page="shipping"] .modal-x{border:none;background:none;cursor:pointer;color:var(--text-subtle);width:28px;height:28px;border-radius:var(--r-sm);display:grid;place-items:center}
-            [data-page="shipping"] .modal-x:hover{background:var(--surface-3);color:var(--text)}
-            [data-page="shipping"] .modal-body{padding:4px 20px 8px}
-            [data-page="shipping"] .mapmodal-body{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0}
-            [data-page="shipping"] .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px 18px;border-top:1px solid var(--border)}
+[data-page='shipping'] .modal.full .table-wrap {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+[data-page='shipping'] .modal.full table.grid {
+  table-layout: auto;
+  width: auto;
+  min-width: 0;
+}
+[data-page='shipping'] .modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+}
+[data-page='shipping'] .modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-page='shipping'] .modal-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+[data-page='shipping'] .modal-x {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-subtle);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+}
+[data-page='shipping'] .modal-x:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .modal-body {
+  padding: 4px 20px 8px;
+}
+[data-page='shipping'] .mapmodal-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0;
+}
+[data-page='shipping'] .modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--border);
+}
 
-            /* ---------- Keypad (New Package qty entry) ---------- */
-            [data-page="shipping"] .keypad-display{font-size:22px;text-align:center;padding:10px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:12px;background:var(--surface-2);font-weight:500}
-            [data-page="shipping"] .keypad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-            [data-page="shipping"] .keypad-key{aspect-ratio:1.7;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-md);font-family:var(--font-mono);font-size:17px;cursor:pointer;color:var(--text)}
-            [data-page="shipping"] .keypad-key:hover{background:var(--surface-3)}
+/* ---------- Keypad (New Package qty entry) ---------- */
+[data-page='shipping'] .keypad-display {
+  font-size: 22px;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  background: var(--surface-2);
+  font-weight: 500;
+}
+[data-page='shipping'] .keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+[data-page='shipping'] .keypad-key {
+  aspect-ratio: 1.7;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  cursor: pointer;
+  color: var(--text);
+}
+[data-page='shipping'] .keypad-key:hover {
+  background: var(--surface-3);
+}
 
-            /* ---------- Sub-tabs (inside modals / expanded panels) ---------- */
-            [data-page="shipping"] .subtabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border)}
-            [data-page="shipping"] .subtab{border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--text-muted);padding:8px 6px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-            [data-page="shipping"] .subtab:hover{color:var(--text)}[data-page="shipping"] .subtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* ---------- Sub-tabs (inside modals / expanded panels) ---------- */
+[data-page='shipping'] .subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+[data-page='shipping'] .subtab {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 8px 6px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-page='shipping'] .subtab:hover {
+  color: var(--text);
+}
+[data-page='shipping'] .subtab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 
-            /* ---------- Calendar ---------- */
-            [data-page="shipping"] .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-            [data-page="shipping"] .cal-month{font-weight:600;font-size:13.5px}
-            [data-page="shipping"] .cal-nav{border:1px solid var(--border);background:var(--surface);width:28px;height:28px;border-radius:var(--r-sm);cursor:pointer;display:grid;place-items:center;color:var(--text-muted); flex:none;}
-            [data-page="shipping"] .cal-nav:hover{background:var(--surface-3)}
-            [data-page="shipping"] .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-            [data-page="shipping"] .cal-dow{text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600;padding:4px 0}
-            [data-page="shipping"] .cal-day{aspect-ratio:1;border:1px solid transparent;background:none;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--text);display:grid;place-items:center}
-            [data-page="shipping"] .cal-day:hover{background:var(--surface-3)}[data-page="shipping"] .cal-day.other{color:var(--text-subtle);opacity:.5}
-            [data-page="shipping"] .cal-day.today{border-color:var(--border-strong)}
-            [data-page="shipping"] .cal-day.scheduled{background:var(--accent-soft);color:var(--accent);font-weight:600}
-            [data-page="shipping"] .cal-day.overdue{background:var(--overdue-soft);color:var(--danger);border-color:var(--danger);font-weight:600}
-            [data-page="shipping"] .cal-day.selected{background:var(--accent);color:#fff}
-            /* standalone Scheduled-board calendar (§Day-board: pill + calendar + day-tabs) */
-            [data-page="shipping"] .sch-calendar{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:12px 14px;max-width:300px;box-shadow:var(--shadow-sm)}
-            [data-page="shipping"] .sch-cal-wrap{position:relative;display:inline-block;margin-bottom:14px}
-            [data-page="shipping"] .sch-cal-pop{position:absolute;z-index:90;top:calc(100% + 6px);left:0}
-            [data-page="shipping"] .sch-cal-legend{display:flex;gap:14px;margin-top:10px;font-size:10.5px;color:var(--text-subtle)}
-            [data-page="shipping"] .sch-cal-key{display:inline-flex;align-items:center;gap:5px}
-            [data-page="shipping"] .sch-cal-swatch{width:10px;height:10px;border-radius:3px;display:inline-block}
-            [data-page="shipping"] .sch-cal-swatch.sched{background:var(--accent-soft);border:1px solid var(--accent)}
-            [data-page="shipping"] .sch-cal-swatch.overdue{background:var(--overdue-soft);border:1px solid var(--danger)}
+/* ---------- Calendar ---------- */
+[data-page='shipping'] .cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+[data-page='shipping'] .cal-month {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+[data-page='shipping'] .cal-nav {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  flex: none;
+}
+[data-page='shipping'] .cal-nav:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+[data-page='shipping'] .cal-dow {
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  padding: 4px 0;
+}
+[data-page='shipping'] .cal-day {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+}
+[data-page='shipping'] .cal-day:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .cal-day.other {
+  color: var(--text-subtle);
+  opacity: 0.5;
+}
+[data-page='shipping'] .cal-day.today {
+  border-color: var(--border-strong);
+}
+[data-page='shipping'] .cal-day.scheduled {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+[data-page='shipping'] .cal-day.overdue {
+  background: var(--overdue-soft);
+  color: var(--danger);
+  border-color: var(--danger);
+  font-weight: 600;
+}
+[data-page='shipping'] .cal-day.selected {
+  background: var(--accent);
+  color: #fff;
+}
+/* standalone Scheduled-board calendar (§Day-board: pill + calendar + day-tabs) */
+[data-page='shipping'] .sch-calendar {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 12px 14px;
+  max-width: 300px;
+  box-shadow: var(--shadow-sm);
+}
+[data-page='shipping'] .sch-cal-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+[data-page='shipping'] .sch-cal-pop {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 6px);
+  left: 0;
+}
+[data-page='shipping'] .sch-cal-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 10.5px;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .sch-cal-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+[data-page='shipping'] .sch-cal-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+[data-page='shipping'] .sch-cal-swatch.sched {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+[data-page='shipping'] .sch-cal-swatch.overdue {
+  background: var(--overdue-soft);
+  border: 1px solid var(--danger);
+}
 
-            /* ---------- Notes popup ---------- */
-            [data-page="shipping"] .note-item{display:flex;gap:11px;padding:14px 2px;border-bottom:1px solid var(--border)}
-            [data-page="shipping"] .note-item:first-child{padding-top:4px}[data-page="shipping"] .note-item:last-child{border-bottom:none;padding-bottom:4px}
-            [data-page="shipping"] .note-avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-3);color:var(--text-muted);font-size:10.5px;font-weight:600;display:grid;place-items:center;flex:none}
-            [data-page="shipping"] .note-main{flex:1;min-width:0}
-            [data-page="shipping"] .note-headrow{display:flex;align-items:center;gap:7px}
-            [data-page="shipping"] .note-unread{width:6px;height:6px;border-radius:50%;background:var(--danger);flex:none}
-            [data-page="shipping"] .note-author{font-weight:600;font-size:12.5px}
-            [data-page="shipping"] .note-meta{font-size:10.5px;color:var(--text-subtle);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-            [data-page="shipping"] .note-body{font-size:12.5px;color:var(--text);line-height:1.55;margin-top:3px}
-            [data-page="shipping"] .note-foot{display:flex;gap:8px;align-items:flex-end;padding:14px 20px 18px;border-top:1px solid var(--border)}
-            [data-page="shipping"] .note-input{flex:1;resize:none;min-height:40px;max-height:120px;border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:9px 11px;font-family:var(--font-ui);font-size:13px;line-height:1.5;color:var(--text);background:var(--surface)}[data-page="shipping"] .note-input::placeholder{color:var(--text-subtle)}[data-page="shipping"] .note-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-            [data-page="shipping"] .note-ack{margin-left:auto;border:1px solid var(--border);background:var(--surface);display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;color:var(--text-muted);flex:none;white-space:nowrap}
-            [data-page="shipping"] .note-ack:hover{border-color:var(--border-strong);background:var(--surface-3);color:var(--text)}
-            [data-page="shipping"] .note-ack svg{flex:none;width:14px;height:14px}
-            [data-page="shipping"] .note-ack.is-dealt{background:var(--success-soft);border-color:transparent;color:var(--success)}
-            [data-page="shipping"] .note-ack.is-dealt:hover{background:#d3efe3}
+/* ---------- Notes popup ---------- */
+[data-page='shipping'] .note-item {
+  display: flex;
+  gap: 11px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--border);
+}
+[data-page='shipping'] .note-item:first-child {
+  padding-top: 4px;
+}
+[data-page='shipping'] .note-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+[data-page='shipping'] .note-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+[data-page='shipping'] .note-main {
+  flex: 1;
+  min-width: 0;
+}
+[data-page='shipping'] .note-headrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+[data-page='shipping'] .note-unread {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex: none;
+}
+[data-page='shipping'] .note-author {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+[data-page='shipping'] .note-meta {
+  font-size: 10.5px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-page='shipping'] .note-body {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.55;
+  margin-top: 3px;
+}
+[data-page='shipping'] .note-foot {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--border);
+}
+[data-page='shipping'] .note-input {
+  flex: 1;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface);
+}
+[data-page='shipping'] .note-input::placeholder {
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .note-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+[data-page='shipping'] .note-ack {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex: none;
+  white-space: nowrap;
+}
+[data-page='shipping'] .note-ack:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+  color: var(--text);
+}
+[data-page='shipping'] .note-ack svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+[data-page='shipping'] .note-ack.is-dealt {
+  background: var(--success-soft);
+  border-color: transparent;
+  color: var(--success);
+}
+[data-page='shipping'] .note-ack.is-dealt:hover {
+  background: #d3efe3;
+}
 
-            /* ---------- Empty state ---------- */
-            [data-page="shipping"] .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px;text-align:center;color:var(--text-muted)}
-            [data-page="shipping"] .empty-ico{width:36px;height:36px;color:var(--text-subtle);margin-bottom:12px}
-            [data-page="shipping"] .empty h3{font-size:14px;color:var(--text);margin-bottom:5px}[data-page="shipping"] .empty p{font-size:12.5px;max-width:380px}
+/* ---------- Empty state ---------- */
+[data-page='shipping'] .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .empty-ico {
+  width: 36px;
+  height: 36px;
+  color: var(--text-subtle);
+  margin-bottom: 12px;
+}
+[data-page='shipping'] .empty h3 {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+[data-page='shipping'] .empty p {
+  font-size: 12.5px;
+  max-width: 380px;
+}
 
-            /* ---------- Schedule modal ---------- */
-            [data-page="shipping"] .sumboxes{display:flex;gap:12px;margin-bottom:16px}
-            [data-page="shipping"] .sumbox{flex:1;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;background:var(--surface-2)}
-            [data-page="shipping"] .sumbox-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600;margin-bottom:8px}
-            [data-page="shipping"] .sumbox-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0}
-            [data-page="shipping"] .sumbox-row b{font-family:var(--font-mono)}
-            [data-page="shipping"] .strow{border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px;display:flex;gap:14px;align-items:stretch}
-            [data-page="shipping"] .strow.over{border-color:var(--warn);background:var(--warn-soft)}
-            [data-page="shipping"] .strow-check{padding-top:4px}
-            [data-page="shipping"] .strow-main{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;align-content:start}
-            [data-page="shipping"] .strow-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600;margin-bottom:3px}
-            [data-page="shipping"] .strow-val{font-size:12.5px}
-            [data-page="shipping"] .strow-notes{width:240px;flex:none;display:flex;flex-direction:column}
-            [data-page="shipping"] .strow-notes textarea{width:100%;flex:1;border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 8px;font-family:inherit;font-size:12px;resize:none;min-height:88px;background:var(--surface)}
-            [data-page="shipping"] .strow-notes textarea:focus{outline:none;border-color:var(--accent)}
-            [data-page="shipping"] .strow-photo{width:64px;height:64px;border:1px dashed var(--border-strong);border-radius:var(--r-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-subtle);font-size:9px;flex:none;text-align:center;line-height:1.3}
-            [data-page="shipping"] .sched-datehint{display:flex;align-items:center;gap:7px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);border-radius:var(--r-md);padding:9px 12px;font-size:12px;margin-bottom:12px}
+/* ---------- Schedule modal ---------- */
+[data-page='shipping'] .sumboxes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+[data-page='shipping'] .sumbox {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+[data-page='shipping'] .sumbox-title {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+[data-page='shipping'] .sumbox-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  padding: 3px 0;
+}
+[data-page='shipping'] .sumbox-row b {
+  font-family: var(--font-mono);
+}
+[data-page='shipping'] .strow {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+[data-page='shipping'] .strow.over {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+[data-page='shipping'] .strow-check {
+  padding-top: 4px;
+}
+[data-page='shipping'] .strow-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+  align-content: start;
+}
+[data-page='shipping'] .strow-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+[data-page='shipping'] .strow-val {
+  font-size: 12.5px;
+}
+[data-page='shipping'] .strow-notes {
+  width: 240px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+[data-page='shipping'] .strow-notes textarea {
+  width: 100%;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  resize: none;
+  min-height: 88px;
+  background: var(--surface);
+}
+[data-page='shipping'] .strow-notes textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+[data-page='shipping'] .strow-photo {
+  width: 64px;
+  height: 64px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-subtle);
+  font-size: 9px;
+  flex: none;
+  text-align: center;
+  line-height: 1.3;
+}
+[data-page='shipping'] .sched-datehint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
 
-            /* ---------- Map / order detail modal ---------- */
-            [data-page="shipping"] .mapd-left{padding:18px 20px;border-right:1px solid var(--border)}
-            [data-page="shipping"] .mapd-right{padding:18px 20px}
-            [data-page="shipping"] .mapd-photo{height:140px;border-radius:var(--r-md);background:linear-gradient(135deg,var(--surface-3),var(--border));display:flex;align-items:center;justify-content:center;color:var(--text-subtle);font-size:11px;margin-bottom:12px;gap:6px}
-            [data-page="shipping"] .mapd-icons{display:flex;gap:8px;margin:12px 0}
-            [data-page="shipping"] .mapd-icon{width:30px;height:30px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;color:var(--text-muted)}
-            [data-page="shipping"] .mapd-thumbs{display:flex;gap:6px}
-            [data-page="shipping"] .mapd-thumb{width:52px;height:38px;border-radius:var(--r-sm);background:var(--surface-3)}
-            [data-page="shipping"] .mapd-mapbox{border-radius:var(--r-md);overflow:hidden;position:relative;background:var(--surface-3)}
-            [data-page="shipping"] #mapd-leaflet{height:240px;width:100%;z-index:0}
-            [data-page="shipping"] .mapd-here{position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+/* ---------- Map / order detail modal ---------- */
+[data-page='shipping'] .mapd-left {
+  padding: 18px 20px;
+  border-right: 1px solid var(--border);
+}
+[data-page='shipping'] .mapd-right {
+  padding: 18px 20px;
+}
+[data-page='shipping'] .mapd-photo {
+  height: 140px;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--surface-3), var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subtle);
+  font-size: 11px;
+  margin-bottom: 12px;
+  gap: 6px;
+}
+[data-page='shipping'] .mapd-icons {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+[data-page='shipping'] .mapd-icon {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+[data-page='shipping'] .mapd-thumbs {
+  display: flex;
+  gap: 6px;
+}
+[data-page='shipping'] .mapd-thumb {
+  width: 52px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+}
+[data-page='shipping'] .mapd-mapbox {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  position: relative;
+  background: var(--surface-3);
+}
+[data-page='shipping'] #mapd-leaflet {
+  height: 240px;
+  width: 100%;
+  z-index: 0;
+}
+[data-page='shipping'] .mapd-here {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-            /* ---------- Route map + drag sequence ---------- */
-            [data-page="shipping"] .route-summary{display:flex;gap:16px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:12px;font-size:12px}
-            [data-page="shipping"] .route-summary b{font-family:var(--font-mono)}
-            [data-page="shipping"] .route-mapbox{border-radius:var(--r-md);overflow:hidden;margin-bottom:14px;border:1px solid var(--border)}
-            [data-page="shipping"] .seq{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);background:var(--surface)}
-            [data-page="shipping"] .seq:last-child{border-bottom:none}
-            [data-page="shipping"] .seq[draggable="true"]{cursor:grab}[data-page="shipping"] .seq.dragging{opacity:.4}
-            [data-page="shipping"] .seq-move{display:flex;flex-direction:column;gap:2px}
-            [data-page="shipping"] .seq-mv{border:1px solid var(--border);background:var(--surface);width:20px;height:20px;border-radius:4px;cursor:pointer;display:grid;place-items:center;color:var(--text-muted); flex:none;}
-            [data-page="shipping"] .seq-mv:hover{background:var(--surface-3)}[data-page="shipping"] .seq-mv:disabled{opacity:.3;cursor:not-allowed}
-            [data-page="shipping"] .stop-seq{width:22px;height:22px;border-radius:50%;background:var(--surface-3);color:var(--text-muted);font-size:10.5px;font-weight:600;display:grid;place-items:center;flex:none;font-family:var(--font-mono)}
-            [data-page="shipping"] .stop-main{min-width:0;flex:1}
-            [data-page="shipping"] .stop-order{font-family:var(--font-mono);font-weight:500;font-size:12px}
-            [data-page="shipping"] .stop-cust{font-size:11.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- Route map + drag sequence ---------- */
+[data-page='shipping'] .route-summary {
+  display: flex;
+  gap: 16px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+[data-page='shipping'] .route-summary b {
+  font-family: var(--font-mono);
+}
+[data-page='shipping'] .route-mapbox {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+[data-page='shipping'] .seq {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+[data-page='shipping'] .seq:last-child {
+  border-bottom: none;
+}
+[data-page='shipping'] .seq[draggable='true'] {
+  cursor: grab;
+}
+[data-page='shipping'] .seq.dragging {
+  opacity: 0.4;
+}
+[data-page='shipping'] .seq-move {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+[data-page='shipping'] .seq-mv {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  flex: none;
+}
+[data-page='shipping'] .seq-mv:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .seq-mv:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+[data-page='shipping'] .stop-seq {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-family: var(--font-mono);
+}
+[data-page='shipping'] .stop-main {
+  min-width: 0;
+  flex: 1;
+}
+[data-page='shipping'] .stop-order {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+}
+[data-page='shipping'] .stop-cust {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-            /* ---------- Truck cards (Scheduled + Loading boards) ---------- */
-            [data-page="shipping"] .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-items:start}
-            [data-page="shipping"] .truck{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column}
-            [data-page="shipping"] .truck.is-expanded{grid-column:1/-1}
-            [data-page="shipping"] .truck.overdue{border-color:var(--danger);background:var(--overdue-soft)}
-            [data-page="shipping"] .truck-head{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:space-between;gap:10px}
-            [data-page="shipping"] .truck-name{font-weight:600;font-size:13.5px}
-            [data-page="shipping"] .truck-plate{font-family:var(--font-mono);font-size:10.5px;color:var(--text-subtle)}
-            [data-page="shipping"] .truck-stats{padding:10px 14px;border-bottom:1px solid var(--border)}
-            [data-page="shipping"] .truck-stats-title{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);font-weight:600;margin-bottom:6px}
-            [data-page="shipping"] .truck-stat-row{display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0}
-            [data-page="shipping"] .truck-stat-ok{color:var(--success);font-weight:600}
-            [data-page="shipping"] .stat-ok-check{color:var(--success);font-weight:700;margin-right:3px}
-            [data-page="shipping"] .truck-cap{padding:9px 14px 11px;border-bottom:1px solid var(--border)}
-            [data-page="shipping"] .truck-cap-head{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--text-muted);margin-bottom:6px}
-            [data-page="shipping"] .weight-bar{height:6px;background:var(--surface-3);border-radius:999px;overflow:hidden}[data-page="shipping"] .weight-bar span{display:block;height:100%;border-radius:999px}
-            [data-page="shipping"] .wb-ok{background:var(--success)}[data-page="shipping"] .wb-over{background:var(--warn)}
-            [data-page="shipping"] .loadpills{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px}
-            [data-page="shipping"] .loadpill{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 8px;font-size:11.5px;cursor:pointer;background:var(--surface);font-family:inherit}
-            [data-page="shipping"] .loadpill.active{border-color:var(--accent);background:var(--accent-soft)}
-            [data-page="shipping"] .loadpill.ghost{border-style:dashed;color:var(--text-subtle);cursor:default}
-            [data-page="shipping"] .loadpill-dot{width:8px;height:8px;border-radius:50%;flex:none}
-            [data-page="shipping"] .ss-dot-unreleased{background:var(--queued)}[data-page="shipping"] .ss-dot-loading{background:var(--pri-by)}
-            [data-page="shipping"] .ss-dot-loaded{background:var(--accent)}[data-page="shipping"] .ss-dot-shipping{background:var(--warn)}[data-page="shipping"] .ss-dot-delivered{background:var(--success)}[data-page="shipping"] .ss-dot-notstarted{background:var(--text-subtle)}
-            [data-page="shipping"] .load-cards{display:flex;flex-direction:column;gap:10px}
-            [data-page="shipping"] .load-card{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
-            [data-page="shipping"] .load-card.overdue{border-color:var(--danger);background:var(--overdue-soft)}
-            [data-page="shipping"] .load-card-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2)}
-            [data-page="shipping"] .load-card-title{font-weight:600;font-size:12.5px}
-            [data-page="shipping"] .load-card-head .toolbar-spacer{flex:1}
+/* ---------- Truck cards (Scheduled + Loading boards) ---------- */
+[data-page='shipping'] .board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+[data-page='shipping'] .truck {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+[data-page='shipping'] .truck.is-expanded {
+  grid-column: 1/-1;
+}
+[data-page='shipping'] .truck.overdue {
+  border-color: var(--danger);
+  background: var(--overdue-soft);
+}
+[data-page='shipping'] .truck-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+[data-page='shipping'] .truck-name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+[data-page='shipping'] .truck-plate {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] .truck-stats {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+[data-page='shipping'] .truck-stats-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+[data-page='shipping'] .truck-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  padding: 2px 0;
+}
+[data-page='shipping'] .truck-stat-ok {
+  color: var(--success);
+  font-weight: 600;
+}
+[data-page='shipping'] .stat-ok-check {
+  color: var(--success);
+  font-weight: 700;
+  margin-right: 3px;
+}
+[data-page='shipping'] .truck-cap {
+  padding: 9px 14px 11px;
+  border-bottom: 1px solid var(--border);
+}
+[data-page='shipping'] .truck-cap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+[data-page='shipping'] .weight-bar {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+[data-page='shipping'] .weight-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+[data-page='shipping'] .wb-ok {
+  background: var(--success);
+}
+[data-page='shipping'] .wb-over {
+  background: var(--warn);
+}
+[data-page='shipping'] .loadpills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+}
+[data-page='shipping'] .loadpill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px 5px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+  background: var(--surface);
+  font-family: inherit;
+}
+[data-page='shipping'] .loadpill.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+[data-page='shipping'] .loadpill.ghost {
+  border-style: dashed;
+  color: var(--text-subtle);
+  cursor: default;
+}
+[data-page='shipping'] .loadpill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+[data-page='shipping'] .ss-dot-unreleased {
+  background: var(--queued);
+}
+[data-page='shipping'] .ss-dot-loading {
+  background: var(--pri-by);
+}
+[data-page='shipping'] .ss-dot-loaded {
+  background: var(--accent);
+}
+[data-page='shipping'] .ss-dot-shipping {
+  background: var(--warn);
+}
+[data-page='shipping'] .ss-dot-delivered {
+  background: var(--success);
+}
+[data-page='shipping'] .ss-dot-notstarted {
+  background: var(--text-subtle);
+}
+[data-page='shipping'] .load-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-page='shipping'] .load-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+[data-page='shipping'] .load-card.overdue {
+  border-color: var(--danger);
+  background: var(--overdue-soft);
+}
+[data-page='shipping'] .load-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+}
+[data-page='shipping'] .load-card-title {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+[data-page='shipping'] .load-card-head .toolbar-spacer {
+  flex: 1;
+}
 
-            /* ---------- Toast ---------- */
-            [data-page="shipping"] .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--r-md);font-size:12.5px;font-weight:500;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:100;display:flex;align-items:center;gap:9px}
-            [data-page="shipping"] .toast.show{opacity:1}[data-page="shipping"] .toast svg{width:14px;height:14px;color:#fff}
-            [data-page="shipping"] .toast.t-success{background:var(--success);color:#fff}
-            [data-page="shipping"] .toast.t-error{background:var(--danger);color:#fff}
-            [data-page="shipping"] .toast.t-warning{background:var(--warn);color:#fff}
-            [data-page="shipping"] .toast.t-info{background:var(--accent);color:#fff}
-            [data-page="shipping"] .toast .toast-ico{width:14px;height:14px;flex:none;color:#fff}
+/* ---------- Toast ---------- */
+[data-page='shipping'] .toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--r-md);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+[data-page='shipping'] .toast.show {
+  opacity: 1;
+}
+[data-page='shipping'] .toast svg {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}
+[data-page='shipping'] .toast.t-success {
+  background: var(--success);
+  color: #fff;
+}
+[data-page='shipping'] .toast.t-error {
+  background: var(--danger);
+  color: #fff;
+}
+[data-page='shipping'] .toast.t-warning {
+  background: var(--warn);
+  color: #fff;
+}
+[data-page='shipping'] .toast.t-info {
+  background: var(--accent);
+  color: #fff;
+}
+[data-page='shipping'] .toast .toast-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: #fff;
+}
 
-            @media (max-width:1024px){[data-page="shipping"] .app{grid-template-columns:1fr}[data-page="shipping"] .sidebar{display:none}}
-        
-            @media (prefers-reduced-motion: reduce) { [data-page="shipping"] *, [data-page="shipping"] *::before, [data-page="shipping"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
-                    /* Desktop table integrity: preserve full cell content and scroll wide grids horizontally. */
-            [data-page="shipping"] .table-wrap{overflow-x:auto}
-            [data-page="shipping"] .table-wrap table.grid{table-layout:auto;min-width:100%}
-            [data-page="shipping"] .table-wrap table.grid th,[data-page="shipping"] .table-wrap table.grid td{overflow:visible}
-            [data-page="shipping"] .table-wrap table.grid .trunc{overflow:visible;text-overflow:clip}
-            /* Keep row expand controls comfortably separated from table edges. */
-            [data-page="shipping"] .table-wrap table.grid td:has(>.chk),[data-page="shipping"] .table-wrap table.grid th.col-chk{min-width:40px;padding-left:0!important;padding-right:0!important;text-align:center}
-            [data-page="shipping"] .table-wrap table.grid td:has(>.expander),[data-page="shipping"] .table-wrap table.grid th.col-exp{min-width:34px;padding-left:0!important;padding-right:0!important;text-align:center}
-            [data-page="shipping"] .table-wrap table.grid td:has(>.chk)>.chk,[data-page="shipping"] .table-wrap table.grid td:has(>.expander)>.expander{margin-inline:auto}
-            [data-page="shipping"] table.grid .expander:hover{background:transparent}
-                    /* Compact desktop density system. */
-            [data-page="shipping"] .topbar{height:40px;padding-left:14px;padding-right:14px;gap:10px}
-            [data-page="shipping"] .content{padding-top:8px;padding-left:12px;padding-right:12px}
-            [data-page="shipping"] .tabs{gap:1px}
-            [data-page="shipping"] .tab{padding:4px 9px;gap:5px;min-height:30px}
-            [data-page="shipping"] .toolbar{gap:6px;margin-bottom:6px}
-            [data-page="shipping"] .page-head,[data-page="shipping"] .view-head,[data-page="shipping"] .section-head{margin-bottom:6px}
-            [data-page="shipping"] .kpi-grid,[data-page="shipping"] .stats-grid,[data-page="shipping"] .cards-grid,[data-page="shipping"] .dept-grid{gap:8px}
-            [data-page="shipping"] .table-wrap table.grid th{padding:4px 10px!important}
-            [data-page="shipping"] .table-wrap table.grid td{padding-top:6px!important;padding-bottom:6px!important;padding-left:10px!important;padding-right:10px!important}
-            [data-page="shipping"] .table-wrap table.grid .expander{height:22px}
-            [data-page="shipping"] .table-wrap table.grid .pri{padding-top:2px!important;padding-bottom:2px!important}
-            [data-page="shipping"] .status,[data-page="shipping"] .chip,[data-page="shipping"] .pri,[data-page="shipping"] .dept-chip,[data-page="shipping"] .lock-tag,[data-page="shipping"] .load-num-pill,[data-page="shipping"] .rework-badge{text-transform:uppercase;letter-spacing:.04em}
-            [data-page="shipping"] table.sub th{padding:3px 7px!important}
-            [data-page="shipping"] table.sub td{padding:2px 7px!important}
-            [data-page="shipping"] table.sub .btn{height:26px;padding-left:8px;padding-right:8px}
-            [data-page="shipping"] table.sub .field-input,[data-page="shipping"] table.sub .pack-input{height:26px}
-            [data-page="shipping"] table.sub .note-btn{width:26px;min-height:26px;height:26px}
-            [data-page="shipping"] table.sub .pkg-qty-btn{min-height:26px;padding:2px 8px}
-            [data-page="shipping"] table.stock-edit th,[data-page="shipping"] table.pkg-table th{padding:5px 8px!important}
-            [data-page="shipping"] table.stock-edit td,[data-page="shipping"] table.pkg-table td{padding:5px 8px!important}
-            [data-page="shipping"] .table-wrap .note-btn,[data-page="shipping"] .table-wrap .icon-btn{min-height:24px;height:24px}
-            [data-page="shipping"] .btn{height:30px}
-            [data-page="shipping"] .icon-btn{width:30px;height:30px}
-            [data-page="shipping"] .search,[data-page="shipping"] .input,[data-page="shipping"] .field-input,[data-page="shipping"] .field-btn,[data-page="shipping"] .due-filter,[data-page="shipping"] .select-btn{height:32px}
-            [data-page="shipping"] .empty{padding-top:16px;padding-bottom:16px}
+@media (max-width: 1024px) {
+  [data-page='shipping'] .app {
+    grid-template-columns: 1fr;
+  }
+  [data-page='shipping'] .sidebar {
+    display: none;
+  }
+}
 
-            /* ---------- Shipping map (Leaflet) ---------- */
-            [data-page="shipping"] .mapview-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
-            [data-page="shipping"] .mapview-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface-2)}
-            [data-page="shipping"] .mapview-bar-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subtle);font-weight:600;margin-right:2px}
-            [data-page="shipping"] .map-filter{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;font-family:inherit}
-            [data-page="shipping"] .map-filter:hover{background:var(--surface-3)}
-            [data-page="shipping"] .map-filter.off{opacity:.4}
-            [data-page="shipping"] .map-filter-dot{width:9px;height:9px;border-radius:50%;flex:none}
-            [data-page="shipping"] .map-filter-count{font-family:var(--font-mono);font-size:10.5px;color:var(--text-subtle)}
-            [data-page="shipping"] #ship-map{width:100%;height:calc(100vh - 210px);min-height:420px;background:var(--surface-3);z-index:0}
-            [data-page="shipping"] .mappin{width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(20,24,31,.45)}
-            [data-page="shipping"] .mappin-wh{width:20px;height:20px;border-radius:4px;border:2px solid #fff;background:var(--text);box-shadow:0 1px 4px rgba(20,24,31,.45);display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700}
-            [data-page="shipping"] .cat-unscheduled{background:var(--text-subtle)}
-            [data-page="shipping"] .cat-scheduled{background:var(--accent)}
-            [data-page="shipping"] .cat-loading{background:var(--pri-by)}
-            [data-page="shipping"] .cat-shipping{background:var(--warn)}
-            [data-page="shipping"] .cat-delivered{background:var(--success)}
-            [data-page="shipping"] .cat-pickup{background:#7c3aed}
-            [data-page="shipping"] .map-pop{font-family:var(--font-ui);min-width:180px}
-            [data-page="shipping"] .map-pop-order{font-family:var(--font-mono);font-weight:600;font-size:12.5px;color:var(--text)}
-            [data-page="shipping"] .map-pop-cust{font-size:12px;color:var(--text);margin-top:1px}
-            [data-page="shipping"] .map-pop-row{font-size:11.5px;color:var(--text-muted);margin-top:4px}
-            [data-page="shipping"] .map-pop-stat{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;margin-top:6px}
-            [data-page="shipping"] .leaflet-popup-content{margin:10px 12px}
-        
+@media (prefers-reduced-motion: reduce) {
+  [data-page='shipping'] *,
+  [data-page='shipping'] *::before,
+  [data-page='shipping'] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Desktop table integrity: preserve full cell content and scroll wide grids horizontally. */
+[data-page='shipping'] .table-wrap {
+  overflow-x: auto;
+}
+[data-page='shipping'] .table-wrap table.grid {
+  table-layout: auto;
+  min-width: 100%;
+}
+[data-page='shipping'] .table-wrap table.grid th,
+[data-page='shipping'] .table-wrap table.grid td {
+  overflow: visible;
+}
+[data-page='shipping'] .table-wrap table.grid .trunc {
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Keep row expand controls comfortably separated from table edges. */
+[data-page='shipping'] .table-wrap table.grid td:has(> .chk),
+[data-page='shipping'] .table-wrap table.grid th.col-chk {
+  min-width: 40px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center;
+}
+[data-page='shipping'] .table-wrap table.grid td:has(> .expander),
+[data-page='shipping'] .table-wrap table.grid th.col-exp {
+  min-width: 34px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center;
+}
+[data-page='shipping'] .table-wrap table.grid td:has(> .chk) > .chk,
+[data-page='shipping'] .table-wrap table.grid td:has(> .expander) > .expander {
+  margin-inline: auto;
+}
+[data-page='shipping'] table.grid .expander:hover {
+  background: transparent;
+}
+/* Compact desktop density system. */
+[data-page='shipping'] .topbar {
+  height: 40px;
+  padding-left: 14px;
+  padding-right: 14px;
+  gap: 10px;
+}
+[data-page='shipping'] .content {
+  padding-top: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+[data-page='shipping'] .tabs {
+  gap: 1px;
+}
+[data-page='shipping'] .tab {
+  padding: 4px 9px;
+  gap: 5px;
+  min-height: 30px;
+}
+[data-page='shipping'] .toolbar {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+[data-page='shipping'] .page-head,
+[data-page='shipping'] .view-head,
+[data-page='shipping'] .section-head {
+  margin-bottom: 6px;
+}
+[data-page='shipping'] .kpi-grid,
+[data-page='shipping'] .stats-grid,
+[data-page='shipping'] .cards-grid,
+[data-page='shipping'] .dept-grid {
+  gap: 8px;
+}
+[data-page='shipping'] .table-wrap table.grid th {
+  padding: 4px 10px !important;
+}
+[data-page='shipping'] .table-wrap table.grid td {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+[data-page='shipping'] .table-wrap table.grid .expander {
+  height: 22px;
+}
+[data-page='shipping'] .table-wrap table.grid .pri {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+[data-page='shipping'] .status,
+[data-page='shipping'] .chip,
+[data-page='shipping'] .pri,
+[data-page='shipping'] .dept-chip,
+[data-page='shipping'] .lock-tag,
+[data-page='shipping'] .load-num-pill,
+[data-page='shipping'] .rework-badge {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-page='shipping'] table.sub th {
+  padding: 3px 7px !important;
+}
+[data-page='shipping'] table.sub td {
+  padding: 2px 7px !important;
+}
+[data-page='shipping'] table.sub .btn {
+  height: 26px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+[data-page='shipping'] table.sub .field-input,
+[data-page='shipping'] table.sub .pack-input {
+  height: 26px;
+}
+[data-page='shipping'] table.sub .note-btn {
+  width: 26px;
+  min-height: 26px;
+  height: 26px;
+}
+[data-page='shipping'] table.sub .pkg-qty-btn {
+  min-height: 26px;
+  padding: 2px 8px;
+}
+[data-page='shipping'] table.stock-edit th,
+[data-page='shipping'] table.pkg-table th {
+  padding: 5px 8px !important;
+}
+[data-page='shipping'] table.stock-edit td,
+[data-page='shipping'] table.pkg-table td {
+  padding: 5px 8px !important;
+}
+[data-page='shipping'] .table-wrap .note-btn,
+[data-page='shipping'] .table-wrap .icon-btn {
+  min-height: 24px;
+  height: 24px;
+}
+[data-page='shipping'] .btn {
+  height: 30px;
+}
+[data-page='shipping'] .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+[data-page='shipping'] .search,
+[data-page='shipping'] .input,
+[data-page='shipping'] .field-input,
+[data-page='shipping'] .field-btn,
+[data-page='shipping'] .due-filter,
+[data-page='shipping'] .select-btn {
+  height: 32px;
+}
+[data-page='shipping'] .empty {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
 
-            [data-page="shipping"] .wl-role-fab { position: fixed; bottom: 16px; right: 16px; z-index: 45; display: flex; align-items: center; gap: 9px; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow-md); padding: 6px 8px 6px 14px; }
-            [data-page="shipping"] .wl-role-fab-label { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; }
-            [data-page="shipping"] .role-switch-btn { display: flex; align-items: center; gap: 8px; padding: 6px 11px; border: 1px solid var(--border); background: var(--surface); border-radius: 20px; font-family: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; }
-            [data-page="shipping"] .role-switch-btn:hover { background: var(--surface-3); }
-            [data-page="shipping"] .role-switch-caret { width: 14px; height: 14px; color: var(--text-subtle); flex: none; }
-            [data-page="shipping"] .wl-role-menu { position: fixed; z-index: 200; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 5px; min-width: 240px; }
-            [data-page="shipping"] .wl-role-opt { display: block; width: 100%; text-align: left; padding: 8px 14px; border: none; background: none; color: var(--text); border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
-            [data-page="shipping"] .wl-role-opt:hover { background: var(--surface-3); }
-            [data-page="shipping"] .wl-role-opt.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-            [data-page="shipping"] .wl-role-head { padding: 7px 9px 3px 9px; font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--text-subtle); font-weight: 600; }
-            [data-page="shipping"] .wl-role-divider { height: 1px; background: var(--border); margin: 4px 2px; }
-            [data-page="shipping"] .wl-role-danger { color: var(--danger); }
-            [data-page="shipping"] .wl-role-danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
-        
+/* ---------- Shipping map (Leaflet) ---------- */
+[data-page='shipping'] .mapview-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+[data-page='shipping'] .mapview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+[data-page='shipping'] .mapview-bar-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
+  font-weight: 600;
+  margin-right: 2px;
+}
+[data-page='shipping'] .map-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+[data-page='shipping'] .map-filter:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .map-filter.off {
+  opacity: 0.4;
+}
+[data-page='shipping'] .map-filter-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+[data-page='shipping'] .map-filter-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-subtle);
+}
+[data-page='shipping'] #ship-map {
+  width: 100%;
+  height: calc(100vh - 210px);
+  min-height: 420px;
+  background: var(--surface-3);
+  z-index: 0;
+}
+[data-page='shipping'] .mappin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(20, 24, 31, 0.45);
+}
+[data-page='shipping'] .mappin-wh {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #fff;
+  background: var(--text);
+  box-shadow: 0 1px 4px rgba(20, 24, 31, 0.45);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+[data-page='shipping'] .cat-unscheduled {
+  background: var(--text-subtle);
+}
+[data-page='shipping'] .cat-scheduled {
+  background: var(--accent);
+}
+[data-page='shipping'] .cat-loading {
+  background: var(--pri-by);
+}
+[data-page='shipping'] .cat-shipping {
+  background: var(--warn);
+}
+[data-page='shipping'] .cat-delivered {
+  background: var(--success);
+}
+[data-page='shipping'] .cat-pickup {
+  background: #7c3aed;
+}
+[data-page='shipping'] .map-pop {
+  font-family: var(--font-ui);
+  min-width: 180px;
+}
+[data-page='shipping'] .map-pop-order {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+}
+[data-page='shipping'] .map-pop-cust {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 1px;
+}
+[data-page='shipping'] .map-pop-row {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+[data-page='shipping'] .map-pop-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+[data-page='shipping'] .leaflet-popup-content {
+  margin: 10px 12px;
+}
+
+[data-page='shipping'] .wl-role-fab {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+  padding: 6px 8px 6px 14px;
+}
+[data-page='shipping'] .wl-role-fab-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+[data-page='shipping'] .role-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+[data-page='shipping'] .role-switch-btn:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .role-switch-caret {
+  width: 14px;
+  height: 14px;
+  color: var(--text-subtle);
+  flex: none;
+}
+[data-page='shipping'] .wl-role-menu {
+  position: fixed;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: 5px;
+  min-width: 240px;
+}
+[data-page='shipping'] .wl-role-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+[data-page='shipping'] .wl-role-opt:hover {
+  background: var(--surface-3);
+}
+[data-page='shipping'] .wl-role-opt.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+[data-page='shipping'] .wl-role-head {
+  padding: 7px 9px 3px 9px;
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+[data-page='shipping'] .wl-role-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
+[data-page='shipping'] .wl-role-danger {
+  color: var(--danger);
+}
+[data-page='shipping'] .wl-role-danger:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}

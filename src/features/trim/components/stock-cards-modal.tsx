@@ -29,7 +29,11 @@ export const StockCardsModal = ({ open, onClose }: { open: boolean; onClose: () 
 
   return (
     <Overlay id='overlay-stockcards' comment='overlay-stockcards' open={open} onClose={onClose}>
-      <div className='modal stockcards-modal' data-comment='stockcards-modal' data-component='dialog'>
+      <div
+        className='modal stockcards-modal'
+        data-comment='stockcards-modal'
+        data-component='dialog'
+      >
         <ModalHead
           comment='stockcards-head'
           titleComment='stockcards-title'

@@ -87,7 +87,9 @@ const LotCells = ({ coil, prefix }: { coil: Coil; prefix: string }) => (
         disabled={!rfEligible(coil)}
         onChange={() => requestCoilLocation(coil, 'locRollforming')}
         title={
-          rfEligible(coil) ? undefined : 'Coil is mounted in the Slinet — take it off the Slinet first'
+          rfEligible(coil)
+            ? undefined
+            : 'Coil is mounted in the Slinet — take it off the Slinet first'
         }
       />
     </td>
@@ -182,7 +184,7 @@ const CoilLots = ({ group, index }: { group: CoilGroup; index: number }) => (
  */
 const AllCoilsFlat = ({ coils }: { coils: Coil[] }) => (
   <div className='table-wrap' data-comment='coils-flat-wrap'>
-    <table className='coils-grid grid coil-lots' data-comment='coils-flat-table'>
+    <table className='coils-grid coil-lots grid' data-comment='coils-flat-table'>
       <thead>
         <tr>
           <th rowSpan={2} style={{ width: '130px' }}>

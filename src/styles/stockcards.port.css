@@ -12,16 +12,16 @@
    coming after it. */
 
 /* #217: a Product ID that EBMS will not accept — underlined, not blocked from being typed */
-[data-page="stockcards"] .input.is-invalid,
-.wl-stockcards-host[data-page="stockcards"] .input.is-invalid {
-    border-color: var(--danger);
-    box-shadow: inset 0 -2px 0 var(--danger);
+[data-page='stockcards'] .input.is-invalid,
+.wl-stockcards-host[data-page='stockcards'] .input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: inset 0 -2px 0 var(--danger);
 }
-[data-page="stockcards"] .input.is-invalid:focus,
-.wl-stockcards-host[data-page="stockcards"] .input.is-invalid:focus {
-    border-color: var(--danger);
+[data-page='stockcards'] .input.is-invalid:focus,
+.wl-stockcards-host[data-page='stockcards'] .input.is-invalid:focus {
+  border-color: var(--danger);
 }
-[data-page="stockcards"] .field-help.is-invalid,
-.wl-stockcards-host[data-page="stockcards"] .field-help.is-invalid {
-    color: var(--danger);
+[data-page='stockcards'] .field-help.is-invalid,
+.wl-stockcards-host[data-page='stockcards'] .field-help.is-invalid {
+  color: var(--danger);
 }

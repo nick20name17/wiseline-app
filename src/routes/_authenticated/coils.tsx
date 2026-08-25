@@ -471,7 +471,7 @@ const FlatCoils = ({
   onAdjust: (id: Coil['id'], field?: CoilAdjustField) => void
 }) => (
   <div className='table-wrap' data-comment='coils-flat-wrap'>
-    <table className='grid coil-flat' data-comment='coils-flat-table' data-component='table'>
+    <table className='coil-flat grid' data-comment='coils-flat-table' data-component='table'>
       <thead>
         <tr>
           <th rowSpan={2} style={{ width: '130px' }}>

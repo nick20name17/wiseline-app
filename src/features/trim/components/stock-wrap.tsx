@@ -131,9 +131,7 @@ export const StockWrapWindow = ({ order }: { order: Order }) => {
                           data-comment={`swrap-wrapbtn-${key}`}
                           disabled={!bent}
                           title={
-                            bent
-                              ? 'Enter what has been wrapped'
-                              : 'Available once the line is Bent'
+                            bent ? 'Enter what has been wrapped' : 'Available once the line is Bent'
                           }
                           onClick={() =>
                             openPad({ kind: 'wrap', orderId: order.id, lineId: item.id })

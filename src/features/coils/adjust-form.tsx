@@ -141,7 +141,11 @@ export const CoilAdjustFields = ({
   <>
     <div className='cadj-row' data-comment={`${anchors.prefix}-row-main`}>
       {FIELDS.map(field => (
-        <label className='cadj-field' key={field.key} data-comment={`${anchors.prefix}-field-${field.key}`}>
+        <label
+          className='cadj-field'
+          key={field.key}
+          data-comment={`${anchors.prefix}-field-${field.key}`}
+        >
           <span className='cadj-label'>{field.label}:</span>
           <input
             type='number'
