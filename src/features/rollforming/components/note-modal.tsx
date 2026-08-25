@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, SendHorizontal, X } from 'lucide-react'
+import { Check, SendHorizontal } from 'lucide-react'
 
 import { useStore } from '@/store/create-store'
 
@@ -99,14 +99,6 @@ export const NoteModal = ({ ctx, onClose }: { ctx: NoteCtx | null; onClose: () =
                       </span>
                     ) : (
                       <span className='note-actions' data-comment={`note-actions-${index}`}>
-                        <button
-                          className='note-act dismiss'
-                          data-comment={`note-dismiss-${index}`}
-                          title='Leave unread'
-                          onClick={onClose}
-                        >
-                          <X style={{ width: '14px', height: '14px' }} />
-                        </button>
                         <button
                           className='note-act ack'
                           data-comment={`note-ack-${index}`}
