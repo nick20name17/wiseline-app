@@ -10,6 +10,16 @@ import type { Cutlist, LineItem, Order, Reman } from './types'
  * still take, and how much work a day is really holding — and the answers have to be the same
  * everywhere they are asked. So they are here, once, and the store, the selectors and the cells all
  * read them from here.
+ *
+ * Two of #28's questions were answered by *not* building anything, and are recorded here so the gap is
+ * a decision rather than an oversight:
+ *
+ * - Cancelling a request — a qty typed by mistake, or on the wrong line — «I'm not sure how we should
+ *   cancel a Remanufacture, maybe we can add that in after.» So a request is still one-way, and the
+ *   only guard against a mistake is `remanRoom` refusing more than the line has.
+ * - The Slinet raising one of its own: «The Slinet does not need to request remanufacturing.» Its
+ *   column stays Recut — what it owes on someone else's request — and every request keeps coming from
+ *   a machine or from Wrapping, which is what `Reman['source']` is allowed to be.
  */
 
 /**
@@ -38,7 +48,9 @@ export const remanOrdered = (reman: Reman, item?: LineItem | null) =>
  * the Slinet really did cut each of them. `shown` is what the cell prints — owed while anything is
  * owed, and once nothing is, the lifetime count that the green cell stands for.
  */
-export const lineRemanSummary = (lineRemans: Reman[]) => {
+export type RemanSummary = { owed: number; remade: number; shown: number }
+
+export const lineRemanSummary = (lineRemans: Reman[]): RemanSummary => {
   const byId = new Map(lineRemans.map(reman => [reman.id, reman]))
 
   const insideAnOpenRequest = (reman: Reman) => {
@@ -58,8 +70,24 @@ export const lineRemanSummary = (lineRemans: Reman[]) => {
   return { owed, remade, shown: owed || remade }
 }
 
+/**
+ * (883, 656) / (848, 677): the row of a line under remanufacture, orange while a request is open and
+ * green once the machine has the pieces back. Empty for a line no request was ever raised on. Overdue
+ * outranks it, and does so in the stylesheet — see the rule beside these classes in `home.css`.
+ */
+export const remanRowClass = ({ owed, remade }: RemanSummary) =>
+  owed ? 'row-reman' : remade ? 'row-reman-done' : ''
+
 export const lineRemansOf = (remans: Reman[], orderId: number, lineId: number) =>
   remans.filter(reman => reman.orderId === orderId && reman.lineId === lineId)
+
+/** What one line owes and has remade — the walk every screen would otherwise write out itself. */
+export const lineRemanSummaryOf = (remans: Reman[], orderId: number, lineId: number) =>
+  lineRemanSummary(lineRemansOf(remans, orderId, lineId))
+
+/** Whether anything on the order is still waiting to come back from a machine. */
+export const orderOwesReman = (remans: Reman[], order: Order) =>
+  order.lineItems.some(item => lineRemanSummaryOf(remans, order.id, item.id).owed > 0)
 
 /**
  * The most a keypad may take, and the same number `addReman` refuses to exceed.

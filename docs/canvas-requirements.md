@@ -10,7 +10,7 @@ what the canvas says» stops being answered from memory.
 Legend: `[ ]` unverified · `[x]` verified against the running app · `[!]` verified as broken, with the
 thread or commit that carries it.
 
-## Page 1 — Trim (217 requirements)
+## Page 1 — Trim (222 requirements)
 
 - [ ] (488, 58) Priorities need to be department (category) specific. Each department (category) needs to be able to create their own Priorities. When a Priority is assigned to an order in a department (category), it should only assign that Priority to that order within that department (category). For example, if the Trim department (category) assigns a “By 10:00” Priority to an order, that should only affect the trims on that order. It should not assign that Priority to any of the other line items and departments (categories).
 - [ ] (663, 59) Second you would have to create a Location Type
@@ -132,7 +132,7 @@ thread or commit that carries it.
 - [ ] (861, 440) If you try to “Create &amp; Print” when the potential package will cause the Location to be over the weight limit, you will get a pop up asking if you want to continue and go over the Location weight limit. If you disagree, then you will need to chose another Location to be able to Create &amp; Print.
 - [ ] (149, 442) The check boxes to select orders to Release To Production should only become available if the order is checked as reviewed.
 - [ ] (292, 445) If the number entered to come from stock is less than the Qty Ordered, then the Status needs to remain blank because the remaining amount still needs to be manufactured.
-- [ ] (608, 446) When a Remanufacture Request is made from the Wrapping tab, then a new bendlist for that line item is created and sent to the appropriate Machine. The Remanufacture column in the new bendlist needs to then be orange and show the qty. that needs to be remanufactured.
+- [x] (608, 446) When a Remanufacture Request is made from the Wrapping tab, then a new bendlist for that line item is created and sent to the appropriate Machine. The Remanufacture column in the new bendlist needs to then be orange and show the qty. that needs to be remanufactured. _(verified: live 2026-08-25 (#28) — the request lands on the line's own machine, orange with the qty)_
 - [ ] (292, 449) If the number entered to come from stock is equal to the Qty Ordered, then the Status needs to automatically update to Stock.
 - [ ] (512, 450) Clicking the Apply button when the Coil Thickness has been entered as “0” would give you this pop up
 - [ ] (477, 451) Clicking the Apply button would give you this pop up
@@ -147,6 +147,7 @@ thread or commit that carries it.
 - [ ] (127, 467) If the Manager selects a Stock Order to Release To Production, then all the Customer Order check boxes need to become unavailable even if they have been Reviewed.
 - [ ] (168, 468) If the Manager selects a Customer Order to Release To Production, then any Stock Order check boxes need to become unavailable even if they have been Reviewed.
 - [ ] (502, 469) From here the Worker would have to put another coil into the Slinet and check off that it is in the Slinet to be able to continue working on this cutlist.
+- [x] (677, 470) Clicking in the Remanufacture column open a keypad. _(verified: code 2026-08-25 (#28))_
 - [ ] (950, 475) If a worker wants to remove all the Locations from an order, then the worker needs to be forced to select a new Location. An order with existing packages HAS to have a Location.
 - [ ] (291, 478) The Release To Production button should only become available when you have selected at least one order.
 - [ ] (852, 480) If something was packaged wrong, then we need to be able to delete that package and repackage the items that were in it.
@@ -161,19 +162,20 @@ thread or commit that carries it.
 - [ ] (278, 491) This would show the totals that have been assigned to each Machine.
 - [ ] (293, 492) Once an order(s) has been Released To Production, the check box needs to change to a released icon and the Status should change to Not Started.
 - [ ] (697, 492) Changing the amount being pulled from stock shouldn’t make any different in regards to manufacturing batches. The manufacturing batch should only be created and push back to EBMS once all the line items have been wrapped and the Worker clicks the Order Complete button. To create the manufacturing batch it just needs to look at the Qty ordered minus the amount that has been pulled from stock and then manufacture the difference between those 2 numbers. This way it makes no difference who or how many times the number being pulled from stock changes, as long as it’s the right number when the order is completed.
-- [ ] (647, 494) This needs to create a new cutlist that inherits the same Production Date, Gauge/Colour, Priority and Machine as was assigned to this line item. This is then sent to the Slinet.
+- [x] (647, 494) This needs to create a new cutlist that inherits the same Production Date, Gauge/Colour, Priority and Machine as was assigned to this line item. This is then sent to the Slinet. _(verified: code 2026-08-25 (#28))_
 - [ ] (840, 494) Clicking the Delete button would give you this pop up
-- [ ] (668, 495) Enter the amount that needs to be Remanufactured
-- [ ] (686, 501) It should display the quantity that was requested in the Remanufature column.
+- [x] (668, 495) Enter the amount that needs to be Remanufactured _(verified: code 2026-08-25 (#28))_
+- [x] (686, 501) It should display the quantity that was requested in the Remanufature column. _(verified: code 2026-08-25 (#28))_
+- [x] (612, 501) Marking it as Complete will change the Remanufacture column to green in the Wrapping tab. _(verified: live 2026-08-25 (#28))_
 - [ ] (937, 501) Overdue trims to be wrapped need to be highlighted.
 - [ ] (937, 503) Example: If it is Thursday, May 09/2024 and there are trims from Wednesday, May 08/2024 that are not wrapped yet, then we need those Wednesday trims to be highlighted as overdue.
 - [ ] (289, 505) The order Status should remain Not Started until at least one trim on that order has the Status of Cut, Bent or Wrapped. Then, the Status should change to In Progress and remain In Progress until all trims on that order have the Status of Wrapped. This means that if a trim has Stock as its Status, the order Status will remain Not Started until that trim’s Status is changed to Wrapped or another trim on that order is marked as Cut, Bent or Wrapped.
 - [ ] (335, 505) If an order has NOT been Release To Production yet, we need to be able to reschedule it to another day or unschedule that order.
-- [ ] (879, 506) Once the Left To Wrap column is ALL zeros, then the Order Complete button becomes available.
+- [x] (879, 506) Once the Left To Wrap column is ALL zeros, then the Order Complete button becomes available. _(verified: code 2026-08-25 (#28) — plus the remanufacture Kevin added to the gate when he answered question 4: a request raised on pieces already wrapped leaves Left To Wrap at zero, so the column alone would let the batch go to EBMS short)_
 - [ ] (326, 507) As soon as a Trim Location has been added to an order it should display it here.
 - [ ] (245, 508) The Stock numbers ONLY come from Stock Orders, when the Manager creates an order to manufacture Stock.
 - [ ] (703, 509) The Qty To Manufacture column would also need to automatically be updated.
-- [ ] (686, 514) It should be highlighted in orange until it has been marked as Cut (Complete) by the Slinet. After is has been marked as Cut, then it should be highlighted in green.
+- [x] (686, 514) It should be highlighted in orange until it has been marked as Cut (Complete) by the Slinet. After is has been marked as Cut, then it should be highlighted in green. _(verified: code 2026-08-25 (#28) — the reman bendlist head greens on the Slinet's recut)_
 - [ ] (499, 515) Clicking Yes will remove the entire cutlist from the Slinet tab. It will remain available within the Completed Cutlists tab for the next 90 days. It should keep the same formatting.
 - [x] (754, 517) Once a Manufacturing Batch has been created for ALL of the rows, then the Stock line items would automatically disappear out of the Wrapping window and this Stock Order would move to the Completed Orders tab. _(verified: live 2026-08-18 (#29))_
 - [ ] (899, 521) Clicking the Complete Order button would give you this pop up
@@ -181,6 +183,7 @@ thread or commit that carries it.
 - [ ] (343, 526) Here you would be able to reschedule the order to another day or unschedule that order. If you unschedule the order then it disappears from the scheduled tab and reappears in the unscheduled tab like a new order again. Rescheduling and Unscheduling an order also resets any edits that the Manager had already made to the order.
 - [ ] (835, 528) Deleting a package will make that package number invalid, if anyone tries to scan the bar code on the deleted label will need to get a messge that this package has been deleted.
 - [ ] (508, 531) Example: If it is Thursday, May 09/2024 and there are cutlists from Wednesday, May 08/2024 that are not complete yet, then we need those Wednesday cutlists to be highlighted as overdue.
+- [x] (655, 535) This is the new bendlist with the line item that had a Remanufacture quantity attached to it. _(verified: live 2026-08-25 (#28))_
 - [ ] (911, 535) This would cause the web app to create a manufacturing batch and push it back into EBMS. To create the manufacturing batch it just needs to look at the Qty ordered minus the amount that has been pulled from stock and then manufacture the difference between those 2 numbers. This way it makes no difference who or how many times the number being pulled from stock changes, as long as it’s the right number when the order is completed.
 - [ ] (808, 536) If the line item that was in the deleted package had a Status of Wrapped already, then after deleting, that Status would have to change back to Bent again. If the Qty Ordered column and Stock column are equal, then it would have to change back to Stock.
 - [ ] (293, 540) Whenever there is an order that is overdue, the day tab that has that order should be highlighted in red. Also, the calendar should be highlighted in red.
@@ -193,33 +196,35 @@ thread or commit that carries it.
 - [ ] (371, 554) This list would show all the trims that are assigned to come from Stock that have NOT been Wrapped yet. As soon as an order has been marked as Reviewed, then any number that is in the Stock column and NOT Wrapped yet what show up here in this list. It would show a combined total for the Product ID that has been assigned to be pulled from Stock across all orders that have the Reviewed column toggled “on”.
 - [ ] (293, 555) When you click on the day that has overdue orders within it, then you would see the orders that are overdue highlighted in red.
 - [ ] (371, 560) This needs to be a live report, as more orders are marked as Reviewed and have trims assigned as coming from stock then the numbers need to update. Like wise as trims are being Wrapped, then numbers also need to update. It would only update from the Wrapping tab when a line item gets the Status of Wrapped.
-- [ ] (445, 561) This is the new Remanufacture cutlist from Wrapping. Opening it shows just what needs to be Remanufactured.
-- [ ] (487, 562) This is the new Remanufacture cutlist from one of the Machines. Opening it shows just what needs to be Remanufactured.
+- [x] (445, 561) This is the new Remanufacture cutlist from Wrapping. Opening it shows just what needs to be Remanufactured. _(verified: code 2026-08-25 (#28))_
+- [x] (487, 562) This is the new Remanufacture cutlist from one of the Machines. Opening it shows just what needs to be Remanufactured. _(verified: code 2026-08-25 (#28))_
 - [ ] (253, 563) When you expand the order, the Vented and Machine columns would say N/A and the line item Status would be Bypassed.
 - [ ] (326, 569) If there are overdue orders for a day that is not displayed in the week tabs then you should still see the highlighted calendar.
 - [ ] (878, 571) Within the Completed Orders tab we need to be able to see a list of the line items ordered and how many were pulled from stock. We also need a list of the packages that were created for this order and what was put into each package.
 - [ ] (326, 574) The date that has the overdue order should be highlighted in red within the calendar.
 - [ ] (912, 576) Within the Completed Orders tab we need to be able to reprint package labels and change/add/remove locations if necessary.
 - [ ] (252, 578) The Status would stay Bypassed until a Worker wraps the trim, then it would change to Wrapped.
-- [ ] (478, 586) Once the Worker marks the material as Complete, then the Recut column changes to green and the Done button becomes available.
-- [ ] (478, 590) Marking it as Complete will also change the Remanufacture column to green in the Machine tab but leave the Remanufacture column in the Wrapping tab as orange. The Remanufacture column in the Wrapping tab should only change to green once the Machine has marked it as Bent (Complete).
-- [ ] (850, 600) If a worker damages a piece, he needs to be able to request for is to be remanufactured in the Remanufature column.
+- [x] (478, 586) Once the Worker marks the material as Complete, then the Recut column changes to green and the Done button becomes available. _(verified: code 2026-08-25 (#28))_
+- [x] (478, 590) Marking it as Complete will also change the Remanufacture column to green in the Machine tab but leave the Remanufacture column in the Wrapping tab as orange. The Remanufacture column in the Wrapping tab should only change to green once the Machine has marked it as Bent (Complete). _(verified: code 2026-08-25 (#28); the Wrapping half live the same day)_
+- [x] (850, 600) If a worker damages a piece, he needs to be able to request for is to be remanufactured in the Remanufature column. _(verified: live 2026-08-25 (#28))_
 - [ ] (326, 609) Within the drop down you would see all the lots that are in EBMS.
 - [ ] (220, 610) We will need all these fields under the Production tab in EBMS.
 - [x] (287, 612) Here you would enter the range of Thickness, Width and Grade of coils that you want to be able to see in this Coil tab. You can also click the Apply All check box which would make the range limitless. _(verified: code 2026-08-18 (#5))_
 - [x] (350, 616) When a new coil is entered into EBMS, then that coil needs to appear in the App. The Linear Feet (main unit in EBMS) for that coil would be pushed into the App from Ebms. The Weight would be calculated off of the Linear Feet. The Coil Thickness would be blank until someone inputs and applies all the needed parameters. The Location and Slinet check boxes would also be blank (unchecked). _(verified: data 2026-08-18 (#5) — seed carries a coil in exactly that state)_
 - [x] (253, 624) When any one or more coils within a folder in EBMS qualify to show up in this Coils tab, then a folder tab needs to appear with the same title as the folder that the coil is in within EBMS. _(verified: code 2026-08-18 (#5))_
 - [x] (307, 624) Clicking in any of these 3 columns would open this window _(verified: live 2026-08-18 (#5))_
-- [ ] (851, 624) Should only be able to enter a number between 1 and the Qty Ordered.
+- [x] (871, 615) Clicking in the Remanufacture column opens a keypad. _(verified: code 2026-08-25 (#28))_
+- [x] (851, 624) Should only be able to enter a number between 1 and the Qty Ordered. _(verified: code 2026-08-25 (#28) — 1 to Qty Ordered less what open requests already owe: a line that owed more pieces than it has could never be wrapped, and so never completed)_
 - [x] (292, 630) We need to be able to enter either the Coil Thickness or Linear Feet or Weight and the others would auto adjust but only if the Material Thickness and Core OD are filled in. _(verified: live 2026-08-18 (#5))_
 - [ ] (253, 631) The Color and Width entered in the Production tab in EBMS would be what would appear in the Color and Width columns.
+- [x] (848, 634) This needs to create a new cutlist that inherits the same Production Date, Gauge/Colour, Priority and Machine as was assigned to this line item. This is then sent to the Slinet. It needs to also create a new bendlist that inherits the same Production Date, Gauge/Colour, Priority and Machine as was assigned to this line item. This is then sent to the appropiate Machine. _(verified: code 2026-08-25 (#28))_
 - [ ] (305, 644) Clicking the Apply button would give you one of these 2 pop ups
 - [x] (342, 648) We need to be able to check a coil into a location before entering a Coil Thickness, but even if a coil is checked into the Trim department the Slinet check box needs to remain unavailable until a Coil Thickness is present as well. The Slinet check box should only be available if both a Coil thickness is present and the coil is checked as being in the Trim department. _(verified: code 2026-08-18 (#5))_
-- [ ] (883, 656) After entering the amount you need to have remanufactured, then that line item should be highlighted in orange and show the amount to remanufactured. This needs to show up within the order window and also within the main Wrapping window on that line item.
+- [x] (883, 656) After entering the amount you need to have remanufactured, then that line item should be highlighted in orange and show the amount to remanufactured. This needs to show up within the order window and also within the main Wrapping window on that line item. _(verified: live 2026-08-25 (#28) — the line's row is tinted orange in both the main Wrapping list and the order window, with the amount in the Remanufacture column; an overdue row stays red, which outranks it)_
 - [ ] (351, 658) When you open the Coil Adjustment window for the first time, then the Coil Thickness, Material Thickness &amp; Core OD fields would be blank.
 - [ ] (278, 674) We need to be able to add a Note to any coil. This Note is only within the App and does NOT need to push back to EBMS. The Note needs to show up everywhere that the coil shows up and all Managers and Workers need to be able to add or edit the note.
 - [ ] (327, 675) If a coil is checked off as being in the Trim department but not in the Slinet, then the Rollforming and Slinet check boxes need to both be available.
-- [ ] (848, 677) This should stay highlighted in orange until the Machine has marked it as Bent (Complete). After it is mark as Bent, then it should change to being highlighted in green.
+- [x] (848, 677) This should stay highlighted in orange until the Machine has marked it as Bent (Complete). After it is mark as Bent, then it should change to being highlighted in green. _(verified: live 2026-08-25 (#28))_
 - [x] (327, 678) If a coil is checked off as being in the Trim department and in the Slinet, then the Rollforming check box needs to become unavailable. _(verified: code 2026-08-18 (#5))_
 - [x] (327, 681) If a coil is checked off as being in the Rollforming department, then the Slinet check box needs to become unavailable. The Slinet check box is only available if the coil is checked off as being in the Trim department and a Coil Thickness is present. _(verified: code 2026-08-18 (#5))_
 - [x] (351, 681) The Apply button would only become available once the Material Thickness and Core OD fields have been filled in. _(verified: live 2026-08-18 (#5))_

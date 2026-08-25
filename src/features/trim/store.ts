@@ -6,7 +6,7 @@ import { withPublishedCaps } from '@/store/shared/settings'
 
 import { PRODUCT_CATALOG } from './catalog'
 import { isReleased, isReviewed, lineDay, parsePartKey, partDays, partKey } from './parts'
-import { isPulledFromBendlist, remanRoom } from './reman'
+import { isPulledFromBendlist, lineRemanSummaryOf, remanRoom } from './reman'
 import seed from './seed.json'
 
 import type { Coil } from '@/store/shared/coils'
@@ -1016,10 +1016,29 @@ export const createPackage = (
   const location = state.locations.find(candidate => candidate.id === locationId)
   if (!order || !location || !staged.length) return null
 
+  /*
+   * #28: «it should not allow you to wrap the pieces that are not marked as done, only once the
+   * remanufactured request is marked as bent should you be able to wrap them.» The cells already
+   * cap what can be staged; the label is printed here, so the pieces an open request owes are
+   * refused here too rather than only in the screen that asked for them.
+   */
+  const wrappable = staged
+    .map(entry => {
+      const item = order.lineItems.find(candidate => candidate.id === entry.lineId)
+      if (!item) return entry
+      const { owed } = lineRemanSummaryOf(state.remans, orderId, entry.lineId)
+      return {
+        ...entry,
+        qty: Math.min(entry.qty, Math.max(0, item.qty - (item.wrapped || 0) - owed))
+      }
+    })
+    .filter(entry => entry.qty > 0)
+  if (!wrappable.length) return null
+
   const seq = (order.pkgSeq ?? 0) + 1
   const barcode = `${DEPT_CODE}-${order.order}-${String(seq).padStart(2, '0')}`
 
-  const lines = staged.map(entry => {
+  const lines = wrappable.map(entry => {
     const item = order.lineItems.find(candidate => candidate.id === entry.lineId)!
     return {
       lineId: entry.lineId,

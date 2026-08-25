@@ -22,11 +22,18 @@ import {
   noteState,
   orderLocLabel,
   priorityById,
-  productionStatus,
+  wrapOrderComplete,
+  wrapAllowedOf,
   wrapEligible,
   wrapLeftOf
 } from '../selectors'
-import { lineRemansOf, remanRoom } from '../reman'
+import {
+  lineRemanSummaryOf,
+  lineRemansOf,
+  orderOwesReman,
+  remanRoom,
+  remanRowClass
+} from '../reman'
 import { completeOrder, createPackage, DEPARTMENT, trimStore } from '../store'
 import {
   askConfirm,
@@ -179,10 +186,15 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
   const stagedQty = (item: LineItem) => {
     const raw = draft[item.id]
     const parsed = raw === undefined || raw === '' ? 0 : parseInt(raw, 10)
-    return Math.min(Number.isNaN(parsed) || parsed < 0 ? 0 : parsed, wrapLeftOf(item))
+    return Math.min(
+      Number.isNaN(parsed) || parsed < 0 ? 0 : parsed,
+      wrapAllowedOf(order, item, remans)
+    )
   }
 
-  const staged = order.lineItems.filter(item => wrapEligible(order, item) && stagedQty(item) > 0)
+  const staged = order.lineItems.filter(
+    item => wrapEligible(order, item, remans) && stagedQty(item) > 0
+  )
   const draftWeight = staged.reduce((sum, item) => sum + stagedQty(item) * estWeight(item), 0)
 
   const total = order.lineItems.reduce((sum, item) => sum + item.qty, 0)
@@ -194,14 +206,10 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
   const canSelectLoc = staged.length > 0
   const canCreate = canSelectLoc && (order.locationIds ?? []).length > 0
   /*
-   * Verbatim, and it is the whole gate: «Once the Left To Wrap column is ALL zeros, then the Order
-   * Complete button becomes available.» A remanufacture is deliberately *not* a second gate here — the
-   * canvas routes pieces that have to come back through deleting the package, which puts them back
-   * into Left To Wrap and drops the line's Status to Bent, closing this button on its own. See
-   * `deletePackage`. Whether a reman raised without deleting the package should also hold the batch is
-   * a question for Kevin, not something to answer by inventing a gate he did not ask for.
+   * «Once the Left To Wrap column is ALL zeros, then the Order Complete button becomes available» —
+   * plus the remanufacture Kevin added to that gate in #28. Both live in `wrapOrderComplete`.
    */
-  const canComplete = productionStatus(order) === 'complete'
+  const canComplete = wrapOrderComplete(order, remans)
 
   const maxPkg = maxPackageWeight(DEPARTMENT)
   const overPkg = maxPkg > 0 && draftWeight > maxPkg
@@ -331,13 +339,15 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
             const key = `${order.id}-${index}`
             const status = item.status || lineStatus(order, item)
             const left = wrapLeftOf(item)
-            const eligible = wrapEligible(order, item)
+            const allowed = wrapAllowedOf(order, item, remans)
+            const eligible = wrapEligible(order, item, remans)
             const lineRemans = lineRemansOf(remans, order.id, item.id)
             const remanRoomLeft = remanRoom(remans, order, item)
+            const remanTint = remanRowClass(lineRemanSummaryOf(remans, order.id, item.id))
             const stockLocked = item.status === 'wrapped' || order.completed
 
             return (
-              <tr key={item.id} data-comment={`wrap-row-${key}`}>
+              <tr key={item.id} className={remanTint} data-comment={`wrap-row-${key}`}>
                 {cells({
                   pid: (
                     <td data-col='pid' className='mono' data-comment={`wrap-pid-${key}`}>
@@ -475,11 +485,11 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                             type='number'
                             className='field-input wrap-qty-input'
                             min='0'
-                            max={left}
+                            max={allowed}
                             value={stagedQty(item) || ''}
                             placeholder='0'
                             data-comment={`wrap-qtyinput-${key}`}
-                            title={`Qty to wrap (1–${left})`}
+                            title={`Qty to wrap (1–${allowed})`}
                             onClick={event => event.stopPropagation()}
                             onChange={event =>
                               setDraft(current => ({ ...current, [item.id]: event.target.value }))
@@ -489,17 +499,29 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
                           <button
                             className='btn btn-sm btn-ghost'
                             data-comment={`wrap-autofill-${key}`}
-                            title={stagedQty(item) > 0 ? 'Clear' : `Auto Fill — all ${left}`}
+                            title={stagedQty(item) > 0 ? 'Clear' : `Auto Fill — all ${allowed}`}
                             onClick={() =>
                               setDraft(current => ({
                                 ...current,
-                                [item.id]: stagedQty(item) > 0 ? '' : String(left)
+                                [item.id]: stagedQty(item) > 0 ? '' : String(allowed)
                               }))
                             }
                           >
                             {stagedQty(item) > 0 ? 'Clear' : 'Auto Fill'}
                           </button>
                         </div>
+                      ) : ['bent', 'stock', 'bypassed'].includes(status) && allowed < left ? (
+                        /* #28: the pieces left are the ones a request still owes — «only once the
+                           remanufactured request is marked as bent should you be able to wrap them» */
+                        <span
+                          className='subtle'
+                          data-comment={`wrap-remhold-${key}`}
+                          style={{ fontSize: '11px' }}
+                          title='Held until the machine marks the remanufacture Bent'
+                        >
+                          <Ban style={{ width: '13px', height: '13px', verticalAlign: '-2px' }} />{' '}
+                          Awaiting remanufacture
+                        </span>
                       ) : (
                         <span
                           className='subtle'
@@ -598,6 +620,13 @@ export const WrapOrderDetail = ({ order }: { order: Order }) => {
           className='btn btn-primary'
           data-comment={`wrap-complete2-${order.id}`}
           disabled={!canComplete}
+          title={
+            canComplete
+              ? undefined
+              : orderOwesReman(remans, order)
+                ? 'Waiting on a remanufacture — available once the machine marks it Bent'
+                : 'Available once Left To Wrap is zero on every line'
+          }
           onClick={() =>
             askConfirm(
               `Complete order ${order.order}?`,

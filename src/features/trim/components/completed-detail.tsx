@@ -6,6 +6,7 @@ import { useColumnOrder, type Column } from '@/components/shell/column-order'
 import { ModalHead, Overlay } from '@/components/shell/modal'
 
 import { fmtDate } from '../format'
+import { lineRemanSummaryOf } from '../reman'
 import { orderLocLabel } from '../selectors'
 import { trimStore } from '../store'
 import { openLocPicker, showToast } from '../ui'
@@ -17,7 +18,14 @@ const LINE_COLUMNS: Column[] = [
   { key: 'desc', label: 'Description' },
   { key: 'qty', label: 'Qty Ordered', width: '90px' },
   { key: 'stock', label: 'Stock Pulled', width: '100px' },
-  { key: 'mfg', label: 'Manufactured', width: '110px' }
+  { key: 'mfg', label: 'Manufactured', width: '110px' },
+  /*
+   * #28, Kevin, asked whether a completed order should still show what came back: «it would be nice to
+   * still see the remanufacture numbers in the completed order, this can be just a simple
+   * Remanufactured column that shows how many pieces were remanufactured.» A count, not the chain —
+   * the lifetime sum `lineRemanSummary` already keeps for the green cell.
+   */
+  { key: 'reman', label: 'Remanufactured', width: '120px' }
 ]
 
 const PACKAGE_COLUMNS: Column[] = [
@@ -37,6 +45,7 @@ export const CompletedDetail = ({
   onClose: () => void
 }) => {
   const orders = useStore(trimStore, state => state.orders)
+  const remans = useStore(trimStore, state => state.remans)
   const order = orders.find(candidate => candidate.id === orderId)
 
   /**
@@ -112,6 +121,7 @@ export const CompletedDetail = ({
                         order.type === 'stock'
                           ? (item.qtyManufactured ?? 0)
                           : Math.max(0, item.qty - (item.fromStock || 0))
+                      const remade = lineRemanSummaryOf(remans, order.id, item.id).remade
 
                       return (
                         <tr data-comment={`compdetail-li-${index}`} key={item.id}>
@@ -167,6 +177,20 @@ export const CompletedDetail = ({
                                 data-comment={`compdetail-li-mfg-${index}`}
                               >
                                 {made}
+                              </td>
+                            ),
+                            reman: (
+                              <td
+                                data-col='reman'
+                                className='mono'
+                                data-comment={`compdetail-li-reman-${index}`}
+                                title={
+                                  remade
+                                    ? `${remade} pcs. of material remade across every request raised on this line`
+                                    : undefined
+                                }
+                              >
+                                {remade ? remade : <span className='subtle'>—</span>}
                               </td>
                             )
                           })}

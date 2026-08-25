@@ -4,7 +4,9 @@ import {
   machineTotals,
   remanBendlistEntries,
   remanCutlistEntries,
-  slinetTotals
+  slinetTotals,
+  wrapAllowedOf,
+  wrapOrderComplete
 } from './selectors'
 import { addReman, bypassProduction, setRemanFlag, trimStore } from './store'
 
@@ -221,4 +223,60 @@ it('leaves the Slinet its cutlist when a machine pulls the line — it already c
   expect(
     computeBatches(item.machineId, false).some(batch => batch.items.some(row => row.id === item.id))
   ).toBe(false)
+})
+
+/**
+ * #28, Kevin on whether Order Complete should wait: «in the wrapping window it should not allow you to
+ * wrap the pieces that are not marked as done, only once the remanufactured request is marked as bent
+ * should you be able to wrap them.»
+ */
+it('holds the pieces a request owes back from Wrapping until the machine marks it Bent', () => {
+  const { order, item } = firstMember()
+
+  addReman('wrapping', order.id, item.id, 2)
+  expect(wrapAllowedOf(order, item)).toBe(item.qty - 2)
+
+  setRemanFlag(lastReman().id, 'bent', true)
+  expect(wrapAllowedOf(order, item)).toBe(item.qty)
+})
+
+it('holds nothing extra for a pass raised inside an open request', () => {
+  const { order, item } = firstMember()
+
+  addReman('wrapping', order.id, item.id, 3)
+  addReman('machine', order.id, item.id, 1, lastReman().id)
+
+  // the same three pieces coming back inside the request, so three held — not four
+  expect(wrapAllowedOf(order, item)).toBe(item.qty - 3)
+})
+
+/**
+ * #28, question 4 — «Should Order Complete wait for an open Remanufacture?» — «Yes». The case that
+ * makes it a gate of its own: a Worker damages a piece he has *already wrapped*, so Left To Wrap is
+ * zero and the older rule — that column reading zero — would let the batch go to EBMS short by it.
+ */
+it('holds Order Complete while a request is out, even with Left To Wrap at zero', () => {
+  const { order, item } = firstMember()
+  trimStore.set(state => ({
+    orders: state.orders.map(candidate =>
+      candidate.id === order.id
+        ? {
+            ...candidate,
+            lineItems: candidate.lineItems.map(line => ({
+              ...line,
+              wrapped: line.qty,
+              status: 'wrapped'
+            }))
+          }
+        : candidate
+    )
+  }))
+  const wrapped = trimStore.get().orders.find(candidate => candidate.id === order.id)!
+  expect(wrapOrderComplete(wrapped)).toBe(true)
+
+  addReman('wrapping', order.id, item.id, 1)
+  expect(wrapOrderComplete(wrapped)).toBe(false)
+
+  setRemanFlag(lastReman().id, 'bent', true)
+  expect(wrapOrderComplete(wrapped)).toBe(true)
 })

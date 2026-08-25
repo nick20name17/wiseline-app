@@ -7,7 +7,7 @@ import { useStore } from '@/store/create-store'
 import { useColumnOrder, type Column } from '@/components/shell/column-order'
 
 import { fmtDate } from '../format'
-import { lineRemansOf } from '../reman'
+import { lineRemanSummaryOf, lineRemansOf, remanRowClass } from '../reman'
 import { isOverdue, lineDay, lineReleased, lineStatus, noteState, priorityById } from '../selectors'
 import { trimStore } from '../store'
 import { openNotes, showToast } from '../ui'
@@ -137,6 +137,9 @@ export const Wrapping = () => {
             const status = item.status || lineStatus(order, item)
             const lineRemans = lineRemansOf(remans, order.id, item.id)
             const overdue = isOverdue(day) && status !== 'wrapped'
+            // (883, 656): the line itself is highlighted, not only its Remanufacture cell. Overdue
+            // outranks it and wins in the stylesheet, so the class goes on either way.
+            const remanTint = remanRowClass(lineRemanSummaryOf(remans, order.id, item.id))
 
             const newDay = day !== lastDay
             const count = linesPerDay.get(day) ?? 0
@@ -156,7 +159,7 @@ export const Wrapping = () => {
                 ) : null}
 
                 <tr
-                  className={`row-order${overdue ? ' overdue' : ''}`}
+                  className={`row-order${overdue ? ' overdue' : ''}${remanTint ? ` ${remanTint}` : ''}`}
                   data-comment={`wrap-li-${key}`}
                   style={{ cursor: 'pointer' }}
                   title='Open wrapping detail'

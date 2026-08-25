@@ -1,7 +1,12 @@
 import { isWorkDay } from '@/store/shared/settings'
 
 import { lineDay, lineReleased, parsePartKey } from './parts'
-import { isPulledFromBendlist, remanCarriesWholeLine } from './reman'
+import {
+  isPulledFromBendlist,
+  lineRemanSummaryOf,
+  orderOwesReman,
+  remanCarriesWholeLine
+} from './reman'
 import { RANK, TODAY, trimStore } from './store'
 
 import type { LineItem, Location, Note, Order, Priority, Reman, TrimState } from './types'
@@ -477,11 +482,36 @@ export const estWeight = (item: LineItem) => Math.max(1, Math.round(item.width *
 
 export const wrapLeftOf = (item: LineItem) => Math.max(0, item.qty - (item.wrapped || 0))
 
-/** N-075: only a line the floor has finished — or one that came off stock — can be wrapped. */
-export const wrapEligible = (order: Order, item: LineItem) => {
-  const status = item.status || lineStatus(order, item)
-  return ['bent', 'stock', 'bypassed'].includes(status) && wrapLeftOf(item) > 0
-}
+/**
+ * What Wrapping may take from a line right now: Left To Wrap, less the pieces an open remanufacture
+ * still holds.
+ *
+ * #28, Kevin, answering whether Order Complete should wait for an open request: «if there is a
+ * remanufacture request on an order, then in the wrapping window it should not allow you to wrap the
+ * pieces that are not marked as done, only once the remanufactured request is marked as bent should
+ * you be able to wrap them.»
+ */
+export const wrapAllowedOf = (order: Order, item: LineItem, remans = trimStore.get().remans) =>
+  Math.max(0, wrapLeftOf(item) - lineRemanSummaryOf(remans, order.id, item.id).owed)
+
+/** N-075: the statuses a line can be wrapped from — the floor has finished it, or it came off stock. */
+export const wrapStatusReady = (order: Order, item: LineItem) =>
+  ['bent', 'stock', 'bypassed'].includes(item.status || lineStatus(order, item))
+
+export const wrapEligible = (order: Order, item: LineItem, remans = trimStore.get().remans) =>
+  wrapStatusReady(order, item) && wrapAllowedOf(order, item, remans) > 0
+
+/**
+ * The Order Complete gate. «Once the Left To Wrap column is ALL zeros, then the Order Complete button
+ * becomes available» (879, 506) — and, since #28 answers question 4 with a plain «Yes», not while a
+ * remanufacture is still out.
+ *
+ * Left To Wrap alone is not enough, and the damaged pieces are why: a Worker raises most requests on
+ * pieces he has *just wrapped*, so that column can read all zeros while the order is short by them.
+ * That is the batch going to EBMS short — the thing question 4 was asked about.
+ */
+export const wrapOrderComplete = (order: Order, remans = trimStore.get().remans) =>
+  productionStatus(order) === 'complete' && !orderOwesReman(remans, order)
 
 export const activeLocationId = (order: Order) => order.locationIds?.at(-1) ?? null
 
