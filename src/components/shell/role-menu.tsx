@@ -34,6 +34,7 @@ export const RoleMenu = ({ anchor, onClose }: { anchor: Anchor; onClose: () => v
   const department = viewer?.department ?? 'all'
 
   // on the next tick, or the click that opened the menu closes it again
+  // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- the listener is removed below; the rule misses it through the setTimeout
   useEffect(() => {
     const timer = setTimeout(() => document.addEventListener('click', onClose, { once: true }))
     return () => {
