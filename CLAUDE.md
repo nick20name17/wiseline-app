@@ -15,8 +15,8 @@ seed data across, the decisions already made and why, and what is left.
 
 Two rules that are easy to break by accident:
 
-- Ported markup keeps every `data-comment` and every class name verbatim. They are what the gates compare
-  and what the comment migration joins on.
+- Ported markup keeps every `data-comment`, every tag and the element order verbatim. They are what the
+  gates compare and what the comment migration joins on. Class names are not compared.
 - Seed data is dumped from the prototype, never retyped. Entity ids are part of `data-comment` values.
 
 ## Interaction
@@ -57,10 +57,13 @@ A **Stop hook** (`.claude/hooks/stop-check.sh`) gates finishing on `tsc -b` + `o
 React 19 (React Compiler on — no manual `useMemo`/`useCallback`) SPA. TanStack Router, zod, Base UI +
 shadcn, Tailwind 4. `@/` → `src/`.
 
-**Two design systems, kept apart.** Tailwind and shadcn dress everything this project adds; the ported
-screens are dressed by the prototype's own stylesheets, lifted verbatim into `src/styles/<page>.css` and
-scoped to `[data-page="…"]`. `src/index.css` explains why they do not fight. Do not introduce Tailwind
-classes into a ported screen.
+**Two design systems, one being retired.** Tailwind and shadcn dress everything this project adds and
+every ported screen that has been rewritten (Driver so far). The rest are still dressed by the prototype's
+own stylesheets, lifted verbatim into `src/styles/<page>.css` and scoped to `[data-page="…"]`.
+`src/index.css` explains why the two do not fight. Do not mix Tailwind into a screen that still has a
+prototype stylesheet — rewrite the whole screen at once, delete its CSS, swap `usePage` for
+`useRootClass`, and run the parity gate. Class names are free to change; tags, `data-comment` and the
+element order are not.
 
 **State is the prototype's.** `src/store/create-store.ts` mirrors its store; `src/store/shared/` holds the
 `wl_` keys it uses as cross-page contracts, typed and zod-validated. React Query is not used yet — there

@@ -52,9 +52,8 @@ const firstStructuralDiff = (left: Node, right: Node, path = 'body'): string | n
   if (left.tag !== right.tag) return `${path}: <${left.tag}> became <${right.tag}>`
   if (left.text !== right.text) return `${path}: text "${left.text}" became "${right.text}"`
 
-  const lost = left.classes.filter(cls => !right.classes.includes(cls))
-  if (lost.length) return `${path}: lost class ${lost.join(' ')}`
-
+  // classes are not compared: a review comment lands on an element by `data-comment` and its place in
+  // the tree, and the port is moving the styling of each screen to Tailwind, which renames every class
   if (left.comment !== right.comment)
     return `${path}: data-comment ${left.comment ?? '—'} became ${right.comment ?? '—'}`
 
