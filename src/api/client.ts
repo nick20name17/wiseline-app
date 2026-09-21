@@ -1,5 +1,5 @@
-import { sessionStore } from '@/lib/session-store'
 import { env } from '@/lib/env'
+import { sessionStore } from '@/lib/session-store'
 import { singleFlight } from '@/lib/single-flight'
 import ky, { HTTPError, type Options } from 'ky'
 import * as z from 'zod/mini'
@@ -11,7 +11,6 @@ const refreshSchema = z.object({
   refresh: z.string()
 })
 
-// FastAPI reports failures as `detail`, either a string or a field map; ErrorResponse uses `errors`.
 const getServerMessage = (data: unknown) => {
   if (typeof data !== 'object' || data === null) return undefined
   const { detail, errors, message } = data as {
@@ -20,6 +19,10 @@ const getServerMessage = (data: unknown) => {
     message?: unknown
   }
   if (typeof detail === 'string' && detail) return detail
+  if (typeof detail === 'object' && detail !== null) {
+    const fields = Object.values(detail).filter(value => typeof value === 'string')
+    if (fields.length) return fields.join(' ')
+  }
   if (Array.isArray(errors) && typeof errors[0] === 'string') return errors.join(' ')
   if (typeof message === 'string' && message) return message
   return undefined
@@ -71,11 +74,6 @@ export const authApi = publicApi.extend({
       async ({ request, response, retryCount }) => {
         const session = sessionStore.get()
         if (response.status !== 401 || retryCount > 0 || !session) return response
-        // The login response may carry no refresh token, in which case a 401 is terminal.
-        if (!session.refreshToken) {
-          sessionStore.set(null)
-          return response
-        }
         const refreshed = await refresh(session.refreshToken)
         if (!refreshed) return response
         request.headers.set('Authorization', `Bearer ${refreshed.accessToken}`)

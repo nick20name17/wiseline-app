@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Avatar as AvatarPrimitive } from '@base-ui/react/avatar'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 
 function Avatar({
@@ -32,14 +33,31 @@ function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
   )
 }
 
-function AvatarFallback({ className, ...props }: AvatarPrimitive.Fallback.Props) {
+const avatarFallbackVariants = cva(
+  'flex size-full items-center justify-center rounded-full text-sm group-data-[size=sm]/avatar:text-xs',
+  {
+    variants: {
+      variant: {
+        default: 'bg-muted text-muted-foreground',
+        primary: 'bg-primary font-semibold text-primary-foreground'
+      }
+    },
+    defaultVariants: {
+      variant: 'default'
+    }
+  }
+)
+
+function AvatarFallback({
+  className,
+  variant = 'default',
+  ...props
+}: AvatarPrimitive.Fallback.Props & VariantProps<typeof avatarFallbackVariants>) {
   return (
     <AvatarPrimitive.Fallback
       data-slot='avatar-fallback'
-      className={cn(
-        'flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs',
-        className
-      )}
+      data-variant={variant}
+      className={cn(avatarFallbackVariants({ variant }), className)}
       {...props}
     />
   )

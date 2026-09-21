@@ -70,11 +70,3 @@ test('401 without a session is not refreshed', async () => {
   await expect(authApi.get('a').json()).rejects.toBeInstanceOf(HTTPError)
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
-
-test('a session without a refresh token is cleared on 401', async () => {
-  sessionStore.set({ accessToken: 'old', refreshToken: null })
-
-  await expect(authApi.get('a').json()).rejects.toBeInstanceOf(HTTPError)
-  expect(sessionStore.get()).toBeNull()
-  expect(fetchMock).toHaveBeenCalledTimes(1)
-})

@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 test('guarded page redirects to login and returns after signing in', async ({ page }) => {
   await page.goto('/profile')
-  await expect(page).toHaveURL(/\/login\?next=/)
+  await expect(page).toHaveURL(/\/login\?redirect=/)
 
   await signIn(page)
 

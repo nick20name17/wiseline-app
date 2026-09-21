@@ -5,10 +5,7 @@ import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from 're
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'lucide-react'
 
-const RTL_NEXT_ICON = String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`
-const RTL_PREVIOUS_ICON = String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`
-
-const Calendar = ({
+function Calendar({
   className,
   classNames,
   showOutsideDays = true,
@@ -20,16 +17,16 @@ const Calendar = ({
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>['variant']
-}) => {
+}) {
   const defaultClassNames = getDefaultClassNames()
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        'group/calendar bg-background p-3 [--cell-radius:0] [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent',
-        RTL_NEXT_ICON,
-        RTL_PREVIOUS_ICON,
+        'group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent',
+        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
       )}
       captionLayout={captionLayout}
@@ -145,13 +142,13 @@ const Calendar = ({
   )
 }
 
-const CalendarDayButton = ({
+function CalendarDayButton({
   className,
   day,
   modifiers,
   locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) => {
+}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)

@@ -15,7 +15,8 @@ const MoonRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_auth/moon')({
+export const Route = createFileRoute('/_app/_auth/moon')({
+  staticData: { crumb: 'Moon phase' },
   validateSearch: moonSearchSchema,
   component: MoonRoute
 })

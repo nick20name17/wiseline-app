@@ -17,6 +17,7 @@ const HomePage = () => {
   )
 }
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_app/')({
+  staticData: { crumb: 'Dashboard' },
   component: HomePage
 })

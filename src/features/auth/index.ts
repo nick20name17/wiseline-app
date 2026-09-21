@@ -1,5 +1,6 @@
-export { meQuery } from './api'
+export { logout, meQuery } from './api'
 export { LoginForm } from './components/login-form'
 export { ProfileCard } from './components/profile-card'
+export { UserMenu } from './components/user-menu'
 export { safeRedirectPath } from './lib/safe-redirect'
 export { loginSearchSchema } from './lib/search'

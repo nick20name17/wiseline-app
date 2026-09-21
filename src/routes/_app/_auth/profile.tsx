@@ -6,7 +6,8 @@ const ProfileRoute = () => {
   return <ProfileCard onLogout={() => void navigate({ to: '/', replace: true })} />
 }
 
-export const Route = createFileRoute('/_auth/profile')({
+export const Route = createFileRoute('/_app/_auth/profile')({
+  staticData: { crumb: 'Profile' },
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: ProfileRoute
 })

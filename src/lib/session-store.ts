@@ -3,7 +3,7 @@ import * as z from 'zod/mini'
 
 export const sessionSchema = z.object({
   accessToken: z.string(),
-  refreshToken: z.nullable(z.string())
+  refreshToken: z.string()
 })
 
 export type Session = z.infer<typeof sessionSchema>

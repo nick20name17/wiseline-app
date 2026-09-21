@@ -23,4 +23,10 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
   }
+
+  // The app header builds its breadcrumb from the matched routes, so a route opts in by
+  // naming itself here instead of the header hardcoding a path table.
+  interface StaticDataRouteOption {
+    crumb?: string
+  }
 }
