@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import {
   Table,
   TableBody,
@@ -9,8 +9,6 @@ import {
 } from '@/components/ui/table'
 import { defaultWarehouseId, type Warehouse } from '../api'
 import { WarehouseActions } from './warehouse-actions'
-
-const SKELETON_ROWS = 5
 
 type WarehousesTableProps = {
   warehouses: Warehouse[]
@@ -46,55 +44,31 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isPending
-            ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
-                <TableRow key={row}>
-                  <TableCell>
-                    <Skeleton className='h-4 w-32' />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className='h-4 w-48' />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className='h-4 w-64' />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className='h-4 w-8' />
-                  </TableCell>
-                  <TableCell>
-                    {/* Sized and placed like the buttons they stand in for, so nothing moves when
-                        the rows arrive. */}
-                    <div className='flex justify-end gap-1'>
-                      <Skeleton className='size-7' />
-                      <Skeleton className='size-7' />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            : warehouses.map(warehouse => (
-                <TableRow key={warehouse.id}>
-                  <TableCell>{warehouse.name ?? '—'}</TableCell>
-                  <TableCell>{warehouse.address ?? '—'}</TableCell>
-                  <TableCell>
-                    <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
-                  </TableCell>
-                  <TableCell>
-                    {warehouse.id === defaultId ? (
-                      <span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold tracking-wider text-primary uppercase'>
-                        Default
-                      </span>
-                    ) : (
-                      <span className='text-muted-foreground'>—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <WarehouseActions
-                      warehouse={warehouse}
-                      isDefault={warehouse.id === defaultId}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+          {isPending ? (
+            <TableSkeletonRows columns={4} />
+          ) : (
+            warehouses.map(warehouse => (
+              <TableRow key={warehouse.id}>
+                <TableCell>{warehouse.name ?? '—'}</TableCell>
+                <TableCell>{warehouse.address ?? '—'}</TableCell>
+                <TableCell>
+                  <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
+                </TableCell>
+                <TableCell>
+                  {warehouse.id === defaultId ? (
+                    <span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold tracking-wider text-primary uppercase'>
+                      Default
+                    </span>
+                  ) : (
+                    <span className='text-muted-foreground'>—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <WarehouseActions warehouse={warehouse} isDefault={warehouse.id === defaultId} />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import {
   Table,
   TableBody,
@@ -10,8 +10,6 @@ import {
 import type { Truck } from '../api'
 import { formatWeight } from '../lib/format'
 import { TruckActions } from './truck-actions'
-
-const SKELETON_ROWS = 5
 
 type TrucksTableProps = {
   trucks: Truck[]
@@ -43,39 +41,21 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
         </TableRow>
       </TableHeader>
       <TableBody>
-        {isPending
-          ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
-              <TableRow key={row}>
-                <TableCell>
-                  <Skeleton className='h-4 w-24' />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className='h-4 w-20' />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className='h-4 w-20' />
-                </TableCell>
-                <TableCell>
-                  {/* Sized and placed like the buttons they stand in for, so nothing moves when
-                      the rows arrive. */}
-                  <div className='flex justify-end gap-1'>
-                    <Skeleton className='size-7' />
-                    <Skeleton className='size-7' />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          : trucks.map(truck => (
-              <TableRow key={truck.id}>
-                <TableCell>{truck.name}</TableCell>
-                {/* The record has no plate yet; the column holds its place — see TODO.md. */}
-                <TableCell>—</TableCell>
-                <TableCell>{formatWeight(truck.max_weight)}</TableCell>
-                <TableCell>
-                  <TruckActions truck={truck} />
-                </TableCell>
-              </TableRow>
-            ))}
+        {isPending ? (
+          <TableSkeletonRows columns={3} />
+        ) : (
+          trucks.map(truck => (
+            <TableRow key={truck.id}>
+              <TableCell>{truck.name}</TableCell>
+              {/* The record has no plate yet; the column holds its place — see TODO.md. */}
+              <TableCell>—</TableCell>
+              <TableCell>{formatWeight(truck.max_weight)}</TableCell>
+              <TableCell>
+                <TruckActions truck={truck} />
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   </div>
