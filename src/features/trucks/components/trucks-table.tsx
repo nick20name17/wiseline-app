@@ -28,8 +28,21 @@ type TrucksTableProps = {
 }
 
 export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
-  <div className='overflow-x-auto rounded-lg border border-border'>
-    <Table>
+  <div className='rounded-lg border border-border'>
+    {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
+        widest cell, so they hold still between the skeleton, the data and every search. The table
+        keeps a floor width and scrolls instead of squeezing the measurements. */}
+    <Table className='min-w-4xl table-fixed'>
+      {/* One entry per column above, in the same order, then Actions. */}
+      <colgroup>
+        <col />
+        <col className='w-32' />
+        <col className='w-32' />
+        <col className='w-32' />
+        <col className='w-36' />
+        <col className='w-32' />
+        <col className='w-16' />
+      </colgroup>
       <TableHeader>
         <TableRow>
           {COLUMNS.map(column => (
@@ -48,6 +61,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                   </TableCell>
                 ))}
                 <TableCell>
+                  {/* Sized like the icon button it stands in for, so the row height holds. */}
                   <Skeleton className='size-7' />
                 </TableCell>
               </TableRow>

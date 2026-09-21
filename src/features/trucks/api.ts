@@ -1,6 +1,6 @@
 import { authApi } from '@/api/client'
 import { queryClient } from '@/lib/query-client'
-import { queryOptions, useMutation } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // Only `id` and `name` are guaranteed by the API: a truck can be created with nothing but a name
@@ -42,6 +42,9 @@ const TRUCKS_KEY = ['trucks'] as const
 export const trucksQuery = (search: string | undefined) =>
   queryOptions({
     queryKey: [...TRUCKS_KEY, { search: search ?? '' }],
+    // Each search term is its own cache entry, so without this the table would fall back to the
+    // skeleton on every keystroke pause and resize itself twice per search.
+    placeholderData: keepPreviousData,
     queryFn: async () =>
       trucksSchema.parse(
         await authApi.get('trucks/', { searchParams: search ? { search } : {} }).json()
