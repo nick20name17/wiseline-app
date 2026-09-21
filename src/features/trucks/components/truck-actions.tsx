@@ -13,7 +13,7 @@ export const TruckActions = ({ truck }: TruckActionsProps) => {
   const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
 
   return (
-    <div className='flex justify-end gap-1'>
+    <div className='flex justify-end gap-1 text-muted-foreground'>
       <Button
         variant='ghost'
         size='icon-sm'
