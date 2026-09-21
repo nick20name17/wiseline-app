@@ -28,14 +28,14 @@ type TrucksTableProps = {
 }
 
 export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
-  <div className='rounded-lg border border-border'>
+  <div className='overflow-hidden rounded-xl border border-border bg-card shadow-xs'>
     {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. The table
         keeps a floor width and scrolls instead of squeezing the measurements. */}
     <Table className='min-w-4xl table-fixed'>
       {/* One entry per column above, in the same order, then the actions column. That last one
           is left to absorb the leftover width, so the slack collects in front of the trailing
-          button instead of stretching Name into a void. */}
+          buttons instead of stretching Name into a void. */}
       <colgroup>
         <col className='w-48' />
         <col className='w-32' />
@@ -50,8 +50,8 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
           {COLUMNS.map(column => (
             <TableHead key={column.key}>{column.label}</TableHead>
           ))}
-          <TableHead className='text-right'>
-            {/* The column is obvious from its button; the label is for screen readers. */}
+          <TableHead>
+            {/* The column is obvious from its buttons; the label is for screen readers. */}
             <span className='sr-only'>Actions</span>
           </TableHead>
         </TableRow>
@@ -66,9 +66,12 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                   </TableCell>
                 ))}
                 <TableCell>
-                  {/* Sized and placed like the icon button it stands in for, so nothing moves
-                      when the rows arrive. */}
-                  <Skeleton className='ml-auto size-7' />
+                  {/* Sized and placed like the buttons they stand in for, so nothing moves when
+                      the rows arrive. */}
+                  <div className='flex justify-end gap-1'>
+                    <Skeleton className='size-7' />
+                    <Skeleton className='size-7' />
+                  </div>
                 </TableCell>
               </TableRow>
             ))
@@ -77,7 +80,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                 {COLUMNS.map(column => (
                   <TableCell key={column.key}>{column.render(truck)}</TableCell>
                 ))}
-                <TableCell className='text-right'>
+                <TableCell>
                   <TruckActions truck={truck} />
                 </TableCell>
               </TableRow>

@@ -31,18 +31,26 @@ export const TrucksPage = ({ search, onSearchChange }: TrucksPageProps) => {
   return (
     <section className='flex flex-col gap-4'>
       <div className='flex items-center justify-between gap-3.5'>
-        <InputGroup className='w-60'>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search trucks'
-            placeholder='Search...'
-            value={term}
-            onChange={event => handleSearch(event.target.value)}
-          />
-        </InputGroup>
+        <div className='flex items-center gap-3'>
+          <InputGroup className='w-60'>
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              type='search'
+              aria-label='Search trucks'
+              placeholder='Search...'
+              value={term}
+              onChange={event => handleSearch(event.target.value)}
+            />
+          </InputGroup>
+
+          {trucks?.length ? (
+            <p className='text-sm text-muted-foreground'>
+              {trucks.length} {trucks.length === 1 ? 'truck' : 'trucks'}
+            </p>
+          ) : null}
+        </div>
 
         <CreateTruckDialog />
       </div>
