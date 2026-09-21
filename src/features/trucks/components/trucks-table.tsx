@@ -33,22 +33,27 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
         widest cell, so they hold still between the skeleton, the data and every search. The table
         keeps a floor width and scrolls instead of squeezing the measurements. */}
     <Table className='min-w-4xl table-fixed'>
-      {/* One entry per column above, in the same order, then Actions. */}
+      {/* One entry per column above, in the same order, then the actions column. That last one
+          is left to absorb the leftover width, so the slack collects in front of the trailing
+          button instead of stretching Name into a void. */}
       <colgroup>
-        <col />
+        <col className='w-48' />
         <col className='w-32' />
         <col className='w-32' />
         <col className='w-32' />
         <col className='w-36' />
         <col className='w-32' />
-        <col className='w-16' />
+        <col />
       </colgroup>
       <TableHeader>
         <TableRow>
           {COLUMNS.map(column => (
             <TableHead key={column.key}>{column.label}</TableHead>
           ))}
-          <TableHead>Actions</TableHead>
+          <TableHead className='text-right'>
+            {/* The column is obvious from its button; the label is for screen readers. */}
+            <span className='sr-only'>Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -61,8 +66,9 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                   </TableCell>
                 ))}
                 <TableCell>
-                  {/* Sized like the icon button it stands in for, so the row height holds. */}
-                  <Skeleton className='size-7' />
+                  {/* Sized and placed like the icon button it stands in for, so nothing moves
+                      when the rows arrive. */}
+                  <Skeleton className='ml-auto size-7' />
                 </TableCell>
               </TableRow>
             ))
@@ -71,7 +77,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                 {COLUMNS.map(column => (
                   <TableCell key={column.key}>{column.render(truck)}</TableCell>
                 ))}
-                <TableCell>
+                <TableCell className='text-right'>
                   <TruckActions truck={truck} />
                 </TableCell>
               </TableRow>
