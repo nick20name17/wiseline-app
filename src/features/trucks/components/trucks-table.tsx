@@ -28,11 +28,13 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
       <colgroup>
         <col className='w-64' />
         <col className='w-48' />
+        <col className='w-48' />
         <col />
       </colgroup>
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
+          <TableHead>Plate</TableHead>
           <TableHead>Max Weight</TableHead>
           <TableHead>
             {/* The column is obvious from its buttons; the label is for screen readers. */}
@@ -51,6 +53,9 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
                   <Skeleton className='h-4 w-20' />
                 </TableCell>
                 <TableCell>
+                  <Skeleton className='h-4 w-20' />
+                </TableCell>
+                <TableCell>
                   {/* Sized and placed like the buttons they stand in for, so nothing moves when
                       the rows arrive. */}
                   <div className='flex justify-end gap-1'>
@@ -63,6 +68,8 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
           : trucks.map(truck => (
               <TableRow key={truck.id}>
                 <TableCell>{truck.name}</TableCell>
+                {/* The record has no plate yet; the column holds its place — see TODO.md. */}
+                <TableCell>—</TableCell>
                 <TableCell>{formatWeight(truck.max_weight)}</TableCell>
                 <TableCell>
                   <TruckActions truck={truck} />

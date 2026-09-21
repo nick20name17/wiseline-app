@@ -4,13 +4,16 @@ import { queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // The API declares every field but `id` optional, even `name` and `address`, which the database
-// itself requires. Nothing else on the record — the contact block, `code`, `position`, `color` —
-// is edited here, so it stays out of the schema.
+// itself requires. The contact block and `color` are not edited here, so they stay out.
 const warehouseSchema = z.object({
   id: z.number(),
   name: z._default(z.nullable(z.string()), null),
   address: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
+  code: z._default(z.nullable(z.string()), null),
+  // The board opens the lowest position first, and that is what the spec calls the default
+  // warehouse. There is no `is_default` column to lean on — see TODO.md.
+  position: z._default(z.number(), 0),
   // Only the count matters: the API refuses to delete a warehouse that still holds locations.
   locations: z._default(z.array(z.object({ id: z.number() })), [])
 })
@@ -25,7 +28,9 @@ export type Warehouse = z.infer<typeof warehouseSchema>
 export const warehousePayloadSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
   address: z.string().check(z.minLength(1, 'Address is required')),
-  description: z.nullable(z.string())
+  description: z.nullable(z.string()),
+  code: z.nullable(z.string()),
+  position: z.number().check(z.minimum(1, 'Must be one or more'))
 })
 
 export type WarehousePayload = z.infer<typeof warehousePayloadSchema>
@@ -37,9 +42,16 @@ const WAREHOUSES_KEY = ['warehouses'] as const
 const PAGE_SIZE = 100
 
 const matches = (warehouse: Warehouse, search: string) =>
-  [warehouse.name, warehouse.address, warehouse.description].some(field =>
+  [warehouse.name, warehouse.address, warehouse.description, warehouse.code].some(field =>
     field?.toLowerCase().includes(search)
   )
+
+/** The one that opens first: lowest position, and the first of those the API listed on a tie. */
+export const defaultWarehouseId = (warehouses: Warehouse[]) =>
+  warehouses.reduce<Warehouse | null>(
+    (first, warehouse) => (first && first.position <= warehouse.position ? first : warehouse),
+    null
+  )?.id
 
 export const warehousesQuery = (search: string | undefined) =>
   queryOptions({

@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import type { Warehouse } from '../api'
+import { defaultWarehouseId, type Warehouse } from '../api'
 import { WarehouseActions } from './warehouse-actions'
 
 const SKELETON_ROWS = 5
@@ -17,65 +17,83 @@ type WarehousesTableProps = {
   isPending: boolean
 }
 
-export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps) => (
-  <div className='overflow-hidden rounded-xl border border-border bg-card shadow-xs'>
-    {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
-        widest cell, so they hold still between the skeleton, the data and every search. */}
-    <Table className='min-w-3xl table-fixed'>
-      {/* Description takes the leftover width, since it is the one field that runs long. */}
-      <colgroup>
-        <col className='w-64' />
-        <col className='w-80' />
-        <col />
-        <col className='w-24' />
-      </colgroup>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Address</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>
-            {/* The column is obvious from its buttons; the label is for screen readers. */}
-            <span className='sr-only'>Actions</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isPending
-          ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
-              <TableRow key={row}>
-                <TableCell>
-                  <Skeleton className='h-4 w-32' />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className='h-4 w-48' />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className='h-4 w-64' />
-                </TableCell>
-                <TableCell>
-                  {/* Sized and placed like the buttons they stand in for, so nothing moves when
-                      the rows arrive. */}
-                  <div className='flex justify-end gap-1'>
-                    <Skeleton className='size-7' />
-                    <Skeleton className='size-7' />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          : warehouses.map(warehouse => (
-              <TableRow key={warehouse.id}>
-                <TableCell>{warehouse.name ?? '—'}</TableCell>
-                <TableCell>{warehouse.address ?? '—'}</TableCell>
-                <TableCell>
-                  <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
-                </TableCell>
-                <TableCell>
-                  <WarehouseActions warehouse={warehouse} />
-                </TableCell>
-              </TableRow>
-            ))}
-      </TableBody>
-    </Table>
-  </div>
-)
+export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps) => {
+  const defaultId = defaultWarehouseId(warehouses)
+
+  return (
+    <div className='overflow-hidden rounded-xl border border-border bg-card shadow-xs'>
+      {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
+          widest cell, so they hold still between the skeleton, the data and every search. */}
+      <Table className='min-w-4xl table-fixed'>
+        {/* Description takes the leftover width, since it is the one field that runs long. */}
+        <colgroup>
+          <col className='w-56' />
+          <col className='w-64' />
+          <col />
+          <col className='w-28' />
+          <col className='w-24' />
+        </colgroup>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Default</TableHead>
+            <TableHead>
+              {/* The column is obvious from its buttons; the label is for screen readers. */}
+              <span className='sr-only'>Actions</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isPending
+            ? Array.from({ length: SKELETON_ROWS }, (_, row) => (
+                <TableRow key={row}>
+                  <TableCell>
+                    <Skeleton className='h-4 w-32' />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className='h-4 w-48' />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className='h-4 w-64' />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className='h-4 w-8' />
+                  </TableCell>
+                  <TableCell>
+                    {/* Sized and placed like the buttons they stand in for, so nothing moves when
+                        the rows arrive. */}
+                    <div className='flex justify-end gap-1'>
+                      <Skeleton className='size-7' />
+                      <Skeleton className='size-7' />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            : warehouses.map(warehouse => (
+                <TableRow key={warehouse.id}>
+                  <TableCell>{warehouse.name ?? '—'}</TableCell>
+                  <TableCell>{warehouse.address ?? '—'}</TableCell>
+                  <TableCell>
+                    <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
+                  </TableCell>
+                  <TableCell>
+                    {warehouse.id === defaultId ? (
+                      <span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold tracking-wider text-primary uppercase'>
+                        Default
+                      </span>
+                    ) : (
+                      <span className='text-muted-foreground'>—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <WarehouseActions warehouse={warehouse} />
+                  </TableCell>
+                </TableRow>
+              ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}

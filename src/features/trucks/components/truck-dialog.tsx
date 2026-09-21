@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import {
   InputGroup,
   InputGroupAddon,
@@ -17,23 +17,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { truckPayloadSchema, useUpsertTruck, type Truck, type TruckPayload } from '../api'
-import { DriverSelect } from './driver-select'
-
-// The placeholders are a loaded 53' trailer, so the expected magnitude of each box is obvious.
-const MEASUREMENTS = [
-  { name: 'max_weight', label: 'Max Weight', unit: 'lbs', placeholder: '44000' },
-  { name: 'max_volume', label: 'Max Volume', unit: 'cu in', placeholder: '3800' },
-  { name: 'max_length', label: 'Max Length', unit: 'in', placeholder: '636' },
-  { name: 'max_width', label: 'Max Width', unit: 'in', placeholder: '102' },
-  { name: 'max_height', label: 'Max Height', unit: 'in', placeholder: '162' }
-] as const satisfies readonly {
-  name: keyof TruckPayload
-  label: string
-  unit: string
-  placeholder: string
-}[]
 
 type TruckFormProps = {
   truck?: Truck
@@ -45,12 +30,7 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
     resolver: standardSchemaResolver(truckPayloadSchema),
     defaultValues: {
       name: truck?.name ?? '',
-      driver_id: truck?.driver_id ?? null,
-      max_weight: truck?.max_weight ?? null,
-      max_volume: truck?.max_volume ?? null,
-      max_length: truck?.max_length ?? null,
-      max_width: truck?.max_width ?? null,
-      max_height: truck?.max_height ?? null
+      max_weight: truck?.max_weight ?? null
     }
   })
 
@@ -68,7 +48,7 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='truck-name'
-              placeholder='102'
+              placeholder='Unit 12'
               aria-invalid={errors.name ? true : undefined}
               {...form.register('name')}
             />
@@ -76,51 +56,40 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
           <FieldError errors={[errors.name]} />
         </Field>
 
-        <Field data-invalid={errors.driver_id ? true : undefined}>
-          <FieldLabel htmlFor='truck-driver'>Driver</FieldLabel>
-          <Controller
-            control={form.control}
-            name='driver_id'
-            render={({ field }) => (
-              <DriverSelect
-                id='truck-driver'
-                value={field.value}
-                onChange={field.onChange}
-                invalid={errors.driver_id ? true : undefined}
-              />
-            )}
-          />
-          <FieldError errors={[errors.driver_id]} />
+        {/* The truck record has no plate field yet, so the box is here but cannot be saved.
+            Drop the `disabled` and register it once the backend lands it — see TODO.md. */}
+        <Field data-disabled>
+          <FieldLabel htmlFor='truck-plate'>Plate</FieldLabel>
+          <InputGroup>
+            <InputGroupInput id='truck-plate' placeholder='AK-2231' disabled />
+          </InputGroup>
+          <FieldDescription>Waiting on the backend.</FieldDescription>
         </Field>
 
-        <div className='grid grid-cols-2 gap-4'>
-          {MEASUREMENTS.map(({ name, label, unit, placeholder }) => (
-            <Field key={name} data-invalid={errors[name] ? true : undefined}>
-              <FieldLabel htmlFor={`truck-${name}`}>{label}</FieldLabel>
-              <InputGroup>
-                <InputGroupInput
-                  id={`truck-${name}`}
-                  type='number'
-                  min={0}
-                  inputMode='numeric'
-                  placeholder={placeholder}
-                  aria-invalid={errors[name] ? true : undefined}
-                  // An empty measurement is genuinely unknown, so it goes back as null rather
-                  // than a zero the floor would read as "this truck carries nothing". The guard
-                  // covers the null default too, which Number() would otherwise turn into 0.
-                  {...form.register(name, {
-                    setValueAs: value =>
-                      value === '' || value === null || value === undefined ? null : Number(value)
-                  })}
-                />
-                <InputGroupAddon align='inline-end'>
-                  <InputGroupText>{unit}</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-              <FieldError errors={[errors[name]]} />
-            </Field>
-          ))}
-        </div>
+        <Field data-invalid={errors.max_weight ? true : undefined}>
+          <FieldLabel htmlFor='truck-max-weight'>Max Weight</FieldLabel>
+          <InputGroup>
+            <InputGroupInput
+              id='truck-max-weight'
+              type='number'
+              min={0}
+              inputMode='numeric'
+              placeholder='44000'
+              aria-invalid={errors.max_weight ? true : undefined}
+              // An empty weight is genuinely unknown, so it goes back as null rather than a zero
+              // the floor would read as "this truck carries nothing". The guard covers the null
+              // default too, which Number() would otherwise turn into 0.
+              {...form.register('max_weight', {
+                setValueAs: value =>
+                  value === '' || value === null || value === undefined ? null : Number(value)
+              })}
+            />
+            <InputGroupAddon align='inline-end'>
+              <InputGroupText>lbs</InputGroupText>
+            </InputGroupAddon>
+          </InputGroup>
+          <FieldError errors={[errors.max_weight]} />
+        </Field>
 
         <Button
           type='submit'

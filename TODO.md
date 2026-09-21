@@ -6,23 +6,24 @@ Work that is blocked on someone else, or deliberately deferred. Delete an entry 
 
 **Ask:** add a `role` query parameter to `GET /users/`, e.g. `GET /users/?role=driver`.
 
-**Why:** the driver picker on Settings → Trucks needs drivers only. Today no endpoint can narrow
+**Why:** the driver picker is out of the truck form for now, but it comes back the moment a truck
+carries a driver again, and Settings → Users needs the same narrowing. Today no endpoint can filter
 by role:
 
 - `GET /users/all/` takes no parameters at all;
 - `GET /users/` takes only `limit` and `offset`;
 - `GET /departments/users/assignments/` filters by `user_id` and `department_id`.
 
-So the client downloads every user and filters in memory
-(`driversQuery` in `src/features/trucks/api.ts`). With a hundred users and five drivers that is
-ninety-five records fetched to be thrown away, and it grows with the company.
+Any client that wants drivers has to download every user and filter in memory. With a hundred
+users and five drivers that is ninety-five records fetched to be thrown away, and it grows with
+the company.
 
 **Shape we need:** `role` optional, matched exactly against the values
 `GET /constants/users-roles/` returns, combinable with `limit`/`offset`. A `search` parameter on
 the same endpoint would let the future Settings → Users page stop paging through everything too.
 
-**On our side once it lands:** replace the `select` filter in `driversQuery` with the query
-parameter, and drop the shared `['users', 'all']` cache entry if nothing else needs the full list.
+**On our side once it lands:** the driver picker and the users list both ask for the role they
+need instead of paging through everyone.
 
 ## Backend: default warehouse
 
@@ -37,7 +38,12 @@ block, so the client has nothing to render or toggle.
 **Shape we need:** `is_default` on `WarehouseSchemaOut`, settable through `PATCH /warehouses/{id}/`,
 with the backend clearing the flag on the previous default so exactly one stays marked.
 
-**On our side once it lands:** add the Default column and its toggle to `WarehousesTable`.
+**Meanwhile:** the Default badge marks the lowest `position`, which the spec describes as the
+warehouse that opens first. It is a stand-in — two warehouses can share a position, and nothing
+stops the list from having no clear first.
+
+**On our side once it lands:** the badge reads `is_default` and the form gets a toggle instead of
+leaning on `position`.
 
 ## Backend: filter warehouses
 
