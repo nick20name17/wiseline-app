@@ -49,3 +49,17 @@ So the client pulls one large page and filters in memory (`warehousesQuery` in
 a page.
 
 **On our side once it lands:** move the filter into the query key and drop the in-memory `select`.
+
+## Backend: truck plate numbers
+
+**Ask:** a plate field on the truck, e.g. `plate: str | None`.
+
+**Why:** the floor identifies a truck by its plate, and the Settings → Trucks table is meant to
+show Name | Plate | Max Weight. `pm_truck` carries no plate: it has `name`, `driver_id`, `notes`
+and the five measurements, so the column cannot be filled and is left out for now.
+
+**Shape we need:** `plate` on `TruckSchemaIn`/`TruckSchemaOut`, writable through
+`POST /trucks/` and `PATCH /trucks/{id}/`, and matched by the existing `search` filter.
+
+**On our side once it lands:** add the Plate column between Name and Max Weight in
+`TrucksTable`, and a Plate box to the truck form.
