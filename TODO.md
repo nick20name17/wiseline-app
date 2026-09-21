@@ -23,3 +23,29 @@ the same endpoint would let the future Settings → Users page stop paging throu
 
 **On our side once it lands:** replace the `select` filter in `driversQuery` with the query
 parameter, and drop the shared `['users', 'all']` cache entry if nothing else needs the full list.
+
+## Backend: default warehouse
+
+**Ask:** a boolean on the warehouse marking the default one, exclusive across the table.
+
+**Why:** the board spec asks for a Default column on Settings → Warehouses, with one warehouse
+marked and a way to change which ("If we have multiply Warehouses then there needs to be a way to
+select the default Warehouse", `docs/wiseline-spec.md:3398`). `pm_warehouse` has no such column:
+its fields are `name`, `address`, `description`, `code`, `position`, `color` and the `c_*` contact
+block, so the client has nothing to render or toggle.
+
+**Shape we need:** `is_default` on `WarehouseSchemaOut`, settable through `PATCH /warehouses/{id}/`,
+with the backend clearing the flag on the previous default so exactly one stays marked.
+
+**On our side once it lands:** add the Default column and its toggle to `WarehousesTable`.
+
+## Backend: filter warehouses
+
+**Ask:** a `search` query parameter on `GET /warehouses/`, matching name, address and description.
+
+**Why:** the endpoint takes only `limit` and `offset` — no `FilterDepends`, unlike `GET /trucks/`.
+So the client pulls one large page and filters in memory (`warehousesQuery` in
+`src/features/warehouses/api.ts`). Fine for a handful of warehouses, wrong once the list outgrows
+a page.
+
+**On our side once it lands:** move the filter into the query key and drop the in-memory `select`.

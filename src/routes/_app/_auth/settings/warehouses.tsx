@@ -1,7 +1,20 @@
-import { PagePlaceholder } from '@/components/page-placeholder'
+import { WarehousesPage, warehousesSearchSchema } from '@/features/warehouses'
 import { createFileRoute } from '@tanstack/react-router'
+
+const WarehousesRoute = () => {
+  const { search } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  return (
+    <WarehousesPage
+      search={search}
+      onSearchChange={next => void navigate({ search: { search: next }, replace: true })}
+    />
+  )
+}
 
 export const Route = createFileRoute('/_app/_auth/settings/warehouses')({
   staticData: { crumb: 'Warehouses' },
-  component: () => <PagePlaceholder title='Warehouses' />
+  validateSearch: warehousesSearchSchema,
+  component: WarehousesRoute
 })

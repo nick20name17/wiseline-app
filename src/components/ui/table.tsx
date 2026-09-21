@@ -29,8 +29,12 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
   return (
     <tbody
       data-slot='table-body'
-      // The first cell names the row, so it reads as the row's label.
-      className={cn('[&_td:first-child]:font-medium [&_tr:last-child]:border-0', className)}
+      // The first cell names the row, so it reads as the row's label. The banding gives the eye
+      // a rail to follow across a wide table.
+      className={cn(
+        '[&_td:first-child]:font-medium [&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-muted/30',
+        className
+      )}
       {...props}
     />
   )
@@ -77,7 +81,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     <td
       data-slot='table-cell'
       className={cn(
-        'px-4 py-1 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0',
+        'overflow-hidden px-4 py-1 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
         className
       )}
       {...props}
