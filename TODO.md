@@ -38,9 +38,10 @@ block, so the client has nothing to render or toggle.
 **Shape we need:** `is_default` on `WarehouseSchemaOut`, settable through `PATCH /warehouses/{id}/`,
 with the backend clearing the flag on the previous default so exactly one stays marked.
 
-**Meanwhile:** the Default badge marks the lowest `position`, which the spec describes as the
-warehouse that opens first. It is a stand-in — two warehouses can share a position, and nothing
-stops the list from having no clear first.
+**Meanwhile:** the Default toggle writes `position` — 1 when on, 2 when off — and the badge marks
+the lowest position, which the spec describes as the warehouse that opens first. It is a stand-in:
+turning the toggle on does not turn the previous default off, so two warehouses can sit at 1 and
+the badge falls to whichever the API lists first.
 
 **On our side once it lands:** the badge reads `is_default` and the form gets a toggle instead of
 leaning on `position`.

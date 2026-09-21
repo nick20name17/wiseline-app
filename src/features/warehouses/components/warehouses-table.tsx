@@ -21,7 +21,7 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
   const defaultId = defaultWarehouseId(warehouses)
 
   return (
-    <div className='overflow-hidden rounded-xl border border-border bg-card shadow-xs'>
+    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
           widest cell, so they hold still between the skeleton, the data and every search. */}
       <Table className='min-w-4xl table-fixed'>
@@ -88,7 +88,10 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
                     )}
                   </TableCell>
                   <TableCell>
-                    <WarehouseActions warehouse={warehouse} />
+                    <WarehouseActions
+                      warehouse={warehouse}
+                      isDefault={warehouse.id === defaultId}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

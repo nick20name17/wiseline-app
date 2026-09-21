@@ -10,7 +10,6 @@ const warehouseSchema = z.object({
   name: z._default(z.nullable(z.string()), null),
   address: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
-  code: z._default(z.nullable(z.string()), null),
   // The board opens the lowest position first, and that is what the spec calls the default
   // warehouse. There is no `is_default` column to lean on — see TODO.md.
   position: z._default(z.number(), 0),
@@ -25,15 +24,24 @@ const warehousePageSchema = z.object({
 
 export type Warehouse = z.infer<typeof warehouseSchema>
 
-export const warehousePayloadSchema = z.object({
+// The form edits four things; `position` carries the default flag, since the record has none.
+export const warehouseFormSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
-  address: z.string().check(z.minLength(1, 'Address is required')),
+  address: z._default(z.string(), ''),
   description: z.nullable(z.string()),
-  code: z.nullable(z.string()),
-  position: z.number().check(z.minimum(1, 'Must be one or more'))
+  is_default: z.boolean()
 })
 
-export type WarehousePayload = z.infer<typeof warehousePayloadSchema>
+export type WarehouseForm = z.infer<typeof warehouseFormSchema>
+
+// The board opens the lowest position first, so the default one sits above everything else.
+const DEFAULT_POSITION = 1
+const REST_POSITION = 2
+
+const toPayload = ({ is_default, ...values }: WarehouseForm) => ({
+  ...values,
+  position: is_default ? DEFAULT_POSITION : REST_POSITION
+})
 
 const WAREHOUSES_KEY = ['warehouses'] as const
 
@@ -42,7 +50,7 @@ const WAREHOUSES_KEY = ['warehouses'] as const
 const PAGE_SIZE = 100
 
 const matches = (warehouse: Warehouse, search: string) =>
-  [warehouse.name, warehouse.address, warehouse.description, warehouse.code].some(field =>
+  [warehouse.name, warehouse.address, warehouse.description].some(field =>
     field?.toLowerCase().includes(search)
   )
 
@@ -69,10 +77,10 @@ const invalidateWarehouses = () => queryClient.invalidateQueries({ queryKey: WAR
 
 export const useUpsertWarehouse = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: ({ id, payload }: { id?: number; payload: WarehousePayload }) =>
+    mutationFn: ({ id, values }: { id?: number; values: WarehouseForm }) =>
       id
-        ? authApi.patch(`warehouses/${id}/`, { json: payload }).json()
-        : authApi.post('warehouses/', { json: payload }).json(),
+        ? authApi.patch(`warehouses/${id}/`, { json: toPayload(values) }).json()
+        : authApi.post('warehouses/', { json: toPayload(values) }).json(),
     onSuccess: async () => {
       await invalidateWarehouses()
       onSuccess()

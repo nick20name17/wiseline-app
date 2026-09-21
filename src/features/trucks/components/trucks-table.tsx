@@ -19,7 +19,7 @@ type TrucksTableProps = {
 }
 
 export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
-  <div className='overflow-hidden rounded-xl border border-border bg-card shadow-xs'>
+  <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
     {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. */}
     <Table className='min-w-2xl table-fixed'>

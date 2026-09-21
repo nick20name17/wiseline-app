@@ -7,9 +7,10 @@ import { UpdateWarehouseDialog } from './warehouse-dialog'
 
 type WarehouseActionsProps = {
   warehouse: Warehouse
+  isDefault: boolean
 }
 
-export const WarehouseActions = ({ warehouse }: WarehouseActionsProps) => {
+export const WarehouseActions = ({ warehouse, isDefault }: WarehouseActionsProps) => {
   const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
 
   return (
@@ -33,6 +34,7 @@ export const WarehouseActions = ({ warehouse }: WarehouseActionsProps) => {
 
       <UpdateWarehouseDialog
         warehouse={warehouse}
+        isDefault={isDefault}
         open={dialog === 'update'}
         onOpenChange={open => setDialog(open ? 'update' : null)}
       />

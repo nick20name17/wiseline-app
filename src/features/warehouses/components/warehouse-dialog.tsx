@@ -6,19 +6,20 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import {
   useUpsertWarehouse,
-  warehousePayloadSchema,
+  warehouseFormSchema,
   type Warehouse,
-  type WarehousePayload
+  type WarehouseForm as WarehouseFormValues
 } from '../api'
 
 // `Field` and `aria-invalid` both want `true` or nothing, never `false`.
@@ -26,18 +27,18 @@ const invalid = (error: unknown) => (error ? true : undefined)
 
 type WarehouseFormProps = {
   warehouse?: Warehouse
+  isDefault?: boolean
   onSuccess: () => void
 }
 
-const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
-  const form = useForm<WarehousePayload>({
-    resolver: standardSchemaResolver(warehousePayloadSchema),
+const WarehouseForm = ({ warehouse, isDefault = false, onSuccess }: WarehouseFormProps) => {
+  const form = useForm<WarehouseFormValues>({
+    resolver: standardSchemaResolver(warehouseFormSchema),
     defaultValues: {
       name: warehouse?.name ?? '',
       address: warehouse?.address ?? '',
       description: warehouse?.description ?? null,
-      code: warehouse?.code ?? null,
-      position: warehouse?.position || 1
+      is_default: isDefault
     }
   })
 
@@ -46,7 +47,7 @@ const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
 
   return (
     <form
-      onSubmit={form.handleSubmit(payload => mutation.mutate({ id: warehouse?.id, payload }))}
+      onSubmit={form.handleSubmit(values => mutation.mutate({ id: warehouse?.id, values }))}
       noValidate
     >
       <FieldGroup>
@@ -55,7 +56,7 @@ const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='warehouse-name'
-              placeholder='Warehouse #1'
+              placeholder='e.g. Tillsonburg'
               aria-invalid={invalid(errors.name)}
               {...form.register('name')}
             />
@@ -63,45 +64,12 @@ const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
           <FieldError errors={[errors.name]} />
         </Field>
 
-        <div className='grid grid-cols-2 gap-4'>
-          <Field data-invalid={invalid(errors.code)}>
-            <FieldLabel htmlFor='warehouse-code'>Code</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id='warehouse-code'
-                placeholder='WH1'
-                aria-invalid={invalid(errors.code)}
-                // An empty code is no code, which the API stores as null rather than ''.
-                {...form.register('code', { setValueAs: value => value || null })}
-              />
-            </InputGroup>
-            <FieldError errors={[errors.code]} />
-          </Field>
-
-          <Field data-invalid={invalid(errors.position)}>
-            <FieldLabel htmlFor='warehouse-position'>Position</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id='warehouse-position'
-                type='number'
-                min={1}
-                inputMode='numeric'
-                placeholder='1'
-                aria-invalid={invalid(errors.position)}
-                {...form.register('position', { setValueAs: value => Number(value) })}
-              />
-            </InputGroup>
-            <FieldDescription>The lowest one is the default warehouse.</FieldDescription>
-            <FieldError errors={[errors.position]} />
-          </Field>
-        </div>
-
         <Field data-invalid={invalid(errors.address)}>
           <FieldLabel htmlFor='warehouse-address'>Address</FieldLabel>
           <InputGroup>
             <InputGroupInput
               id='warehouse-address'
-              placeholder='20 Clearview Dr. Tillsonburg'
+              placeholder='e.g. 21 Clearview Dr'
               aria-invalid={invalid(errors.address)}
               {...form.register('address')}
             />
@@ -114,12 +82,27 @@ const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
           <Textarea
             id='warehouse-description'
             rows={3}
-            placeholder='Primary warehouse in the production plant'
+            placeholder='e.g. Main plant'
             aria-invalid={invalid(errors.description)}
             // An empty box means "no description", which the API stores as null rather than ''.
             {...form.register('description', { setValueAs: value => value || null })}
           />
           <FieldError errors={[errors.description]} />
+        </Field>
+
+        <Field orientation='horizontal'>
+          <FieldLabel htmlFor='warehouse-default'>Default warehouse</FieldLabel>
+          <Controller
+            control={form.control}
+            name='is_default'
+            render={({ field }) => (
+              <Switch
+                id='warehouse-default'
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
         </Field>
 
         <Button
@@ -157,12 +140,14 @@ export const CreateWarehouseDialog = () => {
 
 type UpdateWarehouseDialogProps = {
   warehouse: Warehouse
+  isDefault: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export const UpdateWarehouseDialog = ({
   warehouse,
+  isDefault,
   open,
   onOpenChange
 }: UpdateWarehouseDialogProps) => (
@@ -171,7 +156,13 @@ export const UpdateWarehouseDialog = ({
       <DialogHeader>
         <DialogTitle>Update warehouse</DialogTitle>
       </DialogHeader>
-      {open && <WarehouseForm warehouse={warehouse} onSuccess={() => onOpenChange(false)} />}
+      {open && (
+        <WarehouseForm
+          warehouse={warehouse}
+          isDefault={isDefault}
+          onSuccess={() => onOpenChange(false)}
+        />
+      )}
     </DialogContent>
   </Dialog>
 )
