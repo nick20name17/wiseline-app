@@ -1,8 +1,9 @@
-import { singleFlight } from '@/lib/single-flight'
+import { expect, test, vi } from 'vitest'
+import { singleFlight } from './single-flight.ts'
 
 const deferred = <T>() => {
   let resolve!: (value: T) => void
-  let reject!: (reason?: unknown) => void
+  let reject!: (reason: unknown) => void
   const promise = new Promise<T>((res, rej) => {
     resolve = res
     reject = rej
@@ -10,39 +11,44 @@ const deferred = <T>() => {
   return { promise, resolve, reject }
 }
 
-it('collapses concurrent calls into a single in-flight invocation', async () => {
-  const d = deferred<number>()
-  const fn = vi.fn(() => d.promise)
-  const wrapped = singleFlight(fn)
+test('concurrent calls with the same key share one run', async () => {
+  const gate = deferred<string>()
+  const fn = vi.fn<() => Promise<string>>(() => gate.promise)
+  const flight = singleFlight(fn)
 
-  const a = wrapped()
-  const b = wrapped()
+  const both = Promise.all([flight('k'), flight('k')])
+  gate.resolve('value')
 
+  expect(await both).toStrictEqual(['value', 'value'])
   expect(fn).toHaveBeenCalledTimes(1)
-  expect(a).toBe(b)
-
-  d.resolve(42)
-  await expect(a).resolves.toBe(42)
 })
 
-it('re-invokes after the previous call settles', async () => {
-  const fn = vi.fn(() => Promise.resolve('ok'))
-  const wrapped = singleFlight(fn)
+test('different keys run independently', async () => {
+  const fn = vi.fn<(key: string) => Promise<string>>(async key => key)
+  const flight = singleFlight(fn)
 
-  await wrapped()
-  await wrapped()
+  await Promise.all([flight('a'), flight('b')])
 
   expect(fn).toHaveBeenCalledTimes(2)
 })
 
-it('clears the pending slot on rejection so the next call retries', async () => {
-  const fn = vi
-    .fn<() => Promise<string>>()
-    .mockRejectedValueOnce(new Error('boom'))
-    .mockResolvedValueOnce('recovered')
-  const wrapped = singleFlight(fn)
+test('a settled call is not reused', async () => {
+  const fn = vi.fn<(key: string) => Promise<string>>(async key => key)
+  const flight = singleFlight(fn)
 
-  await expect(wrapped()).rejects.toThrow('boom')
-  await expect(wrapped()).resolves.toBe('recovered')
+  await flight('k')
+  await flight('k')
+
+  expect(fn).toHaveBeenCalledTimes(2)
+})
+
+test('a rejected call is not reused', async () => {
+  const fn = vi.fn<() => Promise<never>>(async () => {
+    throw new Error('boom')
+  })
+  const flight = singleFlight(fn)
+
+  await expect(flight('k')).rejects.toThrow('boom')
+  await expect(flight('k')).rejects.toThrow('boom')
   expect(fn).toHaveBeenCalledTimes(2)
 })

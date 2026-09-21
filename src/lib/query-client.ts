@@ -1,24 +1,59 @@
+import { toast } from '@/components/ui/toast'
+import { getErrorMessage, isNetworkError } from '@/lib/errors'
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
-import { HTTPError } from 'ky'
-import { toast } from 'sonner'
+import { HTTPError, TimeoutError } from 'ky'
 
-const isClientError = (error: unknown) =>
-  error instanceof HTTPError && error.response.status >= 400 && error.response.status < 500
+declare module '@tanstack/react-query' {
+  interface Register {
+    mutationMeta: { skipErrorToast?: boolean }
+    queryMeta: { skipErrorToast?: boolean }
+  }
+}
 
-const notifyError = (error: unknown) =>
-  toast.error(error instanceof Error ? error.message : 'Something went wrong')
+const MAX_RETRIES = 2
+const MAX_RETRY_DELAY_MS = 30_000
+const STALE_TIME_MS = 60_000
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504])
+
+export const shouldRetry = (failureCount: number, error: unknown) => {
+  if (failureCount >= MAX_RETRIES) return false
+
+  if (error instanceof HTTPError) {
+    return RETRYABLE_STATUSES.has(error.response.status)
+  }
+
+  return error instanceof TimeoutError || isNetworkError(error)
+}
+
+export const retryDelay = (attempt: number, error: unknown) => {
+  if (error instanceof HTTPError) {
+    const retryAfter = Number(error.response.headers.get('Retry-After'))
+    if (retryAfter > 0) {
+      return Math.min(retryAfter * 1000, MAX_RETRY_DELAY_MS)
+    }
+  }
+  return Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS)
+}
 
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      if (query.state.data !== undefined) notifyError(error)
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.meta?.skipErrorToast || mutation.options.onError) return
+      toast.add({ type: 'error', title: getErrorMessage(error) })
     }
   }),
-  mutationCache: new MutationCache({ onError: notifyError }),
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      if (query.meta?.skipErrorToast || query.state.data === undefined) return
+      toast.add({ type: 'error', title: getErrorMessage(error) })
+    }
+  }),
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
-      retry: (failureCount, error) => !isClientError(error) && failureCount < 2
+      staleTime: STALE_TIME_MS,
+      retry: shouldRetry,
+      retryDelay,
+      refetchOnWindowFocus: false
     },
     mutations: {
       retry: false

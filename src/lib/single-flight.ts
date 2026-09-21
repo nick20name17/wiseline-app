@@ -1,9 +1,11 @@
-export const singleFlight = <T>(fn: () => Promise<T>): (() => Promise<T>) => {
-  let pending: Promise<T> | null = null
-  return () => {
-    pending ??= fn().finally(() => {
-      pending = null
-    })
-    return pending
+export const singleFlight = <K, T>(fn: (key: K) => Promise<T>): ((key: K) => Promise<T>) => {
+  const pending = new Map<K, Promise<T>>()
+  return key => {
+    let flight = pending.get(key)
+    if (!flight) {
+      flight = fn(key).finally(() => pending.delete(key))
+      pending.set(key, flight)
+    }
+    return flight
   }
 }

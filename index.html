@@ -3,31 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Wiseline PM — production scheduling and order tracking across Trim, Rollforming and Shipping."
+    />
     <title>Wiseline PM</title>
+    <meta name="theme-color" content="#ffffff" />
     <script>
-      ;(function () {
+      ;(() => {
+        let t
         try {
-          var t = localStorage.getItem('ui-theme') || 'system'
-          var dark =
-            t === 'dark' ||
-            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-          document.documentElement.classList.toggle('dark', dark)
-        } catch (e) {}
+          t = localStorage.getItem('theme')
+        } catch {}
+        const dark =
+          t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.add(dark ? 'dark' : 'light')
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute('content', dark ? '#0a0a0a' : '#ffffff')
       })()
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <div id="root"></div>
-    <!-- qrcodejs 1.0.0, vendored from the CDN copy the prototype pins: the Stock Cards page has to
-         draw the same code, and a classic script is the only thing this library publishes -->
-    <script src="/qrcode.min.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

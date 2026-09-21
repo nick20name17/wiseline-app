@@ -1,21 +1,22 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { TonightCard } from '@/features/moon'
+import { createFileRoute } from '@tanstack/react-router'
 
-import { landingFor, landingSearchFor } from '@/session/landing'
-import { viewerStore } from '@/session/viewer'
+const HomePage = () => {
+  return (
+    <div className='flex flex-col gap-10'>
+      <section className='flex flex-col gap-4'>
+        <h1 className='font-heading text-3xl font-semibold tracking-tight'>Wiseline PM</h1>
+        <p className='max-w-prose text-muted-foreground'>
+          A small example app: one shared layout, two pages. The header, footer and page frame live
+          in the root route, so every page inherits them.
+        </p>
+      </section>
 
-/**
- * The root, which the prototype never links to and every host asks for first.
- *
- * There was no index route at all: the review portal frames a build at `/`, so the whole port read as
- * its own 404 page — the one screen where nothing is worth commenting on.
- */
+      <TonightCard date={new Date()} />
+    </div>
+  )
+}
+
 export const Route = createFileRoute('/')({
-  beforeLoad: () => {
-    const viewer = viewerStore.get()
-    if (!viewer) throw redirect({ to: '/sign-in' })
-
-    const to = landingFor(viewer.role, viewer.department)
-    const search = landingSearchFor(viewer.role, viewer.department)
-    throw redirect(search ? { to, search } : { to })
-  }
+  component: HomePage
 })
