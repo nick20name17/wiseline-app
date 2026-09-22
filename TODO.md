@@ -127,8 +127,10 @@ department's, so the Trim board pulls the lot and filters in memory (`priorities
 `description`, `quantity` (ordered), `pull_from_stock` and `status` — or accept a list of
 `origin_item`s on `GET /items/`.
 
-**Why:** the board's bendlist is Qty Ordered | Stock | Qty to Manufacture | ID | Description |
-Remanufacture | Machine | Status | Complete | Drawing | Line Item Notes (p1 (507,291)). A row from
+**Why:** the board's bendlist is Width | Length | Qty Ordered | Stock | Qty to Manufacture | ID |
+Description | Remanufacture | Machine | Status | Complete | Drawing | Line Item Notes
+(`docs/wiseline-spec.md` screen (660,522)), and "Qty to Manufacture ... needs to show the difference
+between the Qty Ordered and Stock columns" p1 (687,302). A row from
 `GET /cutlists/` carries the width, the length, the quantity to make, the machine and the sources —
 and a source is `order`, `origin_item`, `quantity` and nothing else. So the columns that describe
 the trim itself cannot be filled, and neither can the per-line actions beside them: reassigning a
@@ -143,13 +145,14 @@ pieces, the operator note and Complete.
 **Ask:** an endpoint that records pieces the floor made against no order and pushes them to EBMS as
 a manufacturing batch, plus one that lists what has been sent.
 
-**Why:** Production has two modes on the board — Trim and Stock Manufacturing (p1 (660,522)) — and
-the second is a grid of Qty / Product ID / Description typed straight in by the worker. Nothing in
-`stages/` records it: `stock.py` is Stock Cards, `stock_orders.py` raises an order that then goes
-through the tabs like any other. There is no way to post a bare manufactured quantity.
+**Why:** a machine tab carries a Stock Manufacturing button, and "clicking the Stock Manufacturing
+button opens this window" — a grid of Qty | ID | Description the worker types into, closed by
+**Create Manufacturing Batch** p1 (1009,302), (1013,320). Nothing in `stages/` records that:
+`stock.py` is Stock Cards, `stock_orders.py` raises an order that then goes through the tabs like
+any other. There is no way to post a bare manufactured quantity.
 
-**On our side once it lands:** the Production tab grows its mode switch and the Stock Manufacturing
-grid beside it. Today the tab is the Trim mode only.
+**On our side once it lands:** the Production tab grows the button and the window behind it. Today
+it has neither.
 
 ## Backend: no package list for an order still being wrapped
 
@@ -170,10 +173,11 @@ only part of that picture the API answers.
 
 **Ask:** `product_id` and `customer` on the rows `GET /wrapping/` returns.
 
-**Why:** the board's Wrapping table is Order # | Customer | Qty | Stock | Priority | Remfg | Status
-| ID | Description | Notes (p1 (879,328)). The row carries `order_number`, `description`,
-`priority`, `status` and the three quantities — but nothing names the product or the customer, and
-both are columns the floor reads the table by.
+**Why:** the board's Wrapping table is Production Date | Order # | Customer Name | Qty Ordered |
+Stock | Priority | Remanufacture | Status | ID | Description | Line Item Notes
+(`docs/wiseline-spec.md` screen (885,283)). The row carries `order_number`, `description`,
+`priority`, `status` and the three quantities — but nothing names the product, the customer, or how
+much of the line comes from stock, and all three are columns the floor reads the table by.
 
 **On our side once it lands:** the two columns go into `WrappingTab`; it shows the line item's
 autoid in place of the product today.
@@ -216,3 +220,20 @@ Production tab cannot tell one list from another.
 
 **On our side once it lands:** `CutlistCard` in `src/features/trim/components/` gets the badge; the
 remake is visible today only where it was raised, at the wrapping bench.
+
+## Backend: a completed order does not say where it is standing, or who it is for
+
+**Ask:** `trim_location` (the codes, as the Completed table shows them) on the rows
+`GET /departments/{id}/completed-orders/` returns, and `po`, `salesman`, `ship_via` and `priority`
+on the detail beside the customer.
+
+**Why:** the board's Completed Orders table is Ship Date | Production Date | Completed Date & Time |
+Order # | Customer Name | **Trim Location** (`docs/wiseline-spec.md` screen (912,545)), and opening
+one shows a footer of Customer Name, Order #, PO#, Salesman, Ship Date, Ship Via, Priority and Trim
+Location, with a Select Location button beside it p1 (912,576). The list endpoint returns neither
+the location nor those fields, and there is no endpoint that puts a location on an order that has no
+new package being made — only `DELETE /wrapping/orders/{order}/locations/{id}/`, which frees one.
+
+**On our side once it lands:** the Trim Location column goes into `CompletedTab` and the footer
+fills out in `CompletedOrderDialog`; today the window names the customer, the two dates and the
+locations the order still stands on, and can free one.
