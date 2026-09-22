@@ -1,276 +1,172 @@
-import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { toast } from '@/components/ui/toast'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useQuery } from '@tanstack/react-query'
-import { Cog, Pencil, Trash2 } from 'lucide-react'
-import { Fragment, useState } from 'react'
-import {
-  categoriesQuery,
-  departmentsQuery,
-  KIND_LABELS,
-  machinesQuery,
-  useDeleteMachine,
-  useSetCapacity,
-  type Category,
-  type Machine,
-  type MachineKind
-} from '../api'
-import { CreateMachineDialog, UpdateMachineDialog } from './machine-dialog'
+import { ChevronDown, ChevronRight, Cog, Database, Gauge, Package, Plus } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { departmentsQuery, machinesQuery, type Machine } from '../api'
+import { machineSections, type MachineSection } from '../lib/sections'
+import { MachineActions } from './machine-actions'
+import { CreateMachineDialog } from './machine-dialog'
 
-type CapacityCellProps = { category: Category }
+// The cutter is where a department's work enters its machines, which is why it is tagged.
+const GATEWAY_KIND = 'cutting'
+const COIL_SUPPLIERS_DEPARTMENT = 'rollforming'
 
-/**
- * The department's ceiling for one day — the figure behind the day strip's `used / capacity`. It
- * hangs off the category rather than any machine, and is created the first time it is set.
- */
-const CapacityCell = ({ category }: CapacityCellProps) => {
-  const [draft, setDraft] = useState(category.capacity === null ? '' : String(category.capacity))
-  const save = useSetCapacity()
-  const saved = category.capacity === null ? '' : String(category.capacity)
+// Cards stand in for the departments until they arrive; a plant runs three or four.
+const SKELETON_SECTIONS = 3
+
+type PendingButtonProps = { icon: ReactNode; children: ReactNode }
+
+/** A control the design has but the backend cannot serve yet (see TODO.md); shown, not usable. */
+const PendingButton = ({ icon, children }: PendingButtonProps) => (
+  <Tooltip>
+    {/* A disabled button takes no pointer events, so the hover lands on a wrapper instead. */}
+    <TooltipTrigger render={<span />}>
+      <Button variant='outline' disabled>
+        {icon}
+        {children}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>Waiting on the backend</TooltipContent>
+  </Tooltip>
+)
+
+type MachineRowProps = { machine: Machine; unit: MachineSection['unit'] }
+
+const MachineRow = ({ machine, unit }: MachineRowProps) => {
+  const max = unit === 'bends' ? machine.daily_max_bends : machine.daily_max_pieces
 
   return (
-    <span className='flex items-center gap-2'>
-      <span className='text-xs tracking-wider text-muted-foreground uppercase'>Daily capacity</span>
-      <Input
-        className='w-28'
-        type='number'
-        min={0}
-        inputMode='numeric'
-        aria-label={`Daily capacity for ${category.name ?? category.id}`}
-        placeholder='Not set'
-        value={draft}
-        onChange={event => setDraft(event.target.value)}
-        onBlur={() =>
-          draft !== saved &&
-          draft.trim() !== '' &&
-          save.mutate({
-            capacityId: category.capacity_id,
-            category: category.id,
-            perDay: Number(draft)
-          })
-        }
-      />
-    </span>
+    <li className='flex items-center gap-2.5 border-b border-border px-4 py-2.5 last:border-b-0'>
+      <span className='font-medium'>{machine.name ?? '—'}</span>
+      {machine.kind === GATEWAY_KIND ? <Badge variant='muted'>Gateway</Badge> : null}
+      <span
+        className='mr-3 ml-auto inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground'
+        title='Daily capacity'
+      >
+        <Gauge className='size-3' />
+        {max ?? '—'} {unit} / day
+      </span>
+      <MachineActions machine={machine} />
+    </li>
+  )
+}
+
+type MachineGroupProps = { section: MachineSection; onAdd: () => void }
+
+const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
+  const [open, setOpen] = useState(true)
+  const Chevron = open ? ChevronDown : ChevronRight
+
+  return (
+    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+      <div
+        className='flex items-center gap-2 bg-muted/50 px-4 py-3 data-open:border-b data-open:border-border'
+        data-open={open || undefined}
+      >
+        {/* The title spans the free width, so the header toggles from almost anywhere, as in the
+            design, while the buttons beside it keep their own clicks. */}
+        <button
+          type='button'
+          className='flex flex-1 cursor-pointer items-center gap-2.5 self-stretch rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <span className='text-sm font-semibold'>{section.name}</span>
+          <span className='font-mono text-xs text-muted-foreground'>{section.machines.length}</span>
+        </button>
+
+        <PendingButton icon={<Package data-icon='inline-start' />}>
+          Max package · no limit
+        </PendingButton>
+        {section.code === COIL_SUPPLIERS_DEPARTMENT ? (
+          <PendingButton icon={<Database data-icon='inline-start' />}>Coil suppliers</PendingButton>
+        ) : null}
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-expanded={open}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${section.name}`}
+          onClick={() => setOpen(!open)}
+        >
+          <Chevron />
+        </Button>
+      </div>
+
+      {open ? (
+        section.machines.length ? (
+          <ul className='text-sm'>
+            {section.machines.map(machine => (
+              <MachineRow key={machine.id} machine={machine} unit={section.unit} />
+            ))}
+          </ul>
+        ) : (
+          <p className='px-4 py-3 text-sm text-muted-foreground'>
+            No machines yet —{' '}
+            <button
+              type='button'
+              className='cursor-pointer underline-offset-4 hover:text-foreground hover:underline'
+              onClick={onAdd}
+            >
+              Add one
+            </button>
+          </p>
+        )
+      ) : null}
+    </div>
   )
 }
 
 /**
- * The machines every department's board is built out of: what each one does, how much it can take in
- * a day, and the order its tab stands in.
+ * The machines every department's board is built out of, one card per department: what each machine
+ * can take in a day, and the department's own ceilings.
  */
 export const MachinesPage = () => {
-  const { data: machines, isPending } = useQuery(machinesQuery)
-  const { data: categories } = useQuery(categoriesQuery)
-  const { data: departments } = useQuery(departmentsQuery)
+  const { data: machines, isPending: machinesPending } = useQuery(machinesQuery)
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  // Without the departments every machine would read as having none, and land in the wrong card.
+  const isPending = machinesPending || departmentsPending
+  const [creating, setCreating] = useState(false)
 
-  const [editing, setEditing] = useState<Machine | null>(null)
-  const [removing, setRemoving] = useState<Machine | null>(null)
-  const remove = useDeleteMachine(() => setRemoving(null))
-
-  // Machines are read per category, because that is what a department's board is scoped to.
-  const groups = (categories ?? []).map(category => ({
-    category,
-    machines: (machines ?? []).filter(machine => machine.category === category.id)
-  }))
-  const orphans = (machines ?? []).filter(
-    machine => !categories?.some(category => category.id === machine.category)
-  )
+  const sections = machineSections({ machines, departments })
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className='flex flex-col gap-3'>
       <div className='flex items-center justify-between gap-3.5'>
         <p className='text-sm text-muted-foreground'>
-          <span className='font-medium text-foreground'>{machines?.length ?? 0}</span>{' '}
-          {machines?.length === 1 ? 'machine' : 'machines'}
+          <b className='font-semibold text-foreground'>{machines?.length ?? 0}</b> machines across
+          departments
         </p>
-        <CreateMachineDialog />
+        <Button onClick={() => setCreating(true)}>
+          <Plus data-icon='inline-start' />
+          Add machine
+        </Button>
       </div>
 
-      {!isPending && !machines?.length ? (
+      {isPending ? (
+        Array.from({ length: SKELETON_SECTIONS }, (_, section) => (
+          <Skeleton key={section} className='h-14' />
+        ))
+      ) : sections.length ? (
+        sections.map(section => (
+          <MachineGroup key={section.key} section={section} onAdd={() => setCreating(true)} />
+        ))
+      ) : (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
               <Cog />
             </EmptyMedia>
-            <EmptyTitle>No machines</EmptyTitle>
-            <EmptyDescription>
-              A department with no machines has nothing to route a trim to, and no Production tab to
-              speak of.
-            </EmptyDescription>
+            <EmptyTitle>No departments</EmptyTitle>
+            <EmptyDescription>A machine needs a department to belong to.</EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-4xl table-fixed'>
-            <colgroup>
-              <col className='w-64' />
-              <col className='w-44' />
-              <col className='w-36' />
-              <col className='w-36' />
-              <col className='w-32' />
-              <col />
-              <col className='w-24' />
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Machine</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>What it does</TableHead>
-                <TableHead>Max bends</TableHead>
-                <TableHead>Max pieces</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>
-                  {/* The column is obvious from its buttons; the label is for screen readers. */}
-                  <span className='sr-only'>Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isPending ? (
-                <TableSkeletonRows columns={6} />
-              ) : (
-                [
-                  ...groups,
-                  // A machine whose category EBMS no longer sends still has to be reachable.
-                  ...(orphans.length
-                    ? [
-                        {
-                          category: {
-                            id: '',
-                            name: 'No category',
-                            capacity: null,
-                            capacity_id: null
-                          },
-                          machines: orphans
-                        }
-                      ]
-                    : [])
-                ].map(group => (
-                  <Fragment key={group.category.id || 'none'}>
-                    <TableRow>
-                      <TableCell colSpan={7}>
-                        <span className='flex flex-wrap items-center gap-4'>
-                          <span className='text-xs font-semibold tracking-wider uppercase'>
-                            {group.category.name ?? group.category.id}
-                          </span>
-                          {group.category.id ? <CapacityCell category={group.category} /> : null}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-
-                    {group.machines.map(machine => (
-                      <TableRow key={machine.id}>
-                        <TableCell>{machine.name ?? '—'}</TableCell>
-                        <TableCell>
-                          {departments?.find(department => department.id === machine.department)
-                            ?.name ?? '—'}
-                        </TableCell>
-                        <TableCell>
-                          {KIND_LABELS[machine.kind as MachineKind] ?? (
-                            <span className='text-muted-foreground'>—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className='font-mono'>{machine.daily_max_bends ?? '—'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className='font-mono'>{machine.daily_max_pieces ?? '—'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className='font-mono text-muted-foreground'>
-                            {machine.position ?? '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className='flex justify-end gap-1 text-muted-foreground'>
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
-                              aria-label={`Edit ${machine.name}`}
-                              onClick={() => setEditing(machine)}
-                            >
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
-                              aria-label={`Delete ${machine.name}`}
-                              onClick={() => setRemoving(machine)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
       )}
 
-      {editing ? (
-        <UpdateMachineDialog
-          machine={editing}
-          open
-          onOpenChange={open => !open && setEditing(null)}
-        />
-      ) : null}
-
-      <AlertDialog open={!!removing} onOpenChange={open => !open && setRemoving(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete machine {removing?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Its tab goes with it, and the line items routed to it are left without a machine. This
-              cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
-            <Button
-              variant='destructive'
-              disabled={remove.isPending}
-              onClick={() =>
-                removing &&
-                remove.mutate(removing.id, {
-                  onError: error =>
-                    toast.add({
-                      type: 'error',
-                      title: 'The machine stayed',
-                      description: error.message
-                    })
-                })
-              }
-            >
-              {remove.isPending ? <Spinner data-icon='inline-start' /> : null}
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CreateMachineDialog open={creating} onOpenChange={setCreating} />
     </section>
   )
 }

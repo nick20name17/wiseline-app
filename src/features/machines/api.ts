@@ -5,7 +5,8 @@ import * as z from 'zod/mini'
 const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
-  code: z._default(z.string(), '')
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -60,7 +61,6 @@ export const machineFormSchema = z.object({
   category: z.string().check(z.minLength(1, 'Category is required')),
   department: z.number(),
   kind: z.string(),
-  position: z.number(),
   daily_max_pieces: z.nullable(z.number()),
   daily_max_bends: z.nullable(z.number())
 })
@@ -69,10 +69,7 @@ export type MachineForm = z.infer<typeof machineFormSchema>
 
 const categorySchema = z.object({
   id: z._default(z.string(), ''),
-  name: z._default(z.nullable(z.string()), null),
-  // The department's own ceiling for a day, which the day strip reads as `used / capacity`.
-  capacity: z._default(z.nullable(z.number()), null),
-  capacity_id: z._default(z.nullable(z.number()), null)
+  name: z._default(z.nullable(z.string()), null)
 })
 
 export type Category = z.infer<typeof categorySchema>
@@ -90,7 +87,7 @@ export const machinesQuery = queryOptions({
     [...machines].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 })
 
-/** The EBMS categories machines are grouped under, each carrying its daily capacity. */
+/** The EBMS categories a machine's work can arrive under. */
 export const categoriesQuery = queryOptions({
   queryKey: machinesKeys.categories(),
   queryFn: async () =>
@@ -116,26 +113,4 @@ export const useDeleteMachine = (onSuccess: () => void) =>
       await client.invalidateQueries({ queryKey: machinesKeys.all })
       onSuccess()
     }
-  })
-
-/**
- * The department's capacity for one day. It hangs off the category rather than the machine — a
- * machine's own ceiling is its daily max — and is created the first time somebody sets it.
- */
-export const useSetCapacity = () =>
-  useMutation({
-    mutationFn: ({
-      capacityId,
-      category,
-      perDay
-    }: {
-      capacityId: number | null
-      category: string
-      perDay: number
-    }) =>
-      capacityId
-        ? authApi.patch(`capacities/${capacityId}/`, { json: { per_day: perDay } }).json()
-        : authApi.post('capacities/', { json: { category, per_day: perDay } }).json(),
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: machinesKeys.all })
   })

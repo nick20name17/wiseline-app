@@ -259,6 +259,36 @@ stocked products alone.
 
 **On our side once it lands:** the Drawing column goes into `CutlistRows`, beside the notes.
 
+## Backend: no coil suppliers to manage
+
+**Ask:** CRUD for a coil supplier — `GET/POST /coil-suppliers/` and `DELETE /coil-suppliers/{id}/`,
+returning `id` and `name`.
+
+**Why:** the Machines admin screen carries a Coil Suppliers button on the Rollforming section, and
+"clicking this button would open this window where you would be able to create a list of coil
+suppliers" (`docs/wiseline-spec.md` screens (807,64) and (807,77)) — a window listing Taylor, Color
+Steel and Cascadia, each with a remove button, and an Add button below. The only supplier endpoint
+is `GET /coil-assignment/{origin_item}/suppliers/`, which reads the suppliers behind one line item's
+coils. Nothing lists the suppliers themselves, and nothing creates or removes one.
+
+**On our side once it lands:** the Coil suppliers button on the Rollforming card in
+`src/features/machines/components/machines-page.tsx` is enabled and opens the popup; today it is
+shown disabled.
+
+## Backend: no ceiling on a department's package weight
+
+**Ask:** a `max_package_weight` (lb, nullable for no limit) on each department in
+`GET /departments/all/`, writable through `PATCH /departments/{id}/`.
+
+**Why:** an Over Weight package turns its box red, and Create & Print asks for an override
+(`docs/wiseline-spec.md` screen p1 (940,365)-(951,365)). Something has to say what over weight is
+per department, and the design on `main` sets it from a Max package button on each department of the
+Machines screen (`src/features/settings/areas.tsx`). No endpoint stores such a figure.
+
+**On our side once it lands:** the Max package button on every card in
+`src/features/machines/components/machines-page.tsx` shows the figure and opens an editor; today it
+is shown disabled with «no limit».
+
 ## Backend: a day's capacity is not its machines' daily max added up
 
 **Ask:** `capacity` and `over_capacity` on `GET /departments/{id}/day-strip/` and `total.capacity`

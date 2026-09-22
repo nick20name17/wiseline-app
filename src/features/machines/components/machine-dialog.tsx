@@ -1,10 +1,11 @@
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@/components/ui/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
@@ -18,8 +19,6 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
-import { PlusCircle } from 'lucide-react'
-import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import {
   categoriesQuery,
@@ -58,7 +57,6 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
       category: machine?.category ?? categories?.[0]?.id ?? '',
       department: machine?.department ?? departments?.[0]?.id ?? 0,
       kind: machine?.kind ?? 'bending',
-      position: machine?.position ?? 0,
       daily_max_pieces: machine?.daily_max_pieces ?? null,
       daily_max_bends: machine?.daily_max_bends ?? null
     }
@@ -74,11 +72,11 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
     >
       <FieldGroup>
         <Field data-invalid={invalid(errors.name)}>
-          <FieldLabel htmlFor='machine-name'>Name</FieldLabel>
+          <RequiredLabel htmlFor='machine-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='machine-name'
-              placeholder='e.g. Press Brake'
+              placeholder='e.g. Slinet'
               aria-invalid={invalid(errors.name)}
               {...form.register('name')}
             />
@@ -87,7 +85,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.department)}>
-          <FieldLabel htmlFor='machine-department'>Department</FieldLabel>
+          <RequiredLabel htmlFor='machine-department'>Department</RequiredLabel>
           <Controller
             control={form.control}
             name='department'
@@ -101,7 +99,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
                   <SelectValue>
                     {(id: string) =>
                       departments?.find(department => department.id === Number(id))?.name ??
-                      'Pick a department'
+                      'Select…'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -119,7 +117,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.category)}>
-          <FieldLabel htmlFor='machine-category'>EBMS category</FieldLabel>
+          <RequiredLabel htmlFor='machine-category'>EBMS category</RequiredLabel>
           {/* What routes a line item here: the category is the link between EBMS and a department. */}
           <Controller
             control={form.control}
@@ -129,7 +127,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
                 <SelectTrigger id='machine-category'>
                   <SelectValue>
                     {(id: string) =>
-                      categories?.find(category => category.id === id)?.name ?? 'Pick a category'
+                      categories?.find(category => category.id === id)?.name ?? 'Select…'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -147,7 +145,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.kind)}>
-          <FieldLabel htmlFor='machine-kind'>What it does</FieldLabel>
+          <RequiredLabel htmlFor='machine-kind'>What it does</RequiredLabel>
           {/* The kind is what tells the Production tab a cutter from a bender. */}
           <Controller
             control={form.control}
@@ -204,32 +202,15 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
           </InputGroup>
           <FieldError errors={[errors.daily_max_pieces]} />
         </Field>
-
-        <Field data-invalid={invalid(errors.position)}>
-          <FieldLabel htmlFor='machine-position'>Position</FieldLabel>
-          {/* The order the machine tabs stand in, left to right. */}
-          <InputGroup>
-            <InputGroupInput
-              id='machine-position'
-              type='number'
-              min={0}
-              inputMode='numeric'
-              aria-invalid={invalid(errors.position)}
-              {...form.register('position', { valueAsNumber: true })}
-            />
-          </InputGroup>
-          <FieldError errors={[errors.position]} />
-        </Field>
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {machine ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <div className='mt-6 flex justify-end gap-2'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </div>
     </form>
   )
 }
@@ -241,22 +222,23 @@ const useReady = () => {
   return !!departments && !!categories
 }
 
-export const CreateMachineDialog = () => {
-  const [open, setOpen] = useState(false)
+type CreateMachineDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+// Opened from the toolbar and from an empty department alike, so the page owns the open state.
+export const CreateMachineDialog = ({ open, onOpenChange }: CreateMachineDialogProps) => {
   const ready = useReady()
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
-        <PlusCircle data-icon='inline-start' />
-        Create machine
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create machine</DialogTitle>
+          <DialogTitle>Add machine</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && ready ? <MachineForm onSuccess={() => setOpen(false)} /> : <Spinner />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        {ready ? <MachineForm onSuccess={() => onOpenChange(false)} /> : <Spinner />}
       </DialogContent>
     </Dialog>
   )
@@ -275,9 +257,9 @@ export const UpdateMachineDialog = ({ machine, open, onOpenChange }: UpdateMachi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update machine</DialogTitle>
+          <DialogTitle>Edit machine</DialogTitle>
         </DialogHeader>
-        {open && ready ? (
+        {ready ? (
           <MachineForm machine={machine} onSuccess={() => onOpenChange(false)} />
         ) : (
           <Spinner />

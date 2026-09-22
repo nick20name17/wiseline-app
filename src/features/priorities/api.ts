@@ -5,7 +5,8 @@ import * as z from 'zod/mini'
 const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
-  code: z._default(z.string(), '')
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
