@@ -116,6 +116,18 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
     // Wrapping keeps no lists of its own; it reads the line items straight.
     enabled: departmentId !== undefined && !isWrapping
   })
+  // A bendlist is «in progress» once the Slinet has started cutting the release it belongs to. The
+  // two lists are made by the same release, which is what ties them together.
+  const { data: slinetLists } = useQuery({
+    ...cutlistsQuery(departmentId, 'cutlist', null, false),
+    enabled: departmentId !== undefined && !isSlinet && !isWrapping && !done
+  })
+  const started = new Set(
+    (slinetLists ?? [])
+      .filter(list => list.rows.some(row => row.complete))
+      .map(list => list.released_at)
+  )
+
   const word = isSlinet ? 'cutlists' : 'bendlists'
   const days = byDay(cutlists ?? [])
 
@@ -194,6 +206,7 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
                     cutlist={cutlist}
                     machines={benders}
                     isSlinet={isSlinet}
+                    slinetStarted={started.has(cutlist.released_at)}
                     readOnly={readOnly}
                     onOpenTotal={setTotal}
                     onOpenCoils={setCoils}

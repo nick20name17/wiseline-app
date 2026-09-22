@@ -116,6 +116,13 @@ test('a machine tab holds its own bendlists, with its daily max', async ({ page 
   await expect(page.getByRole('columnheader', { name: 'Vented' })).toBeHidden()
 })
 
+test('a bendlist says when the Slinet has started on its material', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Press Brake' }).click()
+
+  // The Slinet's list for the same release has a row signed off, so the bend is coming.
+  await expect(page.getByText('In progress')).toBeVisible()
+})
+
 test('the completed lists are a switch away and keep the same format', async ({ page }) => {
   await page.getByRole('tab', { name: /Completed cutlists/ }).click()
 

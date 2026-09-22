@@ -293,7 +293,7 @@ const OVERDUE_CUTLIST = {
   rows: [cutlistRow(4, 8, 120, 1, 4)]
 }
 
-/** Every row signed off, so Done has something to act on. */
+/** Cut already: it is what tells a machine's list its material is on the way. */
 const READY_CUTLIST = {
   ...CUTLIST,
   id: 503,

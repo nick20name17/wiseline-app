@@ -17,6 +17,8 @@ type CutlistCardProps = {
   /** The bending machines, which are the Slinet cutlist's columns. */
   machines: Machine[]
   isSlinet: boolean
+  /** The Slinet has started cutting the release this bendlist came from. */
+  slinetStarted?: boolean
   readOnly: boolean
   onOpenTotal: (group: CutlistGroup) => void
   onOpenCoils: (cutlist: Cutlist) => void
@@ -30,6 +32,7 @@ export const CutlistCard = ({
   cutlist,
   machines,
   isSlinet,
+  slinetStarted = false,
   readOnly,
   onOpenTotal,
   onOpenCoils
@@ -68,6 +71,14 @@ export const CutlistCard = ({
         {/* A list carries the priority it was released under and nothing sets it here, so an
             unprioritised one shows nothing rather than an invitation. */}
         {cutlist.priority && !done ? <PriorityPill priority={cutlist.priority} /> : null}
+
+        {/* The material is being cut: the machine's own work has not started, but it is coming. */}
+        {slinetStarted && !done ? (
+          <span className='inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium tracking-wider text-warning uppercase'>
+            <span aria-hidden className='size-1.5 rounded-full bg-current' />
+            In progress
+          </span>
+        ) : null}
 
         {overdue ? (
           <span className='rounded-md border border-destructive px-1.5 py-0.5 text-xs font-semibold tracking-wider text-destructive uppercase'>

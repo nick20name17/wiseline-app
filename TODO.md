@@ -136,6 +136,9 @@ and a source is `order`, `origin_item`, `quantity` and nothing else. So the colu
 the trim itself cannot be filled, and neither can the per-line actions beside them: reassigning a
 machine and the Stock keypad both need the numeric `pm_item` id, which no cutlist response names.
 
+The same gap hides the Stock Order mark: the board puts an icon on a list carrying stock-order lines
+p1 (585,288), and a source names its order only as an autoid.
+
 **On our side once it lands:** `CutlistRows` in `src/features/trim/components/cutlist-rows.tsx`
 grows the remaining columns; today it shows the size, the quantity, the machine split, the vented
 pieces, the operator note and Complete.
@@ -237,3 +240,16 @@ new package being made — only `DELETE /wrapping/orders/{order}/locations/{id}/
 **On our side once it lands:** the Trim Location column goes into `CompletedTab` and the footer
 fills out in `CompletedOrderDialog`; today the window names the customer, the two dates and the
 locations the order still stands on, and can free one.
+
+## Backend: no drawing behind a trim
+
+**Ask:** an image per product — a `drawing` (file id or URL) on whatever names the product, so a
+line item can show the profile the floor is bending.
+
+**Why:** the bendlist's last two columns are Drawing and Line Item Notes, and the Drawing is the
+sketch of the profile (`docs/wiseline-spec.md` screen (660,522), expanded row). `files/routers.py`
+attaches files to `PackageItem`, `Package` and `Skid` only, and nothing on a line item, a product or
+a cutlist row points at one. The Stock Card holds a sketch through `image_id`, but a card exists for
+stocked products alone.
+
+**On our side once it lands:** the Drawing column goes into `CutlistRows`, beside the notes.
