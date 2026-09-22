@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
-import { Calendar, ChevronRight, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
+import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
 import { formatDate } from '../lib/format'
@@ -58,12 +58,7 @@ const SelectCell = ({
   onToggle: () => void
 }) => {
   if (released)
-    return (
-      <SendHorizontal
-        className='size-4 text-muted-foreground'
-        aria-label='Released to production'
-      />
-    )
+    return <SendHorizontal className='size-4 text-primary' aria-label='Released to production' />
   if (!reviewed)
     return (
       <span className='text-muted-foreground' title='Mark Reviewed to select'>
@@ -89,15 +84,19 @@ const SelectCell = ({
 const ProductionDateCell = ({
   day,
   overdue,
+  stock,
   fixed,
   onReschedule
 }: {
   day: string | null
   overdue: boolean
+  stock: boolean
   fixed: boolean
   onReschedule: () => void
 }) => (
   <span className='flex items-center gap-1'>
+    {/* A stock order is marked where its production date is — the one column every row shares. */}
+    {stock ? <Package className='size-3.5 text-muted-foreground' aria-label='Stock order' /> : null}
     {overdue ? <TriangleAlert className='size-3.5 text-destructive' aria-label='Past due' /> : null}
     {fixed ? (
       <span className={cn(overdue ? 'text-destructive' : 'text-muted-foreground')}>
@@ -144,6 +143,7 @@ export const ScheduledRow = ({
     <Fragment>
       <TableRow
         className='cursor-pointer'
+        data-overdue={overdue ? true : undefined}
         data-state={selected ? 'selected' : undefined}
         onClick={onToggleExpanded}
       >
@@ -175,6 +175,7 @@ export const ScheduledRow = ({
           <ProductionDateCell
             day={day}
             overdue={overdue}
+            stock={stock}
             fixed={released || readOnly}
             onReschedule={onReschedule}
           />

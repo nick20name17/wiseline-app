@@ -40,7 +40,7 @@ const Figure = ({ value, max, fromStock, unrouted }: FigureProps) => {
   const over = !!max && value > max
 
   return (
-    <span className={cn('inline-flex w-44 items-baseline font-mono text-base font-semibold')}>
+    <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold'>
       {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
       <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
         {value}
@@ -73,7 +73,7 @@ const Row = ({
     <th
       scope='row'
       className={cn(
-        'w-2/5 rounded-l-xl border border-r-0 border-input px-3.5 py-4 text-left text-sm font-semibold',
+        'w-2/5 rounded-l-lg border border-r-0 border-input px-3.5 py-2 text-left text-sm font-semibold',
         isDay ? 'bg-card' : 'bg-muted'
       )}
     >
@@ -86,7 +86,7 @@ const Row = ({
 const Cell = ({ isDay, children }: { isDay?: boolean; children: React.ReactNode }) => (
   <td
     className={cn(
-      'border-y border-input px-3.5 py-4 text-left whitespace-nowrap last:rounded-r-xl last:border-r',
+      'border-y border-input px-3.5 py-2 text-left whitespace-nowrap last:rounded-r-lg last:border-r',
       isDay ? 'bg-card' : 'bg-muted'
     )}
   >
@@ -129,67 +129,70 @@ export const MachineCapacitiesDialog = ({
           <Skeleton className='h-64' />
         ) : (
           <>
-            <table className='w-full border-separate border-spacing-y-1.5'>
-              <thead>
-                <tr>
-                  {/* The row names sit under this one; it heads nothing of its own. */}
-                  <th>
-                    <span className='sr-only'>Machine</span>
-                  </th>
-                  {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
-                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                    Pieces
-                  </th>
-                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                    Bends
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <Row
-                  isDay
-                  name={
-                    <>
-                      {formatDate(data.date)}
-                      {data.date === today() ? (
-                        <span className='font-normal text-muted-foreground'> · today</span>
-                      ) : null}
-                    </>
-                  }
-                >
-                  <Cell isDay>
-                    <Figure
-                      value={data.total.pieces}
-                      fromStock={data.total.pieces_from_stock}
-                      unrouted={unrouted}
-                    />
-                  </Cell>
-                  <Cell isDay>
-                    <Figure
-                      value={data.total.bends}
-                      max={data.total.capacity}
-                      fromStock={data.total.bends_from_stock}
-                      unrouted={unrouted}
-                    />
-                  </Cell>
-                </Row>
-
-                {data.machines.map(machine => (
-                  <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
-                    <Cell>
-                      <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
-                    </Cell>
-                    <Cell>
+            {/* A department with a long machine list should not push Print off the screen. */}
+            <div className='scrollport max-h-96 overflow-y-auto'>
+              <table className='w-full border-separate border-spacing-y-1'>
+                <thead>
+                  <tr>
+                    {/* The row names sit under this one; it heads nothing of its own. */}
+                    <th>
+                      <span className='sr-only'>Machine</span>
+                    </th>
+                    {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
+                    <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                      Pieces
+                    </th>
+                    <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                      Bends
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <Row
+                    isDay
+                    name={
+                      <>
+                        {formatDate(data.date)}
+                        {data.date === today() ? (
+                          <span className='font-normal text-muted-foreground'> · today</span>
+                        ) : null}
+                      </>
+                    }
+                  >
+                    <Cell isDay>
                       <Figure
-                        value={machine.bends}
-                        max={machine.max_bends}
-                        fromStock={machine.bends_from_stock}
+                        value={data.total.pieces}
+                        fromStock={data.total.pieces_from_stock}
+                        unrouted={unrouted}
+                      />
+                    </Cell>
+                    <Cell isDay>
+                      <Figure
+                        value={data.total.bends}
+                        max={data.total.capacity}
+                        fromStock={data.total.bends_from_stock}
+                        unrouted={unrouted}
                       />
                     </Cell>
                   </Row>
-                ))}
-              </tbody>
-            </table>
+
+                  {data.machines.map(machine => (
+                    <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
+                      <Cell>
+                        <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
+                      </Cell>
+                      <Cell>
+                        <Figure
+                          value={machine.bends}
+                          max={machine.max_bends}
+                          fromStock={machine.bends_from_stock}
+                        />
+                      </Cell>
+                    </Row>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {unrouted ? (
               <p className='text-center text-xs text-warning'>

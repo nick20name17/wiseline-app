@@ -36,7 +36,7 @@ export const ScheduledToolbar = ({
         </>
       ) : (
         <>
-          <b className='font-semibold text-foreground'>{total}</b> order
+          <b className='font-semibold text-foreground'>{total}</b> {day ? '' : 'scheduled '}order
           {total === 1 ? '' : 's'}
           {day ? ` on ${formatDate(day)}` : ''}
         </>

@@ -151,7 +151,8 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
             <colgroup>
               <col className='w-12' />
               <col className='w-10' />
-              <col className='w-32' />
+              {/* Wide enough for a full date: a ship date cut to «Thu, May 9, …» tells nobody when. */}
+              <col className='w-40' />
               <col className='w-48' />
               <col className='w-36' />
               <col />

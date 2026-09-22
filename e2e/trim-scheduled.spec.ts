@@ -13,10 +13,18 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('the tab lists scheduled orders by day with their capacity', async ({ page }) => {
-  await expect(page.getByRole('tab', { name: 'Scheduled 3' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Scheduled 4' })).toBeVisible()
   await expect(page.getByText('330608')).toBeVisible()
   await expect(page.getByText('Jireh Tools')).toBeVisible()
   await expect(page.getByText('S1042')).toBeVisible()
+  // On the whole list the count names what it counts; a day tab names the day instead.
+  await expect(page.getByText('4 scheduled orders')).toBeVisible()
+})
+
+test('a past-due order is marked across its whole row', async ({ page }) => {
+  const row = page.getByRole('row').filter({ hasText: '338009' })
+  await expect(row).toHaveAttribute('data-overdue', 'true')
+  await expect(row.getByLabel('Past due')).toBeVisible()
 })
 
 test('an order without every machine assigned cannot be reviewed', async ({ page }) => {

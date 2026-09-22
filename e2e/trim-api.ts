@@ -64,7 +64,11 @@ const STOCK_ORDER = {
 const MACHINES = [
   { id: 1, name: 'Press Brake', department: DEPARTMENT.id, position: 1 },
   { id: 2, name: 'V1', department: DEPARTMENT.id, position: 2 },
-  { id: 3, name: 'V2', department: DEPARTMENT.id, position: 3 }
+  { id: 3, name: 'V2', department: DEPARTMENT.id, position: 3 },
+  { id: 4, name: 'Roll Former', department: DEPARTMENT.id, position: 4 },
+  { id: 5, name: 'Caps', department: DEPARTMENT.id, position: 5 },
+  { id: 6, name: 'Flat Stock', department: DEPARTMENT.id, position: 6 },
+  { id: 7, name: 'Wrapping', department: DEPARTMENT.id, position: 7 }
 ]
 
 const SCHEDULED_DAY = '2026-09-23'
@@ -186,7 +190,38 @@ const SCHEDULED_STOCK_ORDER = {
   origin_items: []
 }
 
-export const SCHEDULED_ORDERS = [SCHEDULED_STOCK_ORDER, READY_ORDER, UNREVIEWED_ORDER]
+/** A day already gone, so the past-due treatment has a row to sit on. */
+const OVERDUE_ORDER = {
+  ...READY_ORDER,
+  id: 'ARINV-4',
+  invoice: '338009',
+  customer: 'Waterford Sheet Metal',
+  sales_order: {
+    id: 24,
+    order: 'ARINV-4',
+    is_stock: false,
+    department_states: [
+      {
+        id: 34,
+        department: DEPARTMENT.id,
+        reviewed: true,
+        release_to_production: false,
+        priority: null,
+        production_date: '2026-09-18',
+        status: null,
+        over_due: true
+      }
+    ]
+  },
+  origin_items: []
+}
+
+export const SCHEDULED_ORDERS = [
+  OVERDUE_ORDER,
+  SCHEDULED_STOCK_ORDER,
+  READY_ORDER,
+  UNREVIEWED_ORDER
+]
 
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {

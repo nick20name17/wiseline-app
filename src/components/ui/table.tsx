@@ -56,6 +56,9 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
       data-slot='table-row'
       className={cn(
         'h-9 border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        // A row the board marks as past due carries the warning across every column, not just the
+        // one holding the date. Selection still outranks it: it is the thing being acted on.
+        'data-overdue:bg-destructive/5 data-overdue:hover:bg-destructive/10 data-overdue:data-[state=selected]:bg-muted',
         className
       )}
       {...props}
