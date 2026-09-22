@@ -1,3 +1,4 @@
+import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -134,15 +135,13 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
             <FieldLabel htmlFor='user-password'>
               <Label>Password</Label>
             </FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id='user-password'
-                type='password'
-                autoComplete='new-password'
-                aria-invalid={invalid(errors.password)}
-                {...form.register('password')}
-              />
-            </InputGroup>
+            <PasswordInput
+              id='user-password'
+              autoComplete='new-password'
+              placeholder='••••••••'
+              aria-invalid={invalid(errors.password)}
+              {...form.register('password')}
+            />
             <FieldError errors={[errors.password]} />
           </Field>
         )}
