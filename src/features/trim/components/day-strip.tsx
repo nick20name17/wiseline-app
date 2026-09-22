@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -8,6 +7,7 @@ import { CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
 import { dayStripQuery, type DayStripEntry } from '../api'
 import { formatDayLabel, fromIsoDay, toIsoDay, today } from '../lib/format'
+import { CapacityCalendar } from './capacity-calendar'
 
 // The board shows the current day plus the rest of the working week.
 const STRIP_DAYS = 5
@@ -65,10 +65,14 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
   const start = today()
   const [peek, setPeek] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerMonth, setPickerMonth] = useState(() => new Date())
 
   const { data: days, isPending } = useQuery(dayStripQuery(departmentId, start, STRIP_DAYS))
   // The pinned day is its own one-day strip: it is usually outside the window the five pills cover.
-  const { data: peekDays } = useQuery(dayStripQuery(departmentId, peek ?? start, 1))
+  const { data: peekDays } = useQuery({
+    ...dayStripQuery(departmentId, peek ?? start, 1),
+    enabled: departmentId !== undefined && peek !== null
+  })
   const peekEntry = peek && peekDays?.[0]?.date === peek ? peekDays[0] : null
 
   return (
@@ -86,15 +90,20 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
       ) : null}
 
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverTrigger render={<Button variant='outline' size='sm' />}>
+        <PopoverTrigger render={<Button variant='dashed' size='sm' />}>
           <CalendarDays data-icon='inline-start' />
           {peek ? 'Another day' : 'Pick a day'}
         </PopoverTrigger>
-        <PopoverContent align='start' className='w-auto'>
-          <Calendar
-            mode='single'
+        <PopoverContent align='start' className='w-lg'>
+          {/* The same grid the scheduling dialog uses, so a day reads the same wherever it is picked.
+              Any day may be pinned, including one already past — that is often the point. */}
+          <CapacityCalendar
+            departmentId={departmentId}
+            enabled={pickerOpen}
+            allowPast
+            month={pickerMonth}
+            onMonthChange={setPickerMonth}
             selected={peek ? fromIsoDay(peek) : undefined}
-            defaultMonth={peek ? fromIsoDay(peek) : new Date()}
             onSelect={date => {
               if (!date) return
               setPeek(toIsoDay(date))

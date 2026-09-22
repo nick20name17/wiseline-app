@@ -32,6 +32,15 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const { data: cards, isPending } = useQuery({ ...stockCardsQuery, enabled: open })
   const remove = useDeleteStockCard()
+
+  // A deleted card must not stay ticked: the count and the print payload would carry an id the
+  // server no longer knows.
+  const drop = (id: number) =>
+    setSelected(current => {
+      const next = new Set(current)
+      next.delete(id)
+      return next
+    })
   const print = usePrintStockCards(() => {
     toast.add({
       type: 'success',
@@ -91,7 +100,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
                     size='icon-sm'
                     aria-label={`Delete ${card.product_id}`}
                     disabled={remove.isPending}
-                    onClick={() => remove.mutate(card.id)}
+                    onClick={() => remove.mutate(card.id, { onSuccess: () => drop(card.id) })}
                   >
                     <Trash2 />
                   </Button>

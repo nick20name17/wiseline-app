@@ -5,6 +5,8 @@ type UnscheduledToolbarProps = {
   total: number
   selectedCount: number
   readOnly: boolean
+  /** Every write is scoped to the department; until its id is known there is nothing to write to. */
+  ready: boolean
   onStockCards: () => void
   onCreateStockOrder: () => void
   onBypass: () => void
@@ -15,6 +17,7 @@ export const UnscheduledToolbar = ({
   total,
   selectedCount,
   readOnly,
+  ready,
   onStockCards,
   onCreateStockOrder,
   onBypass,
@@ -46,14 +49,14 @@ export const UnscheduledToolbar = ({
       <Button
         variant='outline'
         size='sm'
-        disabled={readOnly || !selectedCount}
+        disabled={readOnly || !ready || !selectedCount}
         title='Skip the Slinet and the machines — straight to Wrapping, with today as the production date'
         onClick={onBypass}
       >
         <FastForward data-icon='inline-start' />
         Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
       </Button>
-      <Button size='sm' disabled={readOnly || !selectedCount} onClick={onSchedule}>
+      <Button size='sm' disabled={readOnly || !ready || !selectedCount} onClick={onSchedule}>
         <CalendarDays data-icon='inline-start' />
         Schedule{selectedCount ? ` (${selectedCount})` : ''}
       </Button>

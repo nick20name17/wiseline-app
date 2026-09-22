@@ -122,6 +122,7 @@ export const OrderRow = ({
           <TableCell colSpan={8}>
             <LineItems
               order={order}
+              ready={departmentId !== undefined}
               selectedLineIds={splitLineIds}
               orderSelected={selected || readOnly}
               onToggleLine={onToggleLine}

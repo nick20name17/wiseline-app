@@ -93,6 +93,7 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
         total={orders.length}
         selectedCount={selected.length}
         readOnly={readOnly}
+        ready={departmentId !== undefined}
         onStockCards={() => setDialog('cards')}
         onCreateStockOrder={() => setDialog('stock')}
         onBypass={() => setDialog('bypass')}
@@ -129,7 +130,7 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
               <col className='w-40' />
               <col className='w-44' />
               <col />
-              <col className='w-16' />
+              <col className='w-20' />
             </colgroup>
             <TableHeader>
               <TableRow>

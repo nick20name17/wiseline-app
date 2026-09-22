@@ -72,7 +72,7 @@ export const PriorityCell = ({ order, departmentId, readOnly }: PriorityCellProp
       >
         <Pill priority={current} className='cursor-pointer hover:brightness-95' />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='start'>
+      <DropdownMenuContent align='start' className='min-w-48'>
         <DropdownMenuRadioGroup
           value={current ? String(current.id) : NO_PRIORITY}
           onValueChange={value =>

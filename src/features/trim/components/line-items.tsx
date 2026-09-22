@@ -18,6 +18,8 @@ import { NoteButton, type NoteState } from './note-button'
 type LineItemsProps = {
   order: TrimOrder
   selectedLineIds: string[]
+  /** The department id is known, so a split has somewhere to go. */
+  ready: boolean
   /** True while the whole order is ticked for scheduling: the two selections are mutually exclusive. */
   orderSelected: boolean
   onToggleLine: (originItem: string) => void
@@ -31,6 +33,7 @@ const isScheduled = (item: TrimLineItem) => !!(item.production_date ?? item.item
 export const LineItems = ({
   order,
   selectedLineIds,
+  ready,
   orderSelected,
   onToggleLine,
   onSplit,
@@ -71,7 +74,7 @@ export const LineItems = ({
           variant='outline'
           size='sm'
           className='ml-auto'
-          disabled={!selectedLineIds.length}
+          disabled={!ready || !selectedLineIds.length}
           onClick={onSplit}
         >
           <CalendarDays data-icon='inline-start' />
@@ -86,7 +89,7 @@ export const LineItems = ({
             <col className='w-20' />
             <col className='w-32' />
             <col />
-            <col className='w-16' />
+            <col className='w-20' />
           </colgroup>
           <TableHeader>
             <TableRow>

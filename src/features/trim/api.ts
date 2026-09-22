@@ -138,8 +138,11 @@ export const trimKeys = {
   priorities: () => [...trimKeys.all, 'priorities'] as const,
   orderNotes: (orders: string[]) => [...trimKeys.all, 'order-notes', orders] as const,
   lineNotes: (originItem: string) => [...trimKeys.all, 'line-notes', originItem] as const,
+  // Its own branch, not a child of `lineNotes`: invalidating one thread must reach every table dot,
+  // and `lineNotes(<autoid>)` would never match a key sitting under `summary`.
+  lineNotesSummaries: () => [...trimKeys.all, 'line-notes-summary'] as const,
   lineNotesSummary: (originItems: string[]) =>
-    [...trimKeys.all, 'line-notes', 'summary', originItems] as const,
+    [...trimKeys.lineNotesSummaries(), originItems] as const,
   stockCards: () => [...trimKeys.all, 'stock-cards'] as const
 }
 
@@ -320,12 +323,22 @@ export const useMarkOrderNoteRead = () =>
  * Posted through `comments/` rather than `items/{autoid}/notes/`: this is the one endpoint that
  * creates the app's row for the line when it has none, which is every line on the Unscheduled tab.
  */
+/** The thread and the dot that summarises it in the table, which are two different queries. */
+const invalidateLineNotes = (
+  client: { invalidateQueries: (filters: { queryKey: readonly unknown[] }) => Promise<void> },
+  originItem: string
+) =>
+  Promise.all([
+    client.invalidateQueries({ queryKey: trimKeys.lineNotes(originItem) }),
+    client.invalidateQueries({ queryKey: trimKeys.lineNotesSummaries() })
+  ])
+
 export const useAddLineNote = (originItem: string) =>
   useMutation({
     mutationFn: (text: string) =>
       authApi.post('comments/', { json: { item: originItem, text } }).json(),
     onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.lineNotes(originItem) })
+      await invalidateLineNotes(client, originItem)
     }
   })
 
@@ -333,7 +346,7 @@ export const useMarkLineNoteRead = (originItem: string) =>
   useMutation({
     mutationFn: (noteId: number) => authApi.post(`notes/${noteId}/read/`).json(),
     onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.lineNotes(originItem) })
+      await invalidateLineNotes(client, originItem)
     }
   })
 
@@ -341,8 +354,12 @@ export const useMarkLineNoteRead = (originItem: string) =>
 
 /**
  * Every write below is keyed on our own `SalesOrder` id, and an EBMS order that nobody has scheduled,
- * prioritised or annotated has none yet. `POST /sales-orders/` is idempotent enough for this: it takes
- * the EBMS autoid, and the board only reaches here from a row it just read.
+ * prioritised or annotated has none yet, so one is made on the way.
+ *
+ * `POST /sales-orders/` is not idempotent — the autoid is unique — so the write that follows must
+ * refresh the orders list whether it succeeded or not. Otherwise a failed schedule leaves a row on the
+ * server and a cached order that still says there is none, and the retry answers 500 on the
+ * constraint instead of repeating the real error. Hence `onSettled` below rather than `onSuccess`.
  */
 const ensureSalesOrderId = async (order: TrimOrder) => {
   if (order.sales_order) return order.sales_order.id
@@ -369,10 +386,10 @@ export const useScheduleOrders = (onSuccess: () => void) =>
         })
         .json()
     },
-    onSuccess: async (_, __, ___, { client }) => {
+    onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
-      onSuccess()
-    }
+    },
+    onSuccess: onSuccess
   })
 
 export type SplitOrderInput = {
@@ -394,10 +411,10 @@ export const useSplitOrder = (onSuccess: () => void) =>
         })
         .json()
     },
-    onSuccess: async (_, __, ___, { client }) => {
+    onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
-      onSuccess()
-    }
+    },
+    onSuccess: onSuccess
   })
 
 /**
@@ -412,10 +429,10 @@ export const useBypassProduction = (onSuccess: () => void) =>
         ids.map(id => authApi.post(`sales-orders/${id}/departments/${departmentId}/bypass/`).json())
       )
     },
-    onSuccess: async (_, __, ___, { client }) => {
+    onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
-      onSuccess()
-    }
+    },
+    onSuccess: onSuccess
   })
 
 /** Set or clear an order's Priority. It belongs to one department and never leaks to another. */
@@ -437,7 +454,7 @@ export const useSetPriority = () =>
         })
         .json()
     },
-    onSuccess: async (_, __, ___, { client }) => {
+    onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
     }
   })
@@ -476,12 +493,8 @@ export const usePrintStockCards = (onSuccess: () => void) =>
     onSuccess
   })
 
-export const stockOrderLineSchema = z.object({
-  quantity: z.nullable(z.number().check(z.minimum(1, 'At least one'))),
-  product_id: z.string()
-})
-
-export type StockOrderLine = z.infer<typeof stockOrderLineSchema>
+/** One row of the Create Stock Order grid, once the blanks have been dropped. */
+export type StockOrderLine = { product_id: string; quantity: number }
 
 /**
  * Create Stock Order: the rows the Manager filled in become an order of our own, which then goes
@@ -493,11 +506,7 @@ export const useCreateStockOrder = (onSuccess: () => void) =>
     mutationFn: (lines: StockOrderLine[]) =>
       authApi
         .post('stock-orders/', {
-          json: {
-            lines: lines
-              .filter(line => line.product_id.trim() && line.quantity)
-              .map(line => ({ product_id: line.product_id.trim(), quantity: line.quantity }))
-          }
+          json: { lines }
         })
         .json(),
     onSuccess: async (_, __, ___, { client }) => {

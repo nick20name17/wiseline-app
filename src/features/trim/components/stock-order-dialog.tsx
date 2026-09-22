@@ -57,16 +57,28 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
   const setRow = (index: number, patch: Partial<Row>) =>
     setRows(current => current.map((row, at) => (at === index ? { ...row, ...patch } : row)))
 
-  // A scanned card fills the first free row with its Product ID and Order Qty.
+  /**
+   * A scanned card fills the first free row with its Product ID and Order Qty.
+   *
+   * The row is chosen inside the updater rather than from a `rows` read before the request: typing
+   * while the scan is in flight would otherwise have the answer land on the row just filled in.
+   */
   const applyScan = (payload: string) =>
     scanCard.mutate(payload, {
       onSuccess: card => {
-        const index = rows.findIndex(row => !row.productId.trim())
-        if (index === -1) return
-        setRow(index, {
-          productId: card.product_id,
-          quantity: card.order_qty === null ? '' : String(card.order_qty),
-          description: card.description ?? ''
+        setRows(current => {
+          const index = current.findIndex(row => !row.productId.trim())
+          if (index === -1) return current
+          return current.map((row, at) =>
+            at === index
+              ? {
+                  ...row,
+                  productId: card.product_id,
+                  quantity: card.order_qty === null ? '' : String(card.order_qty),
+                  description: card.description ?? ''
+                }
+              : row
+          )
         })
         setScan('')
       }
