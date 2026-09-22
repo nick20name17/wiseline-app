@@ -107,6 +107,7 @@ export const useUpsertLocationType = (onSuccess: () => void) =>
 
 export const useDeleteLocationType = (onSuccess: () => void) =>
   useMutation({
+    meta: { errorTitle: 'The type stayed' },
     mutationFn: (id: number) => authApi.delete(`location-types/${id}/`),
     onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: locationsKeys.all })
@@ -176,6 +177,7 @@ export const useUpsertLocation = (onSuccess: () => void) =>
 
 export const useDeleteLocation = (onSuccess: () => void) =>
   useMutation({
+    meta: { errorTitle: 'The location stayed' },
     mutationFn: (id: number) => authApi.delete(`locations/${id}/`),
     onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: locationsKeys.all })

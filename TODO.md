@@ -196,8 +196,14 @@ Stock | Priority | Remanufacture | Status | ID | Description | Line Item Notes
 `priority`, `status` and the three quantities — but nothing names the product, the customer, or how
 much of the line comes from stock, and all three are columns the floor reads the table by.
 
+The order screen needs more from the same row: `is_stock` (the stock-order icon and the stock
+order's own wrap screen), `length` (the red mark when a piece is not 120"), `from_stock` (the Stock
+column), `unit_weight` (the package weight worked out from the pieces entered, as `main` does it),
+and `po`, `salesman`, `ship_date`, `ship_via` for the order info block under the table.
+
 **On our side once it lands:** the two columns go into `WrappingTab`; it shows the line item's
-autoid in place of the product today.
+autoid in place of the product today. `WrapOrder` gets the Length and Stock columns, the full info
+block, and a read-only package weight in place of the box the floor types it into.
 
 ## Backend: a coil filter can be created but never changed
 
@@ -314,3 +320,138 @@ nothing on screen sets.
 
 **On our side once it lands:** `dailyCapacity` in `src/features/trim/api.ts` goes, and the two
 queries take `capacity` and `over_capacity` as the server sends them.
+
+## Backend: no Work Days source
+
+**Ask:** which days are worked, holidays included — e.g. `is_work_day` on each
+`GET /departments/{id}/day-strip/` entry, or `GET /work-days/`.
+
+**Why:** the board walks its five-day strips over work days only, opens the Scheduled tab on the
+first one, refuses scheduling onto a closed day («—» in the calendar picker), and greys closed days
+on the Calendar with « · non-work day» (`selectors.ts` `nextWorkDays`, `schedule-modal.tsx`,
+`calendar.tsx` on `main`). Settings › Work Days is a placeholder, and nothing the client reads says
+which days are closed.
+
+**On our side once it lands:** `CapacityCalendar` disables closed days, `isWorkDay` in
+`calendar-tab.tsx` reads it instead of assuming Sat/Sun, and the strips skip closed days.
+
+## Backend: an Order Note or line note cannot be marked unread
+
+**Ask:** `read: false` on the existing mark-read calls, or `…/unread/` beside them.
+
+**Why:** the board lets «Dealt with» be undone (`note-modal.tsx` on `main`). Only mark-read exists.
+
+**On our side once it lands:** the «Dealt with» check in `OrderNoteDialog` and `LineNotesDialog`
+becomes an undo button.
+
+## Backend: review, release and unschedule act on the whole order, not on one production day
+
+**Ask:** accept a production date on the reviewed toggle
+(`PATCH /sales-orders/{id}/departments/{dept}/`), on `POST /departments/{dept}/release/` and on
+the unschedule call.
+
+**Why:** «After splitting an order, each part needs to act as a completely separate order.» The
+Scheduled tab lists one row per production day, but reviewing, releasing or unscheduling one day
+still acts on every day of the order.
+
+**On our side once it lands:** selection and review key on (order, day) in `ScheduledTab`, and each
+call sends the row's day.
+
+## Backend: a coil lot has no folder, width or grade, and the lots list takes no department filter
+
+**Ask:** `folder_name`, `width` and `grade` on `CoilLotSchema`, and/or `GET /coils/lots/?department_id=`
+applying that department's Coil Filter on the server.
+
+**Why:** Trim Coils are the coils whose Thickness, Width and Grade all fall inside the filter. Today
+only Coil Thickness can be tested, and only against the department-wide row rather than the
+per-folder ones. Without a width, Coil Adjustment works weight out from the coil's own weight per
+foot instead of from the prototype's formula.
+
+**On our side once it lands:** `passesCoilFilter` in `src/features/trim/lib/coils.ts` tests all
+three legs (or goes, if the server filters), and `poundsPerFoot` uses the width.
+
+## Backend: a cutlist source names no PO and no drawing
+
+**Ask:** `po_number` and a drawing file URL on `CutlistRowSourceSchema`.
+
+**Why:** the «Orders using this size» window on `main` is Order | Customer | PO# | Product ID |
+Description | Qty ord. | Stock | Qty to mfg | Drawing (`cutlist-total.tsx`). Customer and the
+quantities are looked up in the Scheduled list today, which only holds its first 100 orders.
+
+**On our side once it lands:** `CutlistTotalDialog` gets the two columns and reads every field from
+the source instead of the Scheduled list.
+
+## Backend: stock orders say too little about themselves
+
+**Ask:** return the new order's number from `POST /stock-orders/`, and accept an optional
+`description` on each line.
+
+**Why:** the prototype toasts «Stock order S1043 created» and lets the description be edited
+(`stock-order-modal.tsx` on `main`). Today the toast cannot name the order, and the description is
+read-only because an edit would be dropped.
+
+**On our side once it lands:** `StockOrderDialog` names the order in its toast and the description
+box becomes editable.
+
+## Backend: a stock card carries no width, gauge, colour or image
+
+**Ask:** `width`, `gauge`, `color` and an image URL on `StockCardSchema`.
+
+**Why:** the prototype's Stock Cards panel shows the whole card face and filters by colour and gauge
+(`src/features/stockcards/panel.tsx` on `main`).
+
+**On our side once it lands:** `StockCardsDialog` shows the face and gets the two filters.
+
+## Backend: a completed stock order does not say how much was made
+
+**Ask:** `qty_manufactured` on completed-order line items, and an endpoint that takes the Wrapped
+figures of a stock order and pushes its manufacturing batch to EBMS.
+
+**Why:** a stock order is not packed into locations: the floor enters what it wrapped and creates a
+manufacturing batch (`stock-wrap.tsx` on `main`), and Completed then shows what was made, labelled
+«(manufactured)». Today Completed can only show ordered minus stock, and the stock order goes
+through the ordinary package flow. Related to «no Stock Manufacturing» above.
+
+**On our side once it lands:** `WrapOrder` sends stock orders to their own screen, and
+`CompletedOrderDialog` reads the figure.
+
+## Backend: an order's locations come one order at a time
+
+**Ask:** the location codes on each order `GET ebms/orders/` returns (e.g. `location_codes: str[]`),
+or `GET /wrapping/orders/locations/?order=…&order=…` for many orders at once.
+
+**Why:** the Scheduled tab's Trim Location column lists every location an order stands in, as the
+board does. Today that is one `GET /wrapping/orders/{order}/locations/` per row — up to 100 per page,
+and again after every write.
+
+**On our side once it lands:** `ScheduledRow` reads the codes off the order and its per-row query goes.
+
+## Backend: overdue days come one strip request each
+
+**Ask:** `GET /departments/{id}/day-strip/?dates=…&dates=…`, or the overdue endpoint returning the
+same bends/capacity figures per day it already lists.
+
+**Why:** every overdue day gets its own day tab, and each needs its bends and capacity. Today that is
+one `day-strip` request per overdue day. The overdue list also flags days (e.g. with 0 bends) whose
+orders do not show on the Scheduled tab — worth checking which orders it counts.
+
+**On our side once it lands:** `ScheduledDayTabs` makes one request for all the extra days.
+
+## Backend: no cheap counts for the tab strip
+
+**Ask:** a counts endpoint for a department — unscheduled orders, scheduled orders, active Slinet
+cutlists, Trim coils (after the Coil Filter) — e.g. `GET /departments/{id}/counts/`.
+
+**Why:** the tab strip shows all four on every tab. Today the Coils count downloads every coil in
+the company and filters it in the browser, and the others pull a full page each.
+
+**On our side once it lands:** `TrimPage` reads the four figures from it.
+
+## Backend: no date range on the orders list
+
+**Ask:** `production_date__gte` / `production_date__lte` on `GET ebms/orders/`, or per-day order
+counts for a month.
+
+**Why:** the Calendar counts orders per day for one month by paging through every scheduled order.
+
+**On our side once it lands:** `calendarOrdersQuery` asks for the month only.

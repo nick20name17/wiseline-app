@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, Settings2, TriangleAlert } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
@@ -9,7 +9,7 @@ import { formatDate, today } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
 
 // Today plus the rest of the working week, so the strip does not change shape as work is scheduled.
-const WINDOW_DAYS = 5
+export const WINDOW_DAYS = 5
 
 // Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —
 // and the strip from changing height — when the placeholders are replaced by the days themselves.
@@ -38,25 +38,24 @@ export const ScheduledDayTabs = ({
 }: ScheduledDayTabsProps) => {
   const start = today()
   const [pickerOpen, setPickerOpen] = useState(false)
-  // The board opens on today, which needs no announcing; the control only names a day somebody went
-  // looking for.
-  const [picked, setPicked] = useState<string | null>(null)
 
   const { data: window, isPending } = useQuery(dayStripQuery(departmentId, start, WINDOW_DAYS))
   const { data: overdue } = useQuery(overdueQuery(departmentId))
 
-  // A day outside the window — overdue, or picked from the calendar — is its own one-day strip.
-  const extra = [...(overdue?.days ?? []), ...(day ? [day] : [])].filter(
-    iso => !window?.some(entry => entry.date === iso)
+  const inWindow = new Set(window?.map(entry => entry.date))
+  const overdueDays = new Set(overdue?.days)
+
+  // Each day outside the window — every overdue one, and the one picked from the calendar — is its
+  // own one-day strip, since the days in between are not tabs.
+  const extra = [...new Set([...overdueDays, ...(day ? [day] : [])])].filter(
+    iso => !inWindow.has(iso)
   )
-  const { data: extraDays } = useQuery({
-    ...dayStripQuery(departmentId, extra[0] ?? start, 1),
-    enabled: departmentId !== undefined && extra.length > 0
+  const extraDays = useQueries({
+    queries: extra.map(iso => dayStripQuery(departmentId, iso, 1)),
+    combine: results => results.flatMap(result => result.data ?? [])
   })
 
-  const days = [...(window ?? []), ...(extraDays ?? []).filter(entry => extra.includes(entry.date))]
-    .filter((entry, index, all) => all.findIndex(other => other.date === entry.date) === index)
-    .sort((a, b) => a.date.localeCompare(b.date))
+  const days = [...(window ?? []), ...extraDays].sort((a, b) => a.date.localeCompare(b.date))
 
   return (
     <div className='flex flex-wrap items-stretch gap-1.5'>
@@ -78,11 +77,14 @@ export const ScheduledDayTabs = ({
       {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
       {/* The label is set in the strip's own size rather than the button's, so the control reads as
           one of the cards beside it. */}
-      <Button variant='outline' className='h-13 w-44' onClick={() => setPickerOpen(true)}>
+      <Button
+        variant='outline'
+        className='h-13 w-44'
+        title='Jump to a production day'
+        onClick={() => setPickerOpen(true)}
+      >
         <CalendarDays data-icon='inline-start' />
-        <span className='text-xs font-semibold'>
-          {picked && picked === day ? formatDate(day) : 'Pick a day'}
-        </span>
+        <span className='text-xs font-semibold'>{day ? formatDate(day) : 'Pick a day'}</span>
       </Button>
 
       {isPending
@@ -90,7 +92,7 @@ export const ScheduledDayTabs = ({
             <Skeleton key={index} className='h-13 w-44' />
           ))
         : days.map(entry => {
-            const isOverdue = overdue?.days.includes(entry.date) ?? false
+            const isOverdue = overdueDays.has(entry.date)
             const warn = isOverdue || entry.over_capacity
             const active = entry.date === day
             const used =
@@ -99,9 +101,7 @@ export const ScheduledDayTabs = ({
                 : 0
 
             return (
-              // The gear only shows on the day being worked, or on the one under the pointer — it is
-              // a way into that day's detail, not a badge every tab has to carry.
-              <div key={entry.date} className='group/day relative'>
+              <div key={entry.date} className='relative'>
                 <button
                   type='button'
                   className={cn(
@@ -125,8 +125,8 @@ export const ScheduledDayTabs = ({
                     )}
                     title={
                       entry.over_capacity
-                        ? 'Over capacity — a warning, never a block'
-                        : 'Assigned bends against the daily capacity'
+                        ? 'Over capacity — soft warning'
+                        : 'Assigned bends / total plant daily bend capacity'
                     }
                   >
                     ({entry.bends} / {entry.capacity ?? '—'}){entry.over_capacity ? ' · over' : ''}
@@ -141,16 +141,12 @@ export const ScheduledDayTabs = ({
                     />
                   </span>
                 </button>
-                <span
-                  className={cn(
-                    'absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 has-[button:focus-visible]:opacity-100',
-                    active && 'opacity-100'
-                  )}
-                >
+                <span className='absolute top-1/2 right-1.5 -translate-y-1/2'>
                   <Button
                     variant='outline'
                     size='icon-sm'
                     aria-label={`Machine capacities for ${formatDate(entry.date)}`}
+                    title='Machine Capacities report for this day'
                     onClick={() => onOpenCapacities(entry.date)}
                   >
                     <Settings2 />
@@ -164,13 +160,13 @@ export const ScheduledDayTabs = ({
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         title='Jump to a day'
-        description='Focus the board on one production day.'
+        description='Focus the board on a production day.'
         actionLabel='Go to day'
         departmentId={departmentId}
         allowPast
+        initialDay={day}
         isPending={false}
         onPick={date => {
-          setPicked(date)
           onDayChange(date)
           setPickerOpen(false)
         }}

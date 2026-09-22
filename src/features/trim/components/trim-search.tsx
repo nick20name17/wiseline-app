@@ -28,7 +28,7 @@ export const TrimSearch = ({ initial, onSearchChange }: TrimSearchProps) => {
       <InputGroupInput
         type='search'
         aria-label='Search orders'
-        placeholder='Search orders, customers, product IDs...'
+        placeholder='Search orders, customers, product IDs…'
         value={term}
         onChange={event => {
           setTerm(event.target.value)

@@ -16,8 +16,6 @@ type CapacityCalendarProps = {
   onSelect: (date: Date | undefined) => void
   /** Scheduling cannot reach into the past; looking at a day can. */
   allowPast?: boolean
-  /** Skip the capacity request while the calendar is not on screen. */
-  enabled?: boolean
 }
 
 /**
@@ -34,13 +32,11 @@ export const CapacityCalendar = ({
   onMonthChange,
   selected,
   onSelect,
-  allowPast = false,
-  enabled = true
+  allowPast = false
 }: CapacityCalendarProps) => {
-  const { data: strip } = useQuery({
-    ...dayStripQuery(departmentId, toIsoDay(firstOfMonth(month)), daysInMonth(month)),
-    enabled: enabled && departmentId !== undefined
-  })
+  const { data: strip } = useQuery(
+    dayStripQuery(departmentId, toIsoDay(firstOfMonth(month)), daysInMonth(month))
+  )
   const budgets = new Map(strip?.map(entry => [entry.date, entry]))
 
   return (
@@ -59,12 +55,18 @@ export const CapacityCalendar = ({
         // A plain button, not the shared one: the cell carries two lines — the date and the day's
         // budget — which no button size describes.
         DayButton: ({ day, modifiers, className, children, ...props }) => {
-          const budget = budgets.get(toIsoDay(day.date))
+          const iso = toIsoDay(day.date)
+          const budget = budgets.get(iso)
+          const load = budget
+            ? `${budget.bends}${budget.capacity === null ? '' : ` of ${budget.capacity}`} bends scheduled${budget.over_capacity ? ' — over the daily capacity' : ''}`
+            : undefined
+          const past = !allowPast && iso < today()
 
           return (
             <button
               type='button'
               data-day={day.date.toLocaleDateString()}
+              title={load && past ? `Past date · ${load}` : load}
               className={cn(
                 'relative flex size-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md pb-3 text-sm leading-none transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40',
                 modifiers.selected && 'bg-primary text-primary-foreground hover:bg-primary',
@@ -82,7 +84,7 @@ export const CapacityCalendar = ({
                   budget?.over_capacity && !modifiers.selected && 'text-destructive'
                 )}
               >
-                {budget ? `${budget.bends}/${budget.capacity ?? '—'}` : ''}
+                {budget ? `${budget.bends} / ${budget.capacity ?? '—'}` : ''}
               </span>
             </button>
           )

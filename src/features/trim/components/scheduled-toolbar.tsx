@@ -47,7 +47,7 @@ export const ScheduledToolbar = ({
       {/* A release is all stock orders or all customer orders, never a mix. */}
       {selectionKind ? (
         <span className='text-xs text-muted-foreground'>
-          {selectionKind === 'stock' ? 'Customer' : 'Stock'} orders locked
+          {selectionKind === 'stock' ? 'Customer' : 'Stock'} orders locked (type exclusion)
         </span>
       ) : null}
 
@@ -59,8 +59,8 @@ export const ScheduledToolbar = ({
         disabled={!canRelease || isReleasing}
         title={
           selectedCount && !canRelease
-            ? 'Every selected order has to be Reviewed to release'
-            : 'Release the selected orders to production'
+            ? 'All selected orders must be Reviewed to release'
+            : 'Release selected orders to production'
         }
         onClick={onRelease}
       >

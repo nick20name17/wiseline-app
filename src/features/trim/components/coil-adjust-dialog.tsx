@@ -7,237 +7,323 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useRetained } from '@/lib/use-retained'
-import { useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import {
   useApplyCoilAdjustment,
   useConfirmCoilAdjustment,
   useDepleteCoil,
   useUpdateCoilLot,
+  type CoilAdjustment,
   type CoilApply,
   type CoilLot
 } from '../api'
+import {
+  coilName,
+  feetFromThickness,
+  fieldText,
+  poundsPerFoot,
+  thicknessFromFeet
+} from '../lib/coils'
 import { ConfirmDialog } from './confirm-dialog'
 
 const DEPLETE = 'deplete_and_delete'
 
-type Measure = { key: 'coil_thickness' | 'linear_feet' | 'weight'; label: string; unit: string }
+export type CoilFigure = keyof CoilAdjustment
 
-// Enter any one of these and the other two follow from the Material Thickness and Core OD.
-const MEASURES: Measure[] = [
-  { key: 'coil_thickness', label: 'Coil Thickness', unit: 'inches' },
-  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet' },
-  { key: 'weight', label: 'Weight', unit: 'lbs' }
+type Measure<Key> = { key: Key; label: string; unit: string; step: string }
+
+const MEASURES: Measure<CoilFigure>[] = [
+  { key: 'coil_thickness', label: 'Coil Thickness', unit: 'inches', step: '0.01' },
+  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', step: '1' },
+  { key: 'weight', label: 'Weight', unit: 'lbs', step: '1' }
 ]
 
-const number = (value: string) => (value.trim() === '' ? undefined : Number(value))
+type BuildField = 'material_thickness' | 'core_od'
+
+// What the three figures are worked out from, typed in below them.
+const BUILD: Measure<BuildField>[] = [
+  { key: 'material_thickness', label: 'Material Thickness', unit: 'inches', step: '0.001' },
+  { key: 'core_od', label: 'Core OD', unit: 'inches', step: '0.1' }
+]
+
+type Draft = Record<CoilFigure | BuildField, string>
+
+const num = (value: string) => Number.parseFloat(value)
+
+/** Both present and positive is what makes the annulus solvable — and what unlocks the form. */
+const buildOf = (draft: Draft) => {
+  const material = num(draft.material_thickness)
+  const core = num(draft.core_od)
+  return material > 0 && core > 0 ? { material, core } : null
+}
+
+/**
+ * Typing one figure works the other two out. Weight needs the coil's pounds per foot, which the lot
+ * can only give when it already has a weight and a length; without it, Weight is left as typed.
+ */
+const solve = (lot: CoilLot, current: Draft, field: CoilFigure, raw: string): Draft => {
+  const next = { ...current, [field]: raw }
+  const build = buildOf(next)
+  const value = num(raw)
+  if (!build || !(value >= 0)) return next
+
+  const perFoot = poundsPerFoot(lot, build.material)
+  if (field === 'weight' && !perFoot) return next
+
+  const feet =
+    field === 'coil_thickness'
+      ? feetFromThickness(value, build.material, build.core)
+      : field === 'weight'
+        ? Math.round(value / perFoot!)
+        : Math.round(value)
+
+  if (field !== 'coil_thickness')
+    next.coil_thickness = String(thicknessFromFeet(feet, build.material, build.core))
+  if (field !== 'linear_feet') next.linear_feet = String(feet)
+  if (field !== 'weight' && perFoot) next.weight = String(Math.round(feet * perFoot))
+  return next
+}
+
+type MeasureFieldProps = {
+  measure: Measure<string>
+  value: string
+  disabled?: boolean
+  inputRef?: RefObject<HTMLInputElement | null>
+  onChange: (raw: string) => void
+}
+
+const MeasureField = ({ measure, value, disabled, inputRef, onChange }: MeasureFieldProps) => (
+  <div className='flex flex-col gap-1.5'>
+    <Label htmlFor={`coil-${measure.key}`}>{measure.label}</Label>
+    <div className='flex items-center gap-2'>
+      <Input
+        id={`coil-${measure.key}`}
+        type='number'
+        inputMode='decimal'
+        step={measure.step}
+        ref={inputRef}
+        disabled={disabled}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+      />
+      <span className='w-12 text-sm text-muted-foreground'>{measure.unit}</span>
+    </div>
+  </div>
+)
+
+type AdjustFormProps = {
+  lot: CoilLot
+  focus: CoilFigure
+  /** Handed to the popup as its initial focus, so the cursor lands in the figure that was clicked. */
+  focusRef: RefObject<HTMLInputElement | null>
+  onClose: () => void
+}
+
+/** The window's body, mounted with the popup so every opening starts from the coil as it stands. */
+const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
+  const [draft, setDraft] = useState<Draft>(() => ({
+    coil_thickness: fieldText(lot.coil_thickness),
+    linear_feet: fieldText(lot.linear_feet),
+    weight: fieldText(lot.weight),
+    material_thickness: fieldText(lot.material_thickness),
+    core_od: fieldText(lot.core_od)
+  }))
+  // The server takes exactly one figure and works the other two out itself, so the one last typed
+  // into is the one sent. Linear Feet is what reaches EBMS when none was.
+  const driver = useRef<CoilFigure>('linear_feet')
+  const [question, setQuestion] = useState<CoilApply | null>(null)
+  const [asking, releaseAsking] = useRetained(question)
+
+  const saveBuild = useUpdateCoilLot()
+  const apply = useApplyCoilAdjustment()
+  const confirm = useConfirmCoilAdjustment(onClose)
+  const deplete = useDepleteCoil(onClose)
+
+  const build = buildOf(draft)
+  // A cleared field would otherwise reach EBMS as 0: a coil reported as spent that nobody depleted.
+  const ready =
+    !!build && MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0)
+  const values = (): CoilAdjustment => ({ [driver.current]: num(draft[driver.current]) })
+  const name = coilName(lot)
+  const depleting = asking?.action === DEPLETE
+
+  const setFigure = (field: CoilFigure, raw: string) => {
+    driver.current = field
+    setDraft(current => solve(lot, current, field, raw))
+  }
+
+  const setBuild = (field: BuildField, raw: string) =>
+    setDraft(current => {
+      const next = { ...current, [field]: raw }
+      // A coil EBMS has only just pushed in has Linear Feet but no thickness; the moment the build is
+      // known that thickness can be worked out, so it is filled rather than left blank.
+      return buildOf(next) && next.coil_thickness === '' && num(next.linear_feet) > 0
+        ? solve(lot, next, 'linear_feet', next.linear_feet)
+        : next
+    })
+
+  // Material Thickness and Core OD are saved first: the server works the figures out from the build
+  // it has on record, not from the one in the window.
+  const onApply = async () => {
+    if (!build) return
+    const edit = {
+      ...(build.material === lot.material_thickness ? {} : { material_thickness: build.material }),
+      ...(build.core === lot.core_od ? {} : { core_od: build.core })
+    }
+    try {
+      if (Object.keys(edit).length) await saveBuild.mutateAsync({ lotId: lot.id, edit })
+      setQuestion(await apply.mutateAsync({ lotId: lot.id, values: values() }))
+    } catch {
+      // The mutation cache has already said what went wrong; the window stays open to try again.
+    }
+  }
+
+  return (
+    <>
+      <div className='grid gap-3 sm:grid-cols-3'>
+        {MEASURES.map(measure => (
+          <MeasureField
+            key={measure.key}
+            measure={measure}
+            value={draft[measure.key]}
+            disabled={!build}
+            inputRef={measure.key === focus ? focusRef : undefined}
+            onChange={raw => setFigure(measure.key, raw)}
+          />
+        ))}
+      </div>
+
+      <div className='grid gap-3 border-t border-border pt-3 sm:grid-cols-3'>
+        {BUILD.map(measure => (
+          <MeasureField
+            key={measure.key}
+            measure={measure}
+            value={draft[measure.key]}
+            onChange={raw => setBuild(measure.key, raw)}
+          />
+        ))}
+      </div>
+
+      {build ? null : (
+        <p className='text-sm text-warning'>
+          Enter Material Thickness and Core OD to unlock the three fields above and the Apply
+          button.
+        </p>
+      )}
+
+      <div className='flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm'>
+        <span>
+          <span className='font-medium'>Product ID:</span>{' '}
+          <span className='font-mono'>{lot.product_id ?? '—'}</span>
+        </span>
+        <span>
+          <span className='font-medium'>Coil #:</span>{' '}
+          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+        </span>
+      </div>
+
+      <DialogFooter>
+        <Button variant='outline' onClick={onClose}>
+          Cancel
+        </Button>
+        <Button disabled={!ready || saveBuild.isPending || apply.isPending} onClick={onApply}>
+          {saveBuild.isPending || apply.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Apply
+        </Button>
+      </DialogFooter>
+
+      {/* Apply asks one of two questions, and the answer is what reaches EBMS. */}
+      <ConfirmDialog
+        open={!!question}
+        onOpenChange={open => !open && setQuestion(null)}
+        onOpenChangeComplete={releaseAsking}
+        title={depleting ? 'Deplete & delete this coil?' : 'Make this adjustment?'}
+        description={
+          depleting
+            ? `You have entered the coil size as 0 — this will completely deplete coil ${name} and delete it. Are you sure you want to continue?`
+            : `By clicking Yes, the new Linear Feet amount (${(asking?.linear_feet ?? num(draft.linear_feet)).toLocaleString('en-US')} ft) gets pushed back into EBMS for coil ${name}.`
+        }
+        confirmLabel={depleting ? 'Yes, Deplete & Delete Coil' : 'Yes, Make Adjustment'}
+        cancelLabel='No'
+        isPending={confirm.isPending || deplete.isPending}
+        onConfirm={() => {
+          if (depleting)
+            deplete.mutate(lot.id, {
+              onSuccess: () =>
+                toast.add({
+                  type: 'success',
+                  title: `Coil ${name} zeroed out in EBMS and deleted`
+                }),
+              onError: error =>
+                toast.add({
+                  type: 'error',
+                  title: 'The coil was not depleted',
+                  description: error.message
+                })
+            })
+          else
+            confirm.mutate(
+              { lotId: lot.id, values: values() },
+              {
+                onSuccess: () =>
+                  toast.add({
+                    type: 'success',
+                    title: 'Adjustment pushed to EBMS (linear feet updated)'
+                  }),
+                onError: error =>
+                  toast.add({
+                    type: 'error',
+                    title: 'The adjustment did not reach EBMS',
+                    description: error.message
+                  })
+              }
+            )
+        }}
+      />
+    </>
+  )
+}
 
 type CoilAdjustDialogProps = {
+  /** Read from the lots query on every render, so a refetch while the window is open shows through. */
   lot: CoilLot | null
+  /** The figure that was clicked to open the window, which takes the cursor. */
+  focus: CoilFigure
   onOpenChange: (open: boolean) => void
 }
 
 /**
- * The Coil Adjustment window. The floor measures whichever of the three is easiest to measure; the
- * server works the other two out, and nothing reaches EBMS until the answer has been confirmed.
+ * The Coil Adjustment window. The floor measures whichever of the three is easiest to measure and the
+ * other two follow; nothing reaches EBMS until the answer has been confirmed.
  */
-export const CoilAdjustDialog = ({ lot: current, onOpenChange }: CoilAdjustDialogProps) => {
+export const CoilAdjustDialog = ({ lot: current, focus, onOpenChange }: CoilAdjustDialogProps) => {
   const [lot, release] = useRetained(current)
-  const [entered, setEntered] = useState<Partial<Record<Measure['key'], string>>>({})
-  const [build, setBuild] = useState({ material_thickness: '', core_od: '' })
-  const [error, setError] = useState('')
-  const [question, setQuestion] = useState<CoilApply | null>(null)
-  const [asking, releaseAsking] = useRetained(question)
-
-  const close = () => {
-    setQuestion(null)
-    onOpenChange(false)
-  }
-
-  // Cleared once the popup is gone rather than on close, so the fields do not empty as it fades out.
-  const settle = (open: boolean) => {
-    if (open) return
-    setEntered({})
-    setBuild({ material_thickness: '', core_od: '' })
-    setError('')
-    release(open)
-  }
-
-  const saveBuild = useUpdateCoilLot()
-  const apply = useApplyCoilAdjustment()
-  const confirm = useConfirmCoilAdjustment(close)
-  const deplete = useDepleteCoil(close)
-
-  // Only one of the three may be sent; the field that was typed into is the one that counts.
-  const typed = MEASURES.filter(measure => number(entered[measure.key] ?? '') !== undefined)
-  const values = typed[0] ? { [typed[0].key]: number(entered[typed[0].key] ?? '') } : {}
-
-  const onApply = () => {
-    if (!lot) return
-    if (typed.length !== 1)
-      return setError('Enter exactly one of Coil Thickness, Linear Feet or Weight.')
-    setError('')
-    apply.mutate(
-      { lotId: lot.id, values },
-      {
-        onSuccess: setQuestion,
-        onError: () =>
-          toast.add({
-            type: 'error',
-            title: 'This coil cannot be adjusted yet',
-            description: 'Material Thickness and Core OD have to be filled in first.'
-          })
-      }
-    )
-  }
+  const focusRef = useRef<HTMLInputElement>(null)
 
   return (
-    <Dialog
-      open={!!current}
-      onOpenChange={next => (next ? onOpenChange(true) : close())}
-      onOpenChangeComplete={settle}
-    >
-      <DialogContent className='sm:max-w-2xl'>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
+      <DialogContent className='sm:max-w-2xl' initialFocus={focusRef}>
         <DialogHeader>
-          <DialogTitle>Coil adjustment</DialogTitle>
+          <DialogTitle>Coil Adjustment</DialogTitle>
           <DialogDescription>
             Enter Coil Thickness, Linear Feet or Weight — the other two follow from the Material
             Thickness and Core OD.
           </DialogDescription>
         </DialogHeader>
 
-        <div className='grid gap-3 sm:grid-cols-2'>
-          {MEASURES.map(measure => (
-            <div key={measure.key} className='flex items-center gap-3'>
-              <Label className='w-32' htmlFor={`coil-${measure.key}`}>
-                {measure.label}
-              </Label>
-              <Input
-                id={`coil-${measure.key}`}
-                type='number'
-                inputMode='decimal'
-                placeholder={String(lot?.[measure.key] ?? '')}
-                value={entered[measure.key] ?? ''}
-                onChange={event =>
-                  // Typing into one clears the others: the server takes exactly one figure.
-                  setEntered({ [measure.key]: event.target.value })
-                }
-              />
-              <span className='w-12 text-sm text-muted-foreground'>{measure.unit}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* The two the coil is built from. Without them nothing can be worked out, which is what
-            `can_adjust` says. */}
-        <div className='grid gap-3 border-t border-border pt-3 sm:grid-cols-2'>
-          <div className='flex items-center gap-3'>
-            <Label className='w-32' htmlFor='coil-material'>
-              Material Thickness
-            </Label>
-            <Input
-              id='coil-material'
-              type='number'
-              inputMode='decimal'
-              placeholder={String(lot?.material_thickness ?? '')}
-              value={build.material_thickness}
-              onChange={event =>
-                setBuild(current => ({ ...current, material_thickness: event.target.value }))
-              }
-            />
-            <span className='w-12 text-sm text-muted-foreground'>inches</span>
-          </div>
-          <div className='flex items-center gap-3'>
-            <Label className='w-32' htmlFor='coil-core'>
-              Core OD
-            </Label>
-            <Input
-              id='coil-core'
-              type='number'
-              inputMode='decimal'
-              placeholder={String(lot?.core_od ?? '')}
-              value={build.core_od}
-              onChange={event => setBuild(current => ({ ...current, core_od: event.target.value }))}
-            />
-            <span className='w-12 text-sm text-muted-foreground'>inches</span>
-          </div>
-        </div>
-
-        <div className='flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm'>
-          <span>
-            Product ID: <span className='font-mono'>{lot?.product_id ?? '—'}</span>
-          </span>
-          <span>
-            Coil #: <span className='font-mono'>{lot?.lot_number ?? '—'}</span>
-          </span>
-          {lot?.can_adjust ? null : (
-            <span className='text-warning'>
-              Material Thickness and Core OD have to be saved before Apply can work.
-            </span>
-          )}
-        </div>
-
-        {error ? <FieldError>{error}</FieldError> : null}
-
-        <DialogFooter>
-          <Button variant='outline' onClick={close}>
-            Cancel
-          </Button>
-          <Button
-            variant='outline'
-            disabled={
-              saveBuild.isPending || (!build.material_thickness.trim() && !build.core_od.trim())
-            }
-            onClick={() =>
-              lot &&
-              saveBuild.mutate({
-                lotId: lot.id,
-                edit: {
-                  ...(number(build.material_thickness) === undefined
-                    ? {}
-                    : { material_thickness: number(build.material_thickness)! }),
-                  ...(number(build.core_od) === undefined
-                    ? {}
-                    : { core_od: number(build.core_od)! })
-                }
-              })
-            }
-          >
-            {saveBuild.isPending ? <Spinner data-icon='inline-start' /> : null}
-            Save build
-          </Button>
-          <Button disabled={apply.isPending} onClick={onApply}>
-            {apply.isPending ? <Spinner data-icon='inline-start' /> : null}
-            Apply
-          </Button>
-        </DialogFooter>
-
-        {/* Apply asks one of two questions, and the answer is what reaches EBMS. */}
-        <ConfirmDialog
-          open={!!question}
-          onOpenChange={open => !open && setQuestion(null)}
-          onOpenChangeComplete={releaseAsking}
-          title={asking?.action === DEPLETE ? 'Deplete and delete this coil?' : 'Make adjustment?'}
-          description={
-            asking?.action === DEPLETE
-              ? (asking.detail ??
-                'The coil is used up. Confirming zeroes it out in EBMS and removes it from the app.')
-              : `Linear Feet ${asking?.linear_feet ?? '—'}, weight ${asking?.weight ?? '—'} lbs. Confirming pushes the new Linear Feet to EBMS.`
-          }
-          confirmLabel={asking?.action === DEPLETE ? 'Yes, deplete' : 'Yes, adjust'}
-          cancelLabel='Cancel'
-          isPending={confirm.isPending || deplete.isPending}
-          onConfirm={() => {
-            if (!lot) return
-            if (asking?.action === DEPLETE) deplete.mutate(lot.id)
-            else confirm.mutate({ lotId: lot.id, values })
-          }}
-        />
+        {lot ? (
+          <AdjustForm
+            lot={lot}
+            focus={focus}
+            focusRef={focusRef}
+            onClose={() => onOpenChange(false)}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   )

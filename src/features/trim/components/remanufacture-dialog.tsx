@@ -14,13 +14,28 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import { useRetained } from '@/lib/use-retained'
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useRequestRemanufacture, type WrappingRow } from '../api'
+import {
+  remanufacturingsQuery,
+  useRequestRemanufacture,
+  type RemanufactureSource,
+  type WrappingRow
+} from '../api'
+import { remakeRoom, remanOwed } from '../lib/wrapping'
+
+export type RemanufactureLine = Pick<
+  WrappingRow,
+  'order' | 'origin_item' | 'order_number' | 'description' | 'qty_ordered'
+>
 
 type RemanufactureDialogProps = {
   departmentId: number | undefined
   /** The line to remake part of, or `null` when the window is shut. */
-  line: WrappingRow | null
+  line: RemanufactureLine | null
+  source?: RemanufactureSource
+  /** The machine the new bendlist lands on, when the caller knows it. */
+  machineName?: string | null
   onOpenChange: (open: boolean) => void
 }
 
@@ -32,9 +47,12 @@ type RemanufactureDialogProps = {
 export const RemanufactureDialog = ({
   departmentId,
   line: current,
+  source = 'wrapping',
+  machineName,
   onOpenChange
 }: RemanufactureDialogProps) => {
   const [line, release] = useRetained(current)
+  const { data: remans } = useQuery({ ...remanufacturingsQuery, enabled: !!line })
   const [quantity, setQuantity] = useState('')
   const [fromStock, setFromStock] = useState('')
   const [note, setNote] = useState('')
@@ -50,32 +68,38 @@ export const RemanufactureDialog = ({
     release(open)
   }
 
-  const request = useRequestRemanufacture(() => {
-    toast.add({ type: 'success', title: 'Remanufacture requested' })
-    onOpenChange(false)
-  })
+  const request = useRequestRemanufacture(() => onOpenChange(false))
+
+  const ordered = line?.qty_ordered ?? 0
+  // «Between 1 and the Qty Ordered», less what is already waiting to come back.
+  const lineRemans = line ? (remans?.get(line.origin_item) ?? []) : []
+  const awaiting = remanOwed(lineRemans)
+  const room = remakeRoom(ordered, lineRemans)
 
   const submit = () => {
     if (!line || !departmentId) return
     const wanted = Number(quantity)
-    if (!(wanted > 0) || wanted > line.qty_ordered)
-      return setError(`Remake between 1 and the ${line.qty_ordered} ordered.`)
+    if (!Number.isInteger(wanted) || wanted < 1 || wanted > room)
+      return setError(`Remake between 1 and ${room}.`)
+    const stock = fromStock.trim() ? Number(fromStock) : undefined
+    if (stock !== undefined && (!Number.isInteger(stock) || stock < 0 || stock > ordered))
+      return setError(`From stock takes 0 to the ${ordered} ordered.`)
     setError('')
     request.mutate(
       {
+        source,
         order: line.order,
         origin_item: line.origin_item,
         department: departmentId,
         quantity: wanted,
-        ...(fromStock.trim() ? { pull_from_stock_qty: Number(fromStock) } : {}),
+        ...(stock === undefined ? {} : { pull_from_stock_qty: stock }),
         ...(note.trim() ? { note: note.trim() } : {})
       },
       {
-        onError: requestError =>
+        onSuccess: () =>
           toast.add({
-            type: 'error',
-            title: 'Nothing was requested',
-            description: requestError.message
+            type: 'success',
+            title: `Remanufacture ${wanted} pcs → recut cutlist on Slinet + new bendlist on ${machineName ?? 'its machine'}`
           })
       }
     )
@@ -88,7 +112,7 @@ export const RemanufactureDialog = ({
           <DialogTitle>Remanufacture</DialogTitle>
           <DialogDescription>
             {line?.description ?? 'This line'} on order {line?.order_number ?? line?.order} —{' '}
-            {line?.qty_ordered ?? 0} ordered. The remake gets its own cutlist and bendlist.
+            {ordered} ordered. The remake gets its own cutlist and bendlist.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,11 +127,16 @@ export const RemanufactureDialog = ({
               className='w-24'
               type='number'
               min={1}
-              max={line?.qty_ordered}
+              max={room}
               inputMode='numeric'
+              aria-describedby='reman-quantity-hint'
               value={quantity}
               onChange={event => setQuantity(event.target.value)}
             />
+            <span id='reman-quantity-hint' className='text-sm text-muted-foreground'>
+              {room ? `1–${room}` : 'None left to remake'}
+              {awaiting ? ` · ${awaiting} of ${ordered} already awaited` : ''}
+            </span>
           </div>
 
           <div className='flex items-center gap-3'>
@@ -121,11 +150,16 @@ export const RemanufactureDialog = ({
               className='w-24'
               type='number'
               min={0}
+              max={ordered}
               inputMode='numeric'
               placeholder='0'
+              aria-describedby='reman-stock-hint'
               value={fromStock}
               onChange={event => setFromStock(event.target.value)}
             />
+            <span id='reman-stock-hint' className='text-sm text-muted-foreground'>
+              0–{ordered}
+            </span>
           </div>
 
           <div className='flex flex-col gap-2'>
@@ -146,7 +180,7 @@ export const RemanufactureDialog = ({
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button disabled={request.isPending} onClick={submit}>
+          <Button disabled={request.isPending || !room} onClick={submit}>
             {request.isPending ? <Spinner data-icon='inline-start' /> : null}
             Request remake
           </Button>

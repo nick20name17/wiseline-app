@@ -1,83 +1,50 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { History } from 'lucide-react'
 import { useState } from 'react'
 import { completedOrdersQuery, type CompletedOrder } from '../api'
-import { formatDate } from '../lib/format'
+import { COMPLETED_TABLE } from '../lib/columns'
+import { formatLongDate, formatStamp } from '../lib/format'
 import { CompletedOrderDialog } from './completed-order-dialog'
-
-const stamp = (iso: string | null) =>
-  iso
-    ? `${new Date(iso).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })} · ${new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-    : '—'
 
 type CompletedTabProps = {
   departmentId: number | undefined
-  search: string | undefined
 }
 
 /**
  * What this department has finished, newest first, for as long as the server keeps it. Nothing here
  * is worked on — a row is opened to answer a question about an order that has already gone.
  */
-export const CompletedTab = ({ departmentId, search }: CompletedTabProps) => {
+export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const [opened, setOpened] = useState<CompletedOrder | null>(null)
-  const { data: page, isPending } = useQuery(completedOrdersQuery(departmentId, search))
+  // The header search is the open orders' business: the history is read by opening a row.
+  const { data: page, isPending } = useQuery(completedOrdersQuery(departmentId))
   const orders = page?.results ?? []
+  const columns = useColumnOrder(COMPLETED_TABLE)
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <p className='text-sm text-muted-foreground'>
-        <span className='font-medium text-foreground'>{page?.count ?? 0}</span> completed in the
-        past {page?.window_days ?? 90} days
-      </p>
-
       {!isPending && !orders.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
               <History />
             </EmptyMedia>
-            <EmptyTitle>Nothing completed</EmptyTitle>
+            <EmptyTitle>No completed orders</EmptyTitle>
             <EmptyDescription>
-              {search
-                ? `Nothing matches “${search}”.`
-                : 'An order lands here once every trim on it has been wrapped and packed.'}
+              Orders you finish wrapping and mark complete land here.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           <Table className='min-w-5xl table-fixed'>
-            <colgroup>
-              <col className='w-44' />
-              <col className='w-44' />
-              <col className='w-60' />
-              <col className='w-36' />
-              <col />
-            </colgroup>
+            <colgroup>{columns.cols}</colgroup>
             <TableHeader>
-              <TableRow>
-                <TableHead>Ship Date</TableHead>
-                <TableHead>Production Date</TableHead>
-                <TableHead>Completed Date &amp; Time</TableHead>
-                <TableHead>Order #</TableHead>
-                <TableHead>Customer Name</TableHead>
-              </TableRow>
+              <TableRow>{columns.headers}</TableRow>
             </TableHeader>
             <TableBody>
               {isPending ? (
@@ -90,17 +57,39 @@ export const CompletedTab = ({ departmentId, search }: CompletedTabProps) => {
                     aria-label={`Open ${order.order_number ?? order.order}`}
                     onClick={() => setOpened(order)}
                   >
-                    <TableCell>
-                      <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
-                    </TableCell>
-                    <TableCell>{formatDate(order.production_date)}</TableCell>
-                    <TableCell>{stamp(order.completed_at)}</TableCell>
-                    <TableCell>
-                      <span className='font-mono'>{order.order_number ?? order.order}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate'>{order.customer ?? 'Stock'}</span>
-                    </TableCell>
+                    {columns.cells({
+                      ship: (
+                        <TableCell>
+                          <span className='text-muted-foreground'>
+                            {order.ship_date ? formatLongDate(order.ship_date) : 'N/A'}
+                          </span>
+                        </TableCell>
+                      ),
+                      prod: (
+                        <TableCell>
+                          <span className='text-muted-foreground'>
+                            {order.production_date ? formatLongDate(order.production_date) : '—'}
+                          </span>
+                        </TableCell>
+                      ),
+                      completed: (
+                        <TableCell>
+                          {order.completed_at ? formatStamp(order.completed_at) : '—'}
+                        </TableCell>
+                      ),
+                      order: (
+                        <TableCell>
+                          <span className='font-mono'>{order.order_number ?? order.order}</span>
+                        </TableCell>
+                      ),
+                      customer: (
+                        <TableCell>
+                          <span className='truncate'>
+                            {order.is_stock ? 'Stock' : (order.customer ?? '—')}
+                          </span>
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))
               )}

@@ -1,30 +1,21 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import {
-  lineNotesSummaryQuery,
-  prioritiesQuery,
-  remanufacturingsQuery,
-  wrappingRowsQuery,
-  type WrappingRow
-} from '../api'
-import { formatDate, today } from '../lib/format'
+import { prioritiesQuery, remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
+import { WRAPPING_TABLE } from '../lib/columns'
+import { formatLongDate, today } from '../lib/format'
 import { itemStatus } from '../lib/status'
+import { remanState } from '../lib/wrapping'
 import { LineNotesDialog } from './line-notes-dialog'
-import { NoteButton, type NoteState } from './note-button'
+import { NoteButton } from './note-button'
 import { PriorityPill } from './priority-pill'
 import { RemanBadge } from './reman-badge'
 import { StatusPill } from './status-pill'
+import { useLineNoteState } from './use-line-note-state'
 import { WrapOrder } from './wrap-order'
 
 /** The rows arrive in the board's order — production date, then priority — so the days fall out. */
@@ -38,42 +29,32 @@ const byDay = (rows: WrappingRow[]) => {
   return days
 }
 
+/** A line whose day has passed and is still not wrapped. */
+const isOverdue = (row: WrappingRow) =>
+  !!row.production_date && row.production_date < today() && row.status !== 'wrapped'
+
 type WrappingTabProps = {
   departmentId: number | undefined
-  readOnly: boolean
 }
 
 /**
  * The station after every machine: what has been made, and what is left to wrap on it. A line leads
  * into its order, which is where packages are built — a package carries one order, never two.
  */
-export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
+export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const { data: rows, isPending } = useQuery(wrappingRowsQuery(departmentId, null))
   const { data: remans } = useQuery(remanufacturingsQuery)
-  // One call for the whole table rather than one per row.
-  const { data: notes } = useQuery(lineNotesSummaryQuery((rows ?? []).map(row => row.origin_item)))
+  const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
-
-  const noteState = (row: WrappingRow): NoteState => {
-    const summary = notes?.[row.origin_item]
-    if (!summary?.has_notes) return 'none'
-    return summary.unread > 0 ? 'unread' : 'read'
-  }
+  const columns = useColumnOrder(WRAPPING_TABLE)
 
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
     if (onOrder.length)
-      return (
-        <WrapOrder
-          departmentId={departmentId}
-          rows={onOrder}
-          readOnly={readOnly}
-          onBack={() => setOrder(null)}
-        />
-      )
+      return <WrapOrder departmentId={departmentId} rows={onOrder} onBack={() => setOrder(null)} />
   }
 
   const days = byDay(rows ?? [])
@@ -96,25 +77,9 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       <Table className='min-w-5xl table-fixed'>
-        <colgroup>
-          <col className='w-44' />
-          <col className='w-28' />
-          <col className='w-40' />
-          <col className='w-28' />
-          <col className='w-40' />
-          <col />
-          <col className='w-24' />
-        </colgroup>
+        <colgroup>{columns.cols}</colgroup>
         <TableHeader>
-          <TableRow>
-            <TableHead>Order #</TableHead>
-            <TableHead>Qty</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Remfg</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Notes</TableHead>
-          </TableRow>
+          <TableRow>{columns.headers}</TableRow>
         </TableHeader>
         <TableBody>
           {isPending ? (
@@ -126,7 +91,7 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
                 <TableRow>
                   <TableCell colSpan={7}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
-                      {formatDate(day.date)}
+                      {day.date ? formatLongDate(day.date) : '—'}
                       {day.date === today() ? ' · today' : ''}
                     </span>
                     <span className='ml-2 text-xs text-muted-foreground'>
@@ -135,57 +100,81 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
                   </TableCell>
                 </TableRow>
 
-                {day.rows.map(row => (
-                  // The whole row leads into its order: wrapping is done an order at a time.
-                  <TableRow
-                    key={row.origin_item}
-                    aria-label={`Wrap ${row.order_number ?? row.order}`}
-                    onClick={() => setOrder(row.order)}
-                  >
-                    <TableCell>
-                      <span className='font-mono' title={row.order_number ?? row.order}>
-                        {row.order_number ?? row.order}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='font-mono'>{row.qty_ordered}</span>
-                    </TableCell>
-                    <TableCell>
-                      {/* The list is read by priority before it is read by date. */}
-                      {row.priority ? (
-                        <PriorityPill
-                          priority={
-                            priorities?.find(priority => priority.name === row.priority) ?? {
-                              id: 0,
-                              name: row.priority,
-                              color: null,
-                              position: null,
-                              department: null
-                            }
-                          }
-                        />
-                      ) : (
-                        <span className='text-muted-foreground'>—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <RemanBadge remans={remans?.get(row.origin_item) ?? []} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={itemStatus(row.status)} />
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate'>{row.description ?? '—'}</span>
-                    </TableCell>
-                    <TableCell onClick={event => event.stopPropagation()}>
-                      <NoteButton
-                        state={noteState(row)}
-                        label={`Line notes for ${row.origin_item}`}
-                        onClick={() => setNoteLine(row)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {day.rows.map(row => {
+                  const lineRemans = remans?.get(row.origin_item) ?? []
+
+                  return (
+                    // The whole row leads into its order: wrapping is done an order at a time.
+                    <TableRow
+                      key={row.origin_item}
+                      aria-label={`Wrap ${row.order_number ?? row.order}`}
+                      title='Open wrapping detail'
+                      // A late line outranks its remake: it stays red rather than orange or green.
+                      data-overdue={isOverdue(row) || undefined}
+                      data-reman={isOverdue(row) ? undefined : remanState(lineRemans)}
+                      onClick={() => setOrder(row.order)}
+                    >
+                      {columns.cells({
+                        order: (
+                          <TableCell>
+                            <span className='font-mono' title={row.order_number ?? row.order}>
+                              {row.order_number ?? row.order}
+                            </span>
+                          </TableCell>
+                        ),
+                        qty: (
+                          <TableCell>
+                            <span className='font-mono'>{row.qty_ordered}</span>
+                          </TableCell>
+                        ),
+                        priority: (
+                          <TableCell>
+                            {/* The list is read by priority before it is read by date. */}
+                            {row.priority ? (
+                              <PriorityPill
+                                priority={
+                                  priorities?.find(priority => priority.name === row.priority) ?? {
+                                    id: 0,
+                                    name: row.priority,
+                                    color: null,
+                                    position: null,
+                                    department: null
+                                  }
+                                }
+                              />
+                            ) : (
+                              <span className='text-muted-foreground'>—</span>
+                            )}
+                          </TableCell>
+                        ),
+                        remfg: (
+                          <TableCell>
+                            <RemanBadge remans={lineRemans} />
+                          </TableCell>
+                        ),
+                        status: (
+                          <TableCell>
+                            <StatusPill status={itemStatus(row.status)} />
+                          </TableCell>
+                        ),
+                        desc: (
+                          <TableCell>
+                            <span className='truncate'>{row.description ?? '—'}</span>
+                          </TableCell>
+                        ),
+                        notes: (
+                          <TableCell onClick={event => event.stopPropagation()}>
+                            <NoteButton
+                              state={noteState(row.origin_item)}
+                              label={`Line notes for ${row.origin_item}`}
+                              onClick={() => setNoteLine(row)}
+                            />
+                          </TableCell>
+                        )
+                      })}
+                    </TableRow>
+                  )
+                })}
               </Fragment>
             ))
           )}

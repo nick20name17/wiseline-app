@@ -2,9 +2,10 @@ import { Button } from '@/components/ui/button'
 import { cn } from 'cn'
 import { Check, ChevronRight, Database } from 'lucide-react'
 import { useState } from 'react'
-import { useFinishCutlist, type Cutlist, type Machine } from '../api'
+import { useFinishCutlist, type Cutlist, type Machine, type WrappingRow } from '../api'
 import type { CutlistGroup } from '../lib/cutlists'
 import { today } from '../lib/format'
+import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
 import { PriorityPill } from './priority-pill'
@@ -18,10 +19,12 @@ type CutlistCardProps = {
   machines: Machine[]
   isSlinet: boolean
   /** The Slinet has started cutting the release this bendlist came from. */
-  slinetStarted?: boolean
-  readOnly: boolean
+  slinetStarted: boolean
+  isCut: (group: CutlistGroup) => boolean
+  lines: ReadonlyMap<string, WrappingRow>
   onOpenTotal: (group: CutlistGroup) => void
   onOpenCoils: (cutlist: Cutlist) => void
+  onRemanufacture: (line: WrappingRow) => void
 }
 
 /**
@@ -32,12 +35,14 @@ export const CutlistCard = ({
   cutlist,
   machines,
   isSlinet,
-  slinetStarted = false,
-  readOnly,
+  slinetStarted,
+  isCut,
+  lines,
   onOpenTotal,
-  onOpenCoils
+  onOpenCoils,
+  onRemanufacture
 }: CutlistCardProps) => {
-  const [expanded, setExpanded] = useState(false)
+  const expanded = useProductionView().expanded.has(cutlist.id)
   const [finishing, setFinishing] = useState(false)
   const finish = useFinishCutlist()
 
@@ -60,7 +65,7 @@ export const CutlistCard = ({
           variant='ghost'
           size='icon'
           aria-label={expanded ? 'Hide rows' : 'Show rows'}
-          onClick={() => setExpanded(current => !current)}
+          onClick={() => toggleExpanded(cutlist.id)}
         >
           <ChevronRight className={cn('transition-transform', expanded && 'rotate-90')} />
         </Button>
@@ -106,7 +111,7 @@ export const CutlistCard = ({
             </>
           ) : (
             <Button
-              disabled={readOnly || !cutlist.is_complete}
+              disabled={!cutlist.is_complete}
               title={cutlist.is_complete ? undefined : 'Available once every row is Complete'}
               onClick={() => setFinishing(true)}
             >
@@ -122,8 +127,10 @@ export const CutlistCard = ({
             rows={cutlist.rows}
             isSlinet={isSlinet}
             machines={machines}
-            readOnly={readOnly || done}
+            isCut={isCut}
+            lines={lines}
             onOpenTotal={onOpenTotal}
+            onRemanufacture={onRemanufacture}
           />
         </div>
       ) : null}
@@ -137,7 +144,7 @@ export const CutlistCard = ({
             ? 'Confirm that you have made all the necessary coil adjustments and that you are done with this cutlist.'
             : 'Confirm that you are done with this bendlist.'
         }
-        confirmLabel='Yes, done'
+        confirmLabel='Confirm'
         cancelLabel='Cancel'
         isPending={finish.isPending}
         onConfirm={() => finish.mutate(cutlist.id, { onSuccess: () => setFinishing(false) })}

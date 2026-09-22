@@ -16,16 +16,14 @@ const NO_PRIORITY = 'none'
 type PriorityCellProps = {
   order: TrimOrder
   departmentId: number | undefined
-  /** A Worker sees the priority and works to it, but cannot set it. */
-  readOnly: boolean
 }
 
-export const PriorityCell = ({ order, departmentId, readOnly }: PriorityCellProps) => {
+export const PriorityCell = ({ order, departmentId }: PriorityCellProps) => {
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const mutation = useSetPriority()
   const current = departmentStateOf(order, departmentId)?.priority ?? null
 
-  if (readOnly || !departmentId) return <PriorityPill priority={current} />
+  if (!departmentId) return <PriorityPill priority={current} />
 
   return (
     <DropdownMenu>

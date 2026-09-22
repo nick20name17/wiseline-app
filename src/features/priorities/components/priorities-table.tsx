@@ -1,3 +1,4 @@
+import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import {
   Table,
@@ -7,26 +8,16 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { toast } from '@/components/ui/toast'
 import {
   closestCenter,
   DndContext,
-  KeyboardSensor,
   MouseSensor,
   TouchSensor,
-  useSensor,
-  useSensors,
-  type Announcements,
   type DragEndEvent,
   type UniqueIdentifier
 } from '@dnd-kit/core'
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy
-} from '@dnd-kit/sortable'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from 'cn'
 import { GripVertical } from 'lucide-react'
@@ -152,12 +143,7 @@ const SortableRow = ({ priority, sortable, department, disabled }: SortableRowPr
 
 export const PrioritiesTable = ({ priorities, departments, isPending }: PrioritiesTableProps) => {
   const sortable = !departments
-  const sensors = useSensors(
-    useSensor(RowMouseSensor, { activationConstraint: { distance: 4 } }),
-    // A finger holds before it drags, so a swipe over the rows still scrolls the page.
-    useSensor(RowTouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
+  const sensors = useDragSensors({ mouse: RowMouseSensor, touch: RowTouchSensor })
   const save = useReorderPriorities()
 
   // The order a drop left, held here until the save settles. The cache takes the same order at
@@ -170,23 +156,12 @@ export const PrioritiesTable = ({ priorities, departments, isPending }: Prioriti
     departments?.find(department => department.id === priority.department)?.name ??
     'Every department'
 
-  const name = (id: UniqueIdentifier) => rows.find(priority => priority.id === id)?.name
-  const place = (id: UniqueIdentifier) =>
-    `${rows.findIndex(priority => priority.id === id) + 1} of ${rows.length}`
-
-  // The defaults read out ids; a screen reader user needs the priority's name and its place.
-  const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${name(active.id)}, at ${place(active.id)}.`,
-    onDragOver: ({ active, over }) =>
-      over
-        ? `${name(active.id)} moved to ${place(over.id)}.`
-        : `${name(active.id)} is off the list.`,
-    onDragEnd: ({ active, over }) =>
-      over
-        ? `${name(active.id)} dropped at ${place(over.id)}.`
-        : `${name(active.id)} dropped back where it was.`,
-    onDragCancel: ({ active }) => `Move cancelled; ${name(active.id)} is back where it was.`
-  }
+  const announcements = dragAnnouncements({
+    name: (id: UniqueIdentifier) => rows.find(priority => priority.id === id)?.name,
+    place: (id: UniqueIdentifier) =>
+      `${rows.findIndex(priority => priority.id === id) + 1} of ${rows.length}`,
+    area: 'the list'
+  })
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return
@@ -194,8 +169,6 @@ export const PrioritiesTable = ({ priorities, departments, isPending }: Prioriti
     if (!moved.length) return
     setDropped(next)
     save.mutate(moved, {
-      onError: error =>
-        toast.add({ type: 'error', title: 'The order was not saved', description: error.message }),
       // By now the cache holds the saved order, or the old one again if the save failed.
       onSettled: () => setDropped(null)
     })

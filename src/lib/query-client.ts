@@ -5,7 +5,7 @@ import { HTTPError, TimeoutError } from 'ky'
 
 declare module '@tanstack/react-query' {
   interface Register {
-    mutationMeta: { skipErrorToast?: boolean }
+    mutationMeta: { skipErrorToast?: boolean; errorTitle?: string }
     queryMeta: { skipErrorToast?: boolean }
   }
 }
@@ -38,8 +38,16 @@ export const retryDelay = (attempt: number, error: unknown) => {
 export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
-      if (mutation.meta?.skipErrorToast || mutation.options.onError) return
-      toast.add({ type: 'error', title: getErrorMessage(error) })
+      // Every failed mutation is toasted here, including those whose callers also react in their own
+      // `onError` (a revert, say). A hook names what did not happen with `errorTitle`, and the server's
+      // reason goes under it; only a caller that says something else entirely sets `skipErrorToast`.
+      const meta = mutation.meta
+      if (meta?.skipErrorToast) return
+      toast.add(
+        meta?.errorTitle
+          ? { type: 'error', title: meta.errorTitle, description: getErrorMessage(error) }
+          : { type: 'error', title: getErrorMessage(error) }
+      )
     }
   }),
   queryCache: new QueryCache({

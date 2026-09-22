@@ -676,10 +676,7 @@ export const mockTrimApi = async (page: Page) => {
   await page.route(`${API_URL}/coils/lots/*/adjust/`, route =>
     route.fulfill({ json: COIL_LOTS[0] })
   )
-  await page.route(`${API_URL}/coils/lots/*`, route => {
-    const trimOnly = new URL(route.request().url()).searchParams.get('in_trim') === 'true'
-    void route.fulfill({ json: trimOnly ? [COIL_LOTS[0]] : COIL_LOTS })
-  })
+  await page.route(`${API_URL}/coils/lots/*`, route => route.fulfill({ json: COIL_LOTS }))
   await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
   await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
   await page.route(`${API_URL}/cutlists/rows/*/sources/`, route =>

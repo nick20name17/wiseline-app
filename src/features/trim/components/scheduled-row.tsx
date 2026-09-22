@@ -1,12 +1,21 @@
-import { Badge } from '@/components/ui/badge'
+import { useColumnCells } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
-import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
+import {
+  departmentStateOf,
+  isStockOrder,
+  orderLocationsQuery,
+  type TrimLineItem,
+  type TrimOrder
+} from '../api'
+import { SCHEDULED_TABLE } from '../lib/columns'
 import { formatDate } from '../lib/format'
+import { splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from './note-button'
 import { PriorityCell } from './priority-cell'
@@ -16,16 +25,15 @@ import { StatusPill } from './status-pill'
 
 type ScheduledRowProps = {
   order: TrimOrder
+  /** The production day this row stands for: a split order is one row per day it has work on. */
+  day: string
   departmentId: number | undefined
-  readOnly: boolean
   expanded: boolean
   selected: boolean
   /** The type exclusion has locked this row: the batch is already the other kind of order. */
   locked: boolean
   overdue: boolean
   noteState: NoteState
-  /** The code of the location the order is sitting in, already resolved by the tab. */
-  location: string | null
   onToggleExpanded: () => void
   onToggleSelected: () => void
   onReschedule: () => void
@@ -33,10 +41,10 @@ type ScheduledRowProps = {
   onOpenLineNotes: (item: TrimLineItem) => void
 }
 
-/** Some of the order's line items sit on another production day, or on none. */
-const isSplit = (order: TrimOrder, day: string | null) =>
-  !!day &&
-  order.origin_items.some(item => (item.item?.production_date ?? item.production_date) !== day)
+const SPLIT_LABEL = {
+  partial: 'Partially scheduled — some line items are still on the Unscheduled tab',
+  split: 'Split across production days — see the lock icons for lines on another day'
+} as const
 
 /**
  * The release checkbox appears only once the order is Reviewed. Before that it is a dash with the
@@ -88,7 +96,7 @@ const ProductionDateCell = ({
   fixed,
   onReschedule
 }: {
-  day: string | null
+  day: string
   overdue: boolean
   stock: boolean
   fixed: boolean
@@ -103,7 +111,7 @@ const ProductionDateCell = ({
         {formatDate(day)}
       </span>
     ) : (
-      <Button variant='outline' onClick={onReschedule}>
+      <Button variant='outline' title='Change production day (pre-release)' onClick={onReschedule}>
         <Calendar data-icon='inline-start' />
         {formatDate(day)}
       </Button>
@@ -113,14 +121,13 @@ const ProductionDateCell = ({
 
 export const ScheduledRow = ({
   order,
+  day,
   departmentId,
-  readOnly,
   expanded,
   selected,
   locked,
   overdue,
   noteState,
-  location,
   onToggleExpanded,
   onToggleSelected,
   onReschedule,
@@ -130,14 +137,20 @@ export const ScheduledRow = ({
   const state = departmentStateOf(order, departmentId)
   const released = state?.release_to_production ?? false
   const reviewed = state?.reviewed ?? false
-  const day = state?.production_date ?? null
   const stock = isStockOrder(order)
+  const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
+  const { cells } = useColumnCells(SCHEDULED_TABLE)
+  // Only an order that has been put somewhere has locations to list; the rest would each be a request
+  // answering with nothing.
+  const { data: locations } = useQuery({
+    ...orderLocationsQuery(order.id),
+    enabled: !stock && order.latest_location_id !== null
+  })
 
-  // Gate 1: every line that still has to be made carries a machine.
-  const machinesAssigned = order.origin_items.every(
-    item => item.quantity - (item.item?.pull_from_stock ?? 0) <= 0 || !!item.item?.flow
-  )
+  // Gate 1: every line that still has to be made carries a machine. Review is recorded per order, so
+  // every part of it has to pass.
+  const machinesAssigned = order.origin_items.every(item => toMake(item) <= 0 || !!item.item?.flow)
 
   return (
     <Fragment>
@@ -152,95 +165,111 @@ export const ScheduledRow = ({
             released={released}
             reviewed={reviewed}
             selected={selected}
-            locked={locked || readOnly}
+            locked={locked}
             invoice={order.invoice}
             onToggle={onToggleSelected}
           />
         </TableCell>
-        <TableCell>
-          <ChevronRight
-            aria-hidden
-            className={cn(
-              'size-4 text-muted-foreground transition-transform',
-              expanded && 'rotate-90'
-            )}
-          />
-        </TableCell>
-
-        <TableCell>
-          <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
-        </TableCell>
-
         <TableCell onClick={stopRowClick}>
-          <ProductionDateCell
-            day={day}
-            overdue={overdue}
-            stock={stock}
-            fixed={released || readOnly}
-            onReschedule={onReschedule}
-          />
-        </TableCell>
-
-        <TableCell>
-          <span className='font-mono font-medium' title={order.invoice}>
-            {order.invoice}
-          </span>
-          {isSplit(order, day) ? (
-            <Split
-              className='ml-1.5 inline size-3.5 text-primary'
-              aria-label='Split across production days — the locked lines belong to another day'
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            aria-label='Toggle details'
+            aria-expanded={expanded}
+            onClick={onToggleExpanded}
+          >
+            <ChevronRight
+              className={cn('text-muted-foreground transition-transform', expanded && 'rotate-90')}
             />
-          ) : null}
-          {stock ? (
-            <Badge variant='muted' className='ml-1.5'>
-              Stock
-            </Badge>
-          ) : null}
+          </Button>
         </TableCell>
 
-        <TableCell>
-          <span className='truncate'>{stock ? 'Stock' : (order.customer ?? '—')}</span>
-        </TableCell>
-
-        <TableCell onClick={stopRowClick}>
-          <PriorityCell order={order} departmentId={departmentId} readOnly={readOnly} />
-        </TableCell>
-
-        <TableCell onClick={stopRowClick}>
-          {/* A bypassed order never goes through review — its status is what says so. */}
-          {state?.status === 'bypassed' ? (
-            <span className='text-muted-foreground'>N/A</span>
-          ) : (
-            <ReviewedToggle
-              order={order}
-              departmentId={departmentId}
-              reviewed={reviewed}
-              released={released}
-              machinesAssigned={machinesAssigned}
-              readOnly={readOnly}
-            />
-          )}
-        </TableCell>
-
-        <TableCell>
-          {/* Until an order is released it has no status, which the board leaves empty. */}
-          <StatusPill status={released ? orderStatus(state?.status ?? null) : null} />
-        </TableCell>
-
-        <TableCell>
-          {/* A stock order is what puts trims on the shelf, so it has no location of its own. */}
-          <span className='font-mono text-muted-foreground'>
-            {stock ? 'N/A' : (location ?? '—')}
-          </span>
-        </TableCell>
-
-        <TableCell onClick={stopRowClick}>
-          {stock ? (
-            <span className='text-muted-foreground'>—</span>
-          ) : (
-            <NoteButton state={noteState} label='Order notes' onClick={onOpenOrderNotes} />
-          )}
-        </TableCell>
+        {cells({
+          ship: (
+            <TableCell>
+              <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
+            </TableCell>
+          ),
+          proddate: (
+            <TableCell onClick={stopRowClick}>
+              <ProductionDateCell
+                day={day}
+                overdue={overdue}
+                stock={stock}
+                fixed={released}
+                onReschedule={onReschedule}
+              />
+            </TableCell>
+          ),
+          order: (
+            <TableCell>
+              <span className='font-mono font-medium' title={order.invoice}>
+                {order.invoice}
+              </span>
+              {split ? (
+                <span title={SPLIT_LABEL[split]}>
+                  <Split
+                    className='ml-1.5 inline size-3.5 text-primary'
+                    aria-label={SPLIT_LABEL[split]}
+                  />
+                </span>
+              ) : null}
+            </TableCell>
+          ),
+          customer: (
+            <TableCell>
+              <span className='truncate'>{stock ? 'Stock' : (order.customer ?? '—')}</span>
+            </TableCell>
+          ),
+          priority: (
+            <TableCell onClick={stopRowClick}>
+              <PriorityCell order={order} departmentId={departmentId} />
+            </TableCell>
+          ),
+          reviewed: (
+            <TableCell onClick={stopRowClick}>
+              {/* A bypassed order never goes through review — its status is what says so. */}
+              {state?.status === 'bypassed' ? (
+                <span className='text-muted-foreground'>N/A</span>
+              ) : (
+                <ReviewedToggle
+                  order={order}
+                  departmentId={departmentId}
+                  reviewed={reviewed}
+                  released={released}
+                  machinesAssigned={machinesAssigned}
+                />
+              )}
+            </TableCell>
+          ),
+          status: (
+            <TableCell>
+              {/* Until an order is released it has no status, which the board leaves empty. */}
+              <StatusPill status={released ? orderStatus(state?.status ?? null) : null} />
+            </TableCell>
+          ),
+          trimloc: (
+            <TableCell>
+              {/* A stock order is what puts trims on the shelf, so it has no location of its own. */}
+              <span className='font-mono text-muted-foreground'>
+                {stock
+                  ? 'N/A'
+                  : locations?.length
+                    ? locations.map(spot => spot.name ?? spot.location_id).join(', ')
+                    : '—'}
+              </span>
+            </TableCell>
+          ),
+          notes: (
+            <TableCell onClick={stopRowClick}>
+              {stock ? (
+                <span className='text-muted-foreground'>—</span>
+              ) : (
+                <NoteButton state={noteState} label='Order notes' onClick={onOpenOrderNotes} />
+              )}
+            </TableCell>
+          )
+        })}
       </TableRow>
 
       {expanded ? (
@@ -249,9 +278,9 @@ export const ScheduledRow = ({
             <ScheduledLineItems
               order={order}
               departmentId={departmentId}
-              day={day ?? ''}
+              day={day}
               released={released}
-              readOnly={readOnly}
+              bypassed={state?.status === 'bypassed'}
               onReschedule={onReschedule}
               onOpenNotes={onOpenLineNotes}
             />

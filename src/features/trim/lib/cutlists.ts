@@ -1,4 +1,4 @@
-import type { Cutlist, CutlistRow, CutlistSource } from '../api'
+import type { Cutlist, CutlistRow, CutlistSource, Machine, TrimLineItem, TrimOrder } from '../api'
 
 /**
  * One line of the table the worker reads: a width and a length, and every row the server holds for
@@ -74,4 +74,103 @@ export const byDay = (cutlists: Cutlist[]) => {
   }
 
   return days
+}
+
+/**
+ * The Slinet's list each bendlist was cut from. One release makes one Slinet list per gauge/colour and
+ * one bendlist per machine under it, so the release time alone would tie a bendlist to every colour
+ * released with it. Where a list appears twice the first copy wins, so the caller puts first the one
+ * it trusts.
+ */
+export const slinetListsFor = (slinetLists: Cutlist[]) => {
+  const key = (list: Cutlist) => `${list.released_at}|${list.gauge_color}`
+  const byRelease = new Map<string, Cutlist>()
+  for (const list of slinetLists) if (!byRelease.has(key(list))) byRelease.set(key(list), list)
+  return (bendlist: Cutlist) => byRelease.get(key(bendlist))
+}
+
+/**
+ * «In progress» on a bendlist: the first cut is what starts it, and nothing after that un-starts it —
+ * a Slinet list marked Done is the one that has cut the most.
+ */
+export const hasSlinetStarted = (slinetList: Cutlist | undefined) =>
+  !!slinetList && (!!slinetList.completed_at || slinetList.rows.some(row => row.complete))
+
+/**
+ * Whether the Slinet has cut this bendlist line. A machine cannot bend what has not been cut, so its
+ * Complete waits on this.
+ *
+ * No list to look at counts as cut: the Slinet's completed lists are only kept for 90 days, and a
+ * list that has aged out of them was cut long ago.
+ */
+export const isCutForMachine = (
+  group: CutlistGroup,
+  slinetList: Cutlist | undefined,
+  machineId: number
+) =>
+  !slinetList ||
+  !!slinetList.completed_at ||
+  slinetList.rows
+    .filter(
+      row => row.machine === machineId && row.width === group.width && row.length === group.length
+    )
+    .every(row => row.complete)
+
+/**
+ * The machines that bend. The Slinet cuts every trim and Wrapping comes after all of them, so neither
+ * is a station a trim is routed to.
+ */
+export const isBender = (machine: Machine) =>
+  machine.kind !== 'cutting' && machine.kind !== 'wrapping'
+
+type SlinetColumn = { kind: 'machine'; machine: Machine } | { kind: 'vented' }
+
+/**
+ * The Slinet's columns: every bending machine in its own order, with Vented slotted in straight
+ * after the rollformer, which is where the board draws it — «P.B. | V1 | V2 | Rollformer | Vented |
+ * Caps | Flat Stock».
+ */
+export const slinetColumns = (machines: Machine[]): SlinetColumn[] => {
+  const columns: SlinetColumn[] = machines.map(machine => ({ kind: 'machine', machine }))
+  const rollformer = machines.findLastIndex(machine => machine.kind === 'rollforming')
+  columns.splice(rollformer === -1 ? columns.length : rollformer + 1, 0, { kind: 'vented' })
+  return columns
+}
+
+/** Where a cutlist source's line item lives: the order it belongs to and its own EBMS row. */
+type SourceLine = { order: TrimOrder; line: TrimLineItem }
+
+/**
+ * A cutlist source names its line only by autoid. The Scheduled tab's orders carry the lines
+ * themselves, so they are what answers «whose is this» until the cutlist does (TODO.md).
+ */
+export const indexLines = (orders: TrimOrder[]) => {
+  const lines = new Map<string, SourceLine>()
+  for (const order of orders)
+    for (const line of order.origin_items) lines.set(line.id, { order, line })
+  return lines
+}
+
+/**
+ * What the Slinet cuts on one day: every piece on that day's cutlists, the ones already Done
+ * included — the material was cut either way, and the strip is the day's work, not what is left.
+ */
+export const slinetTotals = (
+  cutlists: Cutlist[],
+  day: string,
+  isStockOrder: (order: string | null) => boolean
+) => {
+  let pieces = 0
+  let stockPieces = 0
+
+  for (const cutlist of cutlists) {
+    if (cutlist.production_date !== day) continue
+    for (const row of cutlist.rows) {
+      pieces += row.quantity
+      for (const source of row.sources)
+        if (isStockOrder(source.order)) stockPieces += source.quantity
+    }
+  }
+
+  return { pieces, stockPieces }
 }

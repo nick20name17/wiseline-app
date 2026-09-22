@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import {
   Dialog,
   DialogContent,
@@ -12,15 +13,16 @@ import {
   TableBody,
   TableCell,
   TableFooter,
-  TableHead,
   TableHeader,
   TableRow
 } from '@/components/ui/table'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
-import { cutlistRowSourcesQuery } from '../api'
-import type { CutlistGroup } from '../lib/cutlists'
+import { cutlistRowSourcesQuery, scheduledOrdersQuery } from '../api'
+import { CUTLIST_TOTAL_TABLE } from '../lib/columns'
+import { indexLines, type CutlistGroup } from '../lib/cutlists'
+import { Figure } from './figure'
 
 type CutlistTotalDialogProps = {
   group: CutlistGroup | null
@@ -30,33 +32,45 @@ type CutlistTotalDialogProps = {
 /**
  * What a consolidated Total is made of. Identical sizes collapse into one row so the floor cuts them
  * together, which is right for cutting and useless for answering «whose is this» — this is that
- * answer, so it names the orders rather than repeating the size.
+ * answer, so it names the orders and their lines rather than repeating the size.
+ *
+ * A source says only which line it came from; the line itself is read off the Scheduled tab's
+ * orders. PO# and Drawing have nothing behind them yet (TODO.md).
  */
 export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTotalDialogProps) => {
   const [group, release] = useRetained(current)
+  const columns = useColumnOrder(CUTLIST_TOTAL_TABLE)
+  // The word takes the first column that is not the figure's own, so dragging Qty to mfg to the
+  // front moves «Total» along rather than losing it.
+  const totalLabel = columns.order.find(key => key !== 'qty')
   const rowIds = group?.rows.map(row => row.id) ?? []
   const { data: sources, isPending } = useQuery(cutlistRowSourcesQuery(rowIds))
+  const { data: orders } = useQuery({ ...scheduledOrdersQuery(undefined, null), enabled: !!group })
+  const lines = indexLines(orders?.results ?? [])
 
-  // One order can be behind several of the group's rows — one per machine — and the breakdown is
-  // read per order, not per row.
-  const byOrder = new Map<string, { order: string; items: Set<string>; quantity: number }>()
+  // One line can be behind several of the group's rows — a machine's pieces and its vented ones —
+  // and the breakdown is read per line, not per row.
+  const byLine = new Map<string, { order: string; item: string | null; quantity: number }>()
   for (const source of sources ?? []) {
-    const key = source.order ?? '—'
-    const entry = byOrder.get(key) ?? { order: key, items: new Set<string>(), quantity: 0 }
-    if (source.origin_item) entry.items.add(source.origin_item)
+    const key = source.origin_item ?? `order:${source.order ?? '—'}`
+    const entry = byLine.get(key) ?? {
+      order: source.order ?? '—',
+      item: source.origin_item,
+      quantity: 0
+    }
     entry.quantity += source.quantity
-    byOrder.set(key, entry)
+    byLine.set(key, entry)
   }
-  const orders = [...byOrder.values()]
+  const entries = [...byLine.entries()]
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent className='sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>Orders using this size</DialogTitle>
           <DialogDescription>
             {group
-              ? `${group.width?.toFixed(1) ?? '—'}" × ${group.length ?? '—'}" — the orders this total was cut for.`
+              ? `${group.width?.toFixed(1) ?? '—'}" × ${group.length ?? '—'}" — the orders behind this Total.`
               : ''}
           </DialogDescription>
         </DialogHeader>
@@ -64,41 +78,72 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
         <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-40' />
-          ) : orders.length ? (
+          ) : entries.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Line items</TableHead>
-                    <TableHead>Qty to manufacture</TableHead>
-                  </TableRow>
+                  <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map(entry => (
-                    <TableRow key={entry.order}>
-                      <TableCell>
-                        <span className='font-mono'>{entry.order}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className='font-mono text-muted-foreground'>
-                          {[...entry.items].join(', ') || '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className='font-mono'>{entry.quantity}</span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {entries.map(([key, entry]) => {
+                    const found = entry.item ? lines.get(entry.item) : undefined
+                    return (
+                      <TableRow key={key}>
+                        {columns.cells({
+                          order: (
+                            <TableCell>
+                              <Figure value={found?.order.invoice || entry.order} />
+                            </TableCell>
+                          ),
+                          customer: (
+                            <TableCell>
+                              <span className='truncate'>{found?.order.customer ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          pid: (
+                            <TableCell>
+                              <Figure value={found?.line.id_inven} />
+                            </TableCell>
+                          ),
+                          desc: (
+                            <TableCell>
+                              <span className='truncate text-muted-foreground'>
+                                {found?.line.item?.description ?? found?.line.description ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          qtyord: (
+                            <TableCell>
+                              <Figure value={found?.line.quantity} />
+                            </TableCell>
+                          ),
+                          stock: (
+                            <TableCell>
+                              <Figure value={found?.line.item?.pull_from_stock || null} />
+                            </TableCell>
+                          ),
+                          qty: (
+                            <TableCell>
+                              <Figure value={entry.quantity} />
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
                 {/* The figure the window was opened from, under the column it belongs to. */}
                 <TableFooter>
                   <TableRow>
-                    <TableCell>Total</TableCell>
-                    <TableCell />
-                    <TableCell>
-                      <span className='font-mono'>{group?.quantity ?? 0}</span>
-                    </TableCell>
+                    {columns.order.map(key =>
+                      key === 'qty' ? (
+                        <TableCell key={key}>
+                          <span className='font-mono'>{group?.quantity ?? 0}</span>
+                        </TableCell>
+                      ) : (
+                        <TableCell key={key}>{key === totalLabel ? 'Total' : null}</TableCell>
+                      )
+                    )}
                   </TableRow>
                 </TableFooter>
               </Table>

@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,39 +19,214 @@ import {
 import { toast } from '@/components/ui/toast'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { Printer, Trash2 } from 'lucide-react'
+import { Printer } from 'lucide-react'
+import { useState } from 'react'
 import {
   completedOrderQuery,
   orderLocationsQuery,
-  useRemoveOrderLocation,
+  remanufacturingsQuery,
   useReprintPackage,
-  type CompletedOrder
+  type CompletedDetail,
+  type CompletedOrder,
+  type OrderLocation
 } from '../api'
-import { formatDate } from '../lib/format'
+import { COMPLETED_LINES_TABLE, COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
+import { formatLongDate, formatStamp } from '../lib/format'
+import { remanTotal } from '../lib/wrapping'
+import { LocationChips, RemoveLocationDialog } from './location-dialog'
 
-const stamp = (iso: string | null) => {
-  if (!iso) return '—'
-  const at = new Date(iso)
-  return `${at.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })} · ${at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+const titleOf = (order: CompletedOrder, isStock: boolean) =>
+  `Completed · ${order.order_number ?? order.order}${isStock ? '' : ` · ${order.customer ?? '—'}`}`
+
+const Facts = ({ order, isStock }: { order: CompletedOrder; isStock: boolean }) => {
+  const facts = [
+    { label: 'Customer', value: isStock ? 'Stock' : (order.customer ?? '—') },
+    { label: 'Ship date', value: order.ship_date ? formatLongDate(order.ship_date) : 'N/A' },
+    { label: 'Order #', value: order.order_number ?? '—' },
+    {
+      label: 'Production date',
+      value: order.production_date ? formatLongDate(order.production_date) : '—'
+    }
+  ]
+
+  return (
+    <dl className='grid gap-x-8 gap-y-1 sm:grid-cols-2'>
+      {facts.map(fact => (
+        <div key={fact.label} className='flex items-baseline justify-between gap-4 text-sm'>
+          <dt className='text-muted-foreground'>{fact.label}</dt>
+          <dd className='font-medium'>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
 }
 
-type Fact = { label: string; value: string }
+const made = (line: { qty_ordered: number; from_stock: number }) =>
+  Math.max(line.qty_ordered - line.from_stock, 0)
 
-const Facts = ({ facts }: { facts: Fact[] }) => (
-  <dl className='grid gap-x-8 gap-y-1 sm:grid-cols-2'>
-    {facts.map(fact => (
-      <div key={fact.label} className='flex items-baseline justify-between gap-4 text-sm'>
-        <dt className='text-muted-foreground'>{fact.label}</dt>
-        <dd className='font-medium'>{fact.value}</dd>
+type LineItemsSectionProps = {
+  detail: CompletedDetail
+  isStock: boolean
+}
+
+/** What actually went to EBMS when the order was closed: ordered minus stock, line by line. */
+const LineItemsSection = ({ detail, isStock }: LineItemsSectionProps) => {
+  const { data: remans } = useQuery(remanufacturingsQuery)
+  // A count, not the chain: every piece ever remade on the line.
+  const remade = (originItem: string | null) =>
+    remanTotal(
+      (originItem ? (remans?.get(originItem) ?? []) : []).filter(
+        reman => reman.order === detail.order
+      )
+    )
+  const columns = useColumnOrder(
+    isStock ? withoutStock(COMPLETED_LINES_TABLE) : COMPLETED_LINES_TABLE
+  )
+
+  return (
+    <section className='flex flex-col gap-2'>
+      <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+        Line items · manufacturing batch{' '}
+        {detail.line_items.reduce((total, line) => total + made(line), 0)} pcs{' '}
+        {isStock ? '(manufactured)' : '(Qty − Stock)'}
+      </h3>
+      <div className='overflow-hidden rounded-lg border border-border'>
+        <Table>
+          <TableHeader>
+            <TableRow>{columns.headers}</TableRow>
+          </TableHeader>
+          <TableBody>
+            {detail.line_items.map(line => {
+              const remadeHere = remade(line.origin_item)
+
+              return (
+                <TableRow key={line.origin_item}>
+                  {columns.cells({
+                    pid: (
+                      <TableCell>
+                        <span className='font-mono'>{line.product_id ?? '—'}</span>
+                      </TableCell>
+                    ),
+                    desc: (
+                      <TableCell>
+                        <span className='text-muted-foreground'>{line.description ?? '—'}</span>
+                      </TableCell>
+                    ),
+                    qty: (
+                      <TableCell>
+                        <span className='font-mono'>{line.qty_ordered}</span>
+                      </TableCell>
+                    ),
+                    stock: (
+                      <TableCell>
+                        <span className='font-mono'>{line.from_stock || '—'}</span>
+                      </TableCell>
+                    ),
+                    mfg: (
+                      <TableCell>
+                        <span className='font-mono'>{made(line)}</span>
+                      </TableCell>
+                    ),
+                    reman: (
+                      <TableCell>
+                        <span
+                          className='font-mono'
+                          title={
+                            remadeHere
+                              ? `${remadeHere} pcs. of material remade across every request raised on this line`
+                              : undefined
+                          }
+                        >
+                          {remadeHere || '—'}
+                        </span>
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </div>
-    ))}
-  </dl>
-)
+    </section>
+  )
+}
+
+/** The packages that carried the order out, each with a label the shop can print again. */
+const PackagesSection = ({ packages }: { packages: CompletedDetail['packages'] }) => {
+  const reprint = useReprintPackage()
+  const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
+
+  return (
+    <section className='flex flex-col gap-2'>
+      <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+        Packages
+      </h3>
+      {!packages.length ? (
+        <p className='text-sm text-muted-foreground'>No packages recorded.</p>
+      ) : (
+        <div className='overflow-hidden rounded-lg border border-border'>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.headers}
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {packages.map(parcel => (
+                <TableRow key={parcel.package_id}>
+                  {columns.cells({
+                    name: (
+                      <TableCell>
+                        <span className='font-mono'>{parcel.name ?? '—'}</span>
+                      </TableCell>
+                    ),
+                    contents: (
+                      <TableCell>
+                        <span className='text-muted-foreground'>
+                          {parcel.contents
+                            .map(item => `${item.quantity} × ${item.origin_item ?? '—'}`)
+                            .join(', ') || '—'}
+                        </span>
+                      </TableCell>
+                    ),
+                    location: (
+                      <TableCell>
+                        <span className='font-mono'>{parcel.location ?? '—'}</span>
+                      </TableCell>
+                    )
+                  })}
+                  <TableCell>
+                    <span className='flex justify-end'>
+                      <Button
+                        variant='outline'
+                        disabled={reprint.isPending}
+                        title='Reprint this package label'
+                        onClick={() =>
+                          reprint.mutate(parcel.package_id, {
+                            onSuccess: () =>
+                              toast.add({
+                                type: 'success',
+                                title: `Reprinted label ${parcel.name ?? parcel.package_id}`
+                              })
+                          })
+                        }
+                      >
+                        <Printer data-icon='inline-start' />
+                        Reprint
+                      </Button>
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
+  )
+}
 
 type CompletedOrderDialogProps = {
   departmentId: number | undefined
@@ -72,18 +248,18 @@ export const CompletedOrderDialog = ({
   // "reprint package labels and change/add/remove locations if necessary" — an order that has gone
   // still has to be findable, and a location freed when it is no longer standing there.
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
-  const removeLocation = useRemoveOrderLocation()
-  const reprint = useReprintPackage(() => toast.add({ type: 'success', title: 'Label sent' }))
+  const [removing, setRemoving] = useState<OrderLocation | null>(null)
+
+  // A stock order is what is being manufactured, so nothing on it came off the shelf.
+  const isStock = !!(data?.is_stock ?? order?.is_stock)
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
-          <DialogTitle>
-            Completed · {order?.order_number ?? ''} · {order?.customer ?? 'Stock'}
-          </DialogTitle>
+          <DialogTitle>{order ? titleOf(order, isStock) : 'Completed order'}</DialogTitle>
           <DialogDescription>
-            Line items with the stock taken out of them, plus what went into each package.
+            Line items with stock taken, plus what went into each package.
           </DialogDescription>
         </DialogHeader>
 
@@ -92,162 +268,37 @@ export const CompletedOrderDialog = ({
             <Skeleton className='h-56' />
           ) : (
             <>
-              <section className='flex flex-col gap-2'>
-                {/* What actually went to EBMS when the order was closed: ordered minus stock. */}
-                <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-                  Line items · manufacturing batch{' '}
-                  {data.line_items.reduce(
-                    (total, line) => total + Math.max(line.qty_ordered - line.from_stock, 0),
-                    0
-                  )}{' '}
-                  pcs (qty − stock)
-                </h3>
-                <div className='overflow-hidden rounded-lg border border-border'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product ID</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Qty Ordered</TableHead>
-                        <TableHead>Stock Pulled</TableHead>
-                        <TableHead>Manufactured</TableHead>
-                        <TableHead>Packaged</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.line_items.map(line => (
-                        <TableRow key={line.origin_item}>
-                          <TableCell>
-                            <span className='font-mono'>{line.product_id ?? '—'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='text-muted-foreground'>{line.description ?? '—'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='font-mono'>{line.qty_ordered}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='font-mono'>{line.from_stock || '—'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='font-mono'>
-                              {Math.max(line.qty_ordered - line.from_stock, 0)}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='font-mono'>{line.packaged}</span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </section>
+              <LineItemsSection detail={data} isStock={isStock} />
 
-              <section className='flex flex-col gap-2'>
-                <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-                  Packages
-                </h3>
-                <div className='overflow-hidden rounded-lg border border-border'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Package</TableHead>
-                        <TableHead>Contents</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.packages.map(parcel => (
-                        <TableRow key={parcel.package_id}>
-                          <TableCell>
-                            <span className='font-mono'>{parcel.name ?? '—'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='text-muted-foreground'>
-                              {parcel.contents
-                                .map(item => `${item.quantity} × ${item.origin_item ?? '—'}`)
-                                .join(', ') || '—'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='font-mono'>{parcel.location ?? '—'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='flex justify-end'>
-                              <Button
-                                variant='outline'
-                                disabled={reprint.isPending}
-                                onClick={() => reprint.mutate(parcel.package_id)}
-                              >
-                                <Printer data-icon='inline-start' />
-                                Reprint
-                              </Button>
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </section>
+              <PackagesSection packages={data.packages} />
 
               {locations?.length ? (
                 <section className='flex flex-wrap items-center gap-2'>
                   <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
                     Trim location
                   </h3>
-                  {locations.map(spot => (
-                    <span
-                      key={spot.location_id}
-                      className='flex items-center gap-2 rounded-md border border-border px-2 py-1 text-sm'
-                    >
-                      <span className='font-mono'>{spot.name ?? spot.location_id}</span>
-                      <span className='text-xs text-muted-foreground'>{spot.packages} pkg</span>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={`Take ${spot.name ?? spot.location_id} off this order`}
-                        disabled={removeLocation.isPending}
-                        onClick={() =>
-                          order &&
-                          removeLocation.mutate(
-                            { order: order.order, locationId: spot.location_id },
-                            {
-                              onError: error =>
-                                toast.add({
-                                  type: 'error',
-                                  title: 'The location stayed',
-                                  description: error.message
-                                })
-                            }
-                          )
-                        }
-                      >
-                        <Trash2 />
-                      </Button>
-                    </span>
-                  ))}
+                  <LocationChips locations={locations} onRemove={setRemoving} />
                 </section>
               ) : null}
 
-              <Facts
-                facts={[
-                  { label: 'Customer', value: order?.customer ?? 'Stock' },
-                  { label: 'Ship date', value: formatDate(order?.ship_date ?? null) },
-                  { label: 'Order #', value: order?.order_number ?? '—' },
-                  { label: 'Production date', value: formatDate(order?.production_date ?? null) }
-                ]}
-              />
+              {order ? <Facts order={order} isStock={isStock} /> : null}
 
               <p className='text-center text-sm text-muted-foreground'>
-                Completed {stamp(data.completed_at)}
+                {data.completed_at
+                  ? `Completed ${formatStamp(data.completed_at)}`
+                  : 'Completion time not recorded'}
               </p>
             </>
           )}
         </div>
       </DialogContent>
+
+      <RemoveLocationDialog
+        order={order?.order ?? ''}
+        locations={locations ?? []}
+        location={removing}
+        onOpenChange={open => !open && setRemoving(null)}
+      />
     </Dialog>
   )
 }

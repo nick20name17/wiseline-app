@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -19,8 +20,18 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Calendar, ChevronDown, Lock } from 'lucide-react'
-import { machinesQuery, useUpdateLineItem, type TrimLineItem, type TrimOrder } from '../api'
+import {
+  isStockOrder,
+  machinesQuery,
+  useUpdateLineItem,
+  type LineItemEdit,
+  type TrimLineItem,
+  type TrimOrder
+} from '../api'
+import { SCHEDULED_LINES_TABLE, withoutStock } from '../lib/columns'
+import { isBender } from '../lib/cutlists'
 import { formatDate } from '../lib/format'
+import { lineDay, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
 import { StatusPill } from './status-pill'
@@ -35,15 +46,30 @@ type ScheduledLineItemsProps = {
   /** The production day this row stands for. A line sitting on another day is read-only here. */
   day: string
   released: boolean
-  readOnly: boolean
+  /** Bypassed work skips the machines, so there is nothing to vent or assign. */
+  bypassed: boolean
   onReschedule: () => void
   onOpenNotes: (item: TrimLineItem) => void
 }
 
-const dayOf = (item: TrimLineItem) => item.item?.production_date ?? item.production_date ?? null
-
-/** What still has to be made: the ordered quantity less whatever is being pulled from stock. */
-const toMake = (item: TrimLineItem) => item.quantity - (item.item?.pull_from_stock ?? 0)
+/**
+ * A number box commits on blur. An empty box is no answer, so it goes back to what was there rather
+ * than writing a zero; anything else is held to the range first, and shown as what is being written.
+ */
+const commitNumber = (
+  input: HTMLInputElement,
+  current: number,
+  range: { min: number; max?: number },
+  write: (next: number, revert: () => void) => void
+) => {
+  const revert = () => {
+    input.value = String(current)
+  }
+  if (input.value.trim() === '' || Number.isNaN(input.valueAsNumber)) return revert()
+  const next = Math.min(range.max ?? Infinity, Math.max(range.min, input.valueAsNumber))
+  input.value = String(next)
+  if (next !== current) write(next, revert)
+}
 
 /**
  * The line items under an expanded scheduled order: everything a Manager sets while reviewing it, and
@@ -54,22 +80,29 @@ export const ScheduledLineItems = ({
   departmentId,
   day,
   released,
-  readOnly,
+  bypassed,
   onReschedule,
   onOpenNotes
 }: ScheduledLineItemsProps) => {
-  const noteState = useLineNoteState(order.origin_items)
+  const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const { data: machines } = useQuery(machinesQuery(departmentId))
-  // A trim is assigned to the machine that bends it. The Slinet cuts every one of them and Wrapping
-  // comes after all of them, so neither is a choice here.
-  const stations = machines?.filter(
-    machine => machine.kind !== 'cutting' && machine.kind !== 'wrapping'
-  )
+  // A trim is assigned to the machine that bends it.
+  const stations = machines?.filter(isBender)
   const update = useUpdateLineItem()
 
-  const edit = (item: TrimLineItem, patch: Parameters<typeof update.mutate>[0]['edit']) => {
+  // A stock order is what puts trims on the shelf, so it has nothing to take from it.
+  const stock = isStockOrder(order)
+  // On a day tab, a line belonging to another day — or to none — greys out and is left alone: it is
+  // being worked from its own row, on its own day.
+  const own = new Set(partLines(order, day).map(item => item.id))
+  const columns = useColumnOrder(
+    stock ? withoutStock(SCHEDULED_LINES_TABLE) : SCHEDULED_LINES_TABLE
+  )
+
+  /** A refused write puts the box back to what the server still holds, not what was typed. */
+  const edit = (item: TrimLineItem, patch: LineItemEdit, revert?: () => void) => {
     const itemId = item.item?.id
-    if (itemId) update.mutate({ itemId, edit: patch })
+    if (itemId) update.mutate({ itemId, edit: patch }, { onError: revert })
   }
 
   if (!order.origin_items.length) {
@@ -87,13 +120,7 @@ export const ScheduledLineItems = ({
       {released ? null : (
         <div className='flex items-center gap-3'>
           <span className='text-sm font-medium'>Reviewing order</span>
-          <Button
-            variant='outline'
-
-            className='ml-auto'
-            disabled={readOnly}
-            onClick={onReschedule}
-          >
+          <Button variant='outline' className='ml-auto' onClick={onReschedule}>
             <Calendar data-icon='inline-start' />
             Reschedule
           </Button>
@@ -104,39 +131,19 @@ export const ScheduledLineItems = ({
         <Table className='min-w-4xl table-fixed'>
           <colgroup>
             <col className='w-10' />
-            <col className='w-16' />
-            <col className='w-28' />
-            <col className='w-32' />
-            <col className='w-20' />
-            <col className='w-32' />
-            <col className='w-32' />
-            <col />
-            <col className='w-20' />
-            <col className='w-16' />
-            <col className='w-20' />
+            {columns.cols}
           </colgroup>
           <TableHeader>
             <TableRow>
               <TableHead />
-              <TableHead>Qty</TableHead>
-              <TableHead>Vented</TableHead>
-              <TableHead>Machine</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Product ID</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>W&quot;</TableHead>
-              <TableHead>L&quot;</TableHead>
-              <TableHead>Notes</TableHead>
+              {columns.headers}
             </TableRow>
           </TableHeader>
           <TableBody>
             {order.origin_items.map(item => {
-              const lineDay = dayOf(item)
-              // On a day tab, a line belonging to another day — or to none — greys out and is left
-              // alone: it is being worked from its own row, on its own day.
-              const otherDay = lineDay !== day
-              const editable = !released && !otherDay && !readOnly
+              const itemDay = lineDay(item)
+              const otherDay = !own.has(item.id)
+              const editable = !released && !otherDay
               const fromStock = item.item?.pull_from_stock ?? 0
               const allFromStock = fromStock >= item.quantity
               const machine = item.item?.flow ?? null
@@ -150,163 +157,198 @@ export const ScheduledLineItems = ({
                       <Lock
                         className='size-3.5 text-muted-foreground'
                         aria-label={
-                          lineDay ? `Scheduled ${formatDate(lineDay)}` : 'Not yet scheduled'
+                          itemDay ? `Scheduled ${formatDate(itemDay)}` : 'Not yet scheduled'
                         }
                       />
                     ) : null}
                   </TableCell>
 
-                  <TableCell>
-                    <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
-                      {item.quantity}
-                    </span>
-                  </TableCell>
-
-                  <TableCell>
-                    {/* Nothing left to make means nothing to vent, and a line on another day is
-                        answered from its own row — neither is an unticked box. */}
-                    {otherDay || toMake(item) <= 0 ? (
-                      <span className='text-muted-foreground'>—</span>
-                    ) : (
-                      <Checkbox
-                        aria-label={`Vent ${item.id_inven ?? item.id}`}
-                        checked={item.item?.vented ?? false}
-                        disabled={!editable || update.isPending}
-                        onCheckedChange={checked => edit(item, { vented: checked === true })}
-                      />
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    {otherDay ? (
-                      <span className='text-muted-foreground'>—</span>
-                    ) : allFromStock ? (
-                      <span className='text-muted-foreground'>Stock</span>
-                    ) : editable ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              variant='outline'
-
-                              className='w-full justify-between'
-                              aria-label={`Machine for ${item.id_inven ?? item.id}`}
-                            />
+                  {columns.cells({
+                    qty: (
+                      <TableCell>
+                        <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
+                          {item.quantity}
+                        </span>
+                      </TableCell>
+                    ),
+                    vent: (
+                      <TableCell>
+                        {/* Nothing left to make means nothing to vent, bypassed work is never vented, and
+                            a line on another day is answered from its own row — none of them is an
+                            unticked box. */}
+                        {otherDay ? (
+                          <span className='text-muted-foreground'>—</span>
+                        ) : bypassed ? (
+                          <span className='text-muted-foreground'>N/A</span>
+                        ) : toMake(item) <= 0 ? (
+                          <span className='text-muted-foreground'>—</span>
+                        ) : (
+                          <Checkbox
+                            aria-label={`Vent ${item.id_inven ?? item.id}`}
+                            checked={item.item?.vented ?? false}
+                            disabled={!editable || update.isPending}
+                            onCheckedChange={checked => edit(item, { vented: checked === true })}
+                          />
+                        )}
+                      </TableCell>
+                    ),
+                    machine: (
+                      <TableCell>
+                        {otherDay ? (
+                          <span className='text-muted-foreground'>—</span>
+                        ) : bypassed ? (
+                          <span className='text-muted-foreground'>N/A</span>
+                        ) : allFromStock ? (
+                          <span className='text-muted-foreground'>Stock</span>
+                        ) : editable ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant='outline'
+                                  className='w-full justify-between'
+                                  aria-label={`Machine for ${item.id_inven ?? item.id}`}
+                                />
+                              }
+                            >
+                              {machine?.name ?? 'Assign'}
+                              <ChevronDown data-icon='inline-end' />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align='start' className='min-w-40'>
+                              <DropdownMenuRadioGroup
+                                value={machine ? String(machine.id) : ''}
+                                onValueChange={value => edit(item, { flow: Number(value) })}
+                              >
+                                {stations?.map(option => (
+                                  <DropdownMenuRadioItem key={option.id} value={String(option.id)}>
+                                    {option.name ?? `Machine ${option.id}`}
+                                  </DropdownMenuRadioItem>
+                                ))}
+                              </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span>{machine?.name ?? '—'}</span>
+                        )}
+                      </TableCell>
+                    ),
+                    stock: (
+                      <TableCell>
+                        {/* Match the ordered quantity and the server moves the line to Stock on its
+                            own. Stock stays open after release — the floor pulls more as it finds it —
+                            and only a line on another day is answered from its own row. The key
+                            remounts the box whenever the server's value moves under it. */}
+                        {otherDay ? (
+                          <span className='font-mono text-muted-foreground'>{fromStock}</span>
+                        ) : (
+                          <Input
+                            key={fromStock}
+                            type='number'
+                            min={0}
+                            max={item.quantity}
+                            aria-label={`From stock for ${item.id_inven ?? item.id}`}
+                            placeholder='0'
+                            defaultValue={fromStock}
+                            onBlur={event =>
+                              commitNumber(
+                                event.currentTarget,
+                                fromStock,
+                                { min: 0, max: item.quantity },
+                                (next, revert) => edit(item, { pull_from_stock: next }, revert)
+                              )
+                            }
+                          />
+                        )}
+                      </TableCell>
+                    ),
+                    status: (
+                      <TableCell>
+                        {/* A line says nothing about itself until the order is released, and a dash is
+                            that nothing. */}
+                        <StatusPill
+                          status={released ? itemStatus(item.item?.status ?? null) : null}
+                        />
+                      </TableCell>
+                    ),
+                    pid: (
+                      <TableCell>
+                        <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
+                          {item.id_inven ?? '—'}
+                        </span>
+                      </TableCell>
+                    ),
+                    desc: (
+                      <TableCell>
+                        {editable ? (
+                          <Input
+                            key={description ?? ''}
+                            aria-label={`Description for ${item.id_inven ?? item.id}`}
+                            placeholder='Add a description'
+                            defaultValue={description ?? ''}
+                            onBlur={event => {
+                              const input = event.currentTarget
+                              if (input.value !== (description ?? ''))
+                                edit(item, { description: input.value }, () => {
+                                  input.value = description ?? ''
+                                })
+                            }}
+                          />
+                        ) : (
+                          <span className={cn('truncate', otherDay && 'text-muted-foreground')}>
+                            {description ?? '—'}
+                          </span>
+                        )}
+                      </TableCell>
+                    ),
+                    w: (
+                      <TableCell>
+                        {editable ? (
+                          <Input
+                            key={width}
+                            type='number'
+                            min={0}
+                            step={0.1}
+                            aria-label={`Width for ${item.id_inven ?? item.id}`}
+                            placeholder='0'
+                            defaultValue={width}
+                            onBlur={event =>
+                              commitNumber(event.currentTarget, width, { min: 0 }, (next, revert) =>
+                                edit(item, { width: next }, revert)
+                              )
+                            }
+                          />
+                        ) : (
+                          <span className='font-mono'>{width.toFixed(1)}</span>
+                        )}
+                      </TableCell>
+                    ),
+                    l: (
+                      <TableCell>
+                        <span
+                          className={cn(
+                            'font-mono',
+                            item.length !== STANDARD_LENGTH && 'text-destructive'
+                          )}
+                          title={
+                            item.length === STANDARD_LENGTH
+                              ? undefined
+                              : `Non-standard length (not ${STANDARD_LENGTH}")`
                           }
                         >
-                          {machine?.name ?? 'Assign'}
-                          <ChevronDown data-icon='inline-end' />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align='start' className='min-w-40'>
-                          <DropdownMenuRadioGroup
-                            value={machine ? String(machine.id) : ''}
-                            onValueChange={value => edit(item, { flow: Number(value) })}
-                          >
-                            {stations?.map(option => (
-                              <DropdownMenuRadioItem key={option.id} value={String(option.id)}>
-                                {option.name ?? `Machine ${option.id}`}
-                              </DropdownMenuRadioItem>
-                            ))}
-                          </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <span>{machine?.name ?? '—'}</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    {/* Match the ordered quantity and the server moves the line to Stock on its own. */}
-                    {editable ? (
-                      <Input
-                        type='number'
-                        min={0}
-                        max={item.quantity}
-                        aria-label={`From stock for ${item.id_inven ?? item.id}`}
-                        placeholder='0'
-                        defaultValue={fromStock}
-                        onBlur={event => {
-                          const next = Number(event.target.value)
-                          if (next !== fromStock) edit(item, { pull_from_stock: next })
-                        }}
-                      />
-                    ) : (
-                      <span className='font-mono text-muted-foreground'>{fromStock}</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    {/* A line says nothing about itself until the order is released, and a dash is
-                        that nothing. */}
-                    <StatusPill status={released ? itemStatus(item.item?.status ?? null) : null} />
-                  </TableCell>
-
-                  <TableCell>
-                    <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
-                      {item.id_inven ?? '—'}
-                    </span>
-                  </TableCell>
-
-                  <TableCell>
-                    {editable ? (
-                      <Input
-                        aria-label={`Description for ${item.id_inven ?? item.id}`}
-                        placeholder='Add a description'
-                        defaultValue={description ?? ''}
-                        onBlur={event => {
-                          if (event.target.value !== (description ?? ''))
-                            edit(item, { description: event.target.value })
-                        }}
-                      />
-                    ) : (
-                      <span className={cn('truncate', otherDay && 'text-muted-foreground')}>
-                        {description ?? '—'}
-                      </span>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    {editable ? (
-                      <Input
-                        type='number'
-                        min={0}
-                        step={0.1}
-                        aria-label={`Width for ${item.id_inven ?? item.id}`}
-                        placeholder='0'
-                        defaultValue={width}
-                        onBlur={event => {
-                          const next = Number(event.target.value)
-                          if (next !== width) edit(item, { width: next })
-                        }}
-                      />
-                    ) : (
-                      <span className='font-mono'>{width}</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    <span
-                      className={cn(
-                        'font-mono',
-                        item.length !== STANDARD_LENGTH && 'text-destructive'
-                      )}
-                      title={
-                        item.length === STANDARD_LENGTH
-                          ? undefined
-                          : `Non-standard length (not ${STANDARD_LENGTH}")`
-                      }
-                    >
-                      {item.length}&quot;
-                    </span>
-                  </TableCell>
-
-                  <TableCell>
-                    <NoteButton
-                      state={noteState(item)}
-                      label='Line item notes'
-                      onClick={() => onOpenNotes(item)}
-                    />
-                  </TableCell>
+                          {item.length}&quot;
+                        </span>
+                      </TableCell>
+                    ),
+                    notes: (
+                      <TableCell>
+                        <NoteButton
+                          state={noteState(item.id)}
+                          label='Line item notes'
+                          onClick={() => onOpenNotes(item)}
+                        />
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
               )
             })}

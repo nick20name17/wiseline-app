@@ -62,13 +62,15 @@ const Figure = ({ value, max, fromStock, unrouted }: FigureProps) => {
 const Row = ({
   name,
   isDay,
+  title,
   children
 }: {
   name: React.ReactNode
   isDay?: boolean
+  title?: string
   children: React.ReactNode
 }) => (
-  <tr>
+  <tr title={title}>
     {/* Each cell paints its own edges, so a row reads as one card. The day is the report's headline
         figure, so its card is white against the machines' grey. */}
     <th
@@ -112,7 +114,12 @@ export const MachineCapacitiesDialog = ({
 }: MachineCapacitiesDialogProps) => {
   const [day, release] = useRetained(current)
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
-  const unrouted = (data?.pieces_without_a_machine ?? 0) > 0
+  // The report names the pieces with no machine; the bends are whatever the machines do not add up to.
+  const unroutedPieces = data?.pieces_without_a_machine ?? 0
+  const unroutedBends = data
+    ? Math.max(0, data.total.bends - data.machines.reduce((sum, machine) => sum + machine.bends, 0))
+    : 0
+  const unrouted = unroutedPieces > 0 || unroutedBends > 0
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
@@ -128,84 +135,79 @@ export const MachineCapacitiesDialog = ({
           </div>
         </DialogHeader>
 
-        {/* A department with a long machine list should not push Print off the screen. Fixed rather
-            The floor is the placeholder's own height, so Print stays where it was rather than
+        {/* A department with a long machine list should not push Print off the screen. The floor
+            is the placeholder's own height, so Print stays where it was rather than
             dropping down the sheet once the figures arrive. */}
         <div data-print-expand className='scrollport max-h-96 min-h-64 overflow-y-auto'>
           {isPending || !data ? (
             <Skeleton className='h-64' />
           ) : (
-            <>
-              <table className='w-full border-separate border-spacing-y-1'>
-                <thead>
-                  <tr>
-                    {/* The row names sit under this one; it heads nothing of its own. */}
-                    <th>
-                      <span className='sr-only'>Machine</span>
-                    </th>
-                    {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
-                    <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                      Pieces
-                    </th>
-                    <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                      Bends
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <Row
-                    isDay
-                    name={
-                      <>
-                        {formatDate(data.date)}
-                        {data.date === today() ? (
-                          <span className='font-normal text-muted-foreground'> · today</span>
-                        ) : null}
-                      </>
-                    }
-                  >
-                    <Cell isDay>
-                      <Figure
-                        value={data.total.pieces}
-                        fromStock={data.total.pieces_from_stock}
-                        unrouted={unrouted}
-                      />
+            <table className='w-full border-separate border-spacing-y-1'>
+              <thead>
+                <tr>
+                  {/* The row names sit under this one; it heads nothing of its own. */}
+                  <th>
+                    <span className='sr-only'>Machine</span>
+                  </th>
+                  {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
+                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                    Pieces
+                  </th>
+                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                    Bends
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <Row
+                  isDay
+                  title={
+                    unrouted
+                      ? `${unroutedBends} bends (${unroutedPieces} pcs) scheduled but not routed to a machine yet`
+                      : undefined
+                  }
+                  name={
+                    <>
+                      {formatDate(data.date)}
+                      {data.date === today() ? (
+                        <span className='font-normal text-muted-foreground'> · today</span>
+                      ) : null}
+                    </>
+                  }
+                >
+                  <Cell isDay>
+                    <Figure
+                      value={data.total.pieces}
+                      fromStock={data.total.pieces_from_stock}
+                      unrouted={unrouted}
+                    />
+                  </Cell>
+                  <Cell isDay>
+                    <Figure
+                      value={data.total.bends}
+                      max={data.total.capacity}
+                      fromStock={data.total.bends_from_stock}
+                      unrouted={unrouted}
+                    />
+                  </Cell>
+                </Row>
+
+                {data.machines.map(machine => (
+                  <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
+                    <Cell>
+                      <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
                     </Cell>
-                    <Cell isDay>
+                    <Cell>
                       <Figure
-                        value={data.total.bends}
-                        max={data.total.capacity}
-                        fromStock={data.total.bends_from_stock}
-                        unrouted={unrouted}
+                        value={machine.bends}
+                        max={machine.max_bends}
+                        fromStock={machine.bends_from_stock}
                       />
                     </Cell>
                   </Row>
-
-                  {data.machines.map(machine => (
-                    <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
-                      <Cell>
-                        <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
-                      </Cell>
-                      <Cell>
-                        <Figure
-                          value={machine.bends}
-                          max={machine.max_bends}
-                          fromStock={machine.bends_from_stock}
-                        />
-                      </Cell>
-                    </Row>
-                  ))}
-                </tbody>
-              </table>
-
-              {unrouted ? (
-                <p className='mt-2 text-center text-xs text-warning'>
-                  <span className='font-mono'>{data.pieces_without_a_machine}</span> pieces are on
-                  this day with no machine assigned yet — which is the gap between the top row and
-                  the ones below it.
-                </p>
-              ) : null}
-            </>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
 

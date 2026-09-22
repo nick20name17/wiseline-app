@@ -16,8 +16,9 @@ test('the board lists unscheduled orders with the day strip and the tab count', 
   // The page is named once, in the trail at the top; the board itself carries no title.
   await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toContainText('Trim')
   await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toContainText('Unscheduled')
-  // The tab carries the count; the toolbar says nothing until something is ticked.
+  // The tab carries the count, and so does the toolbar until something is ticked.
   await expect(page.getByRole('tab', { name: 'Unscheduled 2' })).toBeVisible()
+  await expect(page.getByText('2 unscheduled orders')).toBeVisible()
 
   // The day pill carries the bends scheduled against its machines' daily max added up — five
   // benders at 1200 — not the 5000 the day strip itself returns.
@@ -25,13 +26,19 @@ test('the board lists unscheduled orders with the day strip and the tab count', 
 
   await expect(page.getByText('330605')).toBeVisible()
   await expect(page.getByText('H F H Inc')).toBeVisible()
-  // A stock order shows its own badge and no order note.
+  // A stock order names itself where the customer would be, and carries no order note.
   await expect(page.getByText('S1041')).toBeVisible()
   await expect(page.getByText('Stock', { exact: true }).first()).toBeVisible()
 })
 
 test('expanding an order shows its line items and offers a split', async ({ page }) => {
-  await page.getByText('330605').click()
+  // The expander is a button of its own, so the keyboard reaches it too.
+  const expander = page
+    .getByRole('row')
+    .filter({ hasText: '330605' })
+    .getByRole('button', { name: 'Toggle details' })
+  await expander.press('Enter')
+  await expect(expander).toHaveAttribute('aria-expanded', 'true')
 
   await expect(page.getByText('Ridge Cap Dark Red')).toBeVisible()
   await expect(page.getByText('Eave Drip Dark Red')).toBeVisible()
@@ -59,6 +66,27 @@ test('ticking an order enables Schedule and Bypass Production', async ({ page })
   await schedule.click()
   await expect(page.getByRole('heading', { name: 'Set production date' })).toBeVisible()
   await expect(page.getByText('Scheduling 1 order entirely.')).toBeVisible()
+})
+
+test('Bypass Production asks first and reports where the order went', async ({ page }) => {
+  await page.route(`${API_URL}/sales-orders/11/departments/1/bypass/`, route =>
+    route.fulfill({ json: {} })
+  )
+
+  await page.getByLabel('Select order 330605').click()
+  await page.getByRole('button', { name: /^Bypass Production/ }).click()
+
+  await expect(
+    page.getByRole('heading', { name: 'Bypass Production — order 330605?' })
+  ).toBeVisible()
+  await expect(
+    page.getByText(
+      'Are you sure you want this order(s) to bypass all the production tabs and go straight to the wrapping stage?'
+    )
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Yes, Bypass Production' }).click()
+
+  await expect(page.getByText(/^Bypassed 1 order to Wrapping · Production Date /)).toBeVisible()
 })
 
 test('the priority list offers only this department’s priorities', async ({ page }) => {

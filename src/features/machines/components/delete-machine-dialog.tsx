@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { toast } from '@/components/ui/toast'
 import { useDeleteMachine, type Machine } from '../api'
 
 type DeleteMachineDialogProps = {
@@ -36,17 +35,7 @@ export const DeleteMachineDialog = ({ machine, open, onOpenChange }: DeleteMachi
           <Button
             variant='destructive'
             disabled={mutation.isPending}
-            onClick={() =>
-              mutation.mutate(machine.id, {
-                // The API refuses a machine that still holds work, and only it knows that.
-                onError: error =>
-                  toast.add({
-                    type: 'error',
-                    title: 'The machine stayed',
-                    description: error.message
-                  })
-              })
-            }
+            onClick={() => mutation.mutate(machine.id)}
           >
             {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
             Delete

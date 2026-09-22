@@ -12,8 +12,9 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Trash2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { useCreateStockOrder, useScanStockCard } from '../api'
+import { stockCardsQuery, useCreateStockOrder, useScanStockCard } from '../api'
 
 type Row = { id: string; qty: string; productId: string; description: string }
 
@@ -47,14 +48,29 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
   const [error, setError] = useState('')
 
   const create = useCreateStockOrder(() => {
+    toast.add({ type: 'success', title: 'Stock order created' })
     setRows([blank()])
     onOpenChange(false)
   })
   const scanCard = useScanStockCard()
+  // The only catalogue the API offers is the stock cards, so a typed Product ID fills its description
+  // from the card that carries it.
+  const { data: cards } = useQuery({ ...stockCardsQuery, enabled: open })
+  const describe = (productId: string) =>
+    cards?.find(card => card.product_id.toUpperCase() === productId.trim().toUpperCase())
+      ?.description ?? ''
 
   const edit = (id: string, patch: Partial<Row>) =>
     setRows(current => {
-      const next = current.map(row => (row.id === id ? { ...row, ...patch } : row))
+      const next = current.map(row =>
+        row.id !== id
+          ? row
+          : {
+              ...row,
+              ...patch,
+              ...(patch.productId === undefined ? {} : { description: describe(patch.productId) })
+            }
+      )
       // Typing into the last line is what grows the table.
       if (next[next.length - 1] && !isBlank(next[next.length - 1]!)) next.push(blank())
       return next
@@ -178,8 +194,8 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 value={row.productId}
                 onChange={event => edit(row.id, { productId: event.target.value })}
               />
-              {/* Read-only: the description belongs to EBMS. A scanned card carries it; a typed
-                  Product ID has nowhere to look it up until the API offers a product lookup. */}
+              {/* Read-only: the order takes only the Product ID and the quantity, so an edited
+                  description would be dropped on the way. It is shown to confirm the right trim. */}
               <Input
                 className='flex-1'
                 readOnly

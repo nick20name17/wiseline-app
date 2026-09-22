@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -11,7 +12,9 @@ import {
 import { cn } from 'cn'
 import { CalendarDays, Lock, Split } from 'lucide-react'
 import type { TrimLineItem, TrimOrder } from '../api'
+import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { formatDate } from '../lib/format'
+import { lineDay } from '../lib/parts'
 import { NoteButton } from './note-button'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -27,9 +30,6 @@ type LineItemsProps = {
   onOpenNotes: (item: TrimLineItem) => void
 }
 
-/** A line already carrying a production date has been scheduled; on this tab it is read-only. */
-const isScheduled = (item: TrimLineItem) => !!(item.production_date ?? item.item?.production_date)
-
 export const LineItems = ({
   order,
   selectedLineIds,
@@ -39,8 +39,9 @@ export const LineItems = ({
   onSplit,
   onOpenNotes
 }: LineItemsProps) => {
-  const noteState = useLineNoteState(order.origin_items)
+  const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const picked = new Set(selectedLineIds)
+  const columns = useColumnOrder(UNSCHEDULED_LINES_TABLE)
 
   if (!order.origin_items.length) {
     return (
@@ -79,66 +80,71 @@ export const LineItems = ({
         <Table className='table-fixed'>
           <colgroup>
             <col className='w-10' />
-            <col className='w-20' />
-            <col className='w-32' />
-            <col />
-            <col className='w-20' />
+            {columns.cols}
           </colgroup>
           <TableHeader>
             <TableRow>
               <TableHead />
-              <TableHead>Qty</TableHead>
-              <TableHead>Product ID</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>
-                <span className='sr-only'>Notes</span>
-              </TableHead>
+              {columns.headers}
             </TableRow>
           </TableHeader>
           <TableBody>
             {order.origin_items.map(item => {
-              const locked = isScheduled(item)
+              const day = lineDay(item)
+              const locked = !!day
 
               return (
                 // A line already on a day is read-only here; the mute says so before the lock does.
                 <TableRow key={item.id}>
                   <TableCell>
                     {locked ? (
-                      <Lock
-                        className='size-3.5'
-                        aria-label={`Scheduled ${formatDate(item.production_date ?? item.item?.production_date ?? null)}`}
-                      />
+                      <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
                     ) : (
                       <Checkbox
                         aria-label={`Select line item ${item.id_inven ?? item.id}`}
                         checked={picked.has(item.id)}
                         disabled={orderSelected}
+                        title={
+                          orderSelected
+                            ? 'Order selected for whole-order Schedule — clear it first'
+                            : undefined
+                        }
                         onCheckedChange={() => onToggleLine(item.id)}
                       />
                     )}
                   </TableCell>
-                  <TableCell>
-                    <span className={cn('font-mono', locked && 'text-muted-foreground')}>
-                      {item.quantity}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn('font-mono', locked && 'text-muted-foreground')}>
-                      {item.id_inven ?? '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn('truncate', locked && 'text-muted-foreground')}>
-                      {item.description ?? '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <NoteButton
-                      state={noteState(item)}
-                      label='Line item notes'
-                      onClick={() => onOpenNotes(item)}
-                    />
-                  </TableCell>
+                  {columns.cells({
+                    qty: (
+                      <TableCell>
+                        <span className={cn('font-mono', locked && 'text-muted-foreground')}>
+                          {item.quantity}
+                        </span>
+                      </TableCell>
+                    ),
+                    pid: (
+                      <TableCell>
+                        <span className={cn('font-mono', locked && 'text-muted-foreground')}>
+                          {item.id_inven ?? '—'}
+                        </span>
+                      </TableCell>
+                    ),
+                    desc: (
+                      <TableCell>
+                        <span className={cn('truncate', locked && 'text-muted-foreground')}>
+                          {item.description ?? '—'}
+                        </span>
+                      </TableCell>
+                    ),
+                    notes: (
+                      <TableCell>
+                        <NoteButton
+                          state={noteState(item.id)}
+                          label='Line item notes'
+                          onClick={() => onOpenNotes(item)}
+                        />
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
               )
             })}

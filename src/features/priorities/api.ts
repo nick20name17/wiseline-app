@@ -89,6 +89,7 @@ export const useDeletePriority = (onSuccess: () => void) =>
  */
 export const useReorderPriorities = () =>
   useMutation({
+    meta: { errorTitle: 'The order was not saved' },
     mutationFn: (moved: Priority[]) =>
       Promise.all(
         moved.map(priority =>

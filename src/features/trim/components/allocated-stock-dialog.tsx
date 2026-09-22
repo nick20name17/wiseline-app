@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import {
   Dialog,
   DialogContent,
@@ -8,18 +9,15 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { useQuery } from '@tanstack/react-query'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { useDebouncedValue } from '@/lib/use-debounced-value'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Database, Search } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { allocatedStockQuery } from '../api'
+import { ALLOCATED_STOCK_TABLE } from '../lib/columns'
+
+const DEBOUNCE_MS = 250
 
 type AllocatedStockDialogProps = {
   departmentId: number | undefined
@@ -37,9 +35,14 @@ export const AllocatedStockDialog = ({
   open,
   onOpenChange
 }: AllocatedStockDialogProps) => {
-  const [search, setSearch] = useState('')
+  // The box answers every keystroke; the report is asked once the typing pauses.
+  const [term, setTerm] = useState('')
+  const search = useDebouncedValue(term.trim(), DEBOUNCE_MS)
+  const columns = useColumnOrder(ALLOCATED_STOCK_TABLE)
   const { data: rows, isPending } = useQuery({
     ...allocatedStockQuery(departmentId, search || undefined),
+    // A new term keeps the last answer on screen rather than dropping back to the placeholder.
+    placeholderData: keepPreviousData,
     enabled: open && departmentId !== undefined
   })
 
@@ -61,8 +64,8 @@ export const AllocatedStockDialog = ({
             type='search'
             aria-label='Search allocated stock'
             placeholder='Product ID, description or colour...'
-            value={search}
-            onChange={event => setSearch(event.target.value)}
+            value={term}
+            onChange={event => setTerm(event.target.value)}
           />
         </InputGroup>
 
@@ -75,11 +78,7 @@ export const AllocatedStockDialog = ({
             <div className='overflow-hidden rounded-lg border border-border'>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Product ID</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Qty</TableHead>
-                  </TableRow>
+                  <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map(row => (
@@ -88,7 +87,7 @@ export const AllocatedStockDialog = ({
                           draws it and names the colour at the same time. */}
                       {row.starts_color_group ? (
                         <TableRow>
-                          <TableCell colSpan={3}>
+                          <TableCell colSpan={4}>
                             <span className='text-xs font-semibold tracking-wider uppercase'>
                               {row.color ?? 'No colour'}
                             </span>
@@ -96,17 +95,26 @@ export const AllocatedStockDialog = ({
                         </TableRow>
                       ) : null}
                       <TableRow>
-                        <TableCell>
-                          <span className='font-mono'>{row.product_id}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className='truncate text-muted-foreground'>
-                            {row.description ?? '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className='font-mono'>{row.qty}</span>
-                        </TableCell>
+                        {columns.cells({
+                          color: <TableCell>{row.color ?? '—'}</TableCell>,
+                          pid: (
+                            <TableCell>
+                              <span className='font-mono'>{row.product_id}</span>
+                            </TableCell>
+                          ),
+                          desc: (
+                            <TableCell>
+                              <span className='truncate text-muted-foreground'>
+                                {row.description ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          qty: (
+                            <TableCell>
+                              <span className='font-mono'>{row.qty}</span>
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                     </Fragment>
                   ))}

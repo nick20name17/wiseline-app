@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { toast } from '@/components/ui/toast'
 import { departmentByCode } from '@/lib/departments'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
@@ -222,17 +221,7 @@ export const LocationTypesPage = ({
             <Button
               variant='destructive'
               disabled={remove.isPending}
-              onClick={() =>
-                removing &&
-                remove.mutate(removing.id, {
-                  onError: error =>
-                    toast.add({
-                      type: 'error',
-                      title: 'The type stayed',
-                      description: error.message
-                    })
-                })
-              }
+              onClick={() => removing && remove.mutate(removing.id)}
             >
               {remove.isPending ? <Spinner data-icon='inline-start' /> : null}
               Delete

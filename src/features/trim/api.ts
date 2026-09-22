@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
 import * as z from 'zod/mini'
+import { departmentCoilFilter, passesCoilFilter } from './lib/coils'
 
 /**
  * Trim reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
@@ -165,6 +166,7 @@ export const trimKeys = {
     [...trimKeys.orders(), 'unscheduled', { search: search ?? '' }] as const,
   scheduled: (search: string | undefined, day: string | null) =>
     [...trimKeys.orders(), 'scheduled', { search: search ?? '', day: day ?? 'all' }] as const,
+  calendar: () => [...trimKeys.orders(), 'calendar'] as const,
   machines: () => [...trimKeys.all, 'machines'] as const,
   overdue: (departmentId: number) => [...trimKeys.all, 'overdue', departmentId] as const,
   machineCapacities: (departmentId: number, day: string) =>
@@ -194,12 +196,11 @@ export const trimKeys = {
   cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const,
   cutlistSources: (rowIds: number[]) => [...trimKeys.cutlists(), 'sources', rowIds] as const,
   completedOrders: () => [...trimKeys.all, 'completed'] as const,
-  completed: (departmentId: number, search: string | undefined) =>
-    [...trimKeys.completedOrders(), departmentId, { search: search ?? '' }] as const,
+  completed: (departmentId: number) => [...trimKeys.completedOrders(), departmentId] as const,
   completedOrder: (departmentId: number, order: string) =>
     [...trimKeys.completedOrders(), departmentId, order] as const,
   coils: () => [...trimKeys.all, 'coils'] as const,
-  coilLots: (scope: CoilScope) => [...trimKeys.coils(), scope] as const,
+  coilLots: () => [...trimKeys.coils(), 'lots'] as const,
   coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const,
   wrapping: () => [...trimKeys.all, 'wrapping'] as const,
   wrappingRows: (departmentId: number, day: string | null) =>
@@ -259,6 +260,32 @@ export const scheduledOrdersQuery = (search: string | undefined, day: string | n
           .json()
       )
   })
+
+/**
+ * Every scheduled order, however many pages that takes: the Calendar counts whole months, and the
+ * endpoint filters by one production date or none, so the first page alone would drop days.
+ */
+export const calendarOrdersQuery = queryOptions({
+  queryKey: trimKeys.calendar(),
+  queryFn: async () => {
+    const pageAt = async (offset: number) =>
+      orderPageSchema.parse(
+        await authApi
+          .get('ebms/orders/', {
+            searchParams: { category: TRIM_CATEGORY, is_scheduled: true, limit: PAGE_SIZE, offset }
+          })
+          .json()
+      )
+    // The first page says how many there are, so the rest are asked for at once.
+    const first = await pageAt(0)
+    const offsets = Array.from(
+      { length: Math.max(0, Math.ceil(first.count / PAGE_SIZE) - 1) },
+      (_, index) => (index + 1) * PAGE_SIZE
+    )
+    const rest = await Promise.all(offsets.map(pageAt))
+    return [first, ...rest].flatMap(page => page.results)
+  }
+})
 
 // --- Machines ------------------------------------------------------------
 
@@ -751,7 +778,7 @@ const releaseResultSchema = z.object({
  * One call for the batch rather than one per order — orders sharing a production date, gauge/colour
  * and priority share a cutlist, and that grouping only happens when they arrive together.
  */
-export const useReleaseOrders = (onSuccess: (cutlists: number) => void) =>
+export const useReleaseOrders = (onSuccess: (released: number, cutlists: number) => void) =>
   useMutation({
     mutationFn: async ({
       salesOrderIds,
@@ -770,7 +797,7 @@ export const useReleaseOrders = (onSuccess: (cutlists: number) => void) =>
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
     },
-    onSuccess: result => onSuccess(result.cutlists.length)
+    onSuccess: result => onSuccess(result.released.length, result.cutlists.length)
   })
 
 /** Take a release back. Refused once production has started, which the server decides. */
@@ -879,6 +906,8 @@ export const useCreateStockOrder = (onSuccess: () => void) =>
 /** Scanning a Stock Card's QR fills the Order Qty and Product ID into a row of the grid. */
 export const useScanStockCard = () =>
   useMutation({
+    // Its caller tells the floor to type the line instead; the server's reason is of no use to them.
+    meta: { skipErrorToast: true },
     mutationFn: async (payload: string) =>
       z
         .object({
@@ -1076,19 +1105,16 @@ const completedPageSchema = z.object({
 })
 
 /** Everything this department finished inside the window the server keeps — 90 days. */
-export const completedOrdersQuery = (
-  departmentId: number | undefined,
-  search: string | undefined
-) =>
+export const completedOrdersQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.completed(departmentId ?? 0, search),
+    queryKey: trimKeys.completed(departmentId ?? 0),
     enabled: departmentId !== undefined,
     placeholderData: keepPreviousData,
     queryFn: async () =>
       completedPageSchema.parse(
         await authApi
           .get(`departments/${departmentId}/completed-orders/`, {
-            searchParams: { limit: PAGE_SIZE, ...(search ? { search } : {}) }
+            searchParams: { limit: PAGE_SIZE }
           })
           .json()
       )
@@ -1153,35 +1179,33 @@ export const completedOrderQuery = (departmentId: number | undefined, order: str
  * The label is rebuilt from the package rather than stored, so one reprinted after the package moved
  * shows where it is now.
  */
-export const useReprintPackage = (onSuccess: () => void) =>
+export const useReprintPackage = (onSuccess?: () => void) =>
   useMutation({
+    meta: { errorTitle: 'The label was not printed' },
     mutationFn: (packageId: number) => authApi.post(`packages/${packageId}/reprint/`).json(),
     onSuccess
   })
 
 // --- Coils ---------------------------------------------------------------
 
-/** The two lists the board keeps: the coils standing in this department, and the plant's whole stock. */
-export type CoilScope = 'trim' | 'all'
-
 // The lots list is not paginated by the server, so one page holds it.
 const COIL_PAGE_SIZE = 500
 
-export const coilLotsQuery = (scope: CoilScope) =>
-  queryOptions({
-    queryKey: trimKeys.coilLots(scope),
-    queryFn: async () =>
-      z.array(coilLotSchema).parse(
-        await authApi
-          .get('coils/lots/', {
-            searchParams: {
-              limit: COIL_PAGE_SIZE,
-              ...(scope === 'trim' ? { in_trim: true } : {})
-            }
-          })
-          .json()
-      )
-  })
+/** Every coil in the company. Trim Coils are narrowed from it by the department's Coil Filter. */
+export const coilLotsQuery = queryOptions({
+  queryKey: trimKeys.coilLots(),
+  queryFn: async () =>
+    z
+      .array(coilLotSchema)
+      .parse(await authApi.get('coils/lots/', { searchParams: { limit: COIL_PAGE_SIZE } }).json())
+})
+
+/** The Cutlist Coils window reads its coils through the cutlist, so both lists hear of a change. */
+const invalidateCoils = (client: QueryClient) =>
+  Promise.all([
+    client.invalidateQueries({ queryKey: trimKeys.coils() }),
+    client.invalidateQueries({ queryKey: trimKeys.cutlists() })
+  ])
 
 /** Material Thickness, Core OD and the coil note — everything the floor types onto a coil. */
 export const useUpdateCoilLot = () =>
@@ -1193,8 +1217,7 @@ export const useUpdateCoilLot = () =>
       lotId: number
       edit: { material_thickness?: number; core_od?: number; note?: string }
     }) => authApi.patch(`coils/lots/${lotId}/`, { json: edit }).json(),
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
 /**
@@ -1203,6 +1226,7 @@ export const useUpdateCoilLot = () =>
  */
 export const useSetCoilLocation = () =>
   useMutation({
+    meta: { errorTitle: 'The coil stayed where it was' },
     mutationFn: ({
       lotId,
       location
@@ -1242,22 +1266,23 @@ export const useApplyCoilAdjustment = () =>
   })
 
 /** Confirming an adjustment: EBMS first, and only then the coil here. */
-export const useConfirmCoilAdjustment = (onSuccess: () => void) =>
+export const useConfirmCoilAdjustment = (onSuccess?: () => void) =>
   useMutation({
     mutationFn: ({ lotId, values }: { lotId: number; values: CoilAdjustment }) =>
       authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json(),
     onSuccess,
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+    // Its callers word the failure differently — one coil, or a batch of them under one toast.
+    meta: { skipErrorToast: true },
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
 /** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. */
-export const useDepleteCoil = (onSuccess: () => void) =>
+export const useDepleteCoil = (onSuccess?: () => void) =>
   useMutation({
     mutationFn: (lotId: number) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
     onSuccess,
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+    meta: { skipErrorToast: true },
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
 const coilFilterSchema = z.object({
@@ -1311,6 +1336,25 @@ export const coilFiltersQuery = (departmentId: number | undefined) =>
             .json()
         )
   })
+
+/**
+ * Every coil in the company, and the ones inside the department's Coil Filter — what the Coils tab
+ * lists and what its count on the strip says. The lots endpoint cannot apply a department's filter
+ * itself, so both are read and the narrowing happens here.
+ */
+export const useTrimCoils = (departmentId: number | undefined) => {
+  const { data: lots, isPending } = useQuery(coilLotsQuery)
+  const { data: filters, isLoading: filterLoading } = useQuery(coilFiltersQuery(departmentId))
+  const filter = departmentCoilFilter(filters)
+
+  return {
+    lots,
+    trimLots: lots?.filter(lot => passesCoilFilter(lot, filter)),
+    filter,
+    isPending,
+    filterLoading
+  }
+}
 
 // --- Wrapping ------------------------------------------------------------
 
@@ -1408,6 +1452,7 @@ export const orderLocationsQuery = (order: string | null) =>
 
 export const useRemoveOrderLocation = () =>
   useMutation({
+    meta: { errorTitle: 'The location stayed' },
     mutationFn: ({ order, locationId }: { order: string; locationId: number }) =>
       authApi.delete(`wrapping/orders/${order}/locations/${locationId}/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
@@ -1422,14 +1467,19 @@ export type PackageLine = { origin_item: string; quantity: number }
  */
 export const useCreatePackage = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: (parcel: {
+    meta: { errorTitle: 'Nothing was packed' },
+    mutationFn: async (parcel: {
       order: string
       department_id: number
       location_id: number
       lines: PackageLine[]
       weight?: number
       override_weight?: boolean
-    }) => authApi.post('wrapping/packages/', { json: parcel }).json(),
+    }) =>
+      // The name is the barcode printed on the label, which is what the floor is told back.
+      z
+        .object({ name: z._default(z.nullable(z.string()), null) })
+        .parse(await authApi.post('wrapping/packages/', { json: parcel }).json()),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.all })
@@ -1532,6 +1582,9 @@ export const remanufacturingsQuery = queryOptions({
   }
 })
 
+/** Where a remake was asked for: a machine that spoiled the bend, or the bench that found it. */
+export type RemanufactureSource = 'wrapping' | 'machine'
+
 /**
  * Ask for part of a line item to be remade. The request spins off its own cutlist and bendlist,
  * inheriting the original's production date, gauge/colour, priority and machine, and carrying only
@@ -1539,17 +1592,16 @@ export const remanufacturingsQuery = queryOptions({
  */
 export const useRequestRemanufacture = (onSuccess: () => void) =>
   useMutation({
+    meta: { errorTitle: 'Nothing was requested' },
     mutationFn: (request: {
+      source: RemanufactureSource
       order: string
       origin_item: string
       department: number
       quantity: number
       pull_from_stock_qty?: number
       note?: string
-    }) =>
-      authApi
-        .post('remanufacturings/request/', { json: { source: 'wrapping', ...request } })
-        .json(),
+    }) => authApi.post('remanufacturings/request/', { json: request }).json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.all })

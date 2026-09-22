@@ -34,8 +34,8 @@ export const BypassDialog = ({
           {orders.length === 1 ? `order ${orders[0]?.invoice}` : `${orders.length} orders`}?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          The order skips every production tab and goes straight to Wrapping. No cutlist or bendlist
-          is made, and today becomes its production date.
+          Are you sure you want this order(s) to bypass all the production tabs and go straight to
+          the wrapping stage?
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

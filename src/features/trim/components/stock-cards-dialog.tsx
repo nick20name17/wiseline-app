@@ -9,13 +9,122 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { FieldError } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
+import { toggled } from '@/lib/sets'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { Printer, QrCode, Trash2 } from 'lucide-react'
+import { Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { stockCardsQuery, useDeleteStockCard, usePrintStockCards } from '../api'
+import {
+  stockCardsQuery,
+  useCreateStockOrder,
+  useDeleteStockCard,
+  usePrintStockCards,
+  type StockCard
+} from '../api'
+import { ConfirmDialog } from './confirm-dialog'
+
+type CardOrderFormProps = {
+  card: StockCard
+  onClose: () => void
+}
+
+/** The window's body, mounted with the popup so every opening starts from the card as it stands. */
+const CardOrderForm = ({ card, onClose }: CardOrderFormProps) => {
+  const [qty, setQty] = useState('')
+  const [error, setError] = useState('')
+  const create = useCreateStockOrder(onClose)
+  const shown = qty || (card.order_qty === null ? '' : String(card.order_qty))
+
+  const submit = () => {
+    const quantity = Number(shown)
+    if (!Number.isInteger(quantity) || quantity < 1)
+      return setError('Order Qty must be greater than 0.')
+    setError('')
+    create.mutate([{ product_id: card.product_id, quantity }], {
+      onSuccess: () =>
+        toast.add({
+          type: 'success',
+          title: `Stock order created — ${card.product_id} × ${quantity}`
+        })
+    })
+  }
+
+  return (
+    <>
+      <div className='flex flex-col gap-3'>
+        <div className='flex flex-col gap-2'>
+          <Label htmlFor='card-order-pid'>Product ID</Label>
+          <Input id='card-order-pid' readOnly value={card.product_id} />
+        </div>
+        <div className='flex flex-col gap-2'>
+          <Label htmlFor='card-order-desc'>Description</Label>
+          <Input id='card-order-desc' readOnly value={card.description ?? ''} />
+        </div>
+        <div className='flex flex-col gap-2'>
+          <Label htmlFor='card-order-qty'>Order Qty</Label>
+          <Input
+            id='card-order-qty'
+            type='number'
+            min={1}
+            inputMode='numeric'
+            value={shown}
+            onChange={event => setQty(event.target.value)}
+          />
+        </div>
+      </div>
+
+      {error ? <FieldError>{error}</FieldError> : null}
+
+      <DialogFooter>
+        <Button variant='outline' onClick={onClose}>
+          Cancel
+        </Button>
+        <Button disabled={create.isPending} onClick={submit}>
+          {create.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Create order
+        </Button>
+      </DialogFooter>
+    </>
+  )
+}
+
+type CardOrderDialogProps = {
+  card: StockCard | null
+  onOpenChange: (open: boolean) => void
+}
+
+/**
+ * What scanning a card does, reached by clicking its QR: a stock order for this one product, its
+ * quantity prefilled from the card and still open to change.
+ */
+const CardOrderDialog = ({ card: current, onOpenChange }: CardOrderDialogProps) => {
+  const [card, release] = useRetained(current)
+
+  return (
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
+      <DialogContent className='sm:max-w-sm'>
+        <DialogHeader>
+          <DialogTitle>Create stock order</DialogTitle>
+          <DialogDescription>Prefilled from the stock card.</DialogDescription>
+        </DialogHeader>
+
+        {card ? <CardOrderForm card={card} onClose={() => onOpenChange(false)} /> : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const matches = (card: StockCard, term: string) =>
+  !term ||
+  card.product_id.toLowerCase().includes(term) ||
+  (card.description ?? '').toLowerCase().includes(term)
 
 type StockCardsDialogProps = {
   open: boolean
@@ -27,11 +136,20 @@ type StockCardsDialogProps = {
  *
  * Creating one is not here. A card needs an uploaded image and the file endpoint accepts only package,
  * skid and package-item attachments, so a card cannot be created from any client today — see TODO.md.
+ * For the same reason the card face has no drawing, and it carries no width, gauge or colour to show
+ * or filter by.
  */
 export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) => {
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [search, setSearch] = useState('')
+  const [deleting, setDeleting] = useState<StockCard | null>(null)
+  const [asking, releaseAsking] = useRetained(deleting)
+  const [ordering, setOrdering] = useState<StockCard | null>(null)
   const { data: cards, isPending } = useQuery({ ...stockCardsQuery, enabled: open })
   const remove = useDeleteStockCard()
+
+  const term = search.trim().toLowerCase()
+  const shown = cards?.filter(card => matches(card, term)) ?? []
 
   // A deleted card must not stay ticked: the count and the print payload would carry an id the
   // server no longer knows.
@@ -49,12 +167,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
     setSelected(new Set())
   })
 
-  const toggle = (id: number) =>
-    setSelected(current => {
-      const next = new Set(current)
-      if (!next.delete(id)) next.add(id)
-      return next
-    })
+  const toggle = (id: number) => setSelected(current => toggled(current, id))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,52 +175,113 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
         <DialogHeader>
           <DialogTitle>Stock Cards</DialogTitle>
           <DialogDescription>
-            Tick the cards you want and print them. Scanning a printed card fills a stock order row.
+            Tick the cards you want and print them. Scanning a printed card — or clicking its QR —
+            raises a stock order.
           </DialogDescription>
         </DialogHeader>
+
+        <div className='flex items-center gap-3'>
+          <span className='text-sm whitespace-nowrap text-muted-foreground'>
+            <span className='font-medium text-foreground'>{shown.length}</span> of{' '}
+            {cards?.length ?? 0} cards
+          </span>
+          <InputGroup>
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              type='search'
+              aria-label='Search stock cards'
+              placeholder='Search product ID or description…'
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+            />
+          </InputGroup>
+        </div>
 
         {/* The floor matches the placeholders, so the sheet does not jump when the cards arrive. */}
         <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
           {isPending ? (
             <div className='grid gap-3 sm:grid-cols-2'>
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className='h-21' />
+                <Skeleton key={index} className='h-28' />
               ))}
             </div>
-          ) : cards?.length ? (
+          ) : shown.length ? (
             <div className='grid gap-3 sm:grid-cols-2'>
-              {cards.map(card => (
+              {shown.map(card => (
                 <div
                   key={card.id}
-                  className='flex items-start gap-3 rounded-lg border border-border p-3'
+                  className='flex flex-col gap-3 rounded-lg border border-border p-3'
                 >
-                  <Checkbox
-                    className='mt-1'
-                    aria-label={`Print ${card.product_id}`}
-                    checked={selected.has(card.id)}
-                    onCheckedChange={() => toggle(card.id)}
-                  />
-                  <div className='min-w-0 flex-1'>
-                    <p className='font-mono text-sm font-medium'>{card.product_id}</p>
-                    <p className='truncate text-xs text-muted-foreground uppercase'>
-                      {card.description ?? '—'}
-                    </p>
-                    <p className='mt-1 font-mono text-xs text-muted-foreground'>
-                      Min {card.stock_minimum ?? '—'} · Qty {card.order_qty ?? '—'}
-                    </p>
+                  <div className='flex items-center justify-between gap-3'>
+                    <div className='flex items-center gap-2'>
+                      <Checkbox
+                        id={`print-${card.id}`}
+                        aria-label={`Select ${card.product_id} for printing`}
+                        checked={selected.has(card.id)}
+                        onCheckedChange={() => toggle(card.id)}
+                      />
+                      <Label htmlFor={`print-${card.id}`}>Print Select</Label>
+                    </div>
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      aria-label={`Delete ${card.product_id}`}
+                      onClick={() => setDeleting(card)}
+                    >
+                      <Trash2 />
+                    </Button>
                   </div>
-                  <Button
-                    variant='ghost'
-                    size='icon-sm'
-                    aria-label={`Delete ${card.product_id}`}
-                    disabled={remove.isPending}
-                    onClick={() => remove.mutate(card.id, { onSuccess: () => drop(card.id) })}
-                  >
-                    <Trash2 />
-                  </Button>
+
+                  <div className='flex items-start gap-3'>
+                    <div className='min-w-0 flex-1'>
+                      <p className='font-mono text-sm font-medium'>{card.product_id}</p>
+                      <p className='truncate text-xs text-muted-foreground uppercase'>
+                        {card.description ?? '—'}
+                      </p>
+                    </div>
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      aria-label={`Create a stock order for ${card.product_id}`}
+                      title='Scan (or click) to create a stock order'
+                      onClick={() => setOrdering(card)}
+                    >
+                      <QrCode />
+                    </Button>
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-3'>
+                    <div>
+                      <p className='text-xs tracking-wider text-muted-foreground uppercase'>
+                        Stock minimum
+                      </p>
+                      <p className='font-mono text-lg'>{card.stock_minimum ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className='text-xs tracking-wider text-muted-foreground uppercase'>
+                        Order qty
+                      </p>
+                      <p className='font-mono text-lg'>{card.order_qty ?? '—'}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
+          ) : cards?.length ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant='icon'>
+                  <SearchX />
+                </EmptyMedia>
+                <EmptyTitle>No stock cards match</EmptyTitle>
+                <EmptyDescription>Try a different search term.</EmptyDescription>
+              </EmptyHeader>
+              <Button variant='outline' onClick={() => setSearch('')}>
+                Clear search
+              </Button>
+            </Empty>
           ) : (
             <Empty>
               <EmptyHeader>
@@ -139,6 +313,28 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
             Print selected{selected.size ? ` (${selected.size})` : ''}
           </Button>
         </DialogFooter>
+
+        <ConfirmDialog
+          open={!!deleting}
+          onOpenChange={next => !next && setDeleting(null)}
+          onOpenChangeComplete={releaseAsking}
+          title='Delete stock card?'
+          description={`This removes ${asking?.product_id ?? ''} (${asking?.description ?? '—'}) from the list. This can’t be undone.`}
+          confirmLabel='Confirm'
+          cancelLabel='Cancel'
+          isPending={remove.isPending}
+          onConfirm={() => {
+            if (!asking) return
+            remove.mutate(asking.id, {
+              onSuccess: () => {
+                drop(asking.id)
+                setDeleting(null)
+                toast.add({ type: 'success', title: `Stock card ${asking.product_id} deleted` })
+              }
+            })
+          }}
+        />
+        <CardOrderDialog card={ordering} onOpenChange={next => !next && setOrdering(null)} />
       </DialogContent>
     </Dialog>
   )

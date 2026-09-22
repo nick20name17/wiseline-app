@@ -1,6 +1,9 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { toast } from '@/components/ui/toast'
+import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { Inbox } from 'lucide-react'
 import { useState } from 'react'
@@ -14,6 +17,8 @@ import {
   type TrimLineItem,
   type TrimOrder
 } from '../api'
+import { UNSCHEDULED_TABLE } from '../lib/columns'
+import { formatLongDate, today } from '../lib/format'
 import { BypassDialog } from './bypass-dialog'
 import { DayStrip } from './day-strip'
 import { LineNotesDialog } from './line-notes-dialog'
@@ -28,7 +33,6 @@ import { UnscheduledToolbar } from './unscheduled-toolbar'
 type UnscheduledTabProps = {
   search: string | undefined
   departmentId: number | undefined
-  readOnly: boolean
 }
 
 /** The line items picked off one order, which is the board's Split Order. Only ever one order at a time. */
@@ -36,14 +40,9 @@ type Split = { orderId: string; lineIds: string[] }
 
 type OpenDialog = 'schedule' | 'split' | 'bypass' | 'cards' | 'stock' | null
 
-const toggle = (current: Set<string>, id: string) => {
-  const next = new Set(current)
-  if (!next.delete(id)) next.add(id)
-  return next
-}
-
-export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTabProps) => {
+export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) => {
   const { data: page, isPending } = useQuery(unscheduledOrdersQuery(search))
+  const columns = useColumnOrder(UNSCHEDULED_TABLE)
   const orders = page?.results ?? []
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -56,6 +55,9 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
   // Only EBMS orders carry a note; a stock order has no EBMS row to import one from.
   const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
   const { data: notes } = useQuery(orderNotesQuery(noteOrderIds))
+
+  const scheduled = (productionDate: string) => () =>
+    toast.add({ type: 'success', title: `Scheduled to ${formatLongDate(productionDate)}` })
 
   const schedule = useScheduleOrders(() => {
     setSelectedIds(new Set())
@@ -83,15 +85,15 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
   const toggleLine = (orderId: string, lineId: string) =>
     setSplit(current => {
       const lineIds =
-        current?.orderId === orderId ? [...toggle(new Set(current.lineIds), lineId)] : [lineId]
+        current?.orderId === orderId ? [...toggled(new Set(current.lineIds), lineId)] : [lineId]
       return lineIds.length ? { orderId, lineIds } : null
     })
 
   return (
     <div className='flex min-w-0 flex-col gap-3.5'>
       <UnscheduledToolbar
+        total={orders.length}
         selectedCount={selected.length}
-        readOnly={readOnly}
         ready={departmentId !== undefined}
         onStockCards={() => setDialog('cards')}
         onCreateStockOrder={() => setDialog('stock')}
@@ -123,26 +125,13 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />
-              <col className='w-40' />
-              <col className='w-40' />
-              {/* Wide enough for a stock order's own number, which runs longer than an invoice,
-                  and the Stock badge beside it. */}
-              <col className='w-48' />
-              <col className='w-44' />
-              <col />
-              {/* The heading is wider than the dot under it, and it is what sets the width. */}
-              <col className='w-24' />
+              {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead />
                 <TableHead />
-                <TableHead>Entry</TableHead>
-                <TableHead>Ship</TableHead>
-                <TableHead>Order #</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Notes</TableHead>
+                {columns.headers}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,13 +143,12 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
                     key={order.id}
                     order={order}
                     departmentId={departmentId}
-                    readOnly={readOnly}
                     expanded={expandedIds.has(order.id)}
                     selected={selectedIds.has(order.id)}
                     splitLineIds={split?.orderId === order.id ? split.lineIds : []}
                     noteState={noteState(order)}
-                    onToggleExpanded={() => setExpandedIds(current => toggle(current, order.id))}
-                    onToggleSelected={() => setSelectedIds(current => toggle(current, order.id))}
+                    onToggleExpanded={() => setExpandedIds(current => toggled(current, order.id))}
+                    onToggleSelected={() => setSelectedIds(current => toggled(current, order.id))}
                     onToggleLine={lineId => toggleLine(order.id, lineId)}
                     onSplit={() => setDialog('split')}
                     onOpenOrderNotes={() => setNoteOrder(order)}
@@ -182,7 +170,11 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
         departmentId={departmentId}
         isPending={schedule.isPending}
         onPick={productionDate =>
-          departmentId && schedule.mutate({ orders: selected, departmentId, productionDate })
+          departmentId &&
+          schedule.mutate(
+            { orders: selected, departmentId, productionDate },
+            { onSuccess: scheduled(productionDate) }
+          )
         }
       />
 
@@ -192,7 +184,7 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
         title='Set production date'
         description={
           splitting
-            ? `Splitting ${split?.lineIds.length} of ${splitting.origin_items.length} line items from ${splitting.invoice}.`
+            ? `Splitting ${split?.lineIds.length} of ${splitting.origin_items.length} line items from ${splitting.invoice} to a production date.`
             : ''
         }
         actionLabel='Set date'
@@ -202,12 +194,10 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
           splitting &&
           split &&
           departmentId &&
-          splitOrder.mutate({
-            order: splitting,
-            departmentId,
-            productionDate,
-            originItems: split.lineIds
-          })
+          splitOrder.mutate(
+            { order: splitting, departmentId, productionDate, originItems: split.lineIds },
+            { onSuccess: scheduled(productionDate) }
+          )
         }
       />
 
@@ -216,7 +206,20 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
         onOpenChange={open => setDialog(open ? 'bypass' : null)}
         orders={selected}
         isPending={bypass.isPending}
-        onConfirm={() => departmentId && bypass.mutate({ orders: selected, departmentId })}
+        onConfirm={() => {
+          if (!departmentId) return
+          const count = selected.length
+          bypass.mutate(
+            { orders: selected, departmentId },
+            {
+              onSuccess: () =>
+                toast.add({
+                  type: 'success',
+                  title: `Bypassed ${count} order${count === 1 ? '' : 's'} to Wrapping · Production Date ${formatLongDate(today())}`
+                })
+            }
+          )
+        }}
       />
 
       <StockCardsDialog

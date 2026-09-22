@@ -29,12 +29,8 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
   return (
     <tbody
       data-slot='table-body'
-      // The first cell names the row, so it reads as the row's label. The banding gives the eye
-      // a rail to follow across a wide table.
-      className={cn(
-        '[&_td:first-child]:font-medium [&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-muted/30',
-        className
-      )}
+      // The first cell names the row, so it reads as the row's label.
+      className={cn('[&_td:first-child]:font-medium [&_tr:last-child]:border-0', className)}
       {...props}
     />
   )
@@ -55,7 +51,12 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
     <tr
       data-slot='table-row'
       className={cn(
-        'h-9 border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        // The banding gives the eye a rail to follow across a wide table. It sits on the row, not
+        // the body, so every state below is as specific as it is and wins by coming later.
+        'h-9 border-b transition-colors even:bg-muted/30 hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
+        // every one is back. A late line carries only the overdue mark, so it stays red.
+        'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',
         // A row the board marks as past due carries the warning across every column, not just the
         // one holding the date. Selection still outranks it: it is the thing being acted on.
         'data-overdue:bg-destructive/5 data-overdue:hover:bg-destructive/10 data-overdue:data-[state=selected]:bg-muted',
@@ -75,6 +76,11 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
       data-slot='table-head'
       className={cn(
         'h-9 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        // A movable column's header: the one in hand fades, and a bar on the side it will land on
+        // marks where it goes; the body cells only move on drop, so the bar is the whole preview.
+        'data-dragging:cursor-grabbing data-dragging:opacity-50 data-movable:relative data-movable:cursor-grab data-movable:select-none',
+        'data-[drop=before]:before:absolute data-[drop=before]:before:inset-y-0 data-[drop=before]:before:left-0 data-[drop=before]:before:w-0.5 data-[drop=before]:before:bg-primary',
+        'data-[drop=after]:after:absolute data-[drop=after]:after:inset-y-0 data-[drop=after]:after:right-0 data-[drop=after]:after:w-0.5 data-[drop=after]:after:bg-primary',
         className
       )}
       {...props}

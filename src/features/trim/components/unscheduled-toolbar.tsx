@@ -2,8 +2,9 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, FastForward, Plus, QrCode } from 'lucide-react'
 
 type UnscheduledToolbarProps = {
+  /** The orders on screen, which is what the line counts until something is ticked. */
+  total: number
   selectedCount: number
-  readOnly: boolean
   /** Every write is scoped to the department; until its id is known there is nothing to write to. */
   ready: boolean
   onStockCards: () => void
@@ -13,8 +14,8 @@ type UnscheduledToolbarProps = {
 }
 
 export const UnscheduledToolbar = ({
+  total,
   selectedCount,
-  readOnly,
   ready,
   onStockCards,
   onCreateStockOrder,
@@ -22,13 +23,18 @@ export const UnscheduledToolbar = ({
   onSchedule
 }: UnscheduledToolbarProps) => (
   <div className='flex flex-wrap items-center gap-2.5'>
-    {/* How many orders the tab holds is already on the tab; this line says only what the count on
-        the tab cannot — how many of them are ticked. */}
-    {selectedCount ? (
-      <span className='text-sm text-muted-foreground'>
-        <b className='font-semibold text-foreground'>{selectedCount}</b> selected
-      </span>
-    ) : null}
+    <span className='text-sm text-muted-foreground'>
+      {selectedCount ? (
+        <>
+          <b className='font-semibold text-foreground'>{selectedCount}</b> selected
+        </>
+      ) : (
+        <>
+          <b className='font-semibold text-foreground'>{total}</b> unscheduled order
+          {total === 1 ? '' : 's'}
+        </>
+      )}
+    </span>
 
     <div className='ml-auto flex flex-wrap items-center gap-2'>
       <Button variant='outline' onClick={onStockCards}>
@@ -41,15 +47,14 @@ export const UnscheduledToolbar = ({
       </Button>
       <Button
         variant='outline'
-
-        disabled={readOnly || !ready || !selectedCount}
-        title='Skip the Slinet and the machines — straight to Wrapping, with today as the production date'
+        disabled={!ready || !selectedCount}
+        title='Skip Slinet + Machines — straight to Wrapping (Status: Bypassed), Production Date today'
         onClick={onBypass}
       >
         <FastForward data-icon='inline-start' />
         Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
       </Button>
-      <Button disabled={readOnly || !ready || !selectedCount} onClick={onSchedule}>
+      <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
         <CalendarDays data-icon='inline-start' />
         Schedule{selectedCount ? ` (${selectedCount})` : ''}
       </Button>

@@ -19,7 +19,6 @@ type ReviewedToggleProps = {
   released: boolean
   /** Every line that still has to be made carries a machine — the gate the board puts on this. */
   machinesAssigned: boolean
-  readOnly: boolean
 }
 
 /**
@@ -33,8 +32,7 @@ export const ReviewedToggle = ({
   departmentId,
   reviewed,
   released,
-  machinesAssigned,
-  readOnly
+  machinesAssigned
 }: ReviewedToggleProps) => {
   const [confirming, setConfirming] = useState(false)
   const mutation = useSetReviewed()
@@ -56,7 +54,7 @@ export const ReviewedToggle = ({
         <Switch
           aria-label={`Reviewed ${order.invoice}`}
           checked={reviewed}
-          disabled={readOnly || !machinesAssigned || mutation.isPending}
+          disabled={!machinesAssigned || mutation.isPending}
           onCheckedChange={next => (next ? set(true) : setConfirming(true))}
         />
         {/* The hint says which gate is holding the order rather than leaving a dead control. */}
@@ -68,9 +66,9 @@ export const ReviewedToggle = ({
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mark order {order.invoice} as not reviewed?</AlertDialogTitle>
+            <AlertDialogTitle>Turn off Reviewed?</AlertDialogTitle>
             <AlertDialogDescription>
-              It comes off the release list and cannot be selected again until it is reviewed.
+              Order {order.invoice} will no longer be selectable for release.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -82,7 +80,7 @@ export const ReviewedToggle = ({
                 setConfirming(false)
               }}
             >
-              Yes, un-review
+              Confirm
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

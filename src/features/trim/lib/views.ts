@@ -20,14 +20,15 @@ export const VIEW_LABELS: Record<TrimView, string> = {
 
 /**
  * Which tabs a role may see: a Manager works the board from Unscheduled down, a Worker only from
- * Production down — plus Coils, which both get.
+ * Production down — plus Coils, which both get, and Completed, which the board puts on the Worker's
+ * Wrapping screens too.
  *
  * The board scopes this to the user's role *inside the department*; this app still carries one global
  * role per user, so the two managerial roles and admin get the Manager's view and a worker gets the
  * Worker's. `GET /departments/users/assignments/` is where the per-department role will come from.
  */
 const MANAGER_VIEWS = TRIM_VIEWS
-const WORKER_VIEWS: readonly TrimView[] = ['production', 'coils']
+const WORKER_VIEWS: readonly TrimView[] = ['production', 'coils', 'completed']
 
 export const viewsFor = (role: string): readonly TrimView[] =>
   role === 'worker' ? WORKER_VIEWS : MANAGER_VIEWS

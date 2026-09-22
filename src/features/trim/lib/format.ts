@@ -13,6 +13,25 @@ const format = (iso: string, options: Intl.DateTimeFormatOptions) => {
 export const formatDate = (iso: string | null) =>
   iso ? format(iso, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
+/**
+ * `Tue, July 14, 2026 · 2:41 PM` — an instant rather than a production day, so unlike the rest of
+ * this file it is read in local time: it records when somebody on the floor pressed a button.
+ */
+export const formatStamp = (iso: string) => {
+  const at = new Date(iso)
+  const day = at.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  })
+  return `${day} · ${at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+}
+
+/** `Tue, July 14, 2026` — the board's confirmations spell the month out. */
+export const formatLongDate = (iso: string) =>
+  format(iso, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
+
 /** `Tue, May 7` — for the day strip, where every day is obviously this year. */
 export const formatDayLabel = (iso: string) =>
   format(iso, { weekday: 'short', month: 'short', day: 'numeric' })

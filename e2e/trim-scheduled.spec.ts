@@ -43,7 +43,7 @@ test('a release is either stock orders or customer orders, never both', async ({
   await customer.click()
 
   await expect(page.getByText('1 customer order selected for release')).toBeVisible()
-  await expect(page.getByText('Stock orders locked')).toBeVisible()
+  await expect(page.getByText('Stock orders locked (type exclusion)')).toBeVisible()
   await expect(stock).toBeDisabled()
 })
 
@@ -62,7 +62,63 @@ test('releasing sends the ticked orders and reports the cutlists', async ({ page
   await button.click()
 
   await expect.poll(() => released).toEqual([21])
-  await expect(page.getByText('2 cutlists generated')).toBeVisible()
+  await expect(page.getByText('Released 1 order · 2 cutlists generated')).toBeVisible()
+})
+
+test('turning Reviewed off asks first', async ({ page }) => {
+  await page.getByLabel('Reviewed 330608').click()
+
+  await expect(page.getByRole('heading', { name: 'Turn off Reviewed?' })).toBeVisible()
+  await expect(
+    page.getByText('Order 330608 will no longer be selectable for release.')
+  ).toBeVisible()
+})
+
+test('rescheduling moves only the lines on the part’s own day', async ({ page }) => {
+  let moved: string[] = []
+  await page.route(`${API_URL}/sales-orders/21/departments/1/schedule/`, async route => {
+    moved = JSON.parse(route.request().postData() ?? '{}').origin_items
+    await route.fulfill({ json: {} })
+  })
+
+  await page
+    .getByRole('row')
+    .filter({ hasText: '330608' })
+    .getByTitle('Change production day (pre-release)')
+    .click()
+
+  await expect(page.getByRole('heading', { name: 'Reschedule order 330608' })).toBeVisible()
+  await expect(
+    page.getByText('Pick any production day. Rescheduling resets Manager edits.')
+  ).toBeVisible()
+  // The calendar opens on the part's own day, already picked.
+  await page.getByRole('button', { name: 'Reschedule', exact: true }).click()
+
+  await expect.poll(() => moved).toEqual(['101'])
+  await expect(page.getByText(/^Rescheduled to .* — Manager edits reset$/)).toBeVisible()
+})
+
+test('a scheduled order can be sent back to Unscheduled from its reschedule dialog', async ({
+  page
+}) => {
+  let unscheduled = false
+  await page.route(`${API_URL}/sales-orders/21/departments/1/unschedule/`, async route => {
+    unscheduled = true
+    await route.fulfill({ json: {} })
+  })
+
+  await page
+    .getByRole('row')
+    .filter({ hasText: '330608' })
+    .getByTitle('Change production day (pre-release)')
+    .click()
+  await page.getByRole('button', { name: 'Unschedule' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Unschedule order 330608?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm' }).click()
+
+  await expect.poll(() => unscheduled).toBe(true)
+  await expect(page.getByText('Order 330608 unscheduled — Manager edits reset')).toBeVisible()
 })
 
 test('the day tab gear opens the machine capacities for that day', async ({ page }) => {
@@ -82,7 +138,7 @@ test('Allocated Stock reports what reviewed orders draw from stock', async ({ pa
   await page.getByRole('button', { name: 'Allocated Stock' }).click()
 
   await expect(page.getByRole('heading', { name: 'Allocated stock' })).toBeVisible()
-  await expect(page.getByText('Charcoal', { exact: true })).toBeVisible()
+  await expect(page.getByText('Charcoal', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('cell', { name: 'TSG8306' })).toBeVisible()
 })
 
@@ -92,6 +148,7 @@ test('expanding a scheduled order offers the machine, stock and vented columns',
   await page.getByText('330615').click()
 
   await expect(page.getByRole('columnheader', { name: 'Machine' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Stock' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Vented' })).toBeVisible()
   await expect(page.getByLabel('Vent TED8250')).toBeVisible()
   await expect(page.getByLabel('Machine for TED8250')).toHaveText(/Assign/)
