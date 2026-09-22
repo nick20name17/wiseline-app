@@ -1,9 +1,12 @@
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ArrowRight, Database } from 'lucide-react'
+import { formatDate } from '../lib/format'
 
 type ScheduledToolbarProps = {
   total: number
+  /** The production day being shown, or `null` on «All Scheduled Orders». */
+  day: string | null
   selectedCount: number
   /** Which kind of order the batch has become, once one is ticked. */
   selectionKind: 'stock' | 'customer' | null
@@ -15,6 +18,7 @@ type ScheduledToolbarProps = {
 
 export const ScheduledToolbar = ({
   total,
+  day,
   selectedCount,
   selectionKind,
   canRelease,
@@ -34,6 +38,7 @@ export const ScheduledToolbar = ({
         <>
           <b className='font-semibold text-foreground'>{total}</b> order
           {total === 1 ? '' : 's'}
+          {day ? ` on ${formatDate(day)}` : ''}
         </>
       )}
     </span>

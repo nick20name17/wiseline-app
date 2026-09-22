@@ -288,7 +288,7 @@ export const ScheduledLineItems = ({
                           : `Non-standard length (not ${STANDARD_LENGTH}")`
                       }
                     >
-                      {item.length}
+                      {item.length}&quot;
                     </span>
                   </TableCell>
 

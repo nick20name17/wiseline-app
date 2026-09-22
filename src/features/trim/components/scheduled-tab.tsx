@@ -8,6 +8,7 @@ import { useState } from 'react'
 import {
   departmentStateOf,
   isStockOrder,
+  locationsQuery,
   orderNotesQuery,
   overdueQuery,
   scheduledOrdersQuery,
@@ -16,7 +17,7 @@ import {
   type TrimLineItem,
   type TrimOrder
 } from '../api'
-import { formatDate } from '../lib/format'
+import { formatDate, today } from '../lib/format'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import type { NoteState } from './note-button'
@@ -40,8 +41,9 @@ const toggle = (current: Set<string>, id: string) => {
 }
 
 export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabProps) => {
-  // `null` is «All Scheduled Orders»; a day narrows the list to that production date.
-  const [day, setDay] = useState<string | null>(null)
+  // The board opens on the day being worked; «All Scheduled Orders» is `null` and is chosen, not
+  // landed on.
+  const [day, setDay] = useState<string | null>(() => today())
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
@@ -53,6 +55,7 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
   const { data: page, isPending } = useQuery(scheduledOrdersQuery(search, day))
   const orders = page?.results ?? []
   const { data: overdue } = useQuery(overdueQuery(departmentId))
+  const { data: locations } = useQuery(locationsQuery)
 
   const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
   const { data: notes } = useQuery(orderNotesQuery(noteOrderIds))
@@ -66,6 +69,21 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
   })
   // Moving a scheduled order to another day is the same call as scheduling it in the first place.
   const reschedule = useSplitOrder(() => setRescheduling(null))
+
+  /**
+   * Production date first — the day tab has already narrowed to one — then priority, the hierarchy
+   * where 1 sits on top, then the order number. An order with no priority sorts below every one that
+   * has one.
+   */
+  const rows = [...orders].sort((a, b) => {
+    const rank = (order: TrimOrder) =>
+      departmentStateOf(order, departmentId)?.priority?.position ?? Number.MAX_SAFE_INTEGER
+    const dayOf = (order: TrimOrder) =>
+      departmentStateOf(order, departmentId)?.production_date ?? ''
+    return (
+      dayOf(a).localeCompare(dayOf(b)) || rank(a) - rank(b) || a.invoice.localeCompare(b.invoice)
+    )
+  })
 
   const selected = orders.filter(order => selectedIds.has(order.id))
   // A release is all stock orders or all customer orders; the first tick decides which.
@@ -95,6 +113,7 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
 
       <ScheduledToolbar
         total={orders.length}
+        day={day}
         selectedCount={selected.length}
         selectionKind={selectionKind}
         canRelease={!readOnly && canRelease}
@@ -128,18 +147,19 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
-          <Table className='min-w-6xl table-fixed'>
+          <Table className='min-w-7xl table-fixed'>
             <colgroup>
               <col className='w-12' />
               <col className='w-10' />
+              <col className='w-32' />
+              <col className='w-48' />
               <col className='w-36' />
-              <col className='w-52' />
-              <col className='w-40' />
               <col />
               <col className='w-32' />
-              <col className='w-32' />
+              <col className='w-40' />
               <col className='w-28' />
-              <col className='w-20' />
+              <col className='w-28' />
+              <col className='w-16' />
             </colgroup>
             <TableHeader>
               <TableRow>
@@ -152,14 +172,15 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
                 <TableHead>Priority</TableHead>
                 <TableHead>Reviewed</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Trim Location</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={9} />
+                <TableSkeletonRows columns={10} />
               ) : (
-                orders.map(order => {
+                rows.map(order => {
                   const state = departmentStateOf(order, departmentId)
                   const stock = isStockOrder(order)
 
@@ -178,6 +199,11 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
                         false
                       }
                       noteState={noteState(order)}
+                      location={
+                        order.latest_location_id
+                          ? (locations?.get(order.latest_location_id) ?? null)
+                          : null
+                      }
                       onToggleExpanded={() => setExpandedIds(current => toggle(current, order.id))}
                       onToggleSelected={() => setSelectedIds(current => toggle(current, order.id))}
                       onReschedule={() => setRescheduling(order)}

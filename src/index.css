@@ -33,6 +33,7 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-caution: var(--caution);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -91,9 +92,11 @@
 
   --destructive: oklch(0.577 0.245 27.325);
 
-  /* The board's other signal colours: a note dealt with, and work standing by rather than moving. */
+  /* The board's signal colours, in its own order of escalation: dealt with, under way, stepped
+     around. Amber says work is moving, orange says it took a route it normally would not. */
   --success: oklch(0.596 0.145 152.2);
-  --warning: oklch(0.703 0.153 75.5);
+  --warning: oklch(0.639 0.129 82.4);
+  --caution: oklch(0.652 0.151 52.3);
 
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -142,7 +145,8 @@
 
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.71 0.152 152.2);
-  --warning: oklch(0.79 0.152 75.5);
+  --warning: oklch(0.75 0.129 82.4);
+  --caution: oklch(0.74 0.151 52.3);
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);

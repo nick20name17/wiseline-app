@@ -24,6 +24,8 @@ type ScheduledRowProps = {
   locked: boolean
   overdue: boolean
   noteState: NoteState
+  /** The code of the location the order is sitting in, already resolved by the tab. */
+  location: string | null
   onToggleExpanded: () => void
   onToggleSelected: () => void
   onReschedule: () => void
@@ -102,7 +104,7 @@ const ProductionDateCell = ({
         {formatDate(day)}
       </span>
     ) : (
-      <Button variant='ghost' onClick={onReschedule}>
+      <Button variant='outline' onClick={onReschedule}>
         <Calendar data-icon='inline-start' />
         {formatDate(day)}
       </Button>
@@ -119,6 +121,7 @@ export const ScheduledRow = ({
   locked,
   overdue,
   noteState,
+  location,
   onToggleExpanded,
   onToggleSelected,
   onReschedule,
@@ -221,6 +224,13 @@ export const ScheduledRow = ({
           <StatusPill status={released ? orderStatus(state?.status ?? null) : null} />
         </TableCell>
 
+        <TableCell>
+          {/* A stock order is what puts trims on the shelf, so it has no location of its own. */}
+          <span className='font-mono text-muted-foreground'>
+            {stock ? 'N/A' : (location ?? '—')}
+          </span>
+        </TableCell>
+
         <TableCell onClick={stopRowClick}>
           {stock ? (
             <span className='text-muted-foreground'>—</span>
@@ -232,7 +242,7 @@ export const ScheduledRow = ({
 
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={10}>
+          <TableCell colSpan={11}>
             <ScheduledLineItems
               order={order}
               departmentId={departmentId}

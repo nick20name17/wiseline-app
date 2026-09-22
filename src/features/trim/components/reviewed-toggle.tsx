@@ -39,8 +39,13 @@ export const ReviewedToggle = ({
   const [confirming, setConfirming] = useState(false)
   const mutation = useSetReviewed()
 
-  // Once an order is out on the floor the toggle is a record, not a control.
-  if (released) return <span className='text-sm text-muted-foreground'>Reviewed</span>
+  // Once an order is out on the floor the toggle is a record, not a control, and reads as one.
+  if (released)
+    return (
+      <span className='inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium tracking-wider text-muted-foreground uppercase'>
+        Reviewed
+      </span>
+    )
 
   const set = (next: boolean) =>
     departmentId && mutation.mutate({ order, departmentId, reviewed: next })

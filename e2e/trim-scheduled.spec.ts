@@ -8,12 +8,12 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/trim?view=scheduled')
   await signIn(page)
   await expect(page).toHaveURL(/view=scheduled/)
+  // The board opens on today; these fixtures sit on their own day, so widen to the whole list.
+  await page.getByRole('button', { name: /All Scheduled Orders/ }).click()
 })
 
 test('the tab lists scheduled orders by day with their capacity', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Scheduled 3' })).toBeVisible()
-  await expect(page.getByRole('button', { name: /All Scheduled Orders/ })).toBeVisible()
-
   await expect(page.getByText('330608')).toBeVisible()
   await expect(page.getByText('Jireh Tools')).toBeVisible()
   await expect(page.getByText('S1042')).toBeVisible()

@@ -216,6 +216,9 @@ export const mockTrimApi = async (page: Page) => {
     })
   })
   await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: MACHINES }))
+  await page.route(`${API_URL}/locations/*`, route =>
+    route.fulfill({ json: { count: 1, results: [{ id: 5, code: '231' }] } })
+  )
   await page.route(`${API_URL}/departments/${DEPARTMENT.id}/overdue/`, route =>
     route.fulfill({ json: { days: [], orders_by_day: {}, orders: 0, line_items: 0 } })
   )

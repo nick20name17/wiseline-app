@@ -56,7 +56,7 @@ export const ScheduledDayTabs = ({
       <button
         type='button'
         className={cn(
-          'rounded-md border border-border bg-muted/40 px-3 py-1 text-left leading-tight',
+          'min-w-30 rounded-md border border-border bg-background px-3 py-1.5 text-left leading-tight hover:border-input',
           day === null && 'border-primary bg-primary/10'
         )}
         onClick={() => onDayChange(null)}
@@ -67,26 +67,35 @@ export const ScheduledDayTabs = ({
         </span>
       </button>
 
+      {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
+      <Button variant='outline' className='h-auto' onClick={() => setPickerOpen(true)}>
+        <CalendarDays data-icon='inline-start' />
+        {day ? formatDate(day) : 'Pick a day'}
+      </Button>
+
       {isPending
         ? Array.from({ length: WINDOW_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-13 w-44' />
+            <Skeleton key={index} className='h-14 w-40' />
           ))
         : days.map(entry => {
             const isOverdue = overdue?.days.includes(entry.date) ?? false
             const warn = isOverdue || entry.over_capacity
+            const active = entry.date === day
             const used =
               entry.capacity && entry.capacity > 0
                 ? Math.min(100, Math.round((entry.bends / entry.capacity) * 100))
                 : 0
 
             return (
-              <div key={entry.date} className='relative'>
+              // The gear only shows on the day being worked, or on the one under the pointer — it is
+              // a way into that day's detail, not a badge every tab has to carry.
+              <div key={entry.date} className='group/day relative'>
                 <button
                   type='button'
                   className={cn(
-                    'h-full w-44 rounded-md border border-border bg-muted/40 px-3 py-1 pr-8 text-left leading-tight',
-                    entry.date === day && 'border-primary bg-primary/10',
-                    warn && 'border-destructive'
+                    'h-full min-w-40 rounded-md border border-border bg-background px-3 py-1.5 pr-9 text-left leading-tight whitespace-nowrap hover:border-input',
+                    active && 'border-primary bg-primary/10',
+                    warn && 'border-destructive bg-destructive/5'
                   )}
                   onClick={() => onDayChange(entry.date)}
                 >
@@ -97,6 +106,7 @@ export const ScheduledDayTabs = ({
                   <span
                     className={cn(
                       'mt-0.5 block font-mono text-xs text-muted-foreground',
+                      active && 'text-primary',
                       entry.over_capacity && 'text-destructive'
                     )}
                     title={
@@ -107,8 +117,7 @@ export const ScheduledDayTabs = ({
                   >
                     ({entry.bends} / {entry.capacity ?? '—'}){entry.over_capacity ? ' · over' : ''}
                   </span>
-                  {/* How full the day is, at a glance. The plant decides whether to go over, not the tab. */}
-                  <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
+                  <span className='mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-border'>
                     <span
                       className={cn(
                         'block h-full w-(--used)',
@@ -118,23 +127,24 @@ export const ScheduledDayTabs = ({
                     />
                   </span>
                 </button>
-                <Button
-                  variant='ghost'
-                  size='icon-sm'
-                  className='absolute top-1 right-1'
-                  aria-label={`Machine capacities for ${formatDate(entry.date)}`}
-                  onClick={() => onOpenCapacities(entry.date)}
+                <span
+                  className={cn(
+                    'absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 has-[button:focus-visible]:opacity-100',
+                    active && 'opacity-100'
+                  )}
                 >
-                  <Settings2 />
-                </Button>
+                  <Button
+                    variant='outline'
+                    size='icon-sm'
+                    aria-label={`Machine capacities for ${formatDate(entry.date)}`}
+                    onClick={() => onOpenCapacities(entry.date)}
+                  >
+                    <Settings2 />
+                  </Button>
+                </span>
               </div>
             )
           })}
-
-      <Button variant='dashed' className='h-auto' onClick={() => setPickerOpen(true)}>
-        <CalendarDays data-icon='inline-start' />
-        {day ? 'Another day' : 'Pick a day'}
-      </Button>
 
       <ScheduleDialog
         open={pickerOpen}

@@ -121,6 +121,7 @@ const orderSchema = z.object({
   crea_date: z._default(z.nullable(z.string()), null),
   count_items: z._default(z.nullable(z.number()), 0),
   total_weight: z._default(z.nullable(z.number()), 0),
+  latest_location_id: z._default(z.nullable(z.number()), null),
   sales_order: z._default(z.nullable(salesOrderSchema), null),
   origin_items: z.catch(z.array(lineItemSchema), [])
 })
@@ -302,6 +303,27 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
           .json()
       )
   })
+
+const locationSchema = z.object({
+  id: z.number(),
+  code: z._default(z.nullable(z.string()), null)
+})
+
+export type TrimLocation = z.infer<typeof locationSchema>
+
+/**
+ * Where a wrapped order is sitting. Location codes are unique across the whole app, so the label
+ * carries no warehouse — the code alone says where to go.
+ */
+export const locationsQuery = queryOptions({
+  queryKey: ['locations', 'all'] as const,
+  queryFn: async () =>
+    z
+      .object({ count: z.number(), results: z.array(locationSchema) })
+      .parse(await authApi.get('locations/', { searchParams: { limit: 500 } }).json()),
+  select: (page: { results: TrimLocation[] }) =>
+    new Map(page.results.map(location => [location.id, location.code]))
+})
 
 // --- Allocated stock -----------------------------------------------------
 
