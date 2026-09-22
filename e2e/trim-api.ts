@@ -600,6 +600,30 @@ export const mockTrimApi = async (page: Page) => {
     route.fulfill({ json: COMPLETED })
   )
   await page.route(`${API_URL}/packages/*/reprint/`, route => route.fulfill({ json: {} }))
+  await page.route(`${API_URL}/remanufacturings/request/`, route =>
+    route.fulfill({ json: { id: 5, order: 'ARINV-2', origin_item: '902' } })
+  )
+  await page.route(`${API_URL}/remanufacturings/*`, route =>
+    route.fulfill({
+      json: {
+        count: 1,
+        results: [
+          {
+            id: 4,
+            order: 'ARINV-2',
+            origin_item: '901',
+            department: DEPARTMENT.id,
+            source: 'wrapping',
+            remanufacturing_qty: 4,
+            pull_from_stock_qty: null,
+            note: 'Bent on the truck',
+            is_cut: false,
+            is_bent: false
+          }
+        ]
+      }
+    })
+  )
   await page.route(`${API_URL}/wrapping/locations/*`, route =>
     route.fulfill({ json: WRAPPING_LOCATIONS })
   )

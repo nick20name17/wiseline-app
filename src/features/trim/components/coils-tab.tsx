@@ -100,13 +100,6 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
         </TabsList>
       </Tabs>
 
-      {/* What this tab is, said once: the floor arrives here from a machine, not from a manual. */}
-      <p className='flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground'>
-        <Database className='mt-0.5 size-4 shrink-0' />
-        Coils imported from EBMS, under the filter this department was given. Click a coil&apos;s
-        Coil Thickness, Linear Feet or Weight to adjust it and push the change back to EBMS.
-      </p>
-
       <div className='flex flex-wrap items-center gap-3'>
         <p className='text-sm text-muted-foreground'>
           <span className='font-medium text-foreground'>{coils.length}</span>{' '}

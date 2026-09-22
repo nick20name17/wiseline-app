@@ -11,11 +11,12 @@ import {
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ArrowLeft, Check, MapPin, Printer, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, MapPin, Printer, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import {
   orderCompleteQuery,
   orderLocationsQuery,
+  remanufacturingsQuery,
   useCompleteOrder,
   useCreatePackage,
   useRemoveOrderLocation,
@@ -25,6 +26,8 @@ import {
 import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from './confirm-dialog'
 import { LocationDialog } from './location-dialog'
+import { RemanBadge } from './reman-badge'
+import { RemanufactureDialog } from './remanufacture-dialog'
 import { StatusPill } from './status-pill'
 
 type WrapOrderProps = {
@@ -47,6 +50,8 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
   const [picking, setPicking] = useState(false)
   const [completing, setCompleting] = useState(false)
 
+  const [remaking, setRemaking] = useState<WrappingRow | null>(null)
+  const { data: remans } = useQuery(remanufacturingsQuery)
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   const { data: completion } = useQuery(orderCompleteQuery(departmentId, order?.order ?? null))
   const removeLocation = useRemoveOrderLocation()
@@ -92,6 +97,7 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
               <TableHead>Wrapped</TableHead>
               <TableHead>Left to wrap</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Remanufacture</TableHead>
               <TableHead>Into this package</TableHead>
             </TableRow>
           </TableHeader>
@@ -115,6 +121,23 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
                 </TableCell>
                 <TableCell>
                   <StatusPill status={itemStatus(row.status)} />
+                </TableCell>
+                <TableCell>
+                  {/* A piece damaged at the bench is remade on its own list, not by reopening the
+                      order — so the ask lives beside the line it came from. */}
+                  {remans?.get(row.origin_item)?.length ? (
+                    <RemanBadge remans={remans.get(row.origin_item) ?? []} />
+                  ) : (
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      aria-label={`Remanufacture ${row.origin_item}`}
+                      disabled={readOnly}
+                      onClick={() => setRemaking(row)}
+                    >
+                      <RefreshCw />
+                    </Button>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className='flex items-center gap-2'>
@@ -269,6 +292,12 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
           ))}
         </div>
       ) : null}
+
+      <RemanufactureDialog
+        departmentId={departmentId}
+        line={remaking}
+        onOpenChange={open => !open && setRemaking(null)}
+      />
 
       <LocationDialog
         departmentId={departmentId}

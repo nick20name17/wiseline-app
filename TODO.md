@@ -203,3 +203,16 @@ rather than naming the colour it matched on.
 
 **On our side once it lands:** the three columns go into `CoilsTab`, and the folder tabs follow once
 `GET /coils/lots/` can filter by folder as well.
+
+## Backend: a cutlist does not say it is a remake
+
+**Ask:** `is_remanufacture` (or `remanufacturing_id`) on `CutlistSchema`.
+
+**Why:** a remanufacture request spins off its own cutlist and bendlist, and the board marks those
+lists so the floor knows the pieces on them are a remake rather than the order's own work — orange
+until the Slinet cuts them, green after (p1 (519,586), (686,514)). The model carries
+`remanufacturing_id` and the hybrid `is_remanufacture`, but `CutlistSchema` exposes neither, so the
+Production tab cannot tell one list from another.
+
+**On our side once it lands:** `CutlistCard` in `src/features/trim/components/` gets the badge; the
+remake is visible today only where it was raised, at the wrapping bench.

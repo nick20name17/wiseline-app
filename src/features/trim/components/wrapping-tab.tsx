@@ -11,9 +11,10 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { wrappingRowsQuery, type WrappingRow } from '../api'
+import { remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
 import { formatDate, today } from '../lib/format'
 import { itemStatus } from '../lib/status'
+import { RemanBadge } from './reman-badge'
 import { StatusPill } from './status-pill'
 import { WrapOrder } from './wrap-order'
 
@@ -40,6 +41,7 @@ type WrappingTabProps = {
 export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const { data: rows, isPending } = useQuery(wrappingRowsQuery(departmentId, null))
+  const { data: remans } = useQuery(remanufacturingsQuery)
 
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
@@ -81,6 +83,7 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
           <col className='w-28' />
           <col className='w-28' />
           <col className='w-32' />
+          <col className='w-32' />
           <col className='w-40' />
         </colgroup>
         <TableHeader>
@@ -91,6 +94,7 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
             <TableHead>Qty</TableHead>
             <TableHead>Wrapped</TableHead>
             <TableHead>Left to wrap</TableHead>
+            <TableHead>Remfg</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -102,7 +106,7 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
               <Fragment key={day.date ?? 'undated'}>
                 {/* The date is said once, over the lines that share it. */}
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
                       {formatDate(day.date)}
                       {day.date === today() ? ' · today' : ''}
@@ -137,6 +141,9 @@ export const WrappingTab = ({ departmentId, readOnly }: WrappingTabProps) => {
                     </TableCell>
                     <TableCell>
                       <span className='font-mono'>{row.left_to_wrap}</span>
+                    </TableCell>
+                    <TableCell>
+                      <RemanBadge remans={remans?.get(row.origin_item) ?? []} />
                     </TableCell>
                     <TableCell>
                       <StatusPill status={itemStatus(row.status)} />

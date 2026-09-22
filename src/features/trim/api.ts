@@ -201,7 +201,8 @@ export const trimKeys = {
     [...trimKeys.wrapping(), 'locations', departmentId] as const,
   orderLocations: (order: string) => [...trimKeys.wrapping(), 'order-locations', order] as const,
   orderComplete: (departmentId: number, order: string) =>
-    [...trimKeys.wrapping(), 'complete', departmentId, order] as const
+    [...trimKeys.wrapping(), 'complete', departmentId, order] as const,
+  remanufacturings: () => [...trimKeys.all, 'remanufacturings'] as const
 }
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -1452,6 +1453,70 @@ export const useCompleteOrder = (onSuccess: () => void) =>
         .post(`wrapping/orders/${order}/complete/`, {
           searchParams: { department_id: departmentId }
         })
+        .json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+// --- Remanufacturing -----------------------------------------------------
+
+const remanufacturingSchema = z.object({
+  id: z.number(),
+  order: z._default(z.string(), ''),
+  origin_item: z._default(z.string(), ''),
+  department: z._default(z.nullable(z.number()), null),
+  source: z._default(z.nullable(z.string()), null),
+  remanufacturing_qty: z._default(z.nullable(z.number()), null),
+  pull_from_stock_qty: z._default(z.nullable(z.number()), null),
+  note: z._default(z.nullable(z.string()), null),
+  // The badge is orange until the material moves: cut by the Slinet, bent by the machine.
+  is_cut: z._default(z.boolean(), false),
+  is_bent: z._default(z.boolean(), false)
+})
+
+export type Remanufacturing = z.infer<typeof remanufacturingSchema>
+
+// One page holds them: a remanufacture is an exception, not a queue.
+const REMAN_PAGE_SIZE = 200
+
+/**
+ * Every outstanding remake, keyed by the line item it came from. `GET /remanufacturings/` takes no
+ * filter, so the page is narrowed here.
+ */
+export const remanufacturingsQuery = queryOptions({
+  queryKey: trimKeys.remanufacturings(),
+  queryFn: async () =>
+    z
+      .object({ count: z.number(), results: z.array(remanufacturingSchema) })
+      .parse(
+        await authApi.get('remanufacturings/', { searchParams: { limit: REMAN_PAGE_SIZE } }).json()
+      ),
+  select: (page: { results: Remanufacturing[] }) => {
+    const byItem = new Map<string, Remanufacturing[]>()
+    for (const reman of page.results)
+      byItem.set(reman.origin_item, [...(byItem.get(reman.origin_item) ?? []), reman])
+    return byItem
+  }
+})
+
+/**
+ * Ask for part of a line item to be remade. The request spins off its own cutlist and bendlist,
+ * inheriting the original's production date, gauge/colour, priority and machine, and carrying only
+ * the remanufacture quantity.
+ */
+export const useRequestRemanufacture = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: (request: {
+      order: string
+      origin_item: string
+      department: number
+      quantity: number
+      pull_from_stock_qty?: number
+      note?: string
+    }) =>
+      authApi
+        .post('remanufacturings/request/', { json: { source: 'wrapping', ...request } })
         .json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>

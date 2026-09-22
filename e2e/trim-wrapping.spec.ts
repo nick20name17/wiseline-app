@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mockAuthApi } from './api.ts'
+import { API_URL, mockAuthApi } from './api.ts'
 import { mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
@@ -45,6 +45,26 @@ test('Create & print waits for a location and something to put in the package', 
   await expect(page.getByRole('button', { name: /102/ })).toBeDisabled()
   await page.getByRole('button', { name: /101/ }).first().click()
   await expect(create).toBeEnabled()
+})
+
+test('a damaged piece is sent back to be remade', async ({ page }) => {
+  const asked: Record<string, unknown>[] = []
+  await page.route(`${API_URL}/remanufacturings/request/`, route => {
+    asked.push(route.request().postDataJSON() as Record<string, unknown>)
+    return route.fulfill({ json: { id: 5, order: 'ARINV-2', origin_item: '902' } })
+  })
+
+  await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
+
+  // 901 already has one outstanding, so it carries the badge rather than the ask.
+  await expect(page.getByTitle('Bent on the truck')).toHaveText('4')
+
+  await page.getByRole('button', { name: 'Remanufacture 902' }).click()
+  await page.getByLabel('Pieces to remake').fill('3')
+  await page.getByRole('button', { name: 'Request remake' }).click()
+
+  await expect.poll(() => asked[0]?.quantity).toBe(3)
+  await expect.poll(() => asked[0]?.source).toBe('wrapping')
 })
 
 test('Order complete is held until nothing is left to wrap', async ({ page }) => {
