@@ -1,3 +1,4 @@
+import { inBoardOrder } from '@/lib/departments'
 import type { Department, Machine } from '../api'
 
 // A machine whose department the API no longer lists still has to be reachable.
@@ -26,15 +27,13 @@ type Input = {
 export const machineSections = ({ machines, departments }: Input): MachineSection[] => {
   const all = machines ?? []
 
-  const sections: MachineSection[] = [...(departments ?? [])]
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id)
-    .map(department => ({
-      key: String(department.id),
-      name: department.name,
-      code: department.code,
-      unit: department.code === BENDS_DEPARTMENT ? 'bends' : 'pieces',
-      machines: all.filter(machine => machine.department === department.id)
-    }))
+  const sections: MachineSection[] = inBoardOrder(departments).map(department => ({
+    key: String(department.id),
+    name: department.name,
+    code: department.code,
+    unit: department.code === BENDS_DEPARTMENT ? 'bends' : 'pieces',
+    machines: all.filter(machine => machine.department === department.id)
+  }))
 
   const orphans = all.filter(
     machine => !departments?.some(department => department.id === machine.department)

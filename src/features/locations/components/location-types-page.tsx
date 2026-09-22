@@ -21,6 +21,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { departmentByCode } from '@/lib/departments'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil, Search, Tags, Trash2 } from 'lucide-react'
@@ -32,8 +33,8 @@ import {
   warehousePickerQuery,
   type LocationType
 } from '../api'
-import { activeDepartment, rackedDepartments } from '../lib/departments'
-import { DepartmentPills } from './department-pills'
+import { rackedDepartments } from '../lib/departments'
+import { DepartmentPills } from '@/components/department-pills'
 import { CreateLocationTypeDialog, UpdateLocationTypeDialog } from './location-type-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -74,7 +75,7 @@ export const LocationTypesPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = activeDepartment(racked, department)
+  const active = departmentByCode(racked, department)
   // A type carries its department, so one department's types are narrowed here from the one list.
   const types = (page?.results ?? []).filter(type => !active || type.department_id === active.id)
 

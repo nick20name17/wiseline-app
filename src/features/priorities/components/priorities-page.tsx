@@ -1,65 +1,60 @@
+import { DepartmentPills } from '@/components/department-pills'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { departmentByCode, inBoardOrder } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
-import { Flag, Search } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { Flag } from 'lucide-react'
 import { departmentsQuery, prioritiesQuery } from '../api'
 import { PrioritiesTable } from './priorities-table'
 import { CreatePriorityDialog } from './priority-dialog'
 
-const SEARCH_DEBOUNCE_MS = 250
-
 type PrioritiesPageProps = {
-  search: string | undefined
-  onSearchChange: (search: string | undefined) => void
+  department: string | undefined
+  onDepartmentChange: (department: string | undefined) => void
 }
 
 /**
- * The priorities every board sorts by. They are created per department and never leave it, so the
- * department is a column here rather than a filter — this is the one place all of them are visible.
+ * The priorities each department's board sorts by. Under one department the row order is the
+ * hierarchy and the rows are dragged to change it; under All each row names its department.
  */
-export const PrioritiesPage = ({ search, onSearchChange }: PrioritiesPageProps) => {
-  const { data: priorities, isPending } = useQuery(prioritiesQuery(search))
-  const { data: departments } = useQuery(departmentsQuery)
+export const PrioritiesPage = ({ department, onDepartmentChange }: PrioritiesPageProps) => {
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  const ordered = inBoardOrder(departments)
+  const active = departmentByCode(ordered, department)
 
-  // The input owns the term while typing; the URL catches up once the typing stops.
-  const [term, setTerm] = useState(search ?? '')
-  const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const { data: found = [], isPending: prioritiesPending } = useQuery(prioritiesQuery(active?.id))
+  const isPending = departmentsPending || prioritiesPending
 
-  const handleSearch = (value: string) => {
-    setTerm(value)
-    clearTimeout(debounce.current)
-    debounce.current = setTimeout(() => onSearchChange(value || undefined), SEARCH_DEBOUNCE_MS)
-  }
+  // Under All, department by department in board order; the sort keeps each one's hierarchy.
+  const rank = (id: number | null) => ordered.findIndex(entry => entry.id === id)
+  const priorities = active
+    ? found
+    : found.toSorted((a, b) => rank(a.department) - rank(b.department))
 
   return (
     <section className='flex flex-col gap-4'>
-      <div className='flex items-center justify-between gap-3.5'>
-        <div className='flex items-center gap-3'>
-          <InputGroup className='w-60'>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='search'
-              aria-label='Search priorities'
-              placeholder='Search...'
-              value={term}
-              onChange={event => handleSearch(event.target.value)}
-            />
-          </InputGroup>
+      <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
 
-          {priorities?.length ? (
-            <p className='text-sm text-muted-foreground'>
-              {priorities.length} {priorities.length === 1 ? 'priority' : 'priorities'}
-            </p>
-          ) : null}
+      <div className='flex items-center gap-3.5'>
+        {priorities.length ? (
+          <p className='text-sm text-muted-foreground'>
+            <span className='font-semibold text-foreground'>{priorities.length}</span>{' '}
+            {priorities.length === 1 ? 'priority' : 'priorities'}
+            {active ? ` in ${active.name}` : ''}
+            <span className='text-xs'>
+              {active
+                ? ' · drag rows to reorder hierarchy'
+                : ' · pick a department to reorder its hierarchy'}
+            </span>
+          </p>
+        ) : null}
+
+        {/* Stays on the right with or without the count before it. */}
+        <div className='ml-auto'>
+          <CreatePriorityDialog departmentId={active?.id} />
         </div>
-
-        <CreatePriorityDialog />
       </div>
 
-      {!isPending && !priorities?.length ? (
+      {!isPending && !priorities.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
@@ -67,14 +62,14 @@ export const PrioritiesPage = ({ search, onSearchChange }: PrioritiesPageProps) 
             </EmptyMedia>
             <EmptyTitle>No priorities yet</EmptyTitle>
             <EmptyDescription>
-              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
+              Add one to get started{active ? ` for ${active.name}` : ''}.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <PrioritiesTable
-          priorities={priorities ?? []}
-          departments={departments}
+          priorities={priorities}
+          departments={active ? undefined : ordered}
           isPending={isPending}
         />
       )}

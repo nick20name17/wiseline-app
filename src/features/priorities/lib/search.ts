@@ -1,8 +1,9 @@
 import * as z from 'zod/mini'
 
-// A stray `?search=` should show every priority, not a 4xx.
+// A stray `?department=` should show every department, not a 4xx.
 export const prioritiesSearchSchema = z.object({
-  search: z.catch(z.optional(z.string()), undefined)
+  // The department's code, which reads better in a link than its id.
+  department: z.catch(z.optional(z.string()), undefined)
 })
 
 export type PrioritiesSearch = z.infer<typeof prioritiesSearchSchema>

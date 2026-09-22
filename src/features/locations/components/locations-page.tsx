@@ -22,6 +22,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { departmentByCode } from '@/lib/departments'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, Pencil, Search, Trash2 } from 'lucide-react'
@@ -34,8 +35,8 @@ import {
   warehousePickerQuery,
   type Location
 } from '../api'
-import { activeDepartment, rackedDepartments } from '../lib/departments'
-import { DepartmentPills } from './department-pills'
+import { rackedDepartments } from '../lib/departments'
+import { DepartmentPills } from '@/components/department-pills'
 import { CreateLocationDialog, UpdateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -77,7 +78,7 @@ export const LocationsPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = activeDepartment(racked, department)
+  const active = departmentByCode(racked, department)
   const locations = (page?.results ?? []).filter(
     location =>
       !active ||

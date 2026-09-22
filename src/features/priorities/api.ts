@@ -28,10 +28,10 @@ const prioritySchema = z.object({
 
 export type Priority = z.infer<typeof prioritySchema>
 
+// The hierarchy is not asked for: a new priority goes last in its department and is dragged from there.
 export const priorityFormSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
-  color: z._default(z.string(), '#2563eb'),
-  position: z.number().check(z.minimum(0, 'Hierarchy starts at 0')),
+  color: z.string().check(z.minLength(1, 'Pick a colour')),
   department: z.number()
 })
 
@@ -42,30 +42,28 @@ export const prioritiesKeys = {
   list: () => [...prioritiesKeys.all, 'list'] as const
 }
 
-const matches = (priority: Priority, search: string) => priority.name.toLowerCase().includes(search)
+/** A priority with no department is on every department's board, as the Trim board reads them. */
+export const onBoard = (priority: Priority, departmentId: number) =>
+  priority.department === null || priority.department === departmentId
 
 /**
- * Every department's priorities in one list. `GET /priorities/` takes no filter at all — see
- * TODO.md — so the department column is what tells them apart, and the search narrows the one page.
+ * One department's priorities, or every department's when none is given, top of the hierarchy
+ * first; one with no department is listed and ordered with each. `GET /priorities/` takes no filter — see TODO.md — so
+ * the list is fetched once and each tab picks its own out of the cache.
  */
-export const prioritiesQuery = (search: string | undefined) =>
+export const prioritiesQuery = (departmentId: number | undefined) =>
   queryOptions({
     queryKey: prioritiesKeys.list(),
     queryFn: async () => z.array(prioritySchema).parse(await authApi.get('priorities/').json()),
-    select: (priorities: Priority[]) => {
-      const found = search
-        ? priorities.filter(priority => matches(priority, search.toLowerCase()))
-        : priorities
-      // Department first, then the hierarchy inside it — the order the board reads them in.
-      return [...found].sort(
-        (a, b) => (a.department ?? 0) - (b.department ?? 0) || a.position - b.position
-      )
-    }
+    select: (priorities: Priority[]) =>
+      priorities
+        .filter(priority => departmentId === undefined || onBoard(priority, departmentId))
+        .sort((a, b) => a.position - b.position || a.id - b.id)
   })
 
 export const useUpsertPriority = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: ({ id, values }: { id?: number; values: PriorityForm }) =>
+    mutationFn: ({ id, values }: { id?: number; values: PriorityForm & { position?: number } }) =>
       id
         ? authApi.patch(`priorities/${id}/`, { json: values }).json()
         : authApi.post('priorities/', { json: values }).json(),
@@ -82,4 +80,35 @@ export const useDeletePriority = (onSuccess: () => void) =>
       await client.invalidateQueries({ queryKey: prioritiesKeys.all })
       onSuccess()
     }
+  })
+
+/**
+ * Saves a drag: each renumbered priority is its own PATCH, since there is no bulk endpoint (see
+ * TODO.md). The list moves at once and snaps back if any save fails; the refetch afterwards shows
+ * what the server kept, which after a partial failure is part of the move.
+ */
+export const useReorderPriorities = () =>
+  useMutation({
+    mutationFn: (moved: Priority[]) =>
+      Promise.all(
+        moved.map(priority =>
+          authApi.patch(`priorities/${priority.id}/`, { json: { position: priority.position } })
+        )
+      ),
+    onMutate: async (moved, { client }) => {
+      await client.cancelQueries({ queryKey: prioritiesKeys.list() })
+      const previous = client.getQueryData<Priority[]>(prioritiesKeys.list())
+      const positions = new Map(moved.map(priority => [priority.id, priority.position]))
+      client.setQueryData<Priority[]>(prioritiesKeys.list(), priorities =>
+        priorities?.map(priority => ({
+          ...priority,
+          position: positions.get(priority.id) ?? priority.position
+        }))
+      )
+      return { previous }
+    },
+    onError: (_, __, result, { client }) =>
+      client.setQueryData(prioritiesKeys.list(), result?.previous),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: prioritiesKeys.all })
   })

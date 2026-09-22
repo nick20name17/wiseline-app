@@ -1,9 +1,10 @@
 import { cn } from 'cn'
-import type { Department } from '../api'
+
+type Department = { id: number; name: string; code: string }
 
 type DepartmentPillsProps = {
   departments: Department[]
-  /** None means every department, which is where the page opens. */
+  /** None means every department. */
   active: Department | undefined
   onChange: (code: string | undefined) => void
 }
@@ -13,7 +14,7 @@ const pill = cn(
   'aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary'
 )
 
-/** Which department's rows the page lists; each department keeps its own racks. */
+/** Which department's rows the page lists. */
 export const DepartmentPills = ({ departments, active, onChange }: DepartmentPillsProps) => (
   <fieldset className='flex flex-wrap gap-1.5'>
     <legend className='sr-only'>Department</legend>

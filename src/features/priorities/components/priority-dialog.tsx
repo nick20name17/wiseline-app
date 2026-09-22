@@ -1,4 +1,4 @@
-import { RequiredLabel } from '@/components/required-label'
+import { RequiredLabel, RequiredLegend } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -8,8 +8,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldError, FieldGroup } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { Field, FieldError, FieldGroup, FieldSet } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import {
   Select,
@@ -20,44 +19,66 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import {
   departmentsQuery,
+  onBoard,
+  prioritiesKeys,
   priorityFormSchema,
   useUpsertPriority,
   type Priority,
   type PriorityForm as PriorityFormValues
 } from '../api'
+import { PALETTE, paletteFor } from '../lib/palette'
 
 // `Field` and `aria-invalid` both want `true` or nothing, never `false`.
 const invalid = (error: unknown) => (error ? true : undefined)
 
 type PriorityFormProps = {
   priority?: Priority
+  /** The department a new priority starts in: the one on screen. */
+  departmentId?: number
   onSuccess: () => void
 }
 
-const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
+const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) => {
   const { data: departments } = useQuery(departmentsQuery)
   const form = useForm<PriorityFormValues>({
     resolver: standardSchemaResolver(priorityFormSchema),
     defaultValues: {
       name: priority?.name ?? '',
-      color: priority?.color ?? '#2563eb',
-      position: priority?.position ?? 0,
-      department: priority?.department ?? departments?.[0]?.id ?? 0
+      color: priority?.color ?? PALETTE[0].value,
+      department: priority?.department ?? departmentId ?? departments?.[0]?.id ?? 0
     }
   })
 
   const mutation = useUpsertPriority(onSuccess)
+  const client = useQueryClient()
+
+  // Last on its department's board: past the highest number there, even if the numbers have gaps.
+  // Read once on save from the list the page has loaded, rather than kept subscribed to.
+  const nextPosition = (department: number) =>
+    Math.max(
+      0,
+      ...(client.getQueryData<Priority[]>(prioritiesKeys.list()) ?? [])
+        .filter(entry => onBoard(entry, department))
+        .map(entry => entry.position)
+    ) + 1
   const { errors } = form.formState
 
   return (
     <form
-      onSubmit={form.handleSubmit(values => mutation.mutate({ id: priority?.id, values }))}
+      onSubmit={form.handleSubmit(values =>
+        mutation.mutate(
+          // Moved to another department it goes last there too, not wherever its old number falls.
+          priority && values.department === priority.department
+            ? { id: priority.id, values }
+            : { id: priority?.id, values: { ...values, position: nextPosition(values.department) } }
+        )
+      )}
       noValidate
     >
       <FieldGroup>
@@ -107,51 +128,29 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
           <FieldError errors={[errors.department]} />
         </Field>
 
-        <Field data-invalid={invalid(errors.position)}>
-          <RequiredLabel htmlFor='priority-position'>
-            Hierarchy number (1 = always top)
-          </RequiredLabel>
-          {/* A lower number sorts first, which is what the board calls the hierarchy. */}
-          <InputGroup>
-            <InputGroupInput
-              id='priority-position'
-              placeholder='e.g. 1'
-              type='number'
-              min={0}
-              inputMode='numeric'
-              aria-invalid={invalid(errors.position)}
-              {...form.register('position', { valueAsNumber: true })}
-            />
-          </InputGroup>
-          <FieldError errors={[errors.position]} />
-        </Field>
-
-        <Field data-invalid={invalid(errors.color)}>
-          <RequiredLabel htmlFor='priority-color'>Colour</RequiredLabel>
+        <FieldSet data-invalid={invalid(errors.color)}>
+          <RequiredLegend>Colour</RequiredLegend>
           {/* The colour is how a prioritised row is read before the word is: the pill takes it. */}
-          <span className='flex items-center gap-2'>
-            <Controller
-              control={form.control}
-              name='color'
-              render={({ field }) => (
-                <Input
-                  id='priority-color'
-                  type='color'
-                  className='w-16'
-                  value={field.value}
-                  onChange={field.onChange}
+          <div className='flex flex-wrap gap-2'>
+            {paletteFor(priority?.color).map(entry => (
+              <label
+                key={entry.value}
+                title={entry.name}
+                className='relative size-9 cursor-pointer rounded-md bg-(--swatch) ring-offset-2 ring-offset-background transition-shadow has-checked:ring-2 has-checked:ring-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50'
+                style={{ '--swatch': entry.value } as CSSProperties}
+              >
+                <input
+                  type='radio'
+                  className='sr-only'
+                  value={entry.value}
+                  aria-label={entry.name}
+                  {...form.register('color')}
                 />
-              )}
-            />
-            <Input
-              aria-label='Colour, as a hex value'
-              placeholder='#E5484D'
-              className='w-32'
-              {...form.register('color')}
-            />
-          </span>
+              </label>
+            ))}
+          </div>
           <FieldError errors={[errors.color]} />
-        </Field>
+        </FieldSet>
       </FieldGroup>
 
       <div className='mt-6 flex justify-end gap-2'>
@@ -165,7 +164,11 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
   )
 }
 
-export const CreatePriorityDialog = () => {
+type CreatePriorityDialogProps = {
+  departmentId: number | undefined
+}
+
+export const CreatePriorityDialog = ({ departmentId }: CreatePriorityDialogProps) => {
   const [open, setOpen] = useState(false)
   // A form mounted before the departments would default to none and post a priority belonging
   // nowhere, which the server refuses.
@@ -182,7 +185,11 @@ export const CreatePriorityDialog = () => {
           <DialogTitle>Add priority</DialogTitle>
         </DialogHeader>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
-        {departments ? <PriorityForm onSuccess={() => setOpen(false)} /> : <Spinner />}
+        {departments ? (
+          <PriorityForm departmentId={departmentId} onSuccess={() => setOpen(false)} />
+        ) : (
+          <Spinner />
+        )}
       </DialogContent>
     </Dialog>
   )

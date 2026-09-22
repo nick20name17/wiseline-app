@@ -123,6 +123,18 @@ department's, so the Trim board pulls the lot and filters in memory (`priorities
 
 **On our side once it lands:** move the filter into the query key and drop the `select`.
 
+## Backend: reorder a department's priorities in one request
+
+**Ask:** an endpoint that takes a department's priority ids in their new order and renumbers them
+1..N in one transaction, e.g. `POST /priorities/reorder/` with `{ department, ids }`.
+
+**Why:** the settings page reorders by dragging, and the hierarchy is the row order, so one drag
+renumbers every priority between the two places. Today that is one `PATCH /priorities/{id}/` per
+row (`useReorderPriorities` in `src/features/priorities/api.ts`); if one fails the others have
+already landed and the department is left half-moved.
+
+**On our side once it lands:** `useReorderPriorities` sends the ids once instead of a PATCH per row.
+
 ## Backend: a cutlist row says nothing about the line items on it
 
 **Ask:** carry the line item's own fields on `CutlistRowSourceSchema` — at least `id_inven`,
