@@ -330,6 +330,68 @@ const COILS = [
   }
 ]
 
+const COMPLETED = {
+  count: 2,
+  window_days: 90,
+  results: [
+    {
+      order: 'ARINV-9',
+      order_number: '338008',
+      customer: 'Vittoria Metal Works',
+      is_stock: false,
+      completed_at: '2026-09-19T11:18:00',
+      production_date: '2026-09-16',
+      ship_date: '2026-09-21'
+    },
+    {
+      order: 'S1039',
+      order_number: 'S1039',
+      customer: 'Stock',
+      is_stock: true,
+      completed_at: '2026-09-12T14:47:00',
+      production_date: '2026-09-10',
+      ship_date: null
+    }
+  ]
+}
+
+const COMPLETED_DETAIL = {
+  order: 'ARINV-9',
+  order_number: '338008',
+  is_stock: false,
+  completed_at: '2026-09-19T11:18:00',
+  line_items: [
+    {
+      origin_item: '901',
+      product_id: 'TSWB262',
+      description: 'Sidewall Flashing',
+      qty_ordered: 36,
+      from_stock: 0,
+      packaged: 36,
+      status: 'wrapped'
+    },
+    {
+      origin_item: '902',
+      product_id: 'TRAKE24',
+      description: 'Rake Trim',
+      qty_ordered: 24,
+      from_stock: 4,
+      packaged: 20,
+      status: 'wrapped'
+    }
+  ],
+  packages: [
+    {
+      package_id: 71,
+      name: '01-338008-01',
+      weight: 120,
+      location: '101',
+      is_loaded: false,
+      contents: [{ origin_item: '901', quantity: 36 }]
+    }
+  ]
+}
+
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {
     const date = new Date(`${start}T00:00:00Z`)
@@ -418,6 +480,14 @@ export const mockTrimApi = async (page: Page) => {
     })
   )
   await page.route(`${API_URL}/items/notes/`, route => route.fulfill({ json: {} }))
+  // One order, then the list: a later route wins, and only the list request carries a query.
+  await page.route(`${API_URL}/departments/${DEPARTMENT.id}/completed-orders/**`, route =>
+    route.fulfill({ json: COMPLETED_DETAIL })
+  )
+  await page.route(`${API_URL}/departments/${DEPARTMENT.id}/completed-orders/?*`, route =>
+    route.fulfill({ json: COMPLETED })
+  )
+  await page.route(`${API_URL}/packages/*/reprint/`, route => route.fulfill({ json: {} }))
   await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
   await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
   await page.route(`${API_URL}/cutlists/rows/*`, route =>

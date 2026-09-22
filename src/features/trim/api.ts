@@ -184,7 +184,12 @@ export const trimKeys = {
       machine ?? 'all',
       done ? 'done' : 'active'
     ] as const,
-  cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const
+  cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const,
+  completedOrders: () => [...trimKeys.all, 'completed'] as const,
+  completed: (departmentId: number, search: string | undefined) =>
+    [...trimKeys.completedOrders(), departmentId, { search: search ?? '' }] as const,
+  completedOrder: (departmentId: number, order: string) =>
+    [...trimKeys.completedOrders(), departmentId, order] as const
 }
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -975,4 +980,108 @@ export const cutlistCoilsQuery = (cutlistId: number | null) =>
     enabled: cutlistId !== null,
     queryFn: async () =>
       z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
+  })
+
+// --- Completed orders ----------------------------------------------------
+
+const completedOrderSchema = z.object({
+  order: z._default(z.string(), ''),
+  order_number: z._default(z.nullable(z.string()), null),
+  customer: z._default(z.nullable(z.string()), null),
+  is_stock: z._default(z.boolean(), false),
+  completed_at: z._default(z.nullable(z.string()), null),
+  production_date: z._default(z.nullable(z.string()), null),
+  ship_date: z._default(z.nullable(z.string()), null)
+})
+
+export type CompletedOrder = z.infer<typeof completedOrderSchema>
+
+const completedPageSchema = z.object({
+  count: z._default(z.number(), 0),
+  window_days: z._default(z.number(), 90),
+  results: z.catch(z.array(completedOrderSchema), [])
+})
+
+/** Everything this department finished inside the window the server keeps — 90 days. */
+export const completedOrdersQuery = (
+  departmentId: number | undefined,
+  search: string | undefined
+) =>
+  queryOptions({
+    queryKey: trimKeys.completed(departmentId ?? 0, search),
+    enabled: departmentId !== undefined,
+    placeholderData: keepPreviousData,
+    queryFn: async () =>
+      completedPageSchema.parse(
+        await authApi
+          .get(`departments/${departmentId}/completed-orders/`, {
+            searchParams: { limit: PAGE_SIZE, ...(search ? { search } : {}) }
+          })
+          .json()
+      )
+  })
+
+const completedDetailSchema = z.object({
+  order: z._default(z.string(), ''),
+  order_number: z._default(z.nullable(z.string()), null),
+  is_stock: z._default(z.boolean(), false),
+  completed_at: z._default(z.nullable(z.string()), null),
+  line_items: z.catch(
+    z.array(
+      z.object({
+        origin_item: z._default(z.nullable(z.string()), null),
+        product_id: z._default(z.nullable(z.string()), null),
+        description: z._default(z.nullable(z.string()), null),
+        qty_ordered: z._default(z.number(), 0),
+        from_stock: z._default(z.number(), 0),
+        packaged: z._default(z.number(), 0),
+        status: z._default(z.nullable(z.string()), null)
+      })
+    ),
+    []
+  ),
+  packages: z.catch(
+    z.array(
+      z.object({
+        package_id: z.number(),
+        name: z._default(z.nullable(z.string()), null),
+        weight: z._default(z.nullable(z.number()), null),
+        location: z._default(z.nullable(z.string()), null),
+        is_loaded: z._default(z.boolean(), false),
+        contents: z.catch(
+          z.array(
+            z.object({
+              origin_item: z._default(z.nullable(z.string()), null),
+              quantity: z._default(z.number(), 0)
+            })
+          ),
+          []
+        )
+      })
+    ),
+    []
+  )
+})
+
+export type CompletedDetail = z.infer<typeof completedDetailSchema>
+
+/** One finished order: what was ordered, what came from stock, and what went into each package. */
+export const completedOrderQuery = (departmentId: number | undefined, order: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.completedOrder(departmentId ?? 0, order ?? ''),
+    enabled: departmentId !== undefined && !!order,
+    queryFn: async () =>
+      completedDetailSchema.parse(
+        await authApi.get(`departments/${departmentId}/completed-orders/${order}/`).json()
+      )
+  })
+
+/**
+ * The label is rebuilt from the package rather than stored, so one reprinted after the package moved
+ * shows where it is now.
+ */
+export const useReprintPackage = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: (packageId: number) => authApi.post(`packages/${packageId}/reprint/`).json(),
+    onSuccess
   })

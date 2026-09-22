@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { scheduledOrdersQuery, unscheduledOrdersQuery, useTrimDepartment } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
+import { CalendarTab } from './calendar-tab'
+import { CompletedTab } from './completed-tab'
 import { DeptBar } from './dept-bar'
 import { ProductionTab } from './production-tab'
 import { ScheduledTab } from './scheduled-tab'
@@ -51,6 +53,15 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
         <UnscheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
       ) : view === 'scheduled' ? (
         <ScheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
+      ) : view === 'calendar' ? (
+        <CalendarTab
+          departmentId={department?.id}
+          search={search}
+          // A day leads back to the board: the calendar reads the month, the Scheduled tab works it.
+          onOpenDay={() => onViewChange('scheduled')}
+        />
+      ) : view === 'completed' ? (
+        <CompletedTab departmentId={department?.id} search={search} />
       ) : view === 'production' ? (
         <ProductionTab
           departmentId={department?.id}
