@@ -110,7 +110,8 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
 
       <div className='flex flex-wrap items-center gap-3'>
         <p className='text-sm text-muted-foreground'>
-          <span className='font-medium text-foreground'>{coils.length}</span> coils
+          <span className='font-medium text-foreground'>{coils.length}</span>{' '}
+          {coils.length === 1 ? 'coil' : 'coils'}
         </p>
 
         <InputGroup className='w-80'>
@@ -157,9 +158,11 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
               <col className='w-36' />
               <col className='w-32' />
               <col className='w-32' />
+              {/* Each of these columns is headed by a word longer than the box under it, and the
+                  heading is what sets the width. */}
               <col className='w-32' />
-              <col className='w-24' />
-              <col className='w-28' />
+              <col className='w-20' />
+              <col className='w-36' />
               <col />
             </colgroup>
             <TableHeader>
