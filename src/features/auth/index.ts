@@ -1,6 +1,8 @@
 export { logout, meQuery } from './api'
+export { ForgotPasswordForm } from './components/forgot-password-form'
 export { LoginForm } from './components/login-form'
 export { ProfileCard } from './components/profile-card'
+export { ResetPasswordForm } from './components/reset-password-form'
 export { UserMenu } from './components/user-menu'
 export { safeRedirectPath } from './lib/safe-redirect'
 export { loginSearchSchema } from './lib/search'

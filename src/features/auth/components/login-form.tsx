@@ -6,9 +6,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/errors'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useMutation } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { ArrowRight, Lock, Mail } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { authKeys, credentialsSchema, login, type Credentials } from '../api'
+import { AuthCard } from './auth-card'
 
 type LoginFormProps = {
   onSuccess: () => Promise<void> | void
@@ -32,22 +34,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const { errors } = form.formState
 
   return (
-    <div className='w-full max-w-95 rounded-xl border border-border bg-card px-7.5 pt-8 pb-6.5 shadow-lg'>
-      <div className='mb-6 flex items-center justify-center gap-2.5'>
-        <img src='/icon-512.png' alt='' className='size-8.5 flex-none' />
-        <div>
-          <div className='font-heading text-lg leading-tight font-semibold tracking-tight'>
-            Wiseline
-          </div>
-          <div className='text-xs tracking-wider text-muted-foreground uppercase'>Production</div>
-        </div>
-      </div>
-
-      <h1 className='text-center text-xl font-semibold tracking-tight'>Sign in</h1>
-      <p className='mt-1.5 mb-6 text-center text-xs text-muted-foreground'>
-        Access the production floor dashboard
-      </p>
-
+    <AuthCard title='Sign in' description='Access the production floor dashboard'>
       <form onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
         <FieldGroup>
           <FieldGroup>
@@ -92,8 +79,15 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
             Continue
             {mutation.isPending ? null : <ArrowRight data-icon='inline-end' />}
           </Button>
+
+          <Link
+            to='/forgot-password'
+            className='text-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
+          >
+            Forgot your password?
+          </Link>
         </FieldGroup>
       </form>
-    </div>
+    </AuthCard>
   )
 }

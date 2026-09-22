@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAuthRouteRouteImport } from './routes/_app/_auth/route'
@@ -24,6 +25,7 @@ import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppAuthMoonRouteImport } from './routes/_app/_auth/moon'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
+import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
 import { Route as AppAuthSettingsIndexRouteImport } from './routes/_app/_auth/settings/index'
 import { Route as AppAuthSettingsLocationTypesRouteImport } from './routes/_app/_auth/settings/location-types'
 import { Route as AppAuthSettingsLocationsRouteImport } from './routes/_app/_auth/settings/locations'
@@ -36,6 +38,11 @@ import { Route as AppAuthSettingsWorkDaysRouteImport } from './routes/_app/_auth
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -107,6 +114,11 @@ const AppAuthSettingsRouteRoute = AppAuthSettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppAuthRouteRoute,
 } as any)
+const PasswordResetUid64TokenRoute = PasswordResetUid64TokenRouteImport.update({
+  id: '/password-reset/$uid64/$token',
+  path: '/password-reset/$uid64/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAuthSettingsIndexRoute = AppAuthSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -159,6 +171,7 @@ const AppAuthSettingsWorkDaysRoute = AppAuthSettingsWorkDaysRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/accessories': typeof AppAccessoriesRoute
   '/coils': typeof AppCoilsRoute
@@ -171,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/moon': typeof AppAuthMoonRoute
   '/profile': typeof AppAuthProfileRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -182,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AppAuthSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
   '/accessories': typeof AppAccessoriesRoute
@@ -194,6 +209,7 @@ export interface FileRoutesByTo {
   '/trim': typeof AppTrimRoute
   '/moon': typeof AppAuthMoonRoute
   '/profile': typeof AppAuthProfileRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -207,6 +223,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/_app/_auth': typeof AppAuthRouteRouteWithChildren
   '/_app/accessories': typeof AppAccessoriesRoute
@@ -221,6 +238,7 @@ export interface FileRoutesById {
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/_app/_auth/moon': typeof AppAuthMoonRoute
   '/_app/_auth/profile': typeof AppAuthProfileRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/_app/_auth/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/_app/_auth/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/_app/_auth/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -235,6 +253,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
     | '/login'
     | '/accessories'
     | '/coils'
@@ -247,6 +266,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/moon'
     | '/profile'
+    | '/password-reset/$uid64/$token'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -258,6 +278,7 @@ export interface FileRouteTypes {
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/forgot-password'
     | '/login'
     | '/'
     | '/accessories'
@@ -270,6 +291,7 @@ export interface FileRouteTypes {
     | '/trim'
     | '/moon'
     | '/profile'
+    | '/password-reset/$uid64/$token'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -282,6 +304,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/forgot-password'
     | '/login'
     | '/_app/_auth'
     | '/_app/accessories'
@@ -296,6 +319,7 @@ export interface FileRouteTypes {
     | '/_app/_auth/settings'
     | '/_app/_auth/moon'
     | '/_app/_auth/profile'
+    | '/password-reset/$uid64/$token'
     | '/_app/_auth/settings/location-types'
     | '/_app/_auth/settings/locations'
     | '/_app/_auth/settings/machines'
@@ -309,7 +333,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PasswordResetUid64TokenRoute: typeof PasswordResetUid64TokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -418,6 +451,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AppAuthSettingsRouteRouteImport
       parentRoute: typeof AppAuthRouteRoute
+    }
+    '/password-reset/$uid64/$token': {
+      id: '/password-reset/$uid64/$token'
+      path: '/password-reset/$uid64/$token'
+      fullPath: '/password-reset/$uid64/$token'
+      preLoaderRoute: typeof PasswordResetUid64TokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/_auth/settings/': {
       id: '/_app/_auth/settings/'
@@ -560,7 +600,9 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PasswordResetUid64TokenRoute: PasswordResetUid64TokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
