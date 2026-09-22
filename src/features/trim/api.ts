@@ -189,7 +189,10 @@ export const trimKeys = {
   completed: (departmentId: number, search: string | undefined) =>
     [...trimKeys.completedOrders(), departmentId, { search: search ?? '' }] as const,
   completedOrder: (departmentId: number, order: string) =>
-    [...trimKeys.completedOrders(), departmentId, order] as const
+    [...trimKeys.completedOrders(), departmentId, order] as const,
+  coils: () => [...trimKeys.all, 'coils'] as const,
+  coilLots: (scope: CoilScope) => [...trimKeys.coils(), scope] as const,
+  coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const
 }
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -960,12 +963,23 @@ export const useFinishCutlist = () =>
 
 const coilLotSchema = z.object({
   id: z.number(),
+  lot_autoid: z._default(z.string(), ''),
   lot_number: z._default(z.nullable(z.string()), null),
   product_id: z._default(z.nullable(z.string()), null),
   coil_thickness: z._default(z.nullable(z.number()), null),
+  material_thickness: z._default(z.nullable(z.number()), null),
+  core_od: z._default(z.nullable(z.number()), null),
   linear_feet: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
-  note: z._default(z.nullable(z.string()), null)
+  in_trim: z._default(z.boolean(), false),
+  in_rollforming: z._default(z.boolean(), false),
+  in_slinet: z._default(z.boolean(), false),
+  note: z._default(z.nullable(z.string()), null),
+  // What the server will and will not let this coil do — the checkboxes and Apply read them rather
+  // than working the rules out again on this side.
+  can_adjust: z._default(z.boolean(), false),
+  slinet_available: z._default(z.boolean(), false),
+  rollforming_available: z._default(z.boolean(), true)
 })
 
 export type CoilLot = z.infer<typeof coilLotSchema>
@@ -1084,4 +1098,134 @@ export const useReprintPackage = (onSuccess: () => void) =>
   useMutation({
     mutationFn: (packageId: number) => authApi.post(`packages/${packageId}/reprint/`).json(),
     onSuccess
+  })
+
+// --- Coils ---------------------------------------------------------------
+
+/** The two lists the board keeps: the coils standing in this department, and the plant's whole stock. */
+export type CoilScope = 'trim' | 'all'
+
+// The lots list is not paginated by the server, so one page holds it.
+const COIL_PAGE_SIZE = 500
+
+export const coilLotsQuery = (scope: CoilScope) =>
+  queryOptions({
+    queryKey: trimKeys.coilLots(scope),
+    queryFn: async () =>
+      z.array(coilLotSchema).parse(
+        await authApi
+          .get('coils/lots/', {
+            searchParams: {
+              limit: COIL_PAGE_SIZE,
+              ...(scope === 'trim' ? { in_trim: true } : {})
+            }
+          })
+          .json()
+      )
+  })
+
+/** Material Thickness, Core OD and the coil note — everything the floor types onto a coil. */
+export const useUpdateCoilLot = () =>
+  useMutation({
+    mutationFn: ({
+      lotId,
+      edit
+    }: {
+      lotId: number
+      edit: { material_thickness?: number; core_od?: number; note?: string }
+    }) => authApi.patch(`coils/lots/${lotId}/`, { json: edit }).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+/**
+ * Checking a coil into Trim, Rollforming or the Slinet. The rules about what that does to the other
+ * two are the server's — it answers with the coil as it now stands.
+ */
+export const useSetCoilLocation = () =>
+  useMutation({
+    mutationFn: ({
+      lotId,
+      location
+    }: {
+      lotId: number
+      location: { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
+    }) => authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+/** Enter exactly one of the three; the other two follow from the Material Thickness and Core OD. */
+export type CoilAdjustment = { coil_thickness?: number; linear_feet?: number; weight?: number }
+
+const coilApplySchema = z.object({
+  action: z._default(z.string(), 'make_adjustment'),
+  lot_autoid: z._default(z.string(), ''),
+  detail: z._default(z.nullable(z.string()), null),
+  coil_thickness: z._default(z.nullable(z.number()), null),
+  linear_feet: z._default(z.nullable(z.number()), null),
+  weight: z._default(z.nullable(z.number()), null)
+})
+
+export type CoilApply = z.infer<typeof coilApplySchema>
+
+/**
+ * Apply asks one of two questions: a coil thickness of zero means the coil is used up and should be
+ * depleted and deleted, anything else is an adjustment whose new Linear Feet goes back to EBMS.
+ * Nothing is pushed here — that is the confirming call's job.
+ */
+export const useApplyCoilAdjustment = () =>
+  useMutation({
+    mutationFn: async ({ lotId, values }: { lotId: number; values: CoilAdjustment }) =>
+      coilApplySchema.parse(
+        await authApi.post(`coils/lots/${lotId}/apply/`, { json: values }).json()
+      )
+  })
+
+/** Confirming an adjustment: EBMS first, and only then the coil here. */
+export const useConfirmCoilAdjustment = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: ({ lotId, values }: { lotId: number; values: CoilAdjustment }) =>
+      authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+/** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. */
+export const useDepleteCoil = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: (lotId: number) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+const coilFilterSchema = z.object({
+  id: z.number(),
+  folder_name: z._default(z.nullable(z.string()), null),
+  thickness_min: z._default(z.nullable(z.number()), null),
+  thickness_max: z._default(z.nullable(z.number()), null),
+  width_min: z._default(z.nullable(z.number()), null),
+  width_max: z._default(z.nullable(z.number()), null),
+  grade_min: z._default(z.nullable(z.number()), null),
+  grade_max: z._default(z.nullable(z.number()), null),
+  apply_all: z._default(z.boolean(), false)
+})
+
+export type CoilFilter = z.infer<typeof coilFilterSchema>
+
+/** Which coils EBMS is allowed to send this department — the bounds the Manager set. */
+export const coilFiltersQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.coilFilters(departmentId ?? 0),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(coilFilterSchema)
+        .parse(
+          await authApi
+            .get('coils/filters/', { searchParams: { department_id: departmentId! } })
+            .json()
+        )
   })

@@ -1,10 +1,10 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
-import { PagePlaceholder } from '@/components/page-placeholder'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { scheduledOrdersQuery, unscheduledOrdersQuery, useTrimDepartment } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { CalendarTab } from './calendar-tab'
+import { CoilsTab } from './coils-tab'
 import { CompletedTab } from './completed-tab'
 import { DeptBar } from './dept-bar'
 import { ProductionTab } from './production-tab'
@@ -53,6 +53,8 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
         <UnscheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
       ) : view === 'scheduled' ? (
         <ScheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
+      ) : view === 'coils' ? (
+        <CoilsTab departmentId={department?.id} readOnly={readOnly} />
       ) : view === 'calendar' ? (
         <CalendarTab
           departmentId={department?.id}
@@ -62,14 +64,12 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
         />
       ) : view === 'completed' ? (
         <CompletedTab departmentId={department?.id} search={search} />
-      ) : view === 'production' ? (
+      ) : (
         <ProductionTab
           departmentId={department?.id}
           readOnly={readOnly}
           onOpenCoils={() => onViewChange('coils')}
         />
-      ) : (
-        <PagePlaceholder title={`Trim · ${VIEW_LABELS[view]}`} />
       )}
     </section>
   )

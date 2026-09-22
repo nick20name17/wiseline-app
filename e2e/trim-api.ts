@@ -392,6 +392,58 @@ const COMPLETED_DETAIL = {
   ]
 }
 
+const coil = (
+  id: number,
+  productId: string,
+  lotNumber: string,
+  extra: Record<string, unknown> = {}
+) => ({
+  id,
+  lot_autoid: `LOT-${id}`,
+  lot_number: lotNumber,
+  product_id: productId,
+  coil_thickness: 5.95,
+  material_thickness: 0.0179,
+  core_od: 20,
+  linear_feet: 2260,
+  weight: 6608,
+  in_trim: false,
+  in_rollforming: false,
+  in_slinet: false,
+  note: null,
+  can_adjust: true,
+  slinet_available: false,
+  rollforming_available: true,
+  ...extra
+})
+
+const COIL_LOTS = [
+  // In Trim with a thickness, so the Slinet is open to it; Rollforming is not.
+  coil(41, 'CB4826R', '3782201', {
+    in_trim: true,
+    slinet_available: true,
+    rollforming_available: false
+  }),
+  // Nowhere yet, and no thickness — the Slinet has to stay shut.
+  coil(42, 'CB4828B', '3797401', { coil_thickness: null, can_adjust: false })
+]
+
+const COIL_FILTERS = [
+  {
+    id: 1,
+    department: DEPARTMENT.id,
+    folder_autoid: 'F-1',
+    folder_name: '26 Ga. B&B Coils',
+    thickness_min: 0.015,
+    thickness_max: 0.02,
+    width_min: 36,
+    width_max: 48,
+    grade_min: null,
+    grade_max: null,
+    apply_all: false
+  }
+]
+
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {
     const date = new Date(`${start}T00:00:00Z`)
@@ -488,6 +540,29 @@ export const mockTrimApi = async (page: Page) => {
     route.fulfill({ json: COMPLETED })
   )
   await page.route(`${API_URL}/packages/*/reprint/`, route => route.fulfill({ json: {} }))
+  await page.route(`${API_URL}/coils/filters/*`, route => route.fulfill({ json: COIL_FILTERS }))
+  await page.route(`${API_URL}/coils/lots/*/location/`, route =>
+    route.fulfill({ json: { ...COIL_LOTS[0], in_slinet: true } })
+  )
+  await page.route(`${API_URL}/coils/lots/*/apply/`, route =>
+    route.fulfill({
+      json: {
+        action: 'make_adjustment',
+        lot_autoid: 'LOT-41',
+        detail: null,
+        coil_thickness: 4,
+        linear_feet: 1200,
+        weight: 3500
+      }
+    })
+  )
+  await page.route(`${API_URL}/coils/lots/*/adjust/`, route =>
+    route.fulfill({ json: COIL_LOTS[0] })
+  )
+  await page.route(`${API_URL}/coils/lots/*`, route => {
+    const trimOnly = new URL(route.request().url()).searchParams.get('in_trim') === 'true'
+    void route.fulfill({ json: trimOnly ? [COIL_LOTS[0]] : COIL_LOTS })
+  })
   await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
   await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
   await page.route(`${API_URL}/cutlists/rows/*`, route =>
