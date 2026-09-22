@@ -150,3 +150,30 @@ through the tabs like any other. There is no way to post a bare manufactured qua
 
 **On our side once it lands:** the Production tab grows its mode switch and the Stock Manufacturing
 grid beside it. Today the tab is the Trim mode only.
+
+## Backend: no package list for an order still being wrapped
+
+**Ask:** a `GET /wrapping/orders/{order}/packages/` — the same shape
+`CompletedOrdersService.packages_for` already builds.
+
+**Why:** the board's See Packages button opens the packages made for the order in front of the
+Worker, so one can be deleted when it was packed wrong (`DELETE /wrapping/packages/{id}/` is there
+for exactly that). The packages are only readable once the order is complete, through
+`GET /departments/{id}/completed-orders/{order}/` — which is the one moment the Worker no longer
+needs them.
+
+**On our side once it lands:** `WrapOrder` in `src/features/trim/components/wrap-order.tsx` gets
+See Packages beside Create & Print. Today it shows the locations the order stands on, which is the
+only part of that picture the API answers.
+
+## Backend: the Wrapping row names no product and no customer
+
+**Ask:** `product_id` and `customer` on the rows `GET /wrapping/` returns.
+
+**Why:** the board's Wrapping table is Order # | Customer | Qty | Stock | Priority | Remfg | Status
+| ID | Description | Notes (p1 (879,328)). The row carries `order_number`, `description`,
+`priority`, `status` and the three quantities — but nothing names the product or the customer, and
+both are columns the floor reads the table by.
+
+**On our side once it lands:** the two columns go into `WrappingTab`; it shows the line item's
+autoid in place of the product today.

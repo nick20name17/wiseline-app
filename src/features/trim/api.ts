@@ -192,7 +192,15 @@ export const trimKeys = {
     [...trimKeys.completedOrders(), departmentId, order] as const,
   coils: () => [...trimKeys.all, 'coils'] as const,
   coilLots: (scope: CoilScope) => [...trimKeys.coils(), scope] as const,
-  coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const
+  coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const,
+  wrapping: () => [...trimKeys.all, 'wrapping'] as const,
+  wrappingRows: (departmentId: number, day: string | null) =>
+    [...trimKeys.wrapping(), departmentId, day ?? 'all'] as const,
+  wrappingLocations: (departmentId: number) =>
+    [...trimKeys.wrapping(), 'locations', departmentId] as const,
+  orderLocations: (order: string) => [...trimKeys.wrapping(), 'order-locations', order] as const,
+  orderComplete: (departmentId: number, order: string) =>
+    [...trimKeys.wrapping(), 'complete', departmentId, order] as const
 }
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -1228,4 +1236,183 @@ export const coilFiltersQuery = (departmentId: number | undefined) =>
             .get('coils/filters/', { searchParams: { department_id: departmentId! } })
             .json()
         )
+  })
+
+// --- Wrapping ------------------------------------------------------------
+
+const wrappingRowSchema = z.object({
+  origin_item: z._default(z.string(), ''),
+  order: z._default(z.string(), ''),
+  order_number: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  production_date: z._default(z.nullable(z.string()), null),
+  priority: z._default(z.nullable(z.string()), null),
+  status: z._default(z.nullable(z.string()), null),
+  qty_ordered: z._default(z.number(), 0),
+  wrapped: z._default(z.number(), 0),
+  left_to_wrap: z._default(z.number(), 0),
+  // Wrapping is blocked until the trim has actually been made, by whatever «made» means here.
+  can_wrap: z._default(z.boolean(), false),
+  auto_fill_available: z._default(z.boolean(), false),
+  auto_fill_amount: z._default(z.number(), 0)
+})
+
+export type WrappingRow = z.infer<typeof wrappingRowSchema>
+
+/** Every line item released to production, with what is left to wrap on each. */
+export const wrappingRowsQuery = (departmentId: number | undefined, day: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.wrappingRows(departmentId ?? 0, day),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z.array(wrappingRowSchema).parse(
+        await authApi
+          .get('wrapping/', {
+            searchParams: {
+              department_id: departmentId!,
+              ...(day ? { production_date: day } : {})
+            }
+          })
+          .json()
+      )
+  })
+
+const locationSlotSchema = z.object({
+  location_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  warehouse: z._default(z.nullable(z.string()), null),
+  max_weight: z._default(z.nullable(z.number()), null),
+  used_weight: z._default(z.number(), 0),
+  orders_on_it: z._default(z.number(), 0),
+  multi_order: z._default(z.boolean(), false),
+  max_orders: z._default(z.nullable(z.number()), null),
+  // Greyed out once full; the board still lets the Worker ask for another department's locations.
+  available: z._default(z.boolean(), true),
+  remaining_weight: z._default(z.nullable(z.number()), null)
+})
+
+export type LocationSlot = z.infer<typeof locationSlotSchema>
+
+/** The list behind Select Location, opened on this department's own locations. */
+export const wrappingLocationsQuery = (departmentId: number | undefined, enabled: boolean) =>
+  queryOptions({
+    queryKey: trimKeys.wrappingLocations(departmentId ?? 0),
+    enabled: departmentId !== undefined && enabled,
+    queryFn: async () =>
+      z
+        .array(locationSlotSchema)
+        .parse(
+          await authApi
+            .get('wrapping/locations/', { searchParams: { department_id: departmentId! } })
+            .json()
+        )
+  })
+
+const orderLocationSchema = z.object({
+  location_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  max_weight: z._default(z.nullable(z.number()), null),
+  packages: z._default(z.number(), 0),
+  weight_on_it: z._default(z.number(), 0),
+  // Only the newest location still takes packages; the earlier ones are marked, not hidden.
+  orange: z._default(z.boolean(), false),
+  current: z._default(z.boolean(), false)
+})
+
+export type OrderLocation = z.infer<typeof orderLocationSchema>
+
+/** Where this order is standing. Everything but the newest is «put no more packages here». */
+export const orderLocationsQuery = (order: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.orderLocations(order ?? ''),
+    enabled: !!order,
+    queryFn: async () =>
+      z
+        .array(orderLocationSchema)
+        .parse(await authApi.get(`wrapping/orders/${order}/locations/`).json())
+  })
+
+export const useRemoveOrderLocation = () =>
+  useMutation({
+    mutationFn: ({ order, locationId }: { order: string; locationId: number }) =>
+      authApi.delete(`wrapping/orders/${order}/locations/${locationId}/`).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+  })
+
+export type PackageLine = { origin_item: string; quantity: number }
+
+/**
+ * Create & Print. A location is required, a quantity above Left To Wrap is refused, and an
+ * over-weight package needs the override the board puts a confirmation behind.
+ */
+export const useCreatePackage = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: (parcel: {
+      order: string
+      department_id: number
+      location_id: number
+      lines: PackageLine[]
+      weight?: number
+      override_weight?: boolean
+    }) => authApi.post('wrapping/packages/', { json: parcel }).json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+const orderCompleteSchema = z.object({
+  can_complete: z._default(z.boolean(), false),
+  outstanding: z.catch(
+    z.array(
+      z.object({
+        origin_item: z._default(z.nullable(z.string()), null),
+        left: z._default(z.number(), 0)
+      })
+    ),
+    []
+  ),
+  manufacturing_batch: z.catch(
+    z.array(
+      z.object({
+        origin_item: z._default(z.nullable(z.string()), null),
+        qty_ordered: z._default(z.number(), 0),
+        from_stock: z._default(z.number(), 0),
+        manufactured: z._default(z.number(), 0)
+      })
+    ),
+    []
+  )
+})
+
+/** Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent. */
+export const orderCompleteQuery = (departmentId: number | undefined, order: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.orderComplete(departmentId ?? 0, order ?? ''),
+    enabled: departmentId !== undefined && !!order,
+    queryFn: async () =>
+      orderCompleteSchema.parse(
+        await authApi
+          .get(`wrapping/orders/${order}/complete/`, {
+            searchParams: { department_id: departmentId! }
+          })
+          .json()
+      )
+  })
+
+/**
+ * Order Complete. The manufacturing batch — ordered minus what came from stock — goes to EBMS first,
+ * and the order is only marked complete if that goes through.
+ */
+export const useCompleteOrder = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: ({ order, departmentId }: { order: string; departmentId: number }) =>
+      authApi
+        .post(`wrapping/orders/${order}/complete/`, {
+          searchParams: { department_id: departmentId }
+        })
+        .json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
   })

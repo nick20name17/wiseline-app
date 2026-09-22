@@ -444,6 +444,66 @@ const COIL_FILTERS = [
   }
 ]
 
+const wrappingRow = (
+  originItem: string,
+  description: string,
+  qty: number,
+  wrapped: number,
+  extra: Record<string, unknown> = {}
+) => ({
+  origin_item: originItem,
+  order: 'ARINV-2',
+  order_number: '330608',
+  description,
+  production_date: SCHEDULED_DAY,
+  priority: 'Rush',
+  status: 'bent',
+  qty_ordered: qty,
+  wrapped,
+  left_to_wrap: qty - wrapped,
+  can_wrap: true,
+  auto_fill_available: qty - wrapped > 0,
+  auto_fill_amount: qty - wrapped,
+  ...extra
+})
+
+const WRAPPING_ROWS = [
+  wrappingRow('901', 'Sidewall Flashing', 40, 0),
+  // Not made yet, so nothing can be wrapped out of it however much is left.
+  wrappingRow('902', 'Drip Edge', 20, 0, {
+    status: 'not_started',
+    can_wrap: false,
+    auto_fill_available: false
+  })
+]
+
+const WRAPPING_LOCATIONS = [
+  {
+    location_id: 5,
+    name: '101',
+    warehouse: 'Main',
+    max_weight: 500,
+    used_weight: 120,
+    orders_on_it: 1,
+    multi_order: true,
+    max_orders: 4,
+    available: true,
+    remaining_weight: 380
+  },
+  {
+    location_id: 6,
+    name: '102',
+    warehouse: 'Main',
+    max_weight: 500,
+    used_weight: 500,
+    orders_on_it: 1,
+    multi_order: false,
+    max_orders: 1,
+    available: false,
+    remaining_weight: 0
+  }
+]
+
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {
     const date = new Date(`${start}T00:00:00Z`)
@@ -540,6 +600,39 @@ export const mockTrimApi = async (page: Page) => {
     route.fulfill({ json: COMPLETED })
   )
   await page.route(`${API_URL}/packages/*/reprint/`, route => route.fulfill({ json: {} }))
+  await page.route(`${API_URL}/wrapping/locations/*`, route =>
+    route.fulfill({ json: WRAPPING_LOCATIONS })
+  )
+  await page.route(`${API_URL}/wrapping/orders/*/locations/`, route =>
+    route.fulfill({
+      json: [
+        {
+          location_id: 5,
+          name: '101',
+          max_weight: 500,
+          packages: 1,
+          weight_on_it: 120,
+          orange: false,
+          current: true
+        }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/wrapping/orders/*/complete/*`, route =>
+    route.fulfill({
+      json: {
+        can_complete: false,
+        outstanding: [{ origin_item: '901', left: 40 }],
+        manufacturing_batch: [
+          { origin_item: '901', qty_ordered: 40, from_stock: 0, manufactured: 40 }
+        ]
+      }
+    })
+  )
+  await page.route(`${API_URL}/wrapping/packages/`, route =>
+    route.fulfill({ json: { id: 71, name: '01-330608-01', location_id: 5, weight: 120 } })
+  )
+  await page.route(`${API_URL}/wrapping/*`, route => route.fulfill({ json: WRAPPING_ROWS }))
   await page.route(`${API_URL}/coils/filters/*`, route => route.fulfill({ json: COIL_FILTERS }))
   await page.route(`${API_URL}/coils/lots/*/location/`, route =>
     route.fulfill({ json: { ...COIL_LOTS[0], in_slinet: true } })

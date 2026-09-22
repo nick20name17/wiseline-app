@@ -17,6 +17,7 @@ import { formatDate, today } from '../lib/format'
 import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
+import { WrappingTab } from './wrapping-tab'
 
 // The station that cuts the material, and the one that comes after every machine has bent it.
 const CUTTING = 'cutting'
@@ -100,12 +101,21 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
   // own rather than a list of bends.
   const benders =
     machines?.filter(machine => machine.kind !== CUTTING && machine.kind !== WRAPPING) ?? []
+  const wrapping = machines?.find(machine => machine.kind === WRAPPING)
+  const isWrapping = station === WRAPPING
   const isSlinet = station === SLINET
   const activeMachine = isSlinet ? null : (benders.find(m => String(m.id) === station) ?? null)
 
-  const { data: cutlists, isPending } = useQuery(
-    cutlistsQuery(departmentId, isSlinet ? 'cutlist' : 'bendlist', activeMachine?.id ?? null, done)
-  )
+  const { data: cutlists, isPending } = useQuery({
+    ...cutlistsQuery(
+      departmentId,
+      isSlinet ? 'cutlist' : 'bendlist',
+      activeMachine?.id ?? null,
+      done
+    ),
+    // Wrapping keeps no lists of its own; it reads the line items straight.
+    enabled: departmentId !== undefined && !isWrapping
+  })
   const word = isSlinet ? 'cutlists' : 'bendlists'
   const days = byDay(cutlists ?? [])
 
@@ -123,6 +133,10 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
                   {machine.name}
                 </TabsTrigger>
               ))}
+              {/* The terminal station: no lists, no Active/Completed switch, no capacity. */}
+              {wrapping ? (
+                <TabsTrigger value={WRAPPING}>{wrapping.name ?? 'Wrapping'}</TabsTrigger>
+              ) : null}
             </TabsList>
           </div>
         </Tabs>
@@ -135,74 +149,82 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
         </Button>
       </div>
 
-      {/* Every station carries its own Active / Completed switch, and a completed list renders in
-          the format the worker used — same card, same columns. */}
-      <Tabs value={done ? 'done' : 'active'} onValueChange={value => setDone(value === 'done')}>
-        <TabsList className='h-9'>
-          <TabsTrigger value='active'>Active {word}</TabsTrigger>
-          <TabsTrigger value='done'>
-            <History data-icon='inline-start' />
-            Completed {word} · past 90 days
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {done ? null : <Totals departmentId={departmentId} machine={activeMachine} />}
-
-      {isPending ? (
-        <div className='flex flex-col gap-3'>
-          {Array.from({ length: 3 }, (_, index) => (
-            <Skeleton key={index} className='h-13' />
-          ))}
-        </div>
-      ) : days.length ? (
-        days.map(day => (
-          <div key={day.date ?? 'undated'} className='flex flex-col gap-3'>
-            {/* The date is said once, over the lists that share it, rather than on every card. */}
-            <div className='flex items-center gap-3'>
-              <span className='text-xs font-semibold tracking-wider uppercase'>
-                {formatDate(day.date)}
-                {day.date === today() ? ' · today' : ''}
-              </span>
-              <span className='text-xs text-muted-foreground'>
-                {day.cutlists.length} {day.cutlists.length === 1 ? word.slice(0, -1) : word}
-              </span>
-              <span className='h-px flex-1 bg-border' />
-            </div>
-
-            {day.cutlists.map(cutlist => (
-              <CutlistCard
-                key={cutlist.id}
-                cutlist={cutlist}
-                machines={benders}
-                isSlinet={isSlinet}
-                readOnly={readOnly}
-                onOpenTotal={setTotal}
-                onOpenCoils={setCoils}
-              />
-            ))}
-          </div>
-        ))
+      {isWrapping ? (
+        <WrappingTab departmentId={departmentId} readOnly={readOnly} />
       ) : (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <Layers />
-            </EmptyMedia>
-            <EmptyTitle>
-              {done ? `No completed ${word}` : `Nothing on ${activeMachine?.name ?? 'the Slinet'}`}
-            </EmptyTitle>
-            <EmptyDescription>
-              {done
-                ? 'Lists land here the moment this station marks them Done.'
-                : 'Release orders from the Scheduled tab. Lists appear here, grouped by production date, gauge/colour and priority.'}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
+        <>
+          {/* Every station carries its own Active / Completed switch, and a completed list renders in
+          the format the worker used — same card, same columns. */}
+          <Tabs value={done ? 'done' : 'active'} onValueChange={value => setDone(value === 'done')}>
+            <TabsList className='h-9'>
+              <TabsTrigger value='active'>Active {word}</TabsTrigger>
+              <TabsTrigger value='done'>
+                <History data-icon='inline-start' />
+                Completed {word} · past 90 days
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-      <CutlistTotalDialog group={total} onOpenChange={open => !open && setTotal(null)} />
-      <CutlistCoilsDialog cutlist={coils} onOpenChange={open => !open && setCoils(null)} />
+          {done ? null : <Totals departmentId={departmentId} machine={activeMachine} />}
+
+          {isPending ? (
+            <div className='flex flex-col gap-3'>
+              {Array.from({ length: 3 }, (_, index) => (
+                <Skeleton key={index} className='h-13' />
+              ))}
+            </div>
+          ) : days.length ? (
+            days.map(day => (
+              <div key={day.date ?? 'undated'} className='flex flex-col gap-3'>
+                {/* The date is said once, over the lists that share it, rather than on every card. */}
+                <div className='flex items-center gap-3'>
+                  <span className='text-xs font-semibold tracking-wider uppercase'>
+                    {formatDate(day.date)}
+                    {day.date === today() ? ' · today' : ''}
+                  </span>
+                  <span className='text-xs text-muted-foreground'>
+                    {day.cutlists.length} {day.cutlists.length === 1 ? word.slice(0, -1) : word}
+                  </span>
+                  <span className='h-px flex-1 bg-border' />
+                </div>
+
+                {day.cutlists.map(cutlist => (
+                  <CutlistCard
+                    key={cutlist.id}
+                    cutlist={cutlist}
+                    machines={benders}
+                    isSlinet={isSlinet}
+                    readOnly={readOnly}
+                    onOpenTotal={setTotal}
+                    onOpenCoils={setCoils}
+                  />
+                ))}
+              </div>
+            ))
+          ) : (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant='icon'>
+                  <Layers />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {done
+                    ? `No completed ${word}`
+                    : `Nothing on ${activeMachine?.name ?? 'the Slinet'}`}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {done
+                    ? 'Lists land here the moment this station marks them Done.'
+                    : 'Release orders from the Scheduled tab. Lists appear here, grouped by production date, gauge/colour and priority.'}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+
+          <CutlistTotalDialog group={total} onOpenChange={open => !open && setTotal(null)} />
+          <CutlistCoilsDialog cutlist={coils} onOpenChange={open => !open && setCoils(null)} />
+        </>
+      )}
     </div>
   )
 }
