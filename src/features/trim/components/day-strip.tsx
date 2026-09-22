@@ -88,16 +88,12 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         <DayPill entry={peekEntry} isToday={false} onRemove={() => setPeek(null)} />
       ) : null}
 
-      {/* A plain button, not the shared one: it takes its height from the strip rather than from a
-          button size, which is what puts it level with the pills. */}
-      <button
-        type='button'
-        className='flex items-center gap-1.5 rounded-md border border-dashed border-border bg-background px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary'
-        onClick={() => setPickerOpen(true)}
-      >
-        <CalendarDays className='size-4' />
+      {/* `h-auto`: the control takes its height from the strip, which is what puts it level with the
+          day pills beside it. */}
+      <Button variant='dashed' className='h-auto' onClick={() => setPickerOpen(true)}>
+        <CalendarDays data-icon='inline-start' />
         {peek ? 'Another day' : 'Pick a day'}
-      </button>
+      </Button>
 
       {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may
           be pinned, including one already past: that is often the point of looking. */}
