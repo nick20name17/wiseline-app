@@ -81,7 +81,7 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
   }
 
   return (
-    <div className='flex flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-col gap-3.5'>
       <ScheduledDayTabs
         departmentId={departmentId}
         day={day}
@@ -126,17 +126,19 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-5xl table-fixed'>
+          {/* The fixed columns add up to less than the minimum width, so the customer name always has
+              room left over — crush it to nothing and two headers print on top of each other. */}
+          <Table className='min-w-6xl table-fixed'>
             <colgroup>
               <col className='w-12' />
               <col className='w-10' />
-              <col className='w-40' />
-              <col className='w-48' />
+              <col className='w-36' />
+              <col className='w-52' />
               <col className='w-40' />
               <col />
-              <col className='w-44' />
-              <col className='w-40' />
-              <col className='w-36' />
+              <col className='w-32' />
+              <col className='w-32' />
+              <col className='w-28' />
               <col className='w-20' />
             </colgroup>
             <TableHeader>

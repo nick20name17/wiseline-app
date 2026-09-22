@@ -9,10 +9,12 @@ const AppLayout = () => (
   <SidebarProvider>
     <PageHeaderProvider>
       <AppSidebar />
-      <SidebarInset>
+      {/* `min-w-0` here and below: a flex item defaults to `min-width: auto`, so a table wider than
+          the pane would push the whole layout sideways instead of scrolling within its own box. */}
+      <SidebarInset className='min-w-0'>
         <AppHeader actions={<UserMenu />} />
         {/* SidebarInset is already the <main> landmark, so this is only the page's padding box. */}
-        <div className='flex flex-1 flex-col gap-6 p-6'>
+        <div className='flex min-w-0 flex-1 flex-col gap-6 p-6'>
           <Outlet />
         </div>
       </SidebarInset>

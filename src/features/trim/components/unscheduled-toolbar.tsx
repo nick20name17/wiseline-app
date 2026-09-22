@@ -31,17 +31,17 @@ export const UnscheduledToolbar = ({
     ) : null}
 
     <div className='ml-auto flex flex-wrap items-center gap-2'>
-      <Button variant='outline' size='sm' onClick={onStockCards}>
+      <Button variant='outline' onClick={onStockCards}>
         <QrCode data-icon='inline-start' />
         Stock Cards
       </Button>
-      <Button variant='outline' size='sm' onClick={onCreateStockOrder}>
+      <Button variant='outline' onClick={onCreateStockOrder}>
         <Plus data-icon='inline-start' />
         Create stock order
       </Button>
       <Button
         variant='outline'
-        size='sm'
+
         disabled={readOnly || !ready || !selectedCount}
         title='Skip the Slinet and the machines — straight to Wrapping, with today as the production date'
         onClick={onBypass}
@@ -49,7 +49,7 @@ export const UnscheduledToolbar = ({
         <FastForward data-icon='inline-start' />
         Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
       </Button>
-      <Button size='sm' disabled={readOnly || !ready || !selectedCount} onClick={onSchedule}>
+      <Button disabled={readOnly || !ready || !selectedCount} onClick={onSchedule}>
         <CalendarDays data-icon='inline-start' />
         Schedule{selectedCount ? ` (${selectedCount})` : ''}
       </Button>

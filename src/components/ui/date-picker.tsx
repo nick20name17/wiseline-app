@@ -26,7 +26,7 @@ export const DatePicker = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant='outline' size='sm' className={cn('justify-between', className)}>
+          <Button variant='outline' className={cn('justify-between', className)}>
             {format(value)}
             <CalendarIcon data-icon='inline-end' />
           </Button>

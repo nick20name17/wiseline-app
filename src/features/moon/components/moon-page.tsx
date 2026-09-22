@@ -33,13 +33,13 @@ export const MoonPage = ({ dateParam, onDateChange }: MoonPageProps) => {
           <span className='text-xs tracking-widest text-muted-foreground uppercase'>Date</span>
           <DatePicker value={date} onChange={setDate} format={formatDay} className='w-48' />
         </div>
-        <Button variant='outline' size='sm' onClick={() => shiftDays(-1)}>
+        <Button variant='outline' onClick={() => shiftDays(-1)}>
           − 1 day
         </Button>
-        <Button variant='outline' size='sm' onClick={() => shiftDays(1)}>
+        <Button variant='outline' onClick={() => shiftDays(1)}>
           + 1 day
         </Button>
-        <Button variant='ghost' size='sm' onClick={() => onDateChange(undefined)}>
+        <Button variant='ghost' onClick={() => onDateChange(undefined)}>
           Today
         </Button>
       </div>

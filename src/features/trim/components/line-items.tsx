@@ -65,7 +65,7 @@ export const LineItems = ({
         ) : null}
         <Button
           variant='outline'
-          size='sm'
+
           className='ml-auto'
           disabled={!ready || !selectedLineIds.length}
           onClick={onSplit}

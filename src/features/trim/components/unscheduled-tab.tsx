@@ -88,7 +88,7 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
     })
 
   return (
-    <div className='flex flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-col gap-3.5'>
       <UnscheduledToolbar
         selectedCount={selected.length}
         readOnly={readOnly}
@@ -119,7 +119,7 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
               still between the skeleton, the data and every search. */}
-          <Table className='min-w-4xl table-fixed'>
+          <Table className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />

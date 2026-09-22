@@ -38,7 +38,7 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
   }, [role, view, onViewChange])
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className='flex min-w-0 flex-col gap-4'>
       <DeptBar
         view={view}
         role={role}

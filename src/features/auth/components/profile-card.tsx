@@ -38,7 +38,7 @@ export const ProfileCard = ({ onLogout }: ProfileCardProps) => {
         </dl>
       </section>
 
-      <Button variant='outline' size='sm' className='self-start' onClick={logoutAndNotify}>
+      <Button variant='outline' className='self-start' onClick={logoutAndNotify}>
         Log out
       </Button>
     </div>

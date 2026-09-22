@@ -102,7 +102,7 @@ const ProductionDateCell = ({
         {formatDate(day)}
       </span>
     ) : (
-      <Button variant='ghost' size='sm' onClick={onReschedule}>
+      <Button variant='ghost' onClick={onReschedule}>
         <Calendar data-icon='inline-start' />
         {formatDate(day)}
       </Button>

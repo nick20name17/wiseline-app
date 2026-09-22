@@ -46,12 +46,11 @@ export const ScheduledToolbar = ({
         </span>
       ) : null}
 
-      <Button variant='outline' size='sm' onClick={onAllocatedStock}>
+      <Button variant='outline' onClick={onAllocatedStock}>
         <Database data-icon='inline-start' />
         Allocated Stock
       </Button>
       <Button
-        size='sm'
         disabled={!canRelease || isReleasing}
         title={
           selectedCount && !canRelease

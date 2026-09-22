@@ -84,7 +84,7 @@ export const ScheduledLineItems = ({
           <span className='text-sm font-medium'>Reviewing order</span>
           <Button
             variant='outline'
-            size='sm'
+
             className='ml-auto'
             disabled={readOnly}
             onClick={onReschedule}
@@ -183,7 +183,7 @@ export const ScheduledLineItems = ({
                           render={
                             <Button
                               variant='outline'
-                              size='sm'
+
                               className='w-full justify-between'
                               aria-label={`Machine for ${item.id_inven ?? item.id}`}
                             />

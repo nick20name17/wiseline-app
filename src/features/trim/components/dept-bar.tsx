@@ -31,7 +31,7 @@ export const DeptBar = ({ view, role, counts, onNavigate }: DeptBarProps) => (
       {canAccess('completed', role) ? (
         <Button
           variant='outline'
-          size='sm'
+
           className='ml-auto'
           data-active={view === 'completed' ? true : undefined}
           onClick={() => onNavigate('completed')}
