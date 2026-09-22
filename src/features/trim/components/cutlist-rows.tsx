@@ -35,7 +35,9 @@ const CompleteCell = ({ group, disabled, onComplete }: CompleteCellProps) => {
 
   return (
     <>
-      <label className='flex items-center gap-2'>
+      {/* `inline-flex`: the row's crossing-out is drawn across its cells, and does not reach into an
+          atomic inline box — which is how the sign-off itself stays unstruck. */}
+      <label className='inline-flex items-center gap-2'>
         <Checkbox
           aria-label={`Complete ${group.width ?? '—'} × ${group.length ?? '—'}`}
           checked={group.complete}
