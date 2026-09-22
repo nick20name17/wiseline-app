@@ -258,3 +258,17 @@ a cutlist row points at one. The Stock Card holds a sketch through `image_id`, b
 stocked products alone.
 
 **On our side once it lands:** the Drawing column goes into `CutlistRows`, beside the notes.
+
+## Backend: a day's capacity is not its machines' daily max added up
+
+**Ask:** `capacity` and `over_capacity` on `GET /departments/{id}/day-strip/` and `total.capacity`
+on `GET /departments/{id}/machine-capacities/` computed as the sum of the department's machines'
+`daily_max_bends`, instead of read from `/capacities/` on the EBMS category.
+
+**Why:** the design on `main` has no department capacity to set; the day's ceiling is the machines'
+daily max added up (`totalDailyCap` in `src/features/trim/selectors.ts` on `main`), and every day tab
+shows `(used / capacity)` (`docs/wiseline-spec.md` screen p1 (81,286)). The API reads a figure that
+nothing on screen sets.
+
+**On our side once it lands:** `dailyCapacity` in `src/features/trim/api.ts` goes, and the two
+queries take `capacity` and `over_capacity` as the server sends them.

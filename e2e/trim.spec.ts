@@ -19,8 +19,9 @@ test('the board lists unscheduled orders with the day strip and the tab count', 
   // The tab carries the count; the toolbar says nothing until something is ticked.
   await expect(page.getByRole('tab', { name: 'Unscheduled 2' })).toBeVisible()
 
-  // The day pill carries the bends scheduled against the department's daily capacity.
-  await expect(page.getByText('(1000 / 5000)').first()).toBeVisible()
+  // The day pill carries the bends scheduled against its machines' daily max added up — five
+  // benders at 1200 — not the 5000 the day strip itself returns.
+  await expect(page.getByText('(1000 / 6000)').first()).toBeVisible()
 
   await expect(page.getByText('330605')).toBeVisible()
   await expect(page.getByText('H F H Inc')).toBeVisible()

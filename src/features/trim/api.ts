@@ -1,5 +1,11 @@
 import { authApi } from '@/api/client'
-import { keepPreviousData, queryOptions, useMutation, useQuery } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQuery,
+  type QueryClient
+} from '@tanstack/react-query'
 import { HTTPError } from 'ky'
 import * as z from 'zod/mini'
 
@@ -19,7 +25,8 @@ export const TRIM_CODE = 'trim'
 const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
-  code: z._default(z.string(), '')
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -294,6 +301,20 @@ export const overdueQuery = (departmentId: number | undefined) =>
       overdueSchema.parse(await authApi.get(`departments/${departmentId}/overdue/`).json())
   })
 
+/**
+ * A day holds as many bends as the department's machines can make: the sum of their daily max, as
+ * the design has it. The `capacity` the day endpoints return hangs off the EBMS category instead,
+ * and nothing on screen sets it, so it is replaced. A machine with no max adds nothing; a department
+ * where none has one has no ceiling at all.
+ */
+const dailyCapacity = async (client: QueryClient, departmentId: number | undefined) => {
+  const machines = (await client.ensureQueryData(machinesQuery(departmentId))).filter(
+    machine => machine.department === null || machine.department === departmentId
+  )
+  const rated = machines.filter(machine => machine.daily_max_bends !== null)
+  return rated.length ? rated.reduce((sum, machine) => sum + machine.daily_max_bends!, 0) : null
+}
+
 const machineCapacitySchema = z.object({
   date: z.string(),
   total: z.object({
@@ -329,12 +350,16 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
   queryOptions({
     queryKey: trimKeys.machineCapacities(departmentId ?? 0, day ?? ''),
     enabled: departmentId !== undefined && !!day,
-    queryFn: async () =>
-      machineCapacitySchema.parse(
-        await authApi
+    queryFn: async ({ client }) => {
+      const [breakdown, capacity] = await Promise.all([
+        authApi
           .get(`departments/${departmentId}/machine-capacities/`, { searchParams: { day: day! } })
-          .json()
-      )
+          .json(),
+        dailyCapacity(client, departmentId)
+      ])
+      const parsed = machineCapacitySchema.parse(breakdown)
+      return { ...parsed, total: { ...parsed.total, capacity } }
+    }
   })
 
 const locationSchema = z.object({
@@ -411,12 +436,19 @@ export const dayStripQuery = (departmentId: number | undefined, start: string, d
   queryOptions({
     queryKey: trimKeys.dayStrip(departmentId ?? 0, start, days),
     enabled: departmentId !== undefined,
-    queryFn: async () =>
-      dayStripSchema.parse(
-        await authApi
+    queryFn: async ({ client }) => {
+      const [strip, capacity] = await Promise.all([
+        authApi
           .get(`departments/${departmentId}/day-strip/`, { searchParams: { start, days } })
-          .json()
-      )
+          .json(),
+        dailyCapacity(client, departmentId)
+      ])
+      return dayStripSchema.parse(strip).map(entry => ({
+        ...entry,
+        capacity,
+        over_capacity: capacity !== null && entry.bends > capacity
+      }))
+    }
   })
 
 // --- Priorities ----------------------------------------------------------
