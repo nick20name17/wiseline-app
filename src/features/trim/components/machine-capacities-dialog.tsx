@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -6,18 +7,11 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
+import { Printer } from 'lucide-react'
 import { machineCapacitiesQuery } from '../api'
-import { formatDate } from '../lib/format'
+import { formatDate, today } from '../lib/format'
 
 type MachineCapacitiesDialogProps = {
   departmentId: number | undefined
@@ -26,17 +20,89 @@ type MachineCapacitiesDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-/** A figure and, in brackets, how much of it is coming from stock rather than being made. */
-const WithStock = ({ total, fromStock }: { total: number; fromStock: number }) => (
-  <span className='font-mono'>
-    {total}
-    {fromStock > 0 ? <span className='text-muted-foreground'> ({fromStock} — Stock)</span> : null}
-  </span>
+type FigureProps = {
+  value: number
+  /** Pieces have no ceiling; bends do. */
+  max?: number | null
+  /** Part of the value beside it, never an addition to it. */
+  fromStock: number
+  /** The day still has trim with no machine, which is what the gap below this row is. */
+  unrouted?: boolean
+}
+
+/**
+ * The figure, its limit and how much of it comes off the shelf, on one line.
+ *
+ * Value, slash, max and the parenthetical are tracks of one fixed-width row, so the slashes and the
+ * «(n - Stock)» notes line up down the column without the slash being dragged from its own number.
+ */
+const Figure = ({ value, max, fromStock, unrouted }: FigureProps) => {
+  const over = !!max && value > max
+
+  return (
+    <span className={cn('inline-flex w-44 items-baseline font-mono text-base font-semibold')}>
+      {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
+      <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
+        {value}
+      </span>
+      {max ? (
+        <>
+          <span className='mx-1.5 text-muted-foreground'>/</span>
+          <span className={cn(over && 'text-destructive')}>{max}</span>
+        </>
+      ) : null}
+      {fromStock ? (
+        <span className='ml-auto pl-2 text-xs font-normal text-primary'>({fromStock} - Stock)</span>
+      ) : null}
+    </span>
+  )
+}
+
+const Row = ({
+  name,
+  isDay,
+  children
+}: {
+  name: React.ReactNode
+  isDay?: boolean
+  children: React.ReactNode
+}) => (
+  <tr>
+    {/* Each cell paints its own edges, so a row reads as one card. The day is the report's headline
+        figure, so its card is white against the machines' grey. */}
+    <th
+      scope='row'
+      className={cn(
+        'w-2/5 rounded-l-xl border border-r-0 border-input px-3.5 py-4 text-left text-sm font-semibold',
+        isDay ? 'bg-card' : 'bg-muted'
+      )}
+    >
+      {name}
+    </th>
+    {children}
+  </tr>
+)
+
+const Cell = ({ isDay, children }: { isDay?: boolean; children: React.ReactNode }) => (
+  <td
+    className={cn(
+      'border-y border-input px-3.5 py-4 text-left whitespace-nowrap last:rounded-r-xl last:border-r',
+      isDay ? 'bg-card' : 'bg-muted'
+    )}
+  >
+    {children}
+  </td>
 )
 
 /**
- * One production day broken down by machine: what the day holds in total, then what has been put on
- * each machine, each figure carrying how much of it comes from stock.
+ * One production day, read-only.
+ *
+ * The top row is everything the day has scheduled; the machine rows are only what has been routed to
+ * a machine. The two are deliberately not the same number — the gap is trim with a day and no machine
+ * yet, and summing the machines instead would hide exactly the work nobody has claimed.
+ *
+ * Daily maxes are not set here. They belong to Settings › Machines, and a report that let you edit its
+ * own limits would be a second place for them to disagree.
  */
 export const MachineCapacitiesDialog = ({
   departmentId,
@@ -44,75 +110,101 @@ export const MachineCapacitiesDialog = ({
   onOpenChange
 }: MachineCapacitiesDialogProps) => {
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
+  const unrouted = (data?.pieces_without_a_machine ?? 0) > 0
 
   return (
     <Dialog open={!!day} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
-          <DialogTitle>Machine capacities</DialogTitle>
-          <DialogDescription>{day ? formatDate(day) : ''}</DialogDescription>
+          <div className='text-center'>
+            <DialogTitle>Machine Capacities</DialogTitle>
+            <DialogDescription>
+              Report · what this production day has assigned to each machine. Over the daily max is
+              a soft warning — it highlights, never blocks.
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
         {isPending || !data ? (
-          <Skeleton className='h-48' />
+          <Skeleton className='h-64' />
         ) : (
           <>
-            <div className='grid grid-cols-2 gap-3 rounded-lg border border-border p-3 sm:grid-cols-3'>
-              <div>
-                <p className='text-xs tracking-wider text-muted-foreground uppercase'>Pieces</p>
-                <WithStock total={data.total.pieces} fromStock={data.total.pieces_from_stock} />
-              </div>
-              <div>
-                <p className='text-xs tracking-wider text-muted-foreground uppercase'>Bends</p>
-                <WithStock total={data.total.bends} fromStock={data.total.bends_from_stock} />
-              </div>
-              <div>
-                <p className='text-xs tracking-wider text-muted-foreground uppercase'>Daily max</p>
-                <span className='font-mono'>{data.total.capacity ?? '—'}</span>
-              </div>
-            </div>
+            <table className='w-full border-separate border-spacing-y-1.5'>
+              <thead>
+                <tr>
+                  {/* The row names sit under this one; it heads nothing of its own. */}
+                  <th>
+                    <span className='sr-only'>Machine</span>
+                  </th>
+                  {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
+                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                    Pieces
+                  </th>
+                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
+                    Bends
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <Row
+                  isDay
+                  name={
+                    <>
+                      {formatDate(data.date)}
+                      {data.date === today() ? (
+                        <span className='font-normal text-muted-foreground'> · today</span>
+                      ) : null}
+                    </>
+                  }
+                >
+                  <Cell isDay>
+                    <Figure
+                      value={data.total.pieces}
+                      fromStock={data.total.pieces_from_stock}
+                      unrouted={unrouted}
+                    />
+                  </Cell>
+                  <Cell isDay>
+                    <Figure
+                      value={data.total.bends}
+                      max={data.total.capacity}
+                      fromStock={data.total.bends_from_stock}
+                      unrouted={unrouted}
+                    />
+                  </Cell>
+                </Row>
 
-            <div className='overflow-hidden rounded-lg border border-border'>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Machine</TableHead>
-                    <TableHead>Pieces</TableHead>
-                    <TableHead>Bends</TableHead>
-                    <TableHead>Daily max</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.machines.map(machine => (
-                    <TableRow key={machine.flow_id}>
-                      <TableCell>{machine.name ?? '—'}</TableCell>
-                      <TableCell>
-                        <WithStock total={machine.pieces} fromStock={machine.pieces_from_stock} />
-                      </TableCell>
-                      <TableCell>
-                        <span className={cn(machine.over_bends && 'text-destructive')}>
-                          <WithStock total={machine.bends} fromStock={machine.bends_from_stock} />
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className='font-mono text-muted-foreground'>
-                          {machine.max_bends ?? '—'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                {data.machines.map(machine => (
+                  <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
+                    <Cell>
+                      <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
+                    </Cell>
+                    <Cell>
+                      <Figure
+                        value={machine.bends}
+                        max={machine.max_bends}
+                        fromStock={machine.bends_from_stock}
+                      />
+                    </Cell>
+                  </Row>
+                ))}
+              </tbody>
+            </table>
 
-            {/* Not on the board, but the header and the rows will not add up without it, and a
-                Manager comparing them deserves to know why. */}
-            {data.pieces_without_a_machine > 0 ? (
-              <p className='text-xs text-muted-foreground'>
+            {unrouted ? (
+              <p className='text-center text-xs text-warning'>
                 <span className='font-mono'>{data.pieces_without_a_machine}</span> pieces are on
-                this day with no machine assigned yet.
+                this day with no machine assigned yet — which is the gap between the top row and the
+                ones below it.
               </p>
             ) : null}
+
+            <div className='flex justify-center'>
+              <Button onClick={() => window.print()}>
+                <Printer data-icon='inline-start' />
+                Print
+              </Button>
+            </div>
           </>
         )}
       </DialogContent>

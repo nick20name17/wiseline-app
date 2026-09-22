@@ -63,10 +63,11 @@ test('the day tab gear opens the machine capacities for that day', async ({ page
     .first()
     .click()
 
-  await expect(page.getByRole('heading', { name: 'Machine capacities' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'Press Brake' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Machine Capacities' })).toBeVisible()
+  // The day's own row sits above the machines, and each row is named by its header cell.
+  await expect(page.getByRole('rowheader', { name: /Press Brake/ })).toBeVisible()
   // The bracket is what the board shows: how much of the total comes from stock.
-  await expect(page.getByText('(4 — Stock)')).toBeVisible()
+  await expect(page.getByText('(4 - Stock)')).toBeVisible()
 })
 
 test('Allocated Stock reports what reviewed orders draw from stock', async ({ page }) => {
