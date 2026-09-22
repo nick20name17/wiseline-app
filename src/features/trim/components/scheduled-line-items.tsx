@@ -223,6 +223,7 @@ export const ScheduledLineItems = ({
                         min={0}
                         max={item.quantity}
                         aria-label={`From stock for ${item.id_inven ?? item.id}`}
+                        placeholder='0'
                         defaultValue={fromStock}
                         onBlur={event => {
                           const next = Number(event.target.value)
@@ -250,6 +251,7 @@ export const ScheduledLineItems = ({
                     {editable ? (
                       <Input
                         aria-label={`Description for ${item.id_inven ?? item.id}`}
+                        placeholder='Add a description'
                         defaultValue={description ?? ''}
                         onBlur={event => {
                           if (event.target.value !== (description ?? ''))
@@ -270,6 +272,7 @@ export const ScheduledLineItems = ({
                         min={0}
                         step={0.1}
                         aria-label={`Width for ${item.id_inven ?? item.id}`}
+                        placeholder='0'
                         defaultValue={width}
                         onBlur={event => {
                           const next = Number(event.target.value)

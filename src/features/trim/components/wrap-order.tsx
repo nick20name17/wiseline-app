@@ -148,6 +148,7 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
                       max={row.left_to_wrap}
                       inputMode='numeric'
                       aria-label={`Wrap from ${row.origin_item}`}
+                      placeholder='0'
                       // A line that has not been made yet cannot be wrapped, whatever is left on it.
                       disabled={readOnly || !row.can_wrap}
                       value={amounts[row.origin_item] ?? ''}
@@ -194,6 +195,7 @@ export const WrapOrder = ({ departmentId, rows, readOnly, onBack }: WrapOrderPro
             min={0}
             inputMode='numeric'
             aria-label='Package weight'
+            placeholder='0'
             value={weight}
             onChange={event => setWeight(event.target.value)}
           />
