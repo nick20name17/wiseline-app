@@ -90,7 +90,6 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
   return (
     <div className='flex flex-col gap-3.5'>
       <UnscheduledToolbar
-        total={orders.length}
         selectedCount={selected.length}
         readOnly={readOnly}
         ready={departmentId !== undefined}

@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, FastForward, Plus, QrCode } from 'lucide-react'
 
 type UnscheduledToolbarProps = {
-  total: number
   selectedCount: number
   readOnly: boolean
   /** Every write is scoped to the department; until its id is known there is nothing to write to. */
@@ -14,7 +13,6 @@ type UnscheduledToolbarProps = {
 }
 
 export const UnscheduledToolbar = ({
-  total,
   selectedCount,
   readOnly,
   ready,
@@ -24,18 +22,13 @@ export const UnscheduledToolbar = ({
   onSchedule
 }: UnscheduledToolbarProps) => (
   <div className='flex flex-wrap items-center gap-2.5'>
-    <span className='text-sm text-muted-foreground'>
-      {selectedCount ? (
-        <>
-          <b className='font-semibold text-foreground'>{selectedCount}</b> selected
-        </>
-      ) : (
-        <>
-          <b className='font-semibold text-foreground'>{total}</b> unscheduled order
-          {total === 1 ? '' : 's'}
-        </>
-      )}
-    </span>
+    {/* How many orders the tab holds is already on the tab; this line says only what the count on
+        the tab cannot — how many of them are ticked. */}
+    {selectedCount ? (
+      <span className='text-sm text-muted-foreground'>
+        <b className='font-semibold text-foreground'>{selectedCount}</b> selected
+      </span>
+    ) : null}
 
     <div className='ml-auto flex flex-wrap items-center gap-2'>
       <Button variant='outline' size='sm' onClick={onStockCards}>
