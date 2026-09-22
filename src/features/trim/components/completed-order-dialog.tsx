@@ -21,8 +21,16 @@ import { Printer } from 'lucide-react'
 import { completedOrderQuery, useReprintPackage, type CompletedOrder } from '../api'
 import { formatDate } from '../lib/format'
 
-const stamp = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+const stamp = (iso: string | null) => {
+  if (!iso) return '—'
+  const at = new Date(iso)
+  return `${at.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  })} · ${at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+}
 
 type Fact = { label: string; value: string }
 
@@ -73,8 +81,14 @@ export const CompletedOrderDialog = ({
           ) : (
             <>
               <section className='flex flex-col gap-2'>
+                {/* What actually went to EBMS when the order was closed: ordered minus stock. */}
                 <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-                  Line items
+                  Line items · manufacturing batch{' '}
+                  {data.line_items.reduce(
+                    (total, line) => total + Math.max(line.qty_ordered - line.from_stock, 0),
+                    0
+                  )}{' '}
+                  pcs (qty − stock)
                 </h3>
                 <div className='overflow-hidden rounded-lg border border-border'>
                   <Table>
@@ -82,8 +96,9 @@ export const CompletedOrderDialog = ({
                       <TableRow>
                         <TableHead>Product ID</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Qty ordered</TableHead>
-                        <TableHead>Stock pulled</TableHead>
+                        <TableHead>Qty Ordered</TableHead>
+                        <TableHead>Stock Pulled</TableHead>
+                        <TableHead>Manufactured</TableHead>
                         <TableHead>Packaged</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -101,6 +116,11 @@ export const CompletedOrderDialog = ({
                           </TableCell>
                           <TableCell>
                             <span className='font-mono'>{line.from_stock || '—'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className='font-mono'>
+                              {Math.max(line.qty_ordered - line.from_stock, 0)}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <span className='font-mono'>{line.packaged}</span>

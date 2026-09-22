@@ -1,13 +1,6 @@
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
@@ -25,7 +18,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Database, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import {
-  coilFiltersQuery,
   coilLotsQuery,
   useSetCoilLocation,
   useUpdateCoilLot,
@@ -33,6 +25,7 @@ import {
   type CoilScope
 } from '../api'
 import { CoilAdjustDialog } from './coil-adjust-dialog'
+import { CoilFilterDialog } from './coil-filter-dialog'
 
 const figure = (value: number | null) =>
   value === null ? '—' : new Intl.NumberFormat('en-US').format(value)
@@ -80,7 +73,6 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
   const [filterOpen, setFilterOpen] = useState(false)
 
   const { data: lots, isPending } = useQuery(coilLotsQuery(scope))
-  const { data: filters } = useQuery(coilFiltersQuery(departmentId))
   const setLocation = useSetCoilLocation()
 
   const move = (lot: CoilLot, location: Parameters<typeof setLocation.mutate>[0]['location']) =>
@@ -103,10 +95,17 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
     <div className='flex min-w-0 flex-col gap-4'>
       <Tabs value={scope} onValueChange={value => setScope(value as CoilScope)}>
         <TabsList className='h-10'>
-          <TabsTrigger value='trim'>Trim coils</TabsTrigger>
-          <TabsTrigger value='all'>All coils</TabsTrigger>
+          <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
+          <TabsTrigger value='all'>All Coils</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {/* What this tab is, said once: the floor arrives here from a machine, not from a manual. */}
+      <p className='flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground'>
+        <Database className='mt-0.5 size-4 shrink-0' />
+        Coils imported from EBMS, under the filter this department was given. Click a coil&apos;s
+        Coil Thickness, Linear Feet or Weight to adjust it and push the change back to EBMS.
+      </p>
 
       <div className='flex flex-wrap items-center gap-3'>
         <p className='text-sm text-muted-foreground'>
@@ -121,7 +120,7 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
           <InputGroupInput
             type='search'
             aria-label='Search coils'
-            placeholder='Product ID, coil # or note...'
+            placeholder='Search — product / coil # / note'
             value={term}
             onChange={event => setTerm(event.target.value)}
           />
@@ -250,36 +249,11 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
 
       <CoilAdjustDialog lot={adjusting} onOpenChange={open => !open && setAdjusting(null)} />
 
-      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-        <DialogContent className='sm:max-w-lg'>
-          <DialogHeader>
-            <DialogTitle>Coil filter</DialogTitle>
-            <DialogDescription>
-              Which coils EBMS sends this department. The bounds are set in the admin window; this
-              is what they are now.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className='scrollport max-h-96 min-h-40 flex-col gap-3 overflow-y-auto'>
-            {filters?.length ? (
-              filters.map(filter => (
-                <div key={filter.id} className='rounded-lg border border-border p-3 text-sm'>
-                  <p className='font-medium'>{filter.folder_name ?? 'Every folder'}</p>
-                  <p className='text-muted-foreground'>
-                    {filter.apply_all
-                      ? 'No bounds — every coil in this folder.'
-                      : `Thickness ${filter.thickness_min ?? '—'}–${filter.thickness_max ?? '—'}, width ${filter.width_min ?? '—'}–${filter.width_max ?? '—'}, grade ${filter.grade_min ?? '—'}–${filter.grade_max ?? '—'}.`}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className='text-sm text-muted-foreground'>
-                No filter is set, so every coil EBMS holds reaches this department.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CoilFilterDialog
+        departmentId={departmentId}
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+      />
     </div>
   )
 }

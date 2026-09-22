@@ -125,8 +125,9 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
               <col className='w-10' />
               <col className='w-40' />
               <col className='w-40' />
-              {/* Wide enough for the number and the Stock badge beside it. */}
-              <col className='w-40' />
+              {/* Wide enough for a stock order's own number, which runs longer than an invoice,
+                  and the Stock badge beside it. */}
+              <col className='w-48' />
               <col className='w-44' />
               <col />
               {/* The heading is wider than the dot under it, and it is what sets the width. */}

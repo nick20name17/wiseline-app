@@ -42,7 +42,15 @@ const CompleteCell = ({ group, disabled, onComplete }: CompleteCellProps) => {
           disabled={disabled}
           onCheckedChange={() => (group.complete ? setConfirming(true) : onComplete(true))}
         />
-        <span className='text-xs text-muted-foreground'>{group.complete ? 'Yes' : 'No'}</span>
+        {/* Signed off reads green across the strip; outstanding stays quiet. */}
+        <span
+          className={cn(
+            'text-sm font-medium',
+            group.complete ? 'text-success' : 'text-muted-foreground'
+          )}
+        >
+          {group.complete ? 'Yes' : 'No'}
+        </span>
       </label>
 
       <ConfirmDialog

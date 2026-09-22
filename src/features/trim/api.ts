@@ -1241,6 +1241,29 @@ const coilFilterSchema = z.object({
 
 export type CoilFilter = z.infer<typeof coilFilterSchema>
 
+export type CoilFilterForm = {
+  thickness_min: number | null
+  thickness_max: number | null
+  width_min: number | null
+  width_max: number | null
+  grade_min: number | null
+  grade_max: number | null
+  apply_all: boolean
+}
+
+/**
+ * The department's coil filter, as the window writes it. There is one row per folder and the API
+ * offers no way to change one — see TODO.md — so this only ever writes the first.
+ */
+export const useCreateCoilFilter = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: ({ departmentId, values }: { departmentId: number; values: CoilFilterForm }) =>
+      authApi.post('coils/filters/', { json: { department: departmentId, ...values } }).json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
 /** Which coils EBMS is allowed to send this department — the bounds the Manager set. */
 export const coilFiltersQuery = (departmentId: number | undefined) =>
   queryOptions({

@@ -177,3 +177,29 @@ both are columns the floor reads the table by.
 
 **On our side once it lands:** the two columns go into `WrappingTab`; it shows the line item's
 autoid in place of the product today.
+
+## Backend: a coil filter can be created but never changed
+
+**Ask:** `PATCH /coils/filters/{id}/` and `DELETE /coils/filters/{id}/`.
+
+**Why:** the Coil Filter window sets the Thickness, Width and Grade a coil has to fall inside before
+EBMS sends it to a department, and the board treats it as a setting the Manager revisits. The table
+holds one row per department and folder (`uq_coil_filter_folder`), and the only write is
+`POST /coils/filters/`, which inserts — so applying a second time on the same folder breaks the
+constraint. Today the window can write the first filter and nothing after it.
+
+**On our side once it lands:** `CoilFilterDialog` in `src/features/trim/components/` drops the note
+about the missing endpoint and its Apply saves whatever is on screen.
+
+## Backend: a coil says nothing about the material on it
+
+**Ask:** `color`, `gauge` and `width` on `CoilLotSchema`, from the EBMS product behind `inven`.
+
+**Why:** the board's Coils table is Product ID | Color | Width (in.) | Coil # | Coil Thickness |
+Linear Feet | Weight | Location | Note, and a cutlist is matched to a coil by **colour**
+(p1 (426,341)). The lot carries the product id and the measurements, so the three columns the floor
+reads the table by cannot be filled, and the Cutlist Coils window can only say «coils in the Slinet»
+rather than naming the colour it matched on.
+
+**On our side once it lands:** the three columns go into `CoilsTab`, and the folder tabs follow once
+`GET /coils/lots/` can filter by folder as well.

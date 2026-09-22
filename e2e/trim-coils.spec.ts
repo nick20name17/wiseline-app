@@ -55,9 +55,13 @@ test('a figure opens the adjustment window, and the answer is confirmed before i
   await expect(page.getByText(/pushes the new Linear Feet to EBMS/)).toBeVisible()
 })
 
-test('the coil filter says which coils reach this department', async ({ page }) => {
+test('the coil filter window sets the bounds a coil has to fall inside', async ({ page }) => {
   await page.getByRole('button', { name: 'Coil filter' }).click()
 
-  await expect(page.getByText('26 Ga. B&B Coils')).toBeVisible()
-  await expect(page.getByText(/Thickness 0.015–0.02/)).toBeVisible()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('checkbox')).toHaveCount(3)
+  // Apply All is what makes a range limitless, so the boxes under it are shut.
+  await expect(dialog.getByLabel('Thickness', { exact: true })).toBeDisabled()
+  await dialog.getByLabel('Apply All').first().click()
+  await expect(dialog.getByLabel('Thickness', { exact: true })).toBeEnabled()
 })

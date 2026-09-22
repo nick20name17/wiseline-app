@@ -182,7 +182,9 @@ export const ScheduledRow = ({
         </TableCell>
 
         <TableCell>
-          <span className='font-mono font-medium'>{order.invoice}</span>
+          <span className='font-mono font-medium' title={order.invoice}>
+            {order.invoice}
+          </span>
           {isSplit(order, day) ? (
             <Split
               className='ml-1.5 inline size-3.5 text-primary'

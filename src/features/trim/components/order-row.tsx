@@ -88,7 +88,9 @@ export const OrderRow = ({
           <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
         </TableCell>
         <TableCell>
-          <span className='font-mono font-medium'>{order.invoice}</span>
+          <span className='font-mono font-medium' title={order.invoice}>
+            {order.invoice}
+          </span>
           {isSplit(order) ? (
             <Split
               className='ml-1.5 inline size-3.5 text-primary'
