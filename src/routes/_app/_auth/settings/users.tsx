@@ -1,7 +1,20 @@
-import { PagePlaceholder } from '@/components/page-placeholder'
+import { UsersPage, usersSearchSchema } from '@/features/users'
 import { createFileRoute } from '@tanstack/react-router'
+
+const UsersRoute = () => {
+  const { search } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  return (
+    <UsersPage
+      search={search}
+      onSearchChange={next => void navigate({ search: { search: next }, replace: true })}
+    />
+  )
+}
 
 export const Route = createFileRoute('/_app/_auth/settings/users')({
   staticData: { crumb: 'Users' },
-  component: () => <PagePlaceholder title='Users' />
+  validateSearch: usersSearchSchema,
+  component: UsersRoute
 })

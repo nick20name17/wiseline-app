@@ -20,7 +20,8 @@ the company.
 
 **Shape we need:** `role` optional, matched exactly against the values
 `GET /constants/users-roles/` returns, combinable with `limit`/`offset`. A `search` parameter on
-the same endpoint would let the future Settings → Users page stop paging through everything too.
+the same endpoint would help too: Settings → Users pulls one large page and filters it in memory
+(`usersQuery` in `src/features/users/api.ts`), the same stopgap the warehouses list uses.
 
 **On our side once it lands:** the driver picker and the users list both ask for the role they
 need instead of paging through everyone.
