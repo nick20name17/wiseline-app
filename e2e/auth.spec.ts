@@ -3,8 +3,9 @@ import { mockAuthApi, password, user } from './api.ts'
 
 const signIn = async (page: Page) => {
   await page.getByLabel('Email').fill(user.email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Log in' }).click()
+  // Exact: the show/hide toggle's own label also contains the word.
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Continue' }).click()
 }
 
 test.beforeEach(async ({ page }) => {

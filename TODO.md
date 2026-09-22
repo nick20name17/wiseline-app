@@ -71,3 +71,52 @@ and the five measurements, so the column cannot be filled and is left out for no
 
 **On our side once it lands:** add the Plate column between Name and Max Weight in
 `TrucksTable`, and a Plate box to the truck form.
+
+## Backend: line items of a fresh EBMS order carry no department
+
+**Ask:** create `pm_item` rows with `department_id` set when an order is first scheduled, or expose an
+endpoint that does it.
+
+**Why:** everything the Trim board writes goes through the department-scoped endpoints —
+`POST /sales-orders/schedule/`, `POST /sales-orders/{id}/departments/{dept}/schedule/`,
+`.../bypass/`. All of them reach the order's line items through
+`Item.order == <autoid> AND Item.department_id == <dept>` (`OrderDepartmentStateService._department_items`,
+`stages/services.py`). An EBMS order nobody has touched has no `pm_item` rows at all, so the call
+answers `400 No line items of this order belong to that department.`
+
+`POST /multiupdate/items/` does create missing rows (`ItemsService.multiupdate`), but from
+`MultiUpdateItemSchema`, which carries no department — so the rows it creates have
+`department_id = NULL` and are invisible to every query above, including the day strip
+(`CapacityViewService._totals` filters on the same column). Only the migration backfill and
+`StockOrderService` ever set the column today.
+
+**Shape we need:** the department derived the same way the stock order path derives it — the line
+item's `INVENTRY.PROD_TYPE` names an `INPRODTYPE` row whose autoid is the department's
+`category_autoid` — applied whenever an `Item` is created.
+
+**On our side once it lands:** nothing changes. `src/features/trim/api.ts` already calls the
+department endpoints and creates the `SalesOrder` row when the EBMS order has none.
+
+## Backend: no image upload for a Stock Card
+
+**Ask:** let `POST /files/models/` accept `model_name=StockCard`, or add an upload that returns a
+`pm_file` id a stock card can point at.
+
+**Why:** `StockCardSchemaIn` requires `image_id`, and the board says the Manager uploads the profile
+sketch on the Create form (`docs/wiseline-spec.md`, p1 (71,307)). `files/routers.py` accepts only
+`PackageItem`, `Package` and `Skid`, so no client can produce an `image_id` and no stock card can be
+created from the app at all.
+
+**On our side once it lands:** `StockCardsDialog` in `src/features/trim/components/` gets its Create
+form; today it lists, prints and deletes only.
+
+## Backend: filter priorities by department
+
+**Ask:** a `department` query parameter on `GET /priorities/`.
+
+**Why:** priorities are created per department and "would ONLY be for the Trim department"
+(p1 (241,403)), and the write endpoints enforce that. The list endpoint does not: it returns every
+department's, so the Trim board pulls the lot and filters in memory (`prioritiesQuery` in
+`src/features/trim/api.ts`), keeping the ones with a matching department plus the ones with none.
+
+**On our side once it lands:** move the filter into the query key and drop the `select`.

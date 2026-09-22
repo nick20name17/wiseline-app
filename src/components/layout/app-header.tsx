@@ -4,6 +4,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb'
+import { usePageHeaderValue } from '@/components/layout/page-header-context'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useMatches } from '@tanstack/react-router'
 import { Fragment, type ReactNode } from 'react'
@@ -14,9 +15,13 @@ type AppHeaderProps = {
 }
 
 export const AppHeader = ({ actions }: AppHeaderProps) => {
-  const crumbs = useMatches({
+  const routeCrumbs = useMatches({
     select: matches => matches.map(match => match.staticData.crumb).filter(crumb => !!crumb)
   })
+  // A page can add to its own breadcrumb and hand up a search box — a department board's tab and its
+  // order search both live here, next to the trail they belong to.
+  const { trail, search } = usePageHeaderValue()
+  const crumbs = [...routeCrumbs, ...(trail ?? [])]
 
   return (
     <header className='sticky top-0 z-10 flex h-13 shrink-0 items-center gap-3.5 border-b border-border bg-background px-4.5'>
@@ -44,6 +49,8 @@ export const AppHeader = ({ actions }: AppHeaderProps) => {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
+
+      {search ? <div className='ml-4 w-full max-w-lg'>{search}</div> : null}
 
       <div className='ml-auto flex items-center gap-2.5'>{actions}</div>
     </header>

@@ -20,7 +20,7 @@ const accessToken = `header.${claims}.signature`
 
 export const mockAuthApi = async (page: Page) => {
   await page.route(`${API_URL}/token/`, route =>
-    route.fulfill({ json: { access_token: accessToken, token_type: 'bearer', refresh: 'refresh' } })
+    route.fulfill({ json: { access: accessToken, refresh: 'refresh' } })
   )
   await page.route(`${API_URL}/users/${user.id}/`, route => route.fulfill({ json: user }))
 }

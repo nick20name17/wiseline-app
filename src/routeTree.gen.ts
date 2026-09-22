@@ -21,10 +21,10 @@ import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppStockCardsRouteImport } from './routes/_app/stock-cards'
-import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppAuthMoonRouteImport } from './routes/_app/_auth/moon'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
+import { Route as AppAuthTrimRouteImport } from './routes/_app/_auth/trim'
 import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
 import { Route as AppAuthSettingsIndexRouteImport } from './routes/_app/_auth/settings/index'
 import { Route as AppAuthSettingsLocationTypesRouteImport } from './routes/_app/_auth/settings/location-types'
@@ -94,11 +94,6 @@ const AppStockCardsRoute = AppStockCardsRouteImport.update({
   path: '/stock-cards',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppTrimRoute = AppTrimRouteImport.update({
-  id: '/trim',
-  path: '/trim',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppAuthMoonRoute = AppAuthMoonRouteImport.update({
   id: '/moon',
   path: '/moon',
@@ -112,6 +107,11 @@ const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
 const AppAuthSettingsRouteRoute = AppAuthSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthTrimRoute = AppAuthTrimRouteImport.update({
+  id: '/trim',
+  path: '/trim',
   getParentRoute: () => AppAuthRouteRoute,
 } as any)
 const PasswordResetUid64TokenRoute = PasswordResetUid64TokenRouteImport.update({
@@ -180,10 +180,10 @@ export interface FileRoutesByFullPath {
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
-  '/trim': typeof AppTrimRoute
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/moon': typeof AppAuthMoonRoute
   '/profile': typeof AppAuthProfileRoute
+  '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
@@ -206,9 +206,9 @@ export interface FileRoutesByTo {
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
-  '/trim': typeof AppTrimRoute
   '/moon': typeof AppAuthMoonRoute
   '/profile': typeof AppAuthProfileRoute
+  '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
@@ -233,11 +233,11 @@ export interface FileRoutesById {
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/shipping': typeof AppShippingRoute
   '/_app/stock-cards': typeof AppStockCardsRoute
-  '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/_app/_auth/moon': typeof AppAuthMoonRoute
   '/_app/_auth/profile': typeof AppAuthProfileRoute
+  '/_app/_auth/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/_app/_auth/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/_app/_auth/settings/locations': typeof AppAuthSettingsLocationsRoute
@@ -262,10 +262,10 @@ export interface FileRouteTypes {
     | '/rollforming'
     | '/shipping'
     | '/stock-cards'
-    | '/trim'
     | '/settings'
     | '/moon'
     | '/profile'
+    | '/trim'
     | '/password-reset/$uid64/$token'
     | '/settings/location-types'
     | '/settings/locations'
@@ -288,9 +288,9 @@ export interface FileRouteTypes {
     | '/rollforming'
     | '/shipping'
     | '/stock-cards'
-    | '/trim'
     | '/moon'
     | '/profile'
+    | '/trim'
     | '/password-reset/$uid64/$token'
     | '/settings/location-types'
     | '/settings/locations'
@@ -314,11 +314,11 @@ export interface FileRouteTypes {
     | '/_app/rollforming'
     | '/_app/shipping'
     | '/_app/stock-cards'
-    | '/_app/trim'
     | '/_app/'
     | '/_app/_auth/settings'
     | '/_app/_auth/moon'
     | '/_app/_auth/profile'
+    | '/_app/_auth/trim'
     | '/password-reset/$uid64/$token'
     | '/_app/_auth/settings/location-types'
     | '/_app/_auth/settings/locations'
@@ -424,13 +424,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppStockCardsRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/trim': {
-      id: '/_app/trim'
-      path: '/trim'
-      fullPath: '/trim'
-      preLoaderRoute: typeof AppTrimRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/_auth/moon': {
       id: '/_app/_auth/moon'
       path: '/moon'
@@ -450,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppAuthSettingsRouteRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/_app/_auth/trim': {
+      id: '/_app/_auth/trim'
+      path: '/trim'
+      fullPath: '/trim'
+      preLoaderRoute: typeof AppAuthTrimRouteImport
       parentRoute: typeof AppAuthRouteRoute
     }
     '/password-reset/$uid64/$token': {
@@ -556,12 +556,14 @@ interface AppAuthRouteRouteChildren {
   AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
   AppAuthMoonRoute: typeof AppAuthMoonRoute
   AppAuthProfileRoute: typeof AppAuthProfileRoute
+  AppAuthTrimRoute: typeof AppAuthTrimRoute
 }
 
 const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
   AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
   AppAuthMoonRoute: AppAuthMoonRoute,
   AppAuthProfileRoute: AppAuthProfileRoute,
+  AppAuthTrimRoute: AppAuthTrimRoute,
 }
 
 const AppAuthRouteRouteWithChildren = AppAuthRouteRoute._addFileChildren(
@@ -577,7 +579,6 @@ interface AppRouteRouteChildren {
   AppRollformingRoute: typeof AppRollformingRoute
   AppShippingRoute: typeof AppShippingRoute
   AppStockCardsRoute: typeof AppStockCardsRoute
-  AppTrimRoute: typeof AppTrimRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -590,7 +591,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppRollformingRoute: AppRollformingRoute,
   AppShippingRoute: AppShippingRoute,
   AppStockCardsRoute: AppStockCardsRoute,
-  AppTrimRoute: AppTrimRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
