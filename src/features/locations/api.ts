@@ -8,7 +8,8 @@ const PAGE_SIZE = 200
 const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
-  code: z._default(z.string(), '')
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -21,7 +22,10 @@ export const departmentsQuery = queryOptions({
 
 const warehouseSchema = z.object({
   id: z.number(),
-  name: z._default(z.nullable(z.string()), null)
+  name: z._default(z.nullable(z.string()), null),
+  address: z._default(z.nullable(z.string()), null),
+  // The lowest one is the default warehouse; see `defaultWarehouseId`.
+  position: z._default(z.number(), 0)
 })
 
 export type Warehouse = z.infer<typeof warehouseSchema>
@@ -120,7 +124,6 @@ const locationSchema = z.object({
   warehouse_id: z._default(z.nullable(z.number()), null),
   location_type_id: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
-  dimensions: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   // A location that takes more than one order at a time, and how many.
   multi_order: z._default(z.boolean(), false),
@@ -129,12 +132,15 @@ const locationSchema = z.object({
 
 export type Location = z.infer<typeof locationSchema>
 
+// A picker starts on nothing, as the design has it, so an untouched one reads as null until chosen.
+const picked = (message: string) =>
+  z.nullable(z.number()).check(z.refine(value => value !== null, message))
+
 export const locationFormSchema = z.object({
   code: z.string().check(z.minLength(1, 'Name is required')),
-  warehouse_id: z.number(),
-  location_type_id: z.number(),
-  weight: z.nullable(z.number()),
-  dimensions: z.nullable(z.string()),
+  warehouse_id: picked('Warehouse is required'),
+  location_type_id: picked('Location Type is required'),
+  weight: z.number('Max weight is required'),
   description: z.nullable(z.string()),
   multi_order: z.boolean(),
   max_orders: z.nullable(z.number())

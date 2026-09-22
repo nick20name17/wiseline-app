@@ -1,6 +1,8 @@
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -30,16 +32,19 @@ import {
   type LocationType,
   type LocationTypeForm as LocationTypeFormValues
 } from '../api'
+import { WarehouseOptions } from './warehouse-options'
 
 // `Field` and `aria-invalid` both want `true` or nothing, never `false`.
 const invalid = (error: unknown) => (error ? true : undefined)
 
 type LocationTypeFormProps = {
   locationType?: LocationType
+  /** The department the page is showing, which a new type starts in. */
+  departmentId?: number
   onSuccess: () => void
 }
 
-const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) => {
+const LocationTypeForm = ({ locationType, departmentId, onSuccess }: LocationTypeFormProps) => {
   const { data: departments } = useQuery(departmentsQuery)
   const { data: warehouses } = useQuery(warehousePickerQuery)
 
@@ -48,7 +53,7 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
     defaultValues: {
       name: locationType?.name ?? '',
       warehouse_id: locationType?.warehouse_id ?? warehouses?.[0]?.id ?? 0,
-      department_id: locationType?.department_id ?? departments?.[0]?.id ?? 0,
+      department_id: locationType?.department_id ?? departmentId ?? departments?.[0]?.id ?? 0,
       description: locationType?.description ?? null
     }
   })
@@ -63,11 +68,11 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
     >
       <FieldGroup>
         <Field data-invalid={invalid(errors.name)}>
-          <FieldLabel htmlFor='type-name'>Name</FieldLabel>
+          <RequiredLabel htmlFor='type-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='type-name'
-              placeholder='e.g. Trim racks'
+              placeholder='e.g. Trim Rack'
               aria-invalid={invalid(errors.name)}
               {...form.register('name')}
             />
@@ -76,7 +81,7 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
         </Field>
 
         <Field data-invalid={invalid(errors.warehouse_id)}>
-          <FieldLabel htmlFor='type-warehouse'>Warehouse</FieldLabel>
+          <RequiredLabel htmlFor='type-warehouse'>Warehouse</RequiredLabel>
           <Controller
             control={form.control}
             name='warehouse_id'
@@ -89,17 +94,12 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
                   {/* The trigger holds the id; the name is what the eye is looking for. */}
                   <SelectValue>
                     {(id: string) =>
-                      warehouses?.find(warehouse => warehouse.id === Number(id))?.name ??
-                      'Pick a warehouse'
+                      warehouses?.find(warehouse => warehouse.id === Number(id))?.name ?? 'Select…'
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {warehouses?.map(warehouse => (
-                    <SelectItem key={warehouse.id} value={String(warehouse.id)}>
-                      {warehouse.name ?? `Warehouse ${warehouse.id}`}
-                    </SelectItem>
-                  ))}
+                  <WarehouseOptions warehouses={warehouses} />
                 </SelectContent>
               </Select>
             )}
@@ -108,7 +108,7 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
         </Field>
 
         <Field data-invalid={invalid(errors.department_id)}>
-          <FieldLabel htmlFor='type-department'>Department</FieldLabel>
+          <RequiredLabel htmlFor='type-department'>Department</RequiredLabel>
           {/* A location has no department of its own — it takes this one. */}
           <Controller
             control={form.control}
@@ -122,7 +122,7 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
                   <SelectValue>
                     {(id: string) =>
                       departments?.find(department => department.id === Number(id))?.name ??
-                      'Pick a department'
+                      'Select…'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -144,23 +144,22 @@ const LocationTypeForm = ({ locationType, onSuccess }: LocationTypeFormProps) =>
           <Textarea
             id='type-description'
             rows={3}
-            placeholder='e.g. Racks along the north wall'
+            placeholder='e.g. Standing trim racks'
             aria-invalid={invalid(errors.description)}
             // An empty box means «no description», which the API stores as null rather than ''.
             {...form.register('description', { setValueAs: value => value || null })}
           />
           <FieldError errors={[errors.description]} />
         </Field>
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {locationType ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <div className='mt-6 flex justify-end gap-2'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </div>
     </form>
   )
 }
@@ -172,7 +171,9 @@ const useReady = () => {
   return !!departments && !!warehouses
 }
 
-export const CreateLocationTypeDialog = () => {
+type CreateLocationTypeDialogProps = { departmentId: number | undefined }
+
+export const CreateLocationTypeDialog = ({ departmentId }: CreateLocationTypeDialogProps) => {
   const [open, setOpen] = useState(false)
   const ready = useReady()
 
@@ -180,14 +181,18 @@ export const CreateLocationTypeDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Create location type
+        Add location type
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create location type</DialogTitle>
+          <DialogTitle>Add location type</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && ready ? <LocationTypeForm onSuccess={() => setOpen(false)} /> : <Spinner />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        {ready ? (
+          <LocationTypeForm departmentId={departmentId} onSuccess={() => setOpen(false)} />
+        ) : (
+          <Spinner />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -210,9 +215,9 @@ export const UpdateLocationTypeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update location type</DialogTitle>
+          <DialogTitle>Edit location type</DialogTitle>
         </DialogHeader>
-        {open && ready ? (
+        {ready ? (
           <LocationTypeForm locationType={locationType} onSuccess={() => onOpenChange(false)} />
         ) : (
           <Spinner />

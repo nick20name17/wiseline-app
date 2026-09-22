@@ -22,36 +22,49 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, Pencil, Search, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import {
   allLocationTypesQuery,
+  departmentsQuery,
   locationsQuery,
   useDeleteLocation,
   warehousePickerQuery,
   type Location
 } from '../api'
+import { activeDepartment, rackedDepartments } from '../lib/departments'
+import { DepartmentPills } from './department-pills'
 import { CreateLocationDialog, UpdateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
 
 type LocationsPageProps = {
   search: string | undefined
+  department: string | undefined
   onSearchChange: (search: string | undefined) => void
+  onDepartmentChange: (department: string | undefined) => void
 }
 
 /**
- * Every place a package can stand. The department is not a column here — a location takes it from
- * its type, which is the one place it is set.
+ * Every place a package can stand, one department at a time. A location takes its department from
+ * its type, which is the one place it is set, so that is what narrows the list.
  */
-export const LocationsPage = ({ search, onSearchChange }: LocationsPageProps) => {
+export const LocationsPage = ({
+  search,
+  department,
+  onSearchChange,
+  onDepartmentChange
+}: LocationsPageProps) => {
   const { data: page, isPending } = useQuery(locationsQuery(search))
   const { data: warehouses } = useQuery(warehousePickerQuery)
   const { data: types } = useQuery(allLocationTypesQuery)
+  const { data: departments } = useQuery(departmentsQuery)
 
   const [editing, setEditing] = useState<Location | null>(null)
   const [removing, setRemoving] = useState<Location | null>(null)
+  const [removed, releaseRemoved] = useRetained(removing)
   const remove = useDeleteLocation(() => setRemoving(null))
 
   const [term, setTerm] = useState(search ?? '')
@@ -63,10 +76,18 @@ export const LocationsPage = ({ search, onSearchChange }: LocationsPageProps) =>
     debounce.current = setTimeout(() => onSearchChange(value || undefined), SEARCH_DEBOUNCE_MS)
   }
 
-  const locations = page?.results ?? []
+  const racked = rackedDepartments(departments)
+  const active = activeDepartment(racked, department)
+  const locations = (page?.results ?? []).filter(
+    location =>
+      !active ||
+      types?.find(type => type.id === location.location_type_id)?.department_id === active.id
+  )
 
   return (
     <section className='flex flex-col gap-4'>
+      <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+
       <div className='flex items-center justify-between gap-3.5'>
         <div className='flex items-center gap-3'>
           <InputGroup className='w-60'>
@@ -84,13 +105,13 @@ export const LocationsPage = ({ search, onSearchChange }: LocationsPageProps) =>
 
           {locations.length ? (
             <p className='text-sm text-muted-foreground'>
-              {page?.count ?? locations.length}{' '}
-              {(page?.count ?? locations.length) === 1 ? 'location' : 'locations'}
+              {locations.length} {locations.length === 1 ? 'location' : 'locations'}
+              {active ? ` in ${active.name}` : ''}
             </p>
           ) : null}
         </div>
 
-        <CreateLocationDialog />
+        <CreateLocationDialog department={active} />
       </div>
 
       {!isPending && !locations.length ? (
@@ -99,11 +120,9 @@ export const LocationsPage = ({ search, onSearchChange }: LocationsPageProps) =>
             <EmptyMedia variant='icon'>
               <MapPin />
             </EmptyMedia>
-            <EmptyTitle>No locations</EmptyTitle>
+            <EmptyTitle>No locations yet</EmptyTitle>
             <EmptyDescription>
-              {search
-                ? `Nothing matches “${search}”.`
-                : 'Create one under a location type, which is what places it in a department.'}
+              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -200,10 +219,14 @@ export const LocationsPage = ({ search, onSearchChange }: LocationsPageProps) =>
         />
       ) : null}
 
-      <AlertDialog open={!!removing} onOpenChange={open => !open && setRemoving(null)}>
+      <AlertDialog
+        open={!!removing}
+        onOpenChange={open => !open && setRemoving(null)}
+        onOpenChangeComplete={releaseRemoved}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete location {removing?.code}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete location {removed?.code}?</AlertDialogTitle>
             <AlertDialogDescription>
               Anything standing on it loses where it is. This cannot be undone.
             </AlertDialogDescription>

@@ -58,13 +58,6 @@ const matches = (warehouse: Warehouse, search: string) =>
     field?.toLowerCase().includes(search)
   )
 
-/** The one that opens first: lowest position, and the first of those the API listed on a tie. */
-export const defaultWarehouseId = (warehouses: Warehouse[]) =>
-  warehouses.reduce<Warehouse | null>(
-    (first, warehouse) => (first && first.position <= warehouse.position ? first : warehouse),
-    null
-  )?.id
-
 export const warehousesQuery = (search: string | undefined) =>
   queryOptions({
     queryKey: warehousesKeys.list(),

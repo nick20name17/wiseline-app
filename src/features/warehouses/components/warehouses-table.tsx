@@ -8,7 +8,8 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { defaultWarehouseId, type Warehouse } from '../api'
+import { defaultWarehouseId } from '@/lib/default-warehouse'
+import type { Warehouse } from '../api'
 import { WarehouseActions } from './warehouse-actions'
 
 type WarehousesTableProps = {
