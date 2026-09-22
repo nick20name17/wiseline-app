@@ -1,5 +1,5 @@
 import { authApi } from '@/api/client'
-import { keepPreviousData, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // A truck can be created with nothing but a name and have its weight filled in later. The record
@@ -40,29 +40,23 @@ export const trucksQuery = (search: string | undefined) =>
       )
   })
 
-export const useUpsertTruck = (onSuccess: () => void) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+export const useUpsertTruck = (onSuccess: () => void) =>
+  useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: TruckPayload }) =>
       id
         ? authApi.patch(`trucks/${id}/`, { json: payload }).json()
         : authApi.post('trucks/', { json: payload }).json(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: trucksKeys.all })
+    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+      await client.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }
   })
-}
 
-export const useDeleteTruck = (onSuccess: () => void) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+export const useDeleteTruck = (onSuccess: () => void) =>
+  useMutation({
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: trucksKeys.all })
+    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+      await client.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }
   })
-}

@@ -1,5 +1,5 @@
 import { authApi } from '@/api/client'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // The API declares every field but `id` optional, even `name` and `address`, which the database
@@ -77,29 +77,23 @@ export const warehousesQuery = (search: string | undefined) =>
       search ? results.filter(warehouse => matches(warehouse, search.toLowerCase())) : results
   })
 
-export const useUpsertWarehouse = (onSuccess: () => void) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+export const useUpsertWarehouse = (onSuccess: () => void) =>
+  useMutation({
     mutationFn: ({ id, values }: { id?: number; values: WarehouseForm }) =>
       id
         ? authApi.patch(`warehouses/${id}/`, { json: toPayload(values) }).json()
         : authApi.post('warehouses/', { json: toPayload(values) }).json(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: warehousesKeys.all })
+    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+      await client.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }
   })
-}
 
-export const useDeleteWarehouse = (onSuccess: () => void) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+export const useDeleteWarehouse = (onSuccess: () => void) =>
+  useMutation({
     mutationFn: (id: number) => authApi.delete(`warehouses/${id}/`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: warehousesKeys.all })
+    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+      await client.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }
   })
-}

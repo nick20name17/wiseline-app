@@ -9,7 +9,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/errors'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -20,7 +20,6 @@ type LoginFormProps = {
 }
 
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
-  const queryClient = useQueryClient()
   const [passwordVisible, setPasswordVisible] = useState(false)
 
   const form = useForm<Credentials>({
@@ -31,8 +30,8 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const mutation = useMutation({
     mutationFn: login,
     meta: { skipErrorToast: true },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.all })
+    onSuccess: async (_data, _credentials, _onMutate, { client }) => {
+      await client.invalidateQueries({ queryKey: authKeys.all })
       await onSuccess()
     }
   })
