@@ -19,6 +19,8 @@ type ScheduleDialogProps = {
   description: string
   actionLabel: string
   departmentId: number | undefined
+  /** Scheduling cannot reach into the past; pinning a day to look at it can. */
+  allowPast?: boolean
   isPending: boolean
   onPick: (productionDate: string) => void
 }
@@ -34,6 +36,7 @@ export const ScheduleDialog = ({
   description,
   actionLabel,
   departmentId,
+  allowPast = false,
   isPending,
   onPick
 }: ScheduleDialogProps) => {
@@ -62,6 +65,7 @@ export const ScheduleDialog = ({
         <CapacityCalendar
           departmentId={departmentId}
           enabled={open}
+          allowPast={allowPast}
           month={month}
           onMonthChange={setMonth}
           selected={selected}

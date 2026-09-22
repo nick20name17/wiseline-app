@@ -1,13 +1,12 @@
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
 import { dayStripQuery, type DayStripEntry } from '../api'
-import { formatDayLabel, fromIsoDay, toIsoDay, today } from '../lib/format'
-import { CapacityCalendar } from './capacity-calendar'
+import { formatDayLabel, today } from '../lib/format'
+import { ScheduleDialog } from './schedule-dialog'
 
 // The board shows the current day plus the rest of the working week.
 const STRIP_DAYS = 5
@@ -65,7 +64,6 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
   const start = today()
   const [peek, setPeek] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [pickerMonth, setPickerMonth] = useState(() => new Date())
 
   const { data: days, isPending } = useQuery(dayStripQuery(departmentId, start, STRIP_DAYS))
   // The pinned day is its own one-day strip: it is usually outside the window the five pills cover.
@@ -76,6 +74,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
   const peekEntry = peek && peekDays?.[0]?.date === peek ? peekDays[0] : null
 
   return (
+    // `items-stretch`: the day picker is as tall as the pills beside it, as it is on the board.
     <div className='flex flex-wrap items-stretch gap-1.5'>
       {isPending
         ? Array.from({ length: STRIP_DAYS }, (_, index) => (
@@ -89,29 +88,33 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         <DayPill entry={peekEntry} isToday={false} onRemove={() => setPeek(null)} />
       ) : null}
 
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverTrigger render={<Button variant='dashed' size='sm' />}>
-          <CalendarDays data-icon='inline-start' />
-          {peek ? 'Another day' : 'Pick a day'}
-        </PopoverTrigger>
-        <PopoverContent align='start' className='w-lg'>
-          {/* The same grid the scheduling dialog uses, so a day reads the same wherever it is picked.
-              Any day may be pinned, including one already past — that is often the point. */}
-          <CapacityCalendar
-            departmentId={departmentId}
-            enabled={pickerOpen}
-            allowPast
-            month={pickerMonth}
-            onMonthChange={setPickerMonth}
-            selected={peek ? fromIsoDay(peek) : undefined}
-            onSelect={date => {
-              if (!date) return
-              setPeek(toIsoDay(date))
-              setPickerOpen(false)
-            }}
-          />
-        </PopoverContent>
-      </Popover>
+      {/* A plain button, not the shared one: it takes its height from the strip rather than from a
+          button size, which is what puts it level with the pills. */}
+      <button
+        type='button'
+        className='flex items-center gap-1.5 rounded-md border border-dashed border-border bg-background px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary'
+        onClick={() => setPickerOpen(true)}
+      >
+        <CalendarDays className='size-4' />
+        {peek ? 'Another day' : 'Pick a day'}
+      </button>
+
+      {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may
+          be pinned, including one already past: that is often the point of looking. */}
+      <ScheduleDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title='Show another day'
+        description='Pin any day beside the five work days to see the bends already scheduled to it.'
+        actionLabel='Show day'
+        departmentId={departmentId}
+        allowPast
+        isPending={false}
+        onPick={date => {
+          setPeek(date)
+          setPickerOpen(false)
+        }}
+      />
     </div>
   )
 }
