@@ -658,6 +658,9 @@ export const mockTrimApi = async (page: Page) => {
   })
   await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
   await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
+  await page.route(`${API_URL}/cutlists/rows/*/sources/`, route =>
+    route.fulfill({ json: [{ order: 'ARINV-2', origin_item: '101', quantity: 12 }] })
+  )
   await page.route(`${API_URL}/cutlists/rows/*`, route =>
     route.fulfill({ json: { ...CUTLIST.rows[0], complete: true } })
   )

@@ -185,6 +185,7 @@ export const trimKeys = {
       done ? 'done' : 'active'
     ] as const,
   cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const,
+  cutlistSources: (rowIds: number[]) => [...trimKeys.cutlists(), 'sources', rowIds] as const,
   completedOrders: () => [...trimKeys.all, 'completed'] as const,
   completed: (departmentId: number, search: string | undefined) =>
     [...trimKeys.completedOrders(), departmentId, { search: search ?? '' }] as const,
@@ -991,6 +992,23 @@ const coilLotSchema = z.object({
 })
 
 export type CoilLot = z.infer<typeof coilLotSchema>
+
+/**
+ * What a number in the Total column is made of. The list itself carries the breakdown, but a row read
+ * off the board can arrive without it, so the window asks for it outright — one call per row, because
+ * a line of the Slinet's table is several rows, one per machine.
+ */
+export const cutlistRowSourcesQuery = (rowIds: number[]) =>
+  queryOptions({
+    queryKey: trimKeys.cutlistSources(rowIds),
+    enabled: rowIds.length > 0,
+    queryFn: async () => {
+      const rows = await Promise.all(
+        rowIds.map(rowId => authApi.get(`cutlists/rows/${rowId}/sources/`).json())
+      )
+      return rows.flatMap(row => z.array(cutlistSourceSchema).parse(row))
+    }
+  })
 
 /**
  * The Cutlist Coils window: the coils checked into the Slinet whose colour matches the list in front
