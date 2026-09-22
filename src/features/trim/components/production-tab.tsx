@@ -156,7 +156,7 @@ export const ProductionTab = ({ departmentId, readOnly, onOpenCoils }: Productio
           {/* Every station carries its own Active / Completed switch, and a completed list renders in
           the format the worker used — same card, same columns. */}
           <Tabs value={done ? 'done' : 'active'} onValueChange={value => setDone(value === 'done')}>
-            <TabsList className='h-9'>
+            <TabsList className='h-10'>
               <TabsTrigger value='active'>Active {word}</TabsTrigger>
               <TabsTrigger value='done'>
                 <History data-icon='inline-start' />

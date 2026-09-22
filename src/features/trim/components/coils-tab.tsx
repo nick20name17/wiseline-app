@@ -102,7 +102,7 @@ export const CoilsTab = ({ departmentId, readOnly }: CoilsTabProps) => {
   return (
     <div className='flex min-w-0 flex-col gap-4'>
       <Tabs value={scope} onValueChange={value => setScope(value as CoilScope)}>
-        <TabsList className='h-9'>
+        <TabsList className='h-10'>
           <TabsTrigger value='trim'>Trim coils</TabsTrigger>
           <TabsTrigger value='all'>All coils</TabsTrigger>
         </TabsList>
