@@ -31,8 +31,8 @@ need instead of paging through everyone.
 **Ask:** a boolean on the warehouse marking the default one, exclusive across the table.
 
 **Why:** the board spec asks for a Default column on Settings → Warehouses, with one warehouse
-marked and a way to change which ("If we have multiply Warehouses then there needs to be a way to
-select the default Warehouse", `docs/wiseline-spec.md:3398`). `pm_warehouse` has no such column:
+marked and a way to change which — "If we have multiply Warehouses then there needs to be a way to
+select the default Warehouse" p1 (246,139). `pm_warehouse` has no such column:
 its fields are `name`, `address`, `description`, `code`, `position`, `color` and the `c_*` contact
 block, so the client has nothing to render or toggle.
 
@@ -62,9 +62,11 @@ a page.
 
 **Ask:** a plate field on the truck, e.g. `plate: str | None`.
 
-**Why:** the floor identifies a truck by its plate, and the Settings → Trucks table is meant to
-show Name | Plate | Max Weight. `pm_truck` carries no plate: it has `name`, `driver_id`, `notes`
-and the five measurements, so the column cannot be filled and is left out for now.
+**Why:** the floor identifies a truck by its plate, and the prototype's Settings → Trucks table is
+Name | Plate | Max Weight (`main`, `src/features/settings/config.tsx`). `pm_truck` carries no plate:
+it has `name`, `driver_id`, `notes` and the five measurements, so the column cannot be filled and is
+left out for now. The written spec does not mention a plate at all — this one comes from the board's
+own screens.
 
 **Shape we need:** `plate` on `TruckSchemaIn`/`TruckSchemaOut`, writable through
 `POST /trucks/` and `PATCH /trucks/{id}/`, and matched by the existing `search` filter.
@@ -162,9 +164,9 @@ it has neither.
 **Ask:** a `GET /wrapping/orders/{order}/packages/` — the same shape
 `CompletedOrdersService.packages_for` already builds.
 
-**Why:** the board's See Packages button opens the packages made for the order in front of the
-Worker, so one can be deleted when it was packed wrong (`DELETE /wrapping/packages/{id}/` is there
-for exactly that). The packages are only readable once the order is complete, through
+**Why:** the board's See Packages button sits on the order at the wrapping bench
+(`docs/wiseline-spec.md` screen (808,517)) and opens the packages made for it, so one can be deleted
+when it was packed wrong (`DELETE /wrapping/packages/{id}/` is there for exactly that). The packages are only readable once the order is complete, through
 `GET /departments/{id}/completed-orders/{order}/` — which is the one moment the Worker no longer
 needs them.
 
@@ -190,7 +192,9 @@ autoid in place of the product today.
 **Ask:** `PATCH /coils/filters/{id}/` and `DELETE /coils/filters/{id}/`.
 
 **Why:** the Coil Filter window sets the Thickness, Width and Grade a coil has to fall inside before
-EBMS sends it to a department, and the board treats it as a setting the Manager revisits. The table
+EBMS sends it to a department — "when the Thickness, Width and Grade ALL fall within the ranges set
+in the filter, then that coil will show up in the Coils tab" p1 (253,609), with Apply All for a
+limitless range p1 (287,612) — and the board treats it as a setting the Manager revisits. The table
 holds one row per department and folder (`uq_coil_filter_folder`), and the only write is
 `POST /coils/filters/`, which inserts — so applying a second time on the same folder breaks the
 constraint. Today the window can write the first filter and nothing after it.
@@ -202,9 +206,10 @@ about the missing endpoint and its Apply saves whatever is on screen.
 
 **Ask:** `color`, `gauge` and `width` on `CoilLotSchema`, from the EBMS product behind `inven`.
 
-**Why:** the board's Coils table is Product ID | Color | Width (in.) | Coil # | Coil Thickness |
-Linear Feet | Weight | Location | Note, and a cutlist is matched to a coil by **colour**
-(p1 (426,341)). The lot carries the product id and the measurements, so the three columns the floor
+**Why:** the board's Coils table is Product ID | Color | Width (in.) | Count | Total Linear Feet |
+Total Weight, opening into Coil # | Coil Thickness | Linear Feet | Weight | Location | Slinet | Note
+(`docs/wiseline-spec.md` screen (361,608)), and a cutlist is matched to a coil by **colour**
+p1 (426,341). The lot carries the product id and the measurements, so the three columns the floor
 reads the table by cannot be filled, and the Cutlist Coils window can only say «coils in the Slinet»
 rather than naming the colour it matched on.
 
