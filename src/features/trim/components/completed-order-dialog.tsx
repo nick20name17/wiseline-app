@@ -17,8 +17,14 @@ import {
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
-import { Printer } from 'lucide-react'
-import { completedOrderQuery, useReprintPackage, type CompletedOrder } from '../api'
+import { Printer, Trash2 } from 'lucide-react'
+import {
+  completedOrderQuery,
+  orderLocationsQuery,
+  useRemoveOrderLocation,
+  useReprintPackage,
+  type CompletedOrder
+} from '../api'
 import { formatDate } from '../lib/format'
 
 const stamp = (iso: string | null) => {
@@ -61,6 +67,10 @@ export const CompletedOrderDialog = ({
   onOpenChange
 }: CompletedOrderDialogProps) => {
   const { data, isPending } = useQuery(completedOrderQuery(departmentId, order?.order ?? null))
+  // "reprint package labels and change/add/remove locations if necessary" — an order that has gone
+  // still has to be findable, and a location freed when it is no longer standing there.
+  const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
+  const removeLocation = useRemoveOrderLocation()
   const reprint = useReprintPackage(() => toast.add({ type: 'success', title: 'Label sent' }))
 
   return (
@@ -180,6 +190,45 @@ export const CompletedOrderDialog = ({
                   </Table>
                 </div>
               </section>
+
+              {locations?.length ? (
+                <section className='flex flex-wrap items-center gap-2'>
+                  <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+                    Trim location
+                  </h3>
+                  {locations.map(spot => (
+                    <span
+                      key={spot.location_id}
+                      className='flex items-center gap-2 rounded-md border border-border px-2 py-1 text-sm'
+                    >
+                      <span className='font-mono'>{spot.name ?? spot.location_id}</span>
+                      <span className='text-xs text-muted-foreground'>{spot.packages} pkg</span>
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        aria-label={`Take ${spot.name ?? spot.location_id} off this order`}
+                        disabled={removeLocation.isPending}
+                        onClick={() =>
+                          order &&
+                          removeLocation.mutate(
+                            { order: order.order, locationId: spot.location_id },
+                            {
+                              onError: error =>
+                                toast.add({
+                                  type: 'error',
+                                  title: 'The location stayed',
+                                  description: error.message
+                                })
+                            }
+                          )
+                        }
+                      >
+                        <Trash2 />
+                      </Button>
+                    </span>
+                  ))}
+                </section>
+              ) : null}
 
               <Facts
                 facts={[

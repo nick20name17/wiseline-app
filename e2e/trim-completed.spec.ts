@@ -30,6 +30,14 @@ test('an order opens with its line items and packages', async ({ page }) => {
   await expect(dialog.getByText('36 × 901')).toBeVisible()
 })
 
+test('the order says where it is standing, and the location can be freed', async ({ page }) => {
+  await page.getByRole('row').filter({ hasText: '338008' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('Trim location')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /Take 101 off this order/ })).toBeVisible()
+})
+
 test('a package label can be sent to the printer again', async ({ page }) => {
   await page.getByRole('row').filter({ hasText: '338008' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Reprint' }).click()
