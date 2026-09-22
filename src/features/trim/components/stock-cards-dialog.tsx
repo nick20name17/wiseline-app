@@ -66,7 +66,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <div className='max-h-96 overflow-y-auto'>
+        <div className='scrollport max-h-96 overflow-y-auto'>
           {isPending ? (
             <div className='grid gap-3 sm:grid-cols-2'>
               {Array.from({ length: 4 }, (_, index) => (

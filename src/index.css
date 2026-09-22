@@ -169,6 +169,20 @@
   );
 }
 
+/**
+ * A scroll container clips everything drawn outside its box, and a focus ring is drawn outside the
+ * control it belongs to — so a field flush against the edge of a scrolling panel loses its ring on
+ * that side. This gives the ring room back without moving the content: the padding makes the room,
+ * the matching negative margin takes the space back out of the layout.
+ *
+ * Put it on any element that scrolls and holds something focusable. The width covers the 3px ring
+ * plus the focus border every control in the sheet draws.
+ */
+@utility scrollport {
+  margin: calc(var(--spacing) * -1.5);
+  padding: calc(var(--spacing) * 1.5);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -19,18 +19,22 @@ export const SettingsTabs = () => {
     // The rule runs the full width and the active tab's underline sits on it.
     <div className='border-b border-border'>
       <Tabs value={pathname}>
-        <TabsList variant='line' className='overflow-x-auto'>
-          {SETTINGS_TABS.map(tab => (
-            <TabsTrigger
-              key={tab.to}
-              value={tab.to}
-              nativeButton={false}
-              render={<Link to={tab.to} />}
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* The scroll sits on a wrapper rather than on the list, so the first and last tab keep
+            their focus ring where the strip has to scroll. */}
+        <div className='scrollport overflow-x-auto'>
+          <TabsList variant='line'>
+            {SETTINGS_TABS.map(tab => (
+              <TabsTrigger
+                key={tab.to}
+                value={tab.to}
+                nativeButton={false}
+                render={<Link to={tab.to} />}
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
     </div>
   )

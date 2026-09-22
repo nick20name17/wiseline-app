@@ -45,29 +45,33 @@ export const DeptBar = ({ view, role, counts, onNavigate }: DeptBarProps) => (
     {/* The rule runs the full width and the active tab's underline sits on it. */}
     <div className='border-b border-border'>
       <Tabs value={view} onValueChange={next => onNavigate(next as TrimView)}>
-        <TabsList variant='line' className='h-9 overflow-x-auto'>
-          {TAB_STRIP.map(tab => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-              // A tab a role has no business with is not there at all, rather than there and dead.
-              className={canAccess(tab, role) ? undefined : 'hidden'}
-            >
-              {VIEW_LABELS[tab]}
-              {counts[tab] === undefined ? null : (
-                // The count takes the tab's own colour, so the active one reads as one thing.
-                <span
-                  className={cn(
-                    'ml-0.5 rounded-full px-1.5 font-mono text-xs',
-                    tab === view ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {counts[tab]}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* The scroll sits on a wrapper rather than on the list, so the first and last tab keep
+            their focus ring where the strip has to scroll. */}
+        <div className='scrollport overflow-x-auto'>
+          <TabsList variant='line' className='h-9'>
+            {TAB_STRIP.map(tab => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                // A tab a role has no business with is not there at all, rather than there and dead.
+                className={canAccess(tab, role) ? undefined : 'hidden'}
+              >
+                {VIEW_LABELS[tab]}
+                {counts[tab] === undefined ? null : (
+                  // The count takes the tab's own colour, so the active one reads as one thing.
+                  <span
+                    className={cn(
+                      'ml-0.5 rounded-full px-1.5 font-mono text-xs',
+                      tab === view ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {counts[tab]}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
     </div>
   </div>

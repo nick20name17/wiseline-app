@@ -151,7 +151,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
 
         {/* Labels over the boxes, not a table head: the grid is a form, and a banded header row
             would read as a table of records rather than as lines being written. */}
-        <div className='max-h-80 space-y-2 overflow-y-auto'>
+        <div className='scrollport max-h-80 space-y-2 overflow-y-auto'>
           <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
             <span className='w-24'>Qty</span>
             <span className='w-44'>Product ID</span>
