@@ -13,7 +13,7 @@ const WINDOW_DAYS = 5
 
 // Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —
 // and the strip from changing height — when the placeholders are replaced by the days themselves.
-const TILE = 'h-15 w-48 rounded-md border border-border px-3 py-1.5 text-left leading-tight'
+const TILE = 'relative h-13 w-44 rounded-md border border-border px-3 py-1 text-left leading-tight'
 
 type ScheduledDayTabsProps = {
   departmentId: number | undefined
@@ -38,6 +38,9 @@ export const ScheduledDayTabs = ({
 }: ScheduledDayTabsProps) => {
   const start = today()
   const [pickerOpen, setPickerOpen] = useState(false)
+  // The board opens on today, which needs no announcing; the control only names a day somebody went
+  // looking for.
+  const [picked, setPicked] = useState<string | null>(null)
 
   const { data: window, isPending } = useQuery(dayStripQuery(departmentId, start, WINDOW_DAYS))
   const { data: overdue } = useQuery(overdueQuery(departmentId))
@@ -73,14 +76,18 @@ export const ScheduledDayTabs = ({
       </button>
 
       {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
-      <Button variant='outline' className='h-15 w-48' onClick={() => setPickerOpen(true)}>
+      {/* The label is set in the strip's own size rather than the button's, so the control reads as
+          one of the cards beside it. */}
+      <Button variant='outline' className='h-13 w-44' onClick={() => setPickerOpen(true)}>
         <CalendarDays data-icon='inline-start' />
-        {day ? formatDate(day) : 'Pick a day'}
+        <span className='text-xs font-semibold'>
+          {picked && picked === day ? formatDate(day) : 'Pick a day'}
+        </span>
       </Button>
 
       {isPending
         ? Array.from({ length: WINDOW_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-15 w-48' />
+            <Skeleton key={index} className='h-13 w-44' />
           ))
         : days.map(entry => {
             const isOverdue = overdue?.days.includes(entry.date) ?? false
@@ -124,7 +131,7 @@ export const ScheduledDayTabs = ({
                   >
                     ({entry.bends} / {entry.capacity ?? '—'}){entry.over_capacity ? ' · over' : ''}
                   </span>
-                  <span className='mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-border'>
+                  <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
                     <span
                       className={cn(
                         'block h-full w-(--used)',
@@ -162,8 +169,9 @@ export const ScheduledDayTabs = ({
         departmentId={departmentId}
         allowPast
         isPending={false}
-        onPick={picked => {
-          onDayChange(picked)
+        onPick={date => {
+          setPicked(date)
+          onDayChange(date)
           setPickerOpen(false)
         }}
       />

@@ -13,7 +13,9 @@ test.beforeEach(async ({ page }) => {
 test('the board lists unscheduled orders with the day strip and the tab count', async ({
   page
 }) => {
-  await expect(page.getByRole('heading', { name: 'Trim' })).toBeVisible()
+  // The page is named once, in the trail at the top; the board itself carries no title.
+  await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toContainText('Trim')
+  await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toContainText('Unscheduled')
   // The tab carries the count; the toolbar says nothing until something is ticked.
   await expect(page.getByRole('tab', { name: 'Unscheduled 2' })).toBeVisible()
 
