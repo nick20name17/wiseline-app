@@ -65,11 +65,9 @@ export const PrioritiesPage = ({ search, onSearchChange }: PrioritiesPageProps) 
             <EmptyMedia variant='icon'>
               <Flag />
             </EmptyMedia>
-            <EmptyTitle>No priorities</EmptyTitle>
+            <EmptyTitle>No priorities yet</EmptyTitle>
             <EmptyDescription>
-              {search
-                ? `Nothing matches “${search}”.`
-                : 'Create the first one; a department with none sorts by date alone.'}
+              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

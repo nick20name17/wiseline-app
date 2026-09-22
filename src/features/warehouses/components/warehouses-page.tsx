@@ -61,11 +61,9 @@ export const WarehousesPage = ({ search, onSearchChange }: WarehousesPageProps) 
             <EmptyMedia variant='icon'>
               <Warehouse />
             </EmptyMedia>
-            <EmptyTitle>No warehouses</EmptyTitle>
+            <EmptyTitle>No warehouses yet</EmptyTitle>
             <EmptyDescription>
-              {search
-                ? `Nothing matches “${search}”.`
-                : 'Create the first warehouse to get started.'}
+              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

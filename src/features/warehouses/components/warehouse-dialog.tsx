@@ -1,6 +1,8 @@
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -52,7 +54,7 @@ const WarehouseForm = ({ warehouse, isDefault = false, onSuccess }: WarehouseFor
     >
       <FieldGroup>
         <Field data-invalid={invalid(errors.name)}>
-          <FieldLabel htmlFor='warehouse-name'>Name</FieldLabel>
+          <RequiredLabel htmlFor='warehouse-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='warehouse-name'
@@ -104,16 +106,15 @@ const WarehouseForm = ({ warehouse, isDefault = false, onSuccess }: WarehouseFor
             )}
           />
         </Field>
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {warehouse ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <div className='mt-6 flex justify-end gap-2'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </div>
     </form>
   )
 }
@@ -125,14 +126,14 @@ export const CreateWarehouseDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Create warehouse
+        Add warehouse
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create warehouse</DialogTitle>
+          <DialogTitle>Add warehouse</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && <WarehouseForm onSuccess={() => setOpen(false)} />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        <WarehouseForm onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   )
@@ -154,15 +155,13 @@ export const UpdateWarehouseDialog = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Update warehouse</DialogTitle>
+        <DialogTitle>Edit warehouse</DialogTitle>
       </DialogHeader>
-      {open && (
-        <WarehouseForm
-          warehouse={warehouse}
-          isDefault={isDefault}
-          onSuccess={() => onOpenChange(false)}
-        />
-      )}
+      <WarehouseForm
+        warehouse={warehouse}
+        isDefault={isDefault}
+        onSuccess={() => onOpenChange(false)}
+      />
     </DialogContent>
   </Dialog>
 )

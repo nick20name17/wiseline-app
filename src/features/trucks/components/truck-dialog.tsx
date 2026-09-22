@@ -1,18 +1,15 @@
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText
-} from '@/components/ui/input-group'
+import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
@@ -44,11 +41,11 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
     >
       <FieldGroup>
         <Field data-invalid={errors.name ? true : undefined}>
-          <FieldLabel htmlFor='truck-name'>Name</FieldLabel>
+          <RequiredLabel htmlFor='truck-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='truck-name'
-              placeholder='Unit 12'
+              placeholder='e.g. Unit 12'
               aria-invalid={errors.name ? true : undefined}
               {...form.register('name')}
             />
@@ -61,20 +58,20 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
         <Field data-disabled>
           <FieldLabel htmlFor='truck-plate'>Plate</FieldLabel>
           <InputGroup>
-            <InputGroupInput id='truck-plate' placeholder='AK-2231' disabled />
+            <InputGroupInput id='truck-plate' placeholder='e.g. AK-2231' disabled />
           </InputGroup>
           <FieldDescription>Waiting on the backend.</FieldDescription>
         </Field>
 
         <Field data-invalid={errors.max_weight ? true : undefined}>
-          <FieldLabel htmlFor='truck-max-weight'>Max Weight</FieldLabel>
+          <FieldLabel htmlFor='truck-max-weight'>Max weight (lb)</FieldLabel>
           <InputGroup>
             <InputGroupInput
               id='truck-max-weight'
               type='number'
               min={0}
               inputMode='numeric'
-              placeholder='44000'
+              placeholder='e.g. 18000'
               aria-invalid={errors.max_weight ? true : undefined}
               // An empty weight is genuinely unknown, so it goes back as null rather than a zero
               // the floor would read as "this truck carries nothing". The guard covers the null
@@ -84,22 +81,18 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
                   value === '' || value === null || value === undefined ? null : Number(value)
               })}
             />
-            <InputGroupAddon align='inline-end'>
-              <InputGroupText>lbs</InputGroupText>
-            </InputGroupAddon>
           </InputGroup>
           <FieldError errors={[errors.max_weight]} />
         </Field>
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {truck ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <div className='mt-6 flex justify-end gap-2'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </div>
     </form>
   )
 }
@@ -111,14 +104,14 @@ export const CreateTruckDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Create truck
+        Add truck
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create truck</DialogTitle>
+          <DialogTitle>Add truck</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && <TruckForm onSuccess={() => setOpen(false)} />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        <TruckForm onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   )
@@ -134,9 +127,9 @@ export const UpdateTruckDialog = ({ truck, open, onOpenChange }: UpdateTruckDial
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Update truck</DialogTitle>
+        <DialogTitle>Edit truck</DialogTitle>
       </DialogHeader>
-      {open && <TruckForm truck={truck} onSuccess={() => onOpenChange(false)} />}
+      <TruckForm truck={truck} onSuccess={() => onOpenChange(false)} />
     </DialogContent>
   </Dialog>
 )

@@ -61,9 +61,9 @@ export const UsersPage = ({ search, onSearchChange }: UsersPageProps) => {
             <EmptyMedia variant='icon'>
               <Users />
             </EmptyMedia>
-            <EmptyTitle>No users</EmptyTitle>
+            <EmptyTitle>No users yet</EmptyTitle>
             <EmptyDescription>
-              {search ? `Nothing matches “${search}”.` : 'Create the first user to get started.'}
+              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

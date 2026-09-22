@@ -1,4 +1,5 @@
 import { PasswordInput } from '@/components/password-input'
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,16 +24,6 @@ import { RoleSelect } from './role-select'
 
 // `Field` and `aria-invalid` both want `true` or nothing, never `false`.
 const invalid = (error: unknown) => (error ? true : undefined)
-
-// `FieldLabel` lays its children out in a row with a gap, so the mark rides inside the text.
-const Label = ({ children }: { children: string }) => (
-  <span>
-    {children}
-    <span aria-hidden className='text-destructive'>
-      *
-    </span>
-  </span>
-)
 
 type UserFormProps = {
   user?: User
@@ -67,9 +58,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
       <FieldGroup>
         <div className='grid grid-cols-2 gap-4'>
           <Field data-invalid={invalid(errors.first_name)}>
-            <FieldLabel htmlFor='user-first-name'>
-              <Label>First Name</Label>
-            </FieldLabel>
+            <RequiredLabel htmlFor='user-first-name'>First Name</RequiredLabel>
             <InputGroup>
               <InputGroupInput
                 id='user-first-name'
@@ -82,9 +71,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
           </Field>
 
           <Field data-invalid={invalid(errors.last_name)}>
-            <FieldLabel htmlFor='user-last-name'>
-              <Label>Last Name</Label>
-            </FieldLabel>
+            <RequiredLabel htmlFor='user-last-name'>Last Name</RequiredLabel>
             <InputGroup>
               <InputGroupInput
                 id='user-last-name'
@@ -98,9 +85,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
         </div>
 
         <Field data-invalid={invalid(errors.email)}>
-          <FieldLabel htmlFor='user-email'>
-            <Label>Email</Label>
-          </FieldLabel>
+          <RequiredLabel htmlFor='user-email'>Email</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='user-email'
@@ -115,9 +100,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.role)}>
-          <FieldLabel htmlFor='user-role'>
-            <Label>Role</Label>
-          </FieldLabel>
+          <RequiredLabel htmlFor='user-role'>Role</RequiredLabel>
           <Controller
             control={form.control}
             name='role'
@@ -149,9 +132,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
 
         {!user && (
           <Field data-invalid={invalid(errors.password)}>
-            <FieldLabel htmlFor='user-password'>
-              <Label>Password</Label>
-            </FieldLabel>
+            <RequiredLabel htmlFor='user-password'>Password</RequiredLabel>
             <PasswordInput
               id='user-password'
               autoComplete='new-password'
@@ -188,8 +169,8 @@ export const CreateUserDialog = () => {
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && <UserFormFields onSuccess={() => setOpen(false)} />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        <UserFormFields onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   )
@@ -207,7 +188,7 @@ export const UpdateUserDialog = ({ user, open, onOpenChange }: UpdateUserDialogP
       <DialogHeader>
         <DialogTitle>Edit user</DialogTitle>
       </DialogHeader>
-      {open && <UserFormFields user={user} onSuccess={() => onOpenChange(false)} />}
+      <UserFormFields user={user} onSuccess={() => onOpenChange(false)} />
     </DialogContent>
   </Dialog>
 )

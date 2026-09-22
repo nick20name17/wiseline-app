@@ -1,12 +1,14 @@
+import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -60,11 +62,11 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
     >
       <FieldGroup>
         <Field data-invalid={invalid(errors.name)}>
-          <FieldLabel htmlFor='priority-name'>Name</FieldLabel>
+          <RequiredLabel htmlFor='priority-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='priority-name'
-              placeholder='e.g. ASAP'
+              placeholder='e.g. Now'
               aria-invalid={invalid(errors.name)}
               {...form.register('name')}
             />
@@ -73,7 +75,7 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.department)}>
-          <FieldLabel htmlFor='priority-department'>Department</FieldLabel>
+          <RequiredLabel htmlFor='priority-department'>Department</RequiredLabel>
           {/* A priority belongs to one department and is never seen outside it. */}
           <Controller
             control={form.control}
@@ -88,7 +90,7 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
                   <SelectValue>
                     {(id: string) =>
                       departments?.find(department => department.id === Number(id))?.name ??
-                      'Pick a department'
+                      'Select…'
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -106,11 +108,14 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.position)}>
-          <FieldLabel htmlFor='priority-position'>Hierarchy</FieldLabel>
+          <RequiredLabel htmlFor='priority-position'>
+            Hierarchy number (1 = always top)
+          </RequiredLabel>
           {/* A lower number sorts first, which is what the board calls the hierarchy. */}
           <InputGroup>
             <InputGroupInput
               id='priority-position'
+              placeholder='e.g. 1'
               type='number'
               min={0}
               inputMode='numeric'
@@ -122,7 +127,7 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.color)}>
-          <FieldLabel htmlFor='priority-color'>Colour</FieldLabel>
+          <RequiredLabel htmlFor='priority-color'>Colour</RequiredLabel>
           {/* The colour is how a prioritised row is read before the word is: the pill takes it. */}
           <span className='flex items-center gap-2'>
             <Controller
@@ -140,22 +145,22 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
             />
             <Input
               aria-label='Colour, as a hex value'
+              placeholder='#E5484D'
               className='w-32'
               {...form.register('color')}
             />
           </span>
           <FieldError errors={[errors.color]} />
         </Field>
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {priority ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <div className='mt-6 flex justify-end gap-2'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </div>
     </form>
   )
 }
@@ -170,14 +175,14 @@ export const CreatePriorityDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Create priority
+        Add priority
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create priority</DialogTitle>
+          <DialogTitle>Add priority</DialogTitle>
         </DialogHeader>
-        {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && departments ? <PriorityForm onSuccess={() => setOpen(false)} /> : <Spinner />}
+        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+        {departments ? <PriorityForm onSuccess={() => setOpen(false)} /> : <Spinner />}
       </DialogContent>
     </Dialog>
   )
@@ -197,9 +202,9 @@ export const UpdatePriorityDialog = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Update priority</DialogTitle>
+        <DialogTitle>Edit priority</DialogTitle>
       </DialogHeader>
-      {open && <PriorityForm priority={priority} onSuccess={() => onOpenChange(false)} />}
+      <PriorityForm priority={priority} onSuccess={() => onOpenChange(false)} />
     </DialogContent>
   </Dialog>
 )

@@ -61,9 +61,9 @@ export const TrucksPage = ({ search, onSearchChange }: TrucksPageProps) => {
             <EmptyMedia variant='icon'>
               <Truck />
             </EmptyMedia>
-            <EmptyTitle>No trucks</EmptyTitle>
+            <EmptyTitle>No trucks yet</EmptyTitle>
             <EmptyDescription>
-              {search ? `Nothing matches “${search}”.` : 'Create the first truck to get started.'}
+              {search ? `Nothing matches “${search}”.` : 'Add one to get started.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

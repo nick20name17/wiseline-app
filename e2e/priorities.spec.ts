@@ -52,9 +52,9 @@ test('a priority is created against a department', async ({ page }) => {
     return route.fulfill({ json: PRIORITIES })
   })
 
-  await page.getByRole('button', { name: 'Create priority' }).click()
+  await page.getByRole('button', { name: 'Add priority' }).click()
   await page.getByLabel('Name').fill('NOW')
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('button', { name: 'Save' }).click()
 
   await expect.poll(() => posted[0]?.name).toBe('NOW')
   await expect.poll(() => posted[0]?.department).toBe(1)
