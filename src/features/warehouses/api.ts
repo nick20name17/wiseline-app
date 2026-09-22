@@ -1,6 +1,5 @@
 import { authApi } from '@/api/client'
-import { queryClient } from '@/lib/query-client'
-import { queryOptions, useMutation } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // The API declares every field but `id` optional, even `name` and `address`, which the database
@@ -43,7 +42,12 @@ const toPayload = ({ is_default, ...values }: WarehouseForm) => ({
   position: is_default ? DEFAULT_POSITION : REST_POSITION
 })
 
-const WAREHOUSES_KEY = ['warehouses'] as const
+// One place that builds every warehouses key. The list is a single cache entry, since the search
+// narrows it here rather than on the server.
+export const warehousesKeys = {
+  all: ['warehouses'] as const,
+  list: () => [...warehousesKeys.all, 'list'] as const
+}
 
 // `GET /warehouses/` pages with `limit`/`offset` and takes no filter, so one page holds the lot.
 // A plant has a handful of warehouses; see TODO.md if that ever stops being true.
@@ -63,7 +67,7 @@ export const defaultWarehouseId = (warehouses: Warehouse[]) =>
 
 export const warehousesQuery = (search: string | undefined) =>
   queryOptions({
-    queryKey: WAREHOUSES_KEY,
+    queryKey: warehousesKeys.list(),
     queryFn: async () =>
       warehousePageSchema.parse(
         await authApi.get('warehouses/', { searchParams: { limit: PAGE_SIZE } }).json()
@@ -73,25 +77,29 @@ export const warehousesQuery = (search: string | undefined) =>
       search ? results.filter(warehouse => matches(warehouse, search.toLowerCase())) : results
   })
 
-const invalidateWarehouses = () => queryClient.invalidateQueries({ queryKey: WAREHOUSES_KEY })
+export const useUpsertWarehouse = (onSuccess: () => void) => {
+  const queryClient = useQueryClient()
 
-export const useUpsertWarehouse = (onSuccess: () => void) =>
-  useMutation({
+  return useMutation({
     mutationFn: ({ id, values }: { id?: number; values: WarehouseForm }) =>
       id
         ? authApi.patch(`warehouses/${id}/`, { json: toPayload(values) }).json()
         : authApi.post('warehouses/', { json: toPayload(values) }).json(),
     onSuccess: async () => {
-      await invalidateWarehouses()
+      await queryClient.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }
   })
+}
 
-export const useDeleteWarehouse = (onSuccess: () => void) =>
-  useMutation({
+export const useDeleteWarehouse = (onSuccess: () => void) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
     mutationFn: (id: number) => authApi.delete(`warehouses/${id}/`),
     onSuccess: async () => {
-      await invalidateWarehouses()
+      await queryClient.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }
   })
+}

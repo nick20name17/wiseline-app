@@ -1,6 +1,5 @@
 import { authApi } from '@/api/client'
-import { queryClient } from '@/lib/query-client'
-import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 // A truck can be created with nothing but a name and have its weight filled in later. The record
@@ -22,11 +21,16 @@ export const truckPayloadSchema = z.object({
 
 export type TruckPayload = z.infer<typeof truckPayloadSchema>
 
-const TRUCKS_KEY = ['trucks'] as const
+// One place that builds every trucks key, so invalidation cannot drift from the queries it means
+// to reach.
+export const trucksKeys = {
+  all: ['trucks'] as const,
+  list: (search: string | undefined) => [...trucksKeys.all, { search: search ?? '' }] as const
+}
 
 export const trucksQuery = (search: string | undefined) =>
   queryOptions({
-    queryKey: [...TRUCKS_KEY, { search: search ?? '' }],
+    queryKey: trucksKeys.list(search),
     // Each search term is its own cache entry, so without this the table would fall back to the
     // skeleton on every keystroke pause and resize itself twice per search.
     placeholderData: keepPreviousData,
@@ -36,25 +40,29 @@ export const trucksQuery = (search: string | undefined) =>
       )
   })
 
-const invalidateTrucks = () => queryClient.invalidateQueries({ queryKey: TRUCKS_KEY })
+export const useUpsertTruck = (onSuccess: () => void) => {
+  const queryClient = useQueryClient()
 
-export const useUpsertTruck = (onSuccess: () => void) =>
-  useMutation({
+  return useMutation({
     mutationFn: ({ id, payload }: { id?: number; payload: TruckPayload }) =>
       id
         ? authApi.patch(`trucks/${id}/`, { json: payload }).json()
         : authApi.post('trucks/', { json: payload }).json(),
     onSuccess: async () => {
-      await invalidateTrucks()
+      await queryClient.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }
   })
+}
 
-export const useDeleteTruck = (onSuccess: () => void) =>
-  useMutation({
+export const useDeleteTruck = (onSuccess: () => void) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
     onSuccess: async () => {
-      await invalidateTrucks()
+      await queryClient.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }
   })
+}

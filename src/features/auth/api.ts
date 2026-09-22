@@ -41,8 +41,13 @@ export const logout = () => {
   queryClient.clear()
 }
 
+export const authKeys = {
+  all: ['auth'] as const,
+  me: () => [...authKeys.all, 'me'] as const
+}
+
 export const meQuery = queryOptions({
-  queryKey: ['auth', 'me'],
+  queryKey: authKeys.me(),
   queryFn: async () => {
     const session = sessionStore.get()
     const id = session && userIdFromToken(session.accessToken)

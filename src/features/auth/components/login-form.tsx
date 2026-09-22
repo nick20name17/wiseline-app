@@ -13,7 +13,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { credentialsSchema, login, type Credentials } from '../api'
+import { authKeys, credentialsSchema, login, type Credentials } from '../api'
 
 type LoginFormProps = {
   onSuccess: () => Promise<void> | void
@@ -32,7 +32,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
     mutationFn: login,
     meta: { skipErrorToast: true },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['auth'] })
+      await queryClient.invalidateQueries({ queryKey: authKeys.all })
       await onSuccess()
     }
   })
