@@ -17,7 +17,6 @@ import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { newUserFormSchema, useUpsertUser, userFormSchema, type User, type UserForm } from '../api'
-import { fullName } from '../lib/name'
 import { reachesEveryDepartment, toDepartments } from '../lib/roles'
 import { DepartmentChips } from './department-chips'
 import { RoleSelect } from './role-select'
@@ -44,7 +43,8 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
   const form = useForm<UserForm>({
     resolver: standardSchemaResolver(user ? userFormSchema : newUserFormSchema),
     defaultValues: {
-      name: user ? fullName(user) : '',
+      first_name: user?.first_name ?? '',
+      last_name: user?.last_name ?? '',
       email: user?.email ?? '',
       role: (user?.role as UserForm['role']) ?? 'worker',
       departments: user ? toDepartments(user) : [],
@@ -65,20 +65,37 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
       noValidate
     >
       <FieldGroup>
-        <Field data-invalid={invalid(errors.name)}>
-          <FieldLabel htmlFor='user-name'>
-            <Label>Name</Label>
-          </FieldLabel>
-          <InputGroup>
-            <InputGroupInput
-              id='user-name'
-              placeholder='e.g. John Enns'
-              aria-invalid={invalid(errors.name)}
-              {...form.register('name')}
-            />
-          </InputGroup>
-          <FieldError errors={[errors.name]} />
-        </Field>
+        <div className='grid grid-cols-2 gap-4'>
+          <Field data-invalid={invalid(errors.first_name)}>
+            <FieldLabel htmlFor='user-first-name'>
+              <Label>First Name</Label>
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id='user-first-name'
+                placeholder='e.g. John'
+                aria-invalid={invalid(errors.first_name)}
+                {...form.register('first_name')}
+              />
+            </InputGroup>
+            <FieldError errors={[errors.first_name]} />
+          </Field>
+
+          <Field data-invalid={invalid(errors.last_name)}>
+            <FieldLabel htmlFor='user-last-name'>
+              <Label>Last Name</Label>
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id='user-last-name'
+                placeholder='e.g. Enns'
+                aria-invalid={invalid(errors.last_name)}
+                {...form.register('last_name')}
+              />
+            </InputGroup>
+            <FieldError errors={[errors.last_name]} />
+          </Field>
+        </div>
 
         <Field data-invalid={invalid(errors.email)}>
           <FieldLabel htmlFor='user-email'>

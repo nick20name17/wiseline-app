@@ -1,7 +1,6 @@
 import { authApi } from '@/api/client'
 import { queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
-import { splitName } from './lib/name'
 import { DEPARTMENTS, ROLES, toUserTypes, type Role } from './lib/roles'
 
 // `role` arrives as a plain string and the two type lists arrive as null for roles that have
@@ -27,7 +26,8 @@ export type User = z.infer<typeof userSchema>
 const PASSWORD_MIN_LENGTH = 8
 
 export const userFormSchema = z.object({
-  name: z.string().check(z.minLength(1, 'Name is required')),
+  first_name: z.string().check(z.minLength(1, 'First name is required')),
+  last_name: z.string().check(z.minLength(1, 'Last name is required')),
   email: z.string().check(z.email('Enter a valid email')),
   role: z.enum(ROLES),
   departments: z.array(z.enum(DEPARTMENTS))
@@ -43,11 +43,10 @@ export const newUserFormSchema = z.object({
 
 export type UserForm = z.infer<typeof userFormSchema> & { password?: string }
 
-// The form holds one name and a flat list of departments; the API wants two names and two typed
-// lists, which the role decides the shape of.
-const toPayload = ({ name, email, role, departments }: UserForm) => ({
-  ...splitName(name),
-  email,
+// The form holds a flat list of departments; the API wants two typed lists, which the role
+// decides the shape of.
+const toPayload = ({ departments, role, ...names }: UserForm) => ({
+  ...names,
   role,
   ...toUserTypes(role as Role, departments)
 })
