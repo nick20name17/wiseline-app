@@ -59,7 +59,8 @@ export const LineNotesDialog = ({ originItem, productId, onOpenChange }: LineNot
           <DialogDescription>Shared with the Trim team. Never pushed to EBMS.</DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport max-h-80 space-y-4 overflow-y-auto'>
+        {/* The floor keeps the thread from opening short and then growing under the pointer. */}
+        <div className='scrollport max-h-80 min-h-40 space-y-4 overflow-y-auto'>
           {isPending ? (
             <p className='py-6 text-center text-sm text-muted-foreground'>Loading…</p>
           ) : thread?.notes.length ? (

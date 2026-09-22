@@ -1,11 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { TableCell, TableRow } from '@/components/ui/table'
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 // A body row is as tall as the header row; both come from ui/table.tsx.
 const ROW_HEIGHT = 37
 
-// Enough to cover the first paint, before the measurement below trims or extends it.
+// What renders before the measurement below replaces it, in the same layout pass.
 const INITIAL_ROWS = 5
 
 // Keeps the card off the bottom edge of the window.
@@ -24,7 +24,8 @@ export const TableSkeletonRows = ({ columns }: TableSkeletonRowsProps) => {
   const firstRow = useRef<HTMLTableRowElement>(null)
   const [rows, setRows] = useState(INITIAL_ROWS)
 
-  useEffect(() => {
+  // Before paint: measured afterwards, the first rows would be drawn and then multiplied.
+  useLayoutEffect(() => {
     const fit = () => {
       const top = firstRow.current?.getBoundingClientRect().top
       if (top === undefined) return

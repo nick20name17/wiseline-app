@@ -11,6 +11,10 @@ import { ScheduleDialog } from './schedule-dialog'
 // The board shows the current day plus the rest of the working week.
 const STRIP_DAYS = 5
 
+// One box for every card in the strip, placeholders included: equal widths are what stop the strip
+// re-wrapping — and the page below it moving — when the days arrive.
+const TILE = 'h-11 w-40 rounded-md border px-2 py-1 leading-tight'
+
 type DayPillProps = {
   entry: DayStripEntry
   isToday: boolean
@@ -24,13 +28,14 @@ type DayPillProps = {
 const DayPill = ({ entry, isToday, onRemove }: DayPillProps) => (
   <div
     className={cn(
-      'relative min-w-27 rounded-md border border-border bg-muted/40 px-2 py-1 leading-tight',
+      TILE,
+      'relative border-border bg-muted/40',
       isToday && 'border-primary bg-primary/10',
       onRemove && 'border-dashed pr-6'
     )}
     title={`${formatDayLabel(entry.date)} — bends scheduled against the daily capacity`}
   >
-    <span className='block text-xs font-semibold'>
+    <span className='block truncate text-xs font-semibold'>
       {formatDayLabel(entry.date)}
       {isToday ? ' · today' : ''}
     </span>
@@ -78,7 +83,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
     <div className='flex flex-wrap items-stretch gap-1.5'>
       {isPending
         ? Array.from({ length: STRIP_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-11 w-27' />
+            <Skeleton key={index} className='h-11 w-40' />
           ))
         : days?.map(entry => (
             <DayPill key={entry.date} entry={entry} isToday={entry.date === start} />
@@ -88,9 +93,8 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         <DayPill entry={peekEntry} isToday={false} onRemove={() => setPeek(null)} />
       ) : null}
 
-      {/* `h-auto`: the control takes its height from the strip, which is what puts it level with the
-          day pills beside it. */}
-      <Button variant='dashed' className='h-auto' onClick={() => setPickerOpen(true)}>
+      {/* The control is one of the boxes in the strip, so it carries the same height and width. */}
+      <Button variant='dashed' className='h-11 w-40' onClick={() => setPickerOpen(true)}>
         <CalendarDays data-icon='inline-start' />
         {peek ? 'Another day' : 'Pick a day'}
       </Button>

@@ -126,12 +126,14 @@ export const MachineCapacitiesDialog = ({
           </div>
         </DialogHeader>
 
-        {isPending || !data ? (
-          <Skeleton className='h-64' />
-        ) : (
-          <>
-            {/* A department with a long machine list should not push Print off the screen. */}
-            <div data-print-expand className='scrollport max-h-96 overflow-y-auto'>
+        {/* A department with a long machine list should not push Print off the screen. Fixed rather
+            The floor is the placeholder's own height, so Print stays where it was rather than
+            dropping down the sheet once the figures arrive. */}
+        <div data-print-expand className='scrollport max-h-96 min-h-64 overflow-y-auto'>
+          {isPending || !data ? (
+            <Skeleton className='h-64' />
+          ) : (
+            <>
               <table className='w-full border-separate border-spacing-y-1'>
                 <thead>
                   <tr>
@@ -193,24 +195,24 @@ export const MachineCapacitiesDialog = ({
                   ))}
                 </tbody>
               </table>
-            </div>
 
-            {unrouted ? (
-              <p className='text-center text-xs text-warning'>
-                <span className='font-mono'>{data.pieces_without_a_machine}</span> pieces are on
-                this day with no machine assigned yet — which is the gap between the top row and the
-                ones below it.
-              </p>
-            ) : null}
+              {unrouted ? (
+                <p className='mt-2 text-center text-xs text-warning'>
+                  <span className='font-mono'>{data.pieces_without_a_machine}</span> pieces are on
+                  this day with no machine assigned yet — which is the gap between the top row and
+                  the ones below it.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
 
-            <div data-print-hide className='flex justify-center'>
-              <Button onClick={() => window.print()}>
-                <Printer data-icon='inline-start' />
-                Print
-              </Button>
-            </div>
-          </>
-        )}
+        <div data-print-hide className='flex justify-center'>
+          <Button disabled={isPending || !data} onClick={() => window.print()}>
+            <Printer data-icon='inline-start' />
+            Print
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

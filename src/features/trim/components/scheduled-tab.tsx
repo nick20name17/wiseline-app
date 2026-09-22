@@ -147,20 +147,24 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
-          <Table className='min-w-7xl table-fixed'>
+          <Table className='min-w-360 table-fixed'>
             <colgroup>
               <col className='w-12' />
               <col className='w-10' />
               {/* Wide enough for a full date: a ship date cut to «Thu, May 9, …» tells nobody when. */}
               <col className='w-40' />
-              <col className='w-48' />
+              {/* The production day is a button with a date on it, and the icons that mark the row
+                  — past due, stock — sit beside it and need room of their own. */}
+              <col className='w-52' />
               <col className='w-36' />
               <col />
               <col className='w-32' />
               <col className='w-40' />
               <col className='w-28' />
-              <col className='w-28' />
-              <col className='w-16' />
+              {/* Every column holds its own heading: the headings are the widest thing several of
+                  them ever carry, and a heading crushed against the next one reads as one word. */}
+              <col className='w-36' />
+              <col className='w-24' />
             </colgroup>
             <TableHeader>
               <TableRow>

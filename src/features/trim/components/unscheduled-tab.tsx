@@ -129,7 +129,8 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
               <col className='w-40' />
               <col className='w-44' />
               <col />
-              <col className='w-20' />
+              {/* The heading is wider than the dot under it, and it is what sets the width. */}
+              <col className='w-24' />
             </colgroup>
             <TableHeader>
               <TableRow>

@@ -66,11 +66,12 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport max-h-96 overflow-y-auto'>
+        {/* The floor matches the placeholders, so the sheet does not jump when the cards arrive. */}
+        <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
           {isPending ? (
             <div className='grid gap-3 sm:grid-cols-2'>
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className='h-24' />
+                <Skeleton key={index} className='h-21' />
               ))}
             </div>
           ) : cards?.length ? (

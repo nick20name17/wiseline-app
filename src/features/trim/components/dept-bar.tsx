@@ -57,17 +57,21 @@ export const DeptBar = ({ view, role, counts, onNavigate }: DeptBarProps) => (
                 className={canAccess(tab, role) ? undefined : 'hidden'}
               >
                 {VIEW_LABELS[tab]}
-                {counts[tab] === undefined ? null : (
-                  // The count takes the tab's own colour, so the active one reads as one thing.
+                {tab in counts ? (
+                  // The count takes the tab's own colour, so the active one reads as one thing. It
+                  // holds its place while the list loads, rather than shunting the tabs beside it.
                   <span
                     className={cn(
                       'ml-0.5 rounded-full px-1.5 font-mono text-xs',
-                      tab === view ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                      tab === view
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground',
+                      counts[tab] === undefined && 'opacity-0'
                     )}
                   >
-                    {counts[tab]}
+                    {counts[tab] ?? 0}
                   </span>
-                )}
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>

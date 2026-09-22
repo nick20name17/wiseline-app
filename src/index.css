@@ -243,6 +243,7 @@
 
   /* A scroll box means nothing on a page: let the rows run on. */
   [data-print-report] [data-print-expand] {
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
   }

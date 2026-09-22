@@ -66,9 +66,11 @@ export const AllocatedStockDialog = ({
           />
         </InputGroup>
 
-        <div className='scrollport max-h-96 overflow-y-auto'>
+        {/* The floor is the placeholder's own height: the dialog is centred, so a box that grew from
+            nothing into the answer would move the whole sheet under the pointer. */}
+        <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
           {isPending ? (
-            <Skeleton className='h-40' />
+            <Skeleton className='h-56' />
           ) : rows?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
               <Table>
@@ -112,7 +114,7 @@ export const AllocatedStockDialog = ({
               </Table>
             </div>
           ) : (
-            <Empty>
+            <Empty className='h-full'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Database />

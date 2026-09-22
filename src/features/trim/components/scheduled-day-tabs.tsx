@@ -11,6 +11,10 @@ import { ScheduleDialog } from './schedule-dialog'
 // Today plus the rest of the working week, so the strip does not change shape as work is scheduled.
 const WINDOW_DAYS = 5
 
+// Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —
+// and the strip from changing height — when the placeholders are replaced by the days themselves.
+const TILE = 'h-15 w-48 rounded-md border border-border px-3 py-1.5 text-left leading-tight'
+
 type ScheduledDayTabsProps = {
   departmentId: number | undefined
   /** `null` is the board's «All Scheduled Orders». */
@@ -56,7 +60,8 @@ export const ScheduledDayTabs = ({
       <button
         type='button'
         className={cn(
-          'min-w-30 rounded-md border border-border bg-background px-3 py-1.5 text-left leading-tight hover:border-input',
+          TILE,
+          'bg-background hover:border-input',
           day === null && 'border-primary bg-primary/10'
         )}
         onClick={() => onDayChange(null)}
@@ -68,14 +73,14 @@ export const ScheduledDayTabs = ({
       </button>
 
       {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
-      <Button variant='outline' className='h-auto' onClick={() => setPickerOpen(true)}>
+      <Button variant='outline' className='h-15 w-48' onClick={() => setPickerOpen(true)}>
         <CalendarDays data-icon='inline-start' />
         {day ? formatDate(day) : 'Pick a day'}
       </Button>
 
       {isPending
         ? Array.from({ length: WINDOW_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-14 w-40' />
+            <Skeleton key={index} className='h-15 w-48' />
           ))
         : days.map(entry => {
             const isOverdue = overdue?.days.includes(entry.date) ?? false
@@ -93,7 +98,9 @@ export const ScheduledDayTabs = ({
                 <button
                   type='button'
                   className={cn(
-                    'h-full min-w-40 rounded-md border border-border bg-background px-3 py-1.5 pr-9 text-left leading-tight whitespace-nowrap hover:border-input',
+                    TILE,
+                    // The gear overlays the top-right corner, so the text stops short of it.
+                    'bg-background pr-9 whitespace-nowrap hover:border-input',
                     active && 'border-primary bg-primary/10',
                     warn && 'border-destructive bg-destructive/5'
                   )}
