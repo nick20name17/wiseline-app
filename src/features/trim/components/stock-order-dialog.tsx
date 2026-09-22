@@ -10,14 +10,6 @@ import {
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -157,73 +149,59 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <div className='max-h-80 overflow-y-auto'>
-          <Table className='table-fixed'>
-            <colgroup>
-              <col className='w-24' />
-              <col className='w-44' />
-              <col />
-              <col className='w-16' />
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Qty</TableHead>
-                <TableHead>Product ID</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>
-                  <span className='sr-only'>Remove</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, index) => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <Input
-                      type='number'
-                      min={1}
-                      inputMode='numeric'
-                      aria-label={`Quantity, row ${index + 1}`}
-                      placeholder='0'
-                      value={row.qty}
-                      onChange={event => edit(row.id, { qty: event.target.value })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      aria-label={`Product ID, row ${index + 1}`}
-                      placeholder='TSWB262'
-                      value={row.productId}
-                      onChange={event => edit(row.id, { productId: event.target.value })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {/* Read-only: the description belongs to EBMS. A scanned card carries it; a typed
-                        Product ID has nowhere to look it up until the API offers a product lookup. */}
-                    <Input
-                      readOnly
-                      aria-label={`Description, row ${index + 1}`}
-                      placeholder='Auto-fills from Product ID'
-                      value={row.description}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {/* The trailing blank row is the grow-row — there is nothing to delete there. */}
-                    {index < rows.length - 1 ? (
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={`Remove row ${index + 1}`}
-                        onClick={() => remove(row.id)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        {/* Labels over the boxes, not a table head: the grid is a form, and a banded header row
+            would read as a table of records rather than as lines being written. */}
+        <div className='max-h-80 space-y-2 overflow-y-auto'>
+          <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+            <span className='w-24'>Qty</span>
+            <span className='w-44'>Product ID</span>
+            <span className='flex-1'>Description</span>
+            <span className='w-8' />
+          </div>
+
+          {rows.map((row, index) => (
+            <div key={row.id} className='flex items-center gap-3'>
+              <Input
+                className='w-24'
+                type='number'
+                min={1}
+                inputMode='numeric'
+                aria-label={`Quantity, row ${index + 1}`}
+                placeholder='0'
+                value={row.qty}
+                onChange={event => edit(row.id, { qty: event.target.value })}
+              />
+              <Input
+                className='w-44'
+                aria-label={`Product ID, row ${index + 1}`}
+                placeholder='TSWB262'
+                value={row.productId}
+                onChange={event => edit(row.id, { productId: event.target.value })}
+              />
+              {/* Read-only: the description belongs to EBMS. A scanned card carries it; a typed
+                  Product ID has nowhere to look it up until the API offers a product lookup. */}
+              <Input
+                className='flex-1'
+                readOnly
+                aria-label={`Description, row ${index + 1}`}
+                placeholder='Auto-fills from Product ID'
+                value={row.description}
+              />
+              {/* The trailing blank row is the grow-row — there is nothing to delete there. */}
+              {index < rows.length - 1 ? (
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  aria-label={`Remove row ${index + 1}`}
+                  onClick={() => remove(row.id)}
+                >
+                  <Trash2 />
+                </Button>
+              ) : (
+                <span className='w-8' />
+              )}
+            </div>
+          ))}
         </div>
 
         <div className='flex items-center gap-2 text-sm text-muted-foreground'>
