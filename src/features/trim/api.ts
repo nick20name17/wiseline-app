@@ -70,6 +70,15 @@ const salesOrderSchema = z.object({
   department_states: z.catch(z.array(departmentStateSchema), [])
 })
 
+const machineSchema = z.object({
+  id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  department: z._default(z.nullable(z.number()), null),
+  position: z._default(z.nullable(z.number()), null)
+})
+
+export type Machine = z.infer<typeof machineSchema>
+
 // The app's own row against one EBMS line item. Present only once somebody has scheduled, assigned or
 // annotated the line; until then the mirror is all there is.
 const itemSchema = z.object({
@@ -77,7 +86,15 @@ const itemSchema = z.object({
   status: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   department: z._default(z.nullable(z.number()), null),
-  over_due: z._default(z.nullable(z.boolean()), false)
+  over_due: z._default(z.nullable(z.boolean()), false),
+  // What the Manager fills in while reviewing the order.
+  flow: z._default(z.nullable(machineSchema), null),
+  vented: z._default(z.boolean(), false),
+  pull_from_stock: z._default(z.nullable(z.number()), null),
+  // Width and description are editable here and deliberately never pushed back to EBMS, so a set
+  // value shadows the mirror's.
+  width: z._default(z.nullable(z.number()), null),
+  description: z._default(z.nullable(z.string()), null)
 })
 
 const lineItemSchema = z.object({
@@ -133,6 +150,14 @@ export const trimKeys = {
   orders: () => [...trimKeys.all, 'orders'] as const,
   unscheduled: (search: string | undefined) =>
     [...trimKeys.orders(), 'unscheduled', { search: search ?? '' }] as const,
+  scheduled: (search: string | undefined, day: string | null) =>
+    [...trimKeys.orders(), 'scheduled', { search: search ?? '', day: day ?? 'all' }] as const,
+  machines: () => [...trimKeys.all, 'machines'] as const,
+  overdue: (departmentId: number) => [...trimKeys.all, 'overdue', departmentId] as const,
+  machineCapacities: (departmentId: number, day: string) =>
+    [...trimKeys.all, 'machine-capacities', departmentId, day] as const,
+  allocatedStock: (departmentId: number, search: string | undefined) =>
+    [...trimKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
     [...trimKeys.all, 'day-strip', departmentId, start, days] as const,
   priorities: () => [...trimKeys.all, 'priorities'] as const,
@@ -163,6 +188,148 @@ export const unscheduledOrdersQuery = (search: string | undefined) =>
               offset: 0,
               ...(search ? { search } : {})
             }
+          })
+          .json()
+      )
+  })
+
+/**
+ * The Scheduled tab: orders whose Trim line items carry a production date, released or not.
+ *
+ * A day narrows the list to that production date; `null` is the board's «All Scheduled Orders».
+ */
+export const scheduledOrdersQuery = (search: string | undefined, day: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.scheduled(search, day),
+    placeholderData: keepPreviousData,
+    queryFn: async () =>
+      orderPageSchema.parse(
+        await authApi
+          .get('ebms/orders/', {
+            searchParams: {
+              category: TRIM_CATEGORY,
+              is_scheduled: true,
+              limit: PAGE_SIZE,
+              offset: 0,
+              ...(day ? { production_date: day } : {}),
+              ...(search ? { search } : {})
+            }
+          })
+          .json()
+      )
+  })
+
+// --- Machines ------------------------------------------------------------
+
+/**
+ * The machines a line item can be assigned to. `GET /flows/all/` takes the EBMS category rather than
+ * a department, which for this page is the same thing — the two are linked by `category_autoid`.
+ */
+export const machinesQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.machines(),
+    queryFn: async () =>
+      z
+        .array(machineSchema)
+        .parse(
+          await authApi
+            .get('flows/all/', { searchParams: { category__prod_type: TRIM_CATEGORY } })
+            .json()
+        ),
+    select: (machines: Machine[]) =>
+      machines
+        .filter(machine => machine.department === null || machine.department === departmentId)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+  })
+
+// --- Overdue and machine capacities -------------------------------------
+
+const overdueSchema = z.object({
+  days: z.catch(z.array(z.string()), []),
+  orders_by_day: z.catch(z.record(z.string(), z.number()), {}),
+  orders: z._default(z.number(), 0),
+  line_items: z._default(z.number(), 0)
+})
+
+/** Which production days carry work that is past due — the board's red cascade, in one call. */
+export const overdueQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.overdue(departmentId ?? 0),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      overdueSchema.parse(await authApi.get(`departments/${departmentId}/overdue/`).json())
+  })
+
+const machineCapacitySchema = z.object({
+  date: z.string(),
+  total: z.object({
+    pieces: z._default(z.number(), 0),
+    pieces_from_stock: z._default(z.number(), 0),
+    bends: z._default(z.number(), 0),
+    bends_from_stock: z._default(z.number(), 0),
+    capacity: z._default(z.nullable(z.number()), null)
+  }),
+  machines: z.catch(
+    z.array(
+      z.object({
+        flow_id: z.number(),
+        name: z._default(z.nullable(z.string()), null),
+        pieces: z._default(z.number(), 0),
+        pieces_from_stock: z._default(z.number(), 0),
+        max_pieces: z._default(z.nullable(z.number()), null),
+        bends: z._default(z.number(), 0),
+        bends_from_stock: z._default(z.number(), 0),
+        max_bends: z._default(z.nullable(z.number()), null),
+        over_bends: z._default(z.boolean(), false)
+      })
+    ),
+    []
+  ),
+  pieces_without_a_machine: z._default(z.number(), 0)
+})
+
+export type MachineCapacities = z.infer<typeof machineCapacitySchema>
+
+/** One day broken down by machine — what the gear on a day tab opens. */
+export const machineCapacitiesQuery = (departmentId: number | undefined, day: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.machineCapacities(departmentId ?? 0, day ?? ''),
+    enabled: departmentId !== undefined && !!day,
+    queryFn: async () =>
+      machineCapacitySchema.parse(
+        await authApi
+          .get(`departments/${departmentId}/machine-capacities/`, { searchParams: { day: day! } })
+          .json()
+      )
+  })
+
+// --- Allocated stock -----------------------------------------------------
+
+const allocatedStockSchema = z.array(
+  z.object({
+    color: z._default(z.nullable(z.string()), null),
+    product_id: z._default(z.string(), ''),
+    description: z._default(z.nullable(z.string()), null),
+    qty: z._default(z.number(), 0),
+    starts_color_group: z._default(z.boolean(), false)
+  })
+)
+
+export type AllocatedStockRow = z.infer<typeof allocatedStockSchema>[number]
+
+/**
+ * Every trim due to come from stock that has not been wrapped yet, across the orders marked Reviewed.
+ * Read fresh each time: the board wants a live report, and nothing accumulates behind it.
+ */
+export const allocatedStockQuery = (departmentId: number | undefined, search: string | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.allocatedStock(departmentId ?? 0, search),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      allocatedStockSchema.parse(
+        await authApi
+          .get(`departments/${departmentId}/allocated-stock/`, {
+            searchParams: search ? { search } : {}
           })
           .json()
       )
@@ -456,6 +623,113 @@ export const useSetPriority = () =>
     },
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
+    }
+  })
+
+/**
+ * Reviewed: the Manager has been through the order and it is ready to be released.
+ *
+ * Turning it on is silent; turning it back off is what the board puts a confirmation behind, which is
+ * the caller's business rather than this hook's.
+ */
+export const useSetReviewed = () =>
+  useMutation({
+    mutationFn: async ({
+      order,
+      departmentId,
+      reviewed
+    }: {
+      order: TrimOrder
+      departmentId: number
+      reviewed: boolean
+    }) => {
+      const id = await ensureSalesOrderId(order)
+      return authApi
+        .patch(`sales-orders/${id}/departments/${departmentId}/`, { json: { reviewed } })
+        .json()
+    },
+    onSettled: async (_, __, ___, ____, { client }) => {
+      await client.invalidateQueries({ queryKey: trimKeys.all })
+    }
+  })
+
+const releaseResultSchema = z.object({
+  released: z.catch(z.array(z.number()), []),
+  cutlists: z.catch(z.array(z.number()), [])
+})
+
+/**
+ * Release To Production: the ticked orders go to the floor and their cutlists and bendlists are made.
+ *
+ * One call for the batch rather than one per order — orders sharing a production date, gauge/colour
+ * and priority share a cutlist, and that grouping only happens when they arrive together.
+ */
+export const useReleaseOrders = (onSuccess: (cutlists: number) => void) =>
+  useMutation({
+    mutationFn: async ({
+      salesOrderIds,
+      departmentId
+    }: {
+      salesOrderIds: number[]
+      departmentId: number
+    }) =>
+      releaseResultSchema.parse(
+        await authApi
+          .post(`departments/${departmentId}/release/`, {
+            json: { sales_order_ids: salesOrderIds }
+          })
+          .json()
+      ),
+    onSettled: async (_, __, ___, ____, { client }) => {
+      await client.invalidateQueries({ queryKey: trimKeys.all })
+    },
+    onSuccess: result => onSuccess(result.cutlists.length)
+  })
+
+/** Take a release back. Refused once production has started, which the server decides. */
+export const useUnreleaseOrder = () =>
+  useMutation({
+    mutationFn: ({ salesOrderId, departmentId }: { salesOrderId: number; departmentId: number }) =>
+      authApi
+        .post(`sales-orders/${salesOrderId}/departments/${departmentId}/release/`, {
+          json: { released: false }
+        })
+        .json(),
+    onSettled: async (_, __, ___, ____, { client }) => {
+      await client.invalidateQueries({ queryKey: trimKeys.all })
+    }
+  })
+
+/** Send the order back to Unscheduled. This also discards the Manager's edits, as the board says. */
+export const useUnscheduleOrder = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: ({ salesOrderId, departmentId }: { salesOrderId: number; departmentId: number }) =>
+      authApi.post(`sales-orders/${salesOrderId}/departments/${departmentId}/unschedule/`).json(),
+    onSettled: async (_, __, ___, ____, { client }) => {
+      await client.invalidateQueries({ queryKey: trimKeys.all })
+    },
+    onSuccess
+  })
+
+/** What a Manager sets on one line item while reviewing the order. */
+export type LineItemEdit = {
+  flow?: number | null
+  vented?: boolean
+  pull_from_stock?: number
+  width?: number
+  description?: string
+}
+
+/**
+ * Keyed on this app's own row for the line, which exists by the time an order reaches this tab —
+ * scheduling is what puts the production date on it.
+ */
+export const useUpdateLineItem = () =>
+  useMutation({
+    mutationFn: ({ itemId, edit }: { itemId: number; edit: LineItemEdit }) =>
+      authApi.patch(`items/${itemId}/`, { json: edit }).json(),
+    onSettled: async (_, __, ___, ____, { client }) => {
+      await client.invalidateQueries({ queryKey: trimKeys.orders() })
     }
   })
 

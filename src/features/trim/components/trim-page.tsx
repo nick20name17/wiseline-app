@@ -2,9 +2,10 @@ import { usePageHeader } from '@/components/layout/page-header-context'
 import { PagePlaceholder } from '@/components/page-placeholder'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { unscheduledOrdersQuery, useTrimDepartment } from '../api'
+import { scheduledOrdersQuery, unscheduledOrdersQuery, useTrimDepartment } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { DeptBar } from './dept-bar'
+import { ScheduledTab } from './scheduled-tab'
 import { TrimSearch } from './trim-search'
 import { UnscheduledTab } from './unscheduled-tab'
 
@@ -22,8 +23,9 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
   // A Worker reads the board and works to it, but sets nothing on it.
   const readOnly = role === 'worker'
 
-  // The tab strip's number comes from the same query the tab renders, so the two cannot disagree.
-  const { data: page } = useQuery(unscheduledOrdersQuery(search))
+  // The tab strip's numbers come from the same queries the tabs render, so the two cannot disagree.
+  const { data: unscheduled } = useQuery(unscheduledOrdersQuery(search))
+  const { data: scheduled } = useQuery(scheduledOrdersQuery(search, null))
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
@@ -40,12 +42,14 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
       <DeptBar
         view={view}
         role={role}
-        counts={{ unscheduled: page?.results.length }}
+        counts={{ unscheduled: unscheduled?.results.length, scheduled: scheduled?.results.length }}
         onNavigate={onViewChange}
       />
 
       {view === 'unscheduled' ? (
         <UnscheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
+      ) : view === 'scheduled' ? (
+        <ScheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
       ) : (
         <PagePlaceholder title={`Trim · ${VIEW_LABELS[view]}`} />
       )}

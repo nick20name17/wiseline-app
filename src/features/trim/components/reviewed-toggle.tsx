@@ -1,0 +1,87 @@
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { useState } from 'react'
+import { useSetReviewed, type TrimOrder } from '../api'
+
+type ReviewedToggleProps = {
+  order: TrimOrder
+  departmentId: number | undefined
+  reviewed: boolean
+  released: boolean
+  /** Every line that still has to be made carries a machine — the gate the board puts on this. */
+  machinesAssigned: boolean
+  readOnly: boolean
+}
+
+/**
+ * Reviewed: the Manager has been through the order and it is ready to go out.
+ *
+ * Turning it on is silent. Turning it back off asks first, because it takes the order off the release
+ * list somebody may already have been building.
+ */
+export const ReviewedToggle = ({
+  order,
+  departmentId,
+  reviewed,
+  released,
+  machinesAssigned,
+  readOnly
+}: ReviewedToggleProps) => {
+  const [confirming, setConfirming] = useState(false)
+  const mutation = useSetReviewed()
+
+  // Once an order is out on the floor the toggle is a record, not a control.
+  if (released) return <span className='text-sm text-muted-foreground'>Reviewed</span>
+
+  const set = (next: boolean) =>
+    departmentId && mutation.mutate({ order, departmentId, reviewed: next })
+
+  return (
+    <>
+      <span className='flex items-center gap-2'>
+        <Switch
+          aria-label={`Reviewed ${order.invoice}`}
+          checked={reviewed}
+          disabled={readOnly || !machinesAssigned || mutation.isPending}
+          onCheckedChange={next => (next ? set(true) : setConfirming(true))}
+        />
+        {/* The hint says which gate is holding the order rather than leaving a dead control. */}
+        {machinesAssigned ? null : (
+          <span className='text-xs text-muted-foreground'>assign machines</span>
+        )}
+      </span>
+
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark order {order.invoice} as not reviewed?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It comes off the release list and cannot be selected again until it is reviewed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
+            <Button
+              disabled={mutation.isPending}
+              onClick={() => {
+                set(false)
+                setConfirming(false)
+              }}
+            >
+              Yes, un-review
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}

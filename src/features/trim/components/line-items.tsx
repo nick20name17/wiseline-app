@@ -8,12 +8,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, Lock, Split } from 'lucide-react'
-import { lineNotesSummaryQuery, type TrimLineItem, type TrimOrder } from '../api'
+import type { TrimLineItem, TrimOrder } from '../api'
 import { formatDate } from '../lib/format'
-import { NoteButton, type NoteState } from './note-button'
+import { NoteButton } from './note-button'
+import { useLineNoteState } from './use-line-note-state'
 
 type LineItemsProps = {
   order: TrimOrder
@@ -39,15 +39,8 @@ export const LineItems = ({
   onSplit,
   onOpenNotes
 }: LineItemsProps) => {
-  const originItems = order.origin_items.map(item => item.id)
-  const { data: noteSummary } = useQuery(lineNotesSummaryQuery(originItems))
+  const noteState = useLineNoteState(order.origin_items)
   const picked = new Set(selectedLineIds)
-
-  const noteState = (item: TrimLineItem): NoteState => {
-    const summary = noteSummary?.[item.id]
-    if (!summary?.has_notes) return 'none'
-    return summary.unread > 0 ? 'unread' : 'read'
-  }
 
   if (!order.origin_items.length) {
     return (
