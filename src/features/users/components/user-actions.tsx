@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { User } from '../api'
+import { fullName } from '../lib/name'
 import { DeleteUserDialog } from './delete-user-dialog'
 import { UpdateUserDialog } from './user-dialog'
 
@@ -11,7 +12,7 @@ type UserActionsProps = {
 
 export const UserActions = ({ user }: UserActionsProps) => {
   const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
-  const name = `${user.first_name} ${user.last_name}`.trim() || user.email
+  const name = fullName(user) || user.email
 
   return (
     <div className='flex justify-end gap-1 text-muted-foreground'>

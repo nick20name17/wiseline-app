@@ -1,4 +1,5 @@
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -56,9 +57,7 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
                 </TableCell>
                 <TableCell>
                   {warehouse.id === defaultId ? (
-                    <span className='rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold tracking-wider text-primary uppercase'>
-                      Default
-                    </span>
+                    <Badge variant='soft'>Default</Badge>
                   ) : (
                     <span className='text-muted-foreground'>—</span>
                   )}

@@ -1,7 +1,8 @@
 import { authApi } from '@/api/client'
 import { queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
-import { PROCESS_TYPES, PRODUCTION_TYPES, ROLES } from './lib/roles'
+import { splitName } from './lib/name'
+import { DEPARTMENTS, ROLES, toUserTypes, type Role } from './lib/roles'
 
 // `role` arrives as a plain string and the two type lists arrive as null for roles that have
 // none, so both are read leniently: an unfamiliar role still has to render.
@@ -26,12 +27,10 @@ export type User = z.infer<typeof userSchema>
 const PASSWORD_MIN_LENGTH = 8
 
 export const userFormSchema = z.object({
+  name: z.string().check(z.minLength(1, 'Name is required')),
   email: z.string().check(z.email('Enter a valid email')),
-  first_name: z.string().check(z.minLength(1, 'First name is required')),
-  last_name: z.string().check(z.minLength(1, 'Last name is required')),
   role: z.enum(ROLES),
-  process_types: z.array(z.enum(PROCESS_TYPES)),
-  prod_types: z.array(z.enum(PRODUCTION_TYPES))
+  departments: z.array(z.enum(DEPARTMENTS))
 })
 
 // Only a new account carries a password; an edit leaves the existing one alone.
@@ -44,15 +43,14 @@ export const newUserFormSchema = z.object({
 
 export type UserForm = z.infer<typeof userFormSchema> & { password?: string }
 
-// The role decides which lists mean anything: a driver drives, an admin is not on the floor at
-// all, and a super manager watches every production type rather than picking some.
-// The password is set once, at creation; it never rides along with an edit.
-const normalize = ({ password: _password, ...values }: UserForm): UserForm => {
-  if (values.role === 'driver') return { ...values, prod_types: [], process_types: ['driver'] }
-  if (values.role === 'admin') return { ...values, prod_types: [], process_types: [] }
-  if (values.role === 'super_manager') return { ...values, prod_types: [] }
-  return values
-}
+// The form holds one name and a flat list of departments; the API wants two names and two typed
+// lists, which the role decides the shape of.
+const toPayload = ({ name, email, role, departments }: UserForm) => ({
+  ...splitName(name),
+  email,
+  role,
+  ...toUserTypes(role as Role, departments)
+})
 
 export const usersKeys = {
   all: ['users'] as const,
@@ -83,9 +81,9 @@ export const useUpsertUser = (onSuccess: () => void) =>
   useMutation({
     mutationFn: ({ id, values }: { id?: number; values: UserForm }) =>
       id
-        ? authApi.patch(`users/${id}/`, { json: normalize(values) }).json()
+        ? authApi.patch(`users/${id}/`, { json: toPayload(values) }).json()
         : authApi
-            .post('users/', { json: { ...normalize(values), password: values.password } })
+            .post('users/', { json: { ...toPayload(values), password: values.password } })
             .json(),
     onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: usersKeys.all })

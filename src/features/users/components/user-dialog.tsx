@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger
@@ -12,82 +14,25 @@ import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm, useWatch, type UseFormReturn } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { newUserFormSchema, useUpsertUser, userFormSchema, type User, type UserForm } from '../api'
-import {
-  PROCESS_TYPES,
-  PRODUCTION_TYPES,
-  type ProcessType,
-  type ProductionType
-} from '../lib/roles'
+import { fullName } from '../lib/name'
+import { reachesEveryDepartment, toDepartments } from '../lib/roles'
+import { DepartmentChips } from './department-chips'
 import { RoleSelect } from './role-select'
-import { TypesSelect } from './types-select'
 
 // `Field` and `aria-invalid` both want `true` or nothing, never `false`.
 const invalid = (error: unknown) => (error ? true : undefined)
 
-type UserTypeFieldsProps = {
-  form: UseFormReturn<UserForm>
-  role: UserForm['role']
-  processTypes: ProcessType[]
-}
-
-/** The department and production pickers, which only some roles answer for. */
-const UserTypeFields = ({ form, role, processTypes }: UserTypeFieldsProps) => {
-  // An admin never stands at a machine and a driver only drives, so neither picks a department.
-  const picksDepartments = role !== 'admin' && role !== 'driver'
-  // A super manager watches every production type; the rest pick theirs, and only on production.
-  const picksProduction =
-    picksDepartments && role !== 'super_manager' && processTypes.includes('production')
-
-  const { errors } = form.formState
-
-  return (
-    <>
-      {picksDepartments && (
-        <Field data-invalid={invalid(errors.process_types)}>
-          <FieldLabel htmlFor='user-departments'>Departments</FieldLabel>
-          <Controller
-            control={form.control}
-            name='process_types'
-            render={({ field }) => (
-              <TypesSelect
-                id='user-departments'
-                options={PROCESS_TYPES}
-                value={field.value}
-                onChange={field.onChange}
-                placeholder='Pick departments'
-                invalid={invalid(errors.process_types)}
-              />
-            )}
-          />
-          <FieldError errors={[errors.process_types]} />
-        </Field>
-      )}
-
-      {picksProduction && (
-        <Field data-invalid={invalid(errors.prod_types)}>
-          <FieldLabel htmlFor='user-production'>Production Type</FieldLabel>
-          <Controller
-            control={form.control}
-            name='prod_types'
-            render={({ field }) => (
-              <TypesSelect
-                id='user-production'
-                options={PRODUCTION_TYPES}
-                value={field.value}
-                onChange={field.onChange}
-                placeholder='Pick production types'
-                invalid={invalid(errors.prod_types)}
-              />
-            )}
-          />
-          <FieldError errors={[errors.prod_types]} />
-        </Field>
-      )}
-    </>
-  )
-}
+// `FieldLabel` lays its children out in a row with a gap, so the mark rides inside the text.
+const Label = ({ children }: { children: string }) => (
+  <span>
+    {children}
+    <span aria-hidden className='text-destructive'>
+      *
+    </span>
+  </span>
+)
 
 type UserFormProps = {
   user?: User
@@ -98,12 +43,10 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
   const form = useForm<UserForm>({
     resolver: standardSchemaResolver(user ? userFormSchema : newUserFormSchema),
     defaultValues: {
+      name: user ? fullName(user) : '',
       email: user?.email ?? '',
-      first_name: user?.first_name ?? '',
-      last_name: user?.last_name ?? '',
       role: (user?.role as UserForm['role']) ?? 'worker',
-      process_types: (user?.process_types ?? []) as ProcessType[],
-      prod_types: (user?.prod_types ?? []) as ProductionType[],
+      departments: user ? toDepartments(user) : [],
       ...(user ? {} : { password: '' })
     }
   })
@@ -111,7 +54,9 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
   const mutation = useUpsertUser(onSuccess)
   const { errors } = form.formState
   const role = useWatch({ control: form.control, name: 'role' })
-  const processTypes = useWatch({ control: form.control, name: 'process_types' })
+
+  // An admin reaches every department and a driver only drives, so neither picks any.
+  const picksDepartments = !reachesEveryDepartment(role) && role !== 'driver'
 
   return (
     <form
@@ -119,14 +64,31 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
       noValidate
     >
       <FieldGroup>
+        <Field data-invalid={invalid(errors.name)}>
+          <FieldLabel htmlFor='user-name'>
+            <Label>Name</Label>
+          </FieldLabel>
+          <InputGroup>
+            <InputGroupInput
+              id='user-name'
+              placeholder='e.g. John Enns'
+              aria-invalid={invalid(errors.name)}
+              {...form.register('name')}
+            />
+          </InputGroup>
+          <FieldError errors={[errors.name]} />
+        </Field>
+
         <Field data-invalid={invalid(errors.email)}>
-          <FieldLabel htmlFor='user-email'>Email</FieldLabel>
+          <FieldLabel htmlFor='user-email'>
+            <Label>Email</Label>
+          </FieldLabel>
           <InputGroup>
             <InputGroupInput
               id='user-email'
               type='email'
               autoComplete='off'
-              placeholder='you@wiseline.com'
+              placeholder='e.g. john@wiseline.app'
               aria-invalid={invalid(errors.email)}
               {...form.register('email')}
             />
@@ -134,36 +96,10 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
           <FieldError errors={[errors.email]} />
         </Field>
 
-        <div className='grid grid-cols-2 gap-4'>
-          <Field data-invalid={invalid(errors.first_name)}>
-            <FieldLabel htmlFor='user-first-name'>First Name</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id='user-first-name'
-                placeholder='John'
-                aria-invalid={invalid(errors.first_name)}
-                {...form.register('first_name')}
-              />
-            </InputGroup>
-            <FieldError errors={[errors.first_name]} />
-          </Field>
-
-          <Field data-invalid={invalid(errors.last_name)}>
-            <FieldLabel htmlFor='user-last-name'>Last Name</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id='user-last-name'
-                placeholder='Doe'
-                aria-invalid={invalid(errors.last_name)}
-                {...form.register('last_name')}
-              />
-            </InputGroup>
-            <FieldError errors={[errors.last_name]} />
-          </Field>
-        </div>
-
         <Field data-invalid={invalid(errors.role)}>
-          <FieldLabel htmlFor='user-role'>Role</FieldLabel>
+          <FieldLabel htmlFor='user-role'>
+            <Label>Role</Label>
+          </FieldLabel>
           <Controller
             control={form.control}
             name='role'
@@ -179,11 +115,25 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
           <FieldError errors={[errors.role]} />
         </Field>
 
-        <UserTypeFields form={form} role={role} processTypes={processTypes} />
+        {picksDepartments && (
+          <Field data-invalid={invalid(errors.departments)}>
+            <FieldLabel>Departments</FieldLabel>
+            <Controller
+              control={form.control}
+              name='departments'
+              render={({ field }) => (
+                <DepartmentChips value={field.value} onChange={field.onChange} />
+              )}
+            />
+            <FieldError errors={[errors.departments]} />
+          </Field>
+        )}
 
         {!user && (
           <Field data-invalid={invalid(errors.password)}>
-            <FieldLabel htmlFor='user-password'>Password</FieldLabel>
+            <FieldLabel htmlFor='user-password'>
+              <Label>Password</Label>
+            </FieldLabel>
             <InputGroup>
               <InputGroupInput
                 id='user-password'
@@ -196,16 +146,15 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
             <FieldError errors={[errors.password]} />
           </Field>
         )}
-
-        <Button
-          type='submit'
-          className='mt-2 self-start'
-          disabled={mutation.isPending || !form.formState.isDirty}
-        >
-          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {user ? 'Update' : 'Create'}
-        </Button>
       </FieldGroup>
+
+      <DialogFooter className='mt-6'>
+        <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
+        <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
+          {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
+          Save
+        </Button>
+      </DialogFooter>
     </form>
   )
 }
@@ -217,11 +166,11 @@ export const CreateUserDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Create user
+        Add user
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create user</DialogTitle>
+          <DialogTitle>Add user</DialogTitle>
         </DialogHeader>
         {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
         {open && <UserFormFields onSuccess={() => setOpen(false)} />}
@@ -240,7 +189,7 @@ export const UpdateUserDialog = ({ user, open, onOpenChange }: UpdateUserDialogP
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Update user</DialogTitle>
+        <DialogTitle>Edit user</DialogTitle>
       </DialogHeader>
       {open && <UserFormFields user={user} onSuccess={() => onOpenChange(false)} />}
     </DialogContent>

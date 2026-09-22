@@ -1,4 +1,5 @@
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -7,15 +8,39 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { cn } from 'cn'
 import type { User } from '../api'
-import { roleLabel, roleTint } from '../lib/roles'
+import { fullName } from '../lib/name'
+import { reachesEveryDepartment, roleLabel, roleTint, toDepartments } from '../lib/roles'
 import { UserActions } from './user-actions'
 
-// The two name columns render the same way; only the field differs.
-const NAME_COLUMNS = [
-  { key: 'first_name', label: 'First Name' },
-  { key: 'last_name', label: 'Last Name' }
-] as const
+type DepartmentsCellProps = {
+  user: User
+}
+
+const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
+  if (reachesEveryDepartment(user.role)) {
+    return <span className='text-muted-foreground'>All departments</span>
+  }
+
+  const departments = toDepartments(user)
+  if (!departments.length) return <span className='text-muted-foreground'>—</span>
+
+  return (
+    <div className='flex gap-1'>
+      {departments.map(department => (
+        <Badge key={department} variant='muted'>
+          {department}
+        </Badge>
+      ))}
+    </div>
+  )
+}
+
+const COLUMNS = ['Name', 'Email', 'Role', 'Departments'] as const
+
+const ROLE_BADGE =
+  'inline-flex h-5 items-center rounded-4xl px-2 text-xs font-medium tracking-wider uppercase'
 
 type UsersTableProps = {
   users: User[]
@@ -27,21 +52,19 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
     {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. */}
     <Table className='min-w-4xl table-fixed'>
-      {/* Email takes the leftover width, since it is the one field that runs long. */}
+      {/* Departments take the leftover width, since a user can hold several. */}
       <colgroup>
-        <col className='w-56' />
-        <col className='w-56' />
+        <col className='w-64' />
+        <col className='w-72' />
+        <col className='w-36' />
         <col />
-        <col className='w-40' />
         <col className='w-24' />
       </colgroup>
       <TableHeader>
         <TableRow>
-          {NAME_COLUMNS.map(column => (
-            <TableHead key={column.key}>{column.label}</TableHead>
+          {COLUMNS.map(label => (
+            <TableHead key={label}>{label}</TableHead>
           ))}
-          <TableHead>Email</TableHead>
-          <TableHead>Role</TableHead>
           <TableHead>
             {/* The column is obvious from its buttons; the label is for screen readers. */}
             <span className='sr-only'>Actions</span>
@@ -54,16 +77,14 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
         ) : (
           users.map(user => (
             <TableRow key={user.id}>
-              {NAME_COLUMNS.map(column => (
-                <TableCell key={column.key}>{user[column.key] || '—'}</TableCell>
-              ))}
+              <TableCell>{fullName(user) || '—'}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
-                <span
-                  className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${roleTint(user.role)}`}
-                >
-                  {roleLabel(user.role)}
-                </span>
+                {/* The tint is per role, so <Badge> cannot carry it; the shape matches one. */}
+                <span className={cn(ROLE_BADGE, roleTint(user.role))}>{roleLabel(user.role)}</span>
+              </TableCell>
+              <TableCell>
+                <DepartmentsCell user={user} />
               </TableCell>
               <TableCell>
                 <UserActions user={user} />
