@@ -84,7 +84,13 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
                 onValueChange={value => field.onChange(Number(value))}
               >
                 <SelectTrigger id='priority-department'>
-                  <SelectValue placeholder='Pick a department' />
+                  {/* The trigger holds the id; the name is what the eye is looking for. */}
+                  <SelectValue>
+                    {(id: string) =>
+                      departments?.find(department => department.id === Number(id))?.name ??
+                      'Pick a department'
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {departments?.map(department => (
@@ -156,6 +162,9 @@ const PriorityForm = ({ priority, onSuccess }: PriorityFormProps) => {
 
 export const CreatePriorityDialog = () => {
   const [open, setOpen] = useState(false)
+  // A form mounted before the departments would default to none and post a priority belonging
+  // nowhere, which the server refuses.
+  const { data: departments } = useQuery(departmentsQuery)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -168,7 +177,7 @@ export const CreatePriorityDialog = () => {
           <DialogTitle>Create priority</DialogTitle>
         </DialogHeader>
         {/* Remounts with the dialog so a cancelled draft is not there the next time it opens. */}
-        {open && <PriorityForm onSuccess={() => setOpen(false)} />}
+        {open && departments ? <PriorityForm onSuccess={() => setOpen(false)} /> : <Spinner />}
       </DialogContent>
     </Dialog>
   )
