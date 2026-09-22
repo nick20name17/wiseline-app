@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
+import { useRetained } from '@/lib/use-retained'
 import { useState } from 'react'
 import {
   useApplyCoilAdjustment,
@@ -45,18 +46,26 @@ type CoilAdjustDialogProps = {
  * The Coil Adjustment window. The floor measures whichever of the three is easiest to measure; the
  * server works the other two out, and nothing reaches EBMS until the answer has been confirmed.
  */
-export const CoilAdjustDialog = ({ lot, onOpenChange }: CoilAdjustDialogProps) => {
+export const CoilAdjustDialog = ({ lot: current, onOpenChange }: CoilAdjustDialogProps) => {
+  const [lot, release] = useRetained(current)
   const [entered, setEntered] = useState<Partial<Record<Measure['key'], string>>>({})
   const [build, setBuild] = useState({ material_thickness: '', core_od: '' })
   const [error, setError] = useState('')
-  const [asking, setAsking] = useState<CoilApply | null>(null)
+  const [question, setQuestion] = useState<CoilApply | null>(null)
+  const [asking, releaseAsking] = useRetained(question)
 
   const close = () => {
+    setQuestion(null)
+    onOpenChange(false)
+  }
+
+  // Cleared once the popup is gone rather than on close, so the fields do not empty as it fades out.
+  const settle = (open: boolean) => {
+    if (open) return
     setEntered({})
     setBuild({ material_thickness: '', core_od: '' })
     setError('')
-    setAsking(null)
-    onOpenChange(false)
+    release(open)
   }
 
   const saveBuild = useUpdateCoilLot()
@@ -76,7 +85,7 @@ export const CoilAdjustDialog = ({ lot, onOpenChange }: CoilAdjustDialogProps) =
     apply.mutate(
       { lotId: lot.id, values },
       {
-        onSuccess: setAsking,
+        onSuccess: setQuestion,
         onError: () =>
           toast.add({
             type: 'error',
@@ -88,7 +97,11 @@ export const CoilAdjustDialog = ({ lot, onOpenChange }: CoilAdjustDialogProps) =
   }
 
   return (
-    <Dialog open={!!lot} onOpenChange={next => (next ? onOpenChange(true) : close())}>
+    <Dialog
+      open={!!current}
+      onOpenChange={next => (next ? onOpenChange(true) : close())}
+      onOpenChangeComplete={settle}
+    >
       <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Coil adjustment</DialogTitle>
@@ -206,8 +219,9 @@ export const CoilAdjustDialog = ({ lot, onOpenChange }: CoilAdjustDialogProps) =
 
         {/* Apply asks one of two questions, and the answer is what reaches EBMS. */}
         <ConfirmDialog
-          open={!!asking}
-          onOpenChange={open => !open && setAsking(null)}
+          open={!!question}
+          onOpenChange={open => !open && setQuestion(null)}
+          onOpenChangeComplete={releaseAsking}
           title={asking?.action === DEPLETE ? 'Deplete and delete this coil?' : 'Make adjustment?'}
           description={
             asking?.action === DEPLETE

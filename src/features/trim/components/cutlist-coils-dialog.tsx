@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Database } from 'lucide-react'
 import { cutlistCoilsQuery, type Cutlist } from '../api'
@@ -28,11 +29,12 @@ type CutlistCoilsDialogProps = {
  * The coils the cutter can reach for: those checked into the Slinet whose colour matches this list.
  * Gauge and width deliberately do not narrow it — the colour is what has to match.
  */
-export const CutlistCoilsDialog = ({ cutlist, onOpenChange }: CutlistCoilsDialogProps) => {
+export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCoilsDialogProps) => {
+  const [cutlist, release] = useRetained(current)
   const { data: coils, isPending } = useQuery(cutlistCoilsQuery(cutlist?.id ?? null))
 
   return (
-    <Dialog open={!!cutlist} onOpenChange={onOpenChange}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>

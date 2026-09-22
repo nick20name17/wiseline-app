@@ -11,6 +11,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useQuery } from '@tanstack/react-query'
+import { useRetained } from '@/lib/use-retained'
 import { Check, SendHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { lineNotesQuery, useAddLineNote, useMarkLineNoteRead } from '../api'
@@ -39,7 +40,14 @@ const stamp = (iso: string | null) => (iso ? stampFormat.format(new Date(iso)) :
  * Read state is per note: a new note turns the thread red again even where an earlier one was already
  * dealt with.
  */
-export const LineNotesDialog = ({ originItem, productId, onOpenChange }: LineNotesDialogProps) => {
+export const LineNotesDialog = ({
+  originItem: current,
+  productId: currentProductId,
+  onOpenChange
+}: LineNotesDialogProps) => {
+  const [originItem, release] = useRetained(current)
+  // Only a label, so nothing needs releasing: the next opening replaces it.
+  const [productId] = useRetained(current === null ? null : currentProductId)
   const [draft, setDraft] = useState('')
   const { data: thread, isPending } = useQuery(lineNotesQuery(originItem))
   const add = useAddLineNote(originItem ?? '')
@@ -47,10 +55,12 @@ export const LineNotesDialog = ({ originItem, productId, onOpenChange }: LineNot
 
   return (
     <Dialog
-      open={!!originItem}
-      onOpenChange={open => {
+      open={!!current}
+      onOpenChange={onOpenChange}
+      // Cleared once the popup is gone rather than on close, so the draft does not vanish as it fades.
+      onOpenChangeComplete={open => {
         if (!open) setDraft('')
-        onOpenChange(open)
+        release(open)
       }}
     >
       <DialogContent className='sm:max-w-lg'>

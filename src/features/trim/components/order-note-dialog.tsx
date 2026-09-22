@@ -9,15 +9,15 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
+import { useRetained } from '@/lib/use-retained'
 import { Check, Lock } from 'lucide-react'
-import { useMarkOrderNoteRead, type OrderNote } from '../api'
+import { useMarkOrderNoteRead, type OrderNote, type TrimOrder } from '../api'
 import { formatDate } from '../lib/format'
 
 type OrderNoteDialogProps = {
-  /** The EBMS autoid the note hangs off; `null` closes the dialog. */
-  order: string | null
-  invoice: string
-  note: OrderNote | undefined
+  /** The order the note hangs off; `null` closes the dialog. */
+  order: TrimOrder | null
+  notes: Record<string, OrderNote> | undefined
   onOpenChange: (open: boolean) => void
 }
 
@@ -34,14 +34,16 @@ const initials = (author: string | null) =>
  * here: a reply typed in this app would never reach the person who wrote it. The checkmark is the only
  * action — and if the salesman later edits the note it goes back to unread on its own.
  */
-export const OrderNoteDialog = ({ order, invoice, note, onOpenChange }: OrderNoteDialogProps) => {
+export const OrderNoteDialog = ({ order: current, notes, onOpenChange }: OrderNoteDialogProps) => {
+  const [order, release] = useRetained(current)
+  const note = order ? notes?.[order.id] : undefined
   const mutation = useMarkOrderNoteRead()
 
   return (
-    <Dialog open={!!order} onOpenChange={onOpenChange}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
-          <DialogTitle>Order notes · {invoice}</DialogTitle>
+          <DialogTitle>Order notes · {order?.invoice}</DialogTitle>
           <DialogDescription>Imported from the salesman in EBMS.</DialogDescription>
         </DialogHeader>
 
@@ -75,7 +77,7 @@ export const OrderNoteDialog = ({ order, invoice, note, onOpenChange }: OrderNot
           <Button
             disabled={!note?.has_note || note.read || mutation.isPending || !order}
             onClick={() =>
-              order && mutation.mutate(order, { onSuccess: () => onOpenChange(false) })
+              order && mutation.mutate(order.id, { onSuccess: () => onOpenChange(false) })
             }
           >
             {mutation.isPending ? (

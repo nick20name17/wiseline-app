@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
+import { useRetained } from '@/lib/use-retained'
 import { useState } from 'react'
 import { useRequestRemanufacture, type WrappingRow } from '../api'
 
@@ -30,25 +31,28 @@ type RemanufactureDialogProps = {
  */
 export const RemanufactureDialog = ({
   departmentId,
-  line,
+  line: current,
   onOpenChange
 }: RemanufactureDialogProps) => {
+  const [line, release] = useRetained(current)
   const [quantity, setQuantity] = useState('')
   const [fromStock, setFromStock] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
 
-  const close = () => {
+  // Cleared once the popup is gone rather than on close, so the fields do not empty as it fades out.
+  const settle = (open: boolean) => {
+    if (open) return
     setQuantity('')
     setFromStock('')
     setNote('')
     setError('')
-    onOpenChange(false)
+    release(open)
   }
 
   const request = useRequestRemanufacture(() => {
     toast.add({ type: 'success', title: 'Remanufacture requested' })
-    close()
+    onOpenChange(false)
   })
 
   const submit = () => {
@@ -78,7 +82,7 @@ export const RemanufactureDialog = ({
   }
 
   return (
-    <Dialog open={!!line} onOpenChange={next => (next ? onOpenChange(true) : close())}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>Remanufacture</DialogTitle>
@@ -95,6 +99,7 @@ export const RemanufactureDialog = ({
             </Label>
             <Input
               id='reman-quantity'
+              placeholder='1'
               className='w-24'
               type='number'
               min={1}
@@ -138,7 +143,7 @@ export const RemanufactureDialog = ({
         {error ? <FieldError>{error}</FieldError> : null}
 
         <DialogFooter>
-          <Button variant='outline' onClick={close}>
+          <Button variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button disabled={request.isPending} onClick={submit}>

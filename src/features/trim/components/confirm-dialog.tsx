@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui/spinner'
 type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenChangeComplete?: (open: boolean) => void
   title: string
   description: string
   confirmLabel: string
@@ -24,6 +25,7 @@ type ConfirmDialogProps = {
 export const ConfirmDialog = ({
   open,
   onOpenChange,
+  onOpenChangeComplete,
   title,
   description,
   confirmLabel,
@@ -31,7 +33,7 @@ export const ConfirmDialog = ({
   isPending = false,
   onConfirm
 }: ConfirmDialogProps) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
+  <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
     <DialogContent className='sm:max-w-md'>
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>

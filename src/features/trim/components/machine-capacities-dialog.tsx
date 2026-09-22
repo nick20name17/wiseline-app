@@ -7,6 +7,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Printer } from 'lucide-react'
@@ -106,14 +107,15 @@ const Cell = ({ isDay, children }: { isDay?: boolean; children: React.ReactNode 
  */
 export const MachineCapacitiesDialog = ({
   departmentId,
-  day,
+  day: current,
   onOpenChange
 }: MachineCapacitiesDialogProps) => {
+  const [day, release] = useRetained(current)
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
   const unrouted = (data?.pieces_without_a_machine ?? 0) > 0
 
   return (
-    <Dialog open={!!day} onOpenChange={onOpenChange}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent data-print-report className='sm:max-w-2xl'>
         <DialogHeader>
           <div className='text-center'>

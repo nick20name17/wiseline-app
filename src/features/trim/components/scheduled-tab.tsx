@@ -2,6 +2,7 @@ import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock } from 'lucide-react'
 import { useState } from 'react'
@@ -49,6 +50,7 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<TrimOrder | null>(null)
+  const [rescheduled, releaseRescheduled] = useRetained(rescheduling)
   const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
   const [noteLine, setNoteLine] = useState<TrimLineItem | null>(null)
 
@@ -226,7 +228,8 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
       <ScheduleDialog
         open={!!rescheduling}
         onOpenChange={open => !open && setRescheduling(null)}
-        title={`Reschedule order ${rescheduling?.invoice ?? ''}`}
+        onOpenChangeComplete={releaseRescheduled}
+        title={`Reschedule order ${rescheduled?.invoice ?? ''}`}
         description='Pick another production day. Rescheduling resets the edits made while reviewing.'
         actionLabel='Reschedule'
         departmentId={departmentId}
@@ -256,9 +259,8 @@ export const ScheduledTab = ({ search, departmentId, readOnly }: ScheduledTabPro
       />
 
       <OrderNoteDialog
-        order={noteOrder?.id ?? null}
-        invoice={noteOrder?.invoice ?? ''}
-        note={noteOrder ? notes?.[noteOrder.id] : undefined}
+        order={noteOrder}
+        notes={notes}
         onOpenChange={open => !open && setNoteOrder(null)}
       />
       <LineNotesDialog

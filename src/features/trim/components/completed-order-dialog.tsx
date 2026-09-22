@@ -16,6 +16,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Printer, Trash2 } from 'lucide-react'
 import {
@@ -63,9 +64,10 @@ type CompletedOrderDialogProps = {
  */
 export const CompletedOrderDialog = ({
   departmentId,
-  order,
+  order: current,
   onOpenChange
 }: CompletedOrderDialogProps) => {
+  const [order, release] = useRetained(current)
   const { data, isPending } = useQuery(completedOrderQuery(departmentId, order?.order ?? null))
   // "reprint package labels and change/add/remove locations if necessary" — an order that has gone
   // still has to be findable, and a location freed when it is no longer standing there.
@@ -74,7 +76,7 @@ export const CompletedOrderDialog = ({
   const reprint = useReprintPackage(() => toast.add({ type: 'success', title: 'Label sent' }))
 
   return (
-    <Dialog open={!!order} onOpenChange={onOpenChange}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>

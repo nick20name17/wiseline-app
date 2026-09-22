@@ -229,9 +229,8 @@ export const UnscheduledTab = ({ search, departmentId, readOnly }: UnscheduledTa
       />
 
       <OrderNoteDialog
-        order={noteOrder?.id ?? null}
-        invoice={noteOrder?.invoice ?? ''}
-        note={noteOrder ? notes?.[noteOrder.id] : undefined}
+        order={noteOrder}
+        notes={notes}
         onOpenChange={open => !open && setNoteOrder(null)}
       />
       <LineNotesDialog

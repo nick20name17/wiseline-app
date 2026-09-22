@@ -15,6 +15,7 @@ import { CapacityCalendar } from './capacity-calendar'
 type ScheduleDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenChangeComplete?: (open: boolean) => void
   title: string
   description: string
   actionLabel: string
@@ -32,6 +33,7 @@ type ScheduleDialogProps = {
 export const ScheduleDialog = ({
   open,
   onOpenChange,
+  onOpenChangeComplete,
   title,
   description,
   actionLabel,
@@ -55,6 +57,7 @@ export const ScheduleDialog = ({
         }
         onOpenChange(next)
       }}
+      onOpenChangeComplete={onOpenChangeComplete}
     >
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader>

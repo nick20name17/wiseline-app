@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
 import { cutlistRowSourcesQuery } from '../api'
@@ -31,7 +32,8 @@ type CutlistTotalDialogProps = {
  * together, which is right for cutting and useless for answering «whose is this» — this is that
  * answer, so it names the orders rather than repeating the size.
  */
-export const CutlistTotalDialog = ({ group, onOpenChange }: CutlistTotalDialogProps) => {
+export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTotalDialogProps) => {
+  const [group, release] = useRetained(current)
   const rowIds = group?.rows.map(row => row.id) ?? []
   const { data: sources, isPending } = useQuery(cutlistRowSourcesQuery(rowIds))
 
@@ -48,7 +50,7 @@ export const CutlistTotalDialog = ({ group, onOpenChange }: CutlistTotalDialogPr
   const orders = [...byOrder.values()]
 
   return (
-    <Dialog open={!!group} onOpenChange={onOpenChange}>
+    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
       <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Orders using this size</DialogTitle>
