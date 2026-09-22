@@ -114,11 +114,12 @@ export const MachineCapacitiesDialog = ({
 
   return (
     <Dialog open={!!day} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent data-print-report className='sm:max-w-2xl'>
         <DialogHeader>
           <div className='text-center'>
             <DialogTitle>Machine Capacities</DialogTitle>
-            <DialogDescription>
+            {/* It explains the colours on screen; on paper the figures speak for themselves. */}
+            <DialogDescription data-print-hide>
               Report · what this production day has assigned to each machine. Over the daily max is
               a soft warning — it highlights, never blocks.
             </DialogDescription>
@@ -130,7 +131,7 @@ export const MachineCapacitiesDialog = ({
         ) : (
           <>
             {/* A department with a long machine list should not push Print off the screen. */}
-            <div className='scrollport max-h-96 overflow-y-auto'>
+            <div data-print-expand className='scrollport max-h-96 overflow-y-auto'>
               <table className='w-full border-separate border-spacing-y-1'>
                 <thead>
                   <tr>
@@ -202,7 +203,7 @@ export const MachineCapacitiesDialog = ({
               </p>
             ) : null}
 
-            <div className='flex justify-center'>
+            <div data-print-hide className='flex justify-center'>
               <Button onClick={() => window.print()}>
                 <Printer data-icon='inline-start' />
                 Print

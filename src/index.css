@@ -191,6 +191,68 @@
   padding: calc(var(--spacing) * 1.5);
 }
 
+/**
+ * A report prints on its own sheet.
+ *
+ * Only the capacity report's own Print button prints report-only — an ordinary Ctrl+P anywhere else
+ * must still print the page somebody is looking at. That is why this keys off the report being on
+ * screen rather than off a class somebody has to remember to set and unset.
+ */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.5in;
+  }
+
+  /* Everything that is not the sheet steps out of the way, backdrop included. */
+  body:has([data-print-report]) > *:not(:has([data-print-report])) {
+    display: none !important;
+  }
+  [data-slot='dialog-overlay'] {
+    display: none !important;
+  }
+
+  /* The open dialog locks the page's scroll, which on paper clips the sheet to one screen. */
+  body:has([data-print-report]) {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /*
+   * On paper the dialog is not a dialog: no centring, no frame, the page's own width.
+   *
+   * The centring is a `translate`, and resetting that property by name does not survive the build —
+   * it is folded into `transform` and lost, leaving the sheet half a page to the left. So the offset
+   * is taken out at its source, the two custom properties the utility feeds it from.
+   */
+  [data-print-report] {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    --tw-translate-x: 0 !important;
+    --tw-translate-y: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Controls, and anything that only explains the screen, have no business on paper. */
+  [data-print-hide],
+  [data-slot='dialog-close'] {
+    display: none !important;
+  }
+
+  /* A scroll box means nothing on a page: let the rows run on. */
+  [data-print-report] [data-print-expand] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* The cards are the report's structure, so their fills have to reach the paper. */
+  [data-print-report] * {
+    print-color-adjust: exact;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

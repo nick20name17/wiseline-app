@@ -96,3 +96,26 @@ test('expanding a scheduled order offers the machine, stock and vented columns',
   await expect(page.getByLabel('Vent TED8250')).toBeVisible()
   await expect(page.getByLabel('Machine for TED8250')).toHaveText(/Assign/)
 })
+
+test('the capacities report prints on its own sheet', async ({ page }) => {
+  await page
+    .getByRole('button', { name: /Machine capacities for/ })
+    .first()
+    .click()
+  await expect(page.getByRole('heading', { name: 'Machine Capacities' })).toBeVisible()
+
+  await page.emulateMedia({ media: 'print' })
+
+  // The report is all that reaches the paper, and it is no longer a centred panel on it.
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Print' })).toBeHidden()
+  await expect(page.getByRole('rowheader', { name: /Press Brake/ })).toBeVisible()
+
+  // The sheet centres itself by translating half its width; on paper that would push it off the
+  // page, so the offset is taken out at the property the utility feeds it from.
+  const placement = await page.locator('[data-print-report]').evaluate(element => {
+    const style = getComputedStyle(element)
+    return { position: style.position, translateX: style.getPropertyValue('--tw-translate-x') }
+  })
+  expect(placement).toEqual({ position: 'static', translateX: '0' })
+})
