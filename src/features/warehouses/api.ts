@@ -83,7 +83,7 @@ export const useUpsertWarehouse = (onSuccess: () => void) =>
       id
         ? authApi.patch(`warehouses/${id}/`, { json: toPayload(values) }).json()
         : authApi.post('warehouses/', { json: toPayload(values) }).json(),
-    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+    onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }
@@ -92,7 +92,7 @@ export const useUpsertWarehouse = (onSuccess: () => void) =>
 export const useDeleteWarehouse = (onSuccess: () => void) =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`warehouses/${id}/`),
-    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+    onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: warehousesKeys.all })
       onSuccess()
     }

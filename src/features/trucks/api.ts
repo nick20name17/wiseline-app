@@ -46,7 +46,7 @@ export const useUpsertTruck = (onSuccess: () => void) =>
       id
         ? authApi.patch(`trucks/${id}/`, { json: payload }).json()
         : authApi.post('trucks/', { json: payload }).json(),
-    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+    onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }
@@ -55,7 +55,7 @@ export const useUpsertTruck = (onSuccess: () => void) =>
 export const useDeleteTruck = (onSuccess: () => void) =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
-    onSuccess: async (_data, _variables, _onMutate, { client }) => {
+    onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: trucksKeys.all })
       onSuccess()
     }

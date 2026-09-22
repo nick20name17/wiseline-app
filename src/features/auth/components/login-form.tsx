@@ -30,7 +30,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const mutation = useMutation({
     mutationFn: login,
     meta: { skipErrorToast: true },
-    onSuccess: async (_data, _credentials, _onMutate, { client }) => {
+    onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: authKeys.all })
       await onSuccess()
     }
