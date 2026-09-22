@@ -74,7 +74,12 @@ const machineSchema = z.object({
   id: z.number(),
   name: z._default(z.nullable(z.string()), null),
   department: z._default(z.nullable(z.number()), null),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // What the machine does in its department: the Slinet cuts, the rest bend, and Wrapping is the
+  // station after them. It is what tells the Production tab which sub-tab is which.
+  kind: z._default(z.nullable(z.string()), null),
+  daily_max_pieces: z._default(z.nullable(z.number()), null),
+  daily_max_bends: z._default(z.nullable(z.number()), null)
 })
 
 export type Machine = z.infer<typeof machineSchema>
@@ -169,7 +174,17 @@ export const trimKeys = {
   lineNotesSummaries: () => [...trimKeys.all, 'line-notes-summary'] as const,
   lineNotesSummary: (originItems: string[]) =>
     [...trimKeys.lineNotesSummaries(), originItems] as const,
-  stockCards: () => [...trimKeys.all, 'stock-cards'] as const
+  stockCards: () => [...trimKeys.all, 'stock-cards'] as const,
+  cutlists: () => [...trimKeys.all, 'cutlists'] as const,
+  cutlistBoard: (departmentId: number, kind: CutlistKind, machine: number | null, done: boolean) =>
+    [
+      ...trimKeys.cutlists(),
+      departmentId,
+      kind,
+      machine ?? 'all',
+      done ? 'done' : 'active'
+    ] as const,
+  cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const
 }
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -822,4 +837,142 @@ export const useScanStockCard = () =>
           order_qty: z._default(z.nullable(z.number()), null)
         })
         .parse(await authApi.post('stock-cards/scan/', { json: { payload } }).json())
+  })
+
+// --- Cutlists and bendlists ---------------------------------------------
+
+/**
+ * A cutlist belongs to the Slinet, which cuts the material; a bendlist belongs to one machine, which
+ * bends it. Releasing an order to production is what creates them, and nothing ever adds to one: the
+ * same gauge and colour released again later makes a second list beside the first.
+ */
+export type CutlistKind = 'cutlist' | 'bendlist'
+
+// Which line items are behind a row, and how much each one contributed — what a number in the Total
+// column opens up.
+const cutlistSourceSchema = z.object({
+  order: z._default(z.nullable(z.string()), null),
+  origin_item: z._default(z.nullable(z.string()), null),
+  quantity: z._default(z.number(), 0)
+})
+
+export type CutlistSource = z.infer<typeof cutlistSourceSchema>
+
+const cutlistRowSchema = z.object({
+  id: z.number(),
+  width: z._default(z.nullable(z.number()), null),
+  length: z._default(z.nullable(z.number()), null),
+  // The machine this quantity is destined for. On the Slinet's cutlist these are the columns; on a
+  // bendlist every row carries the tab's own machine.
+  machine: z._default(z.nullable(z.number()), null),
+  // Vented pieces leave their machine's column for one of their own, on the Slinet's list only.
+  vented: z._default(z.boolean(), false),
+  quantity: z._default(z.number(), 0),
+  complete: z._default(z.boolean(), false),
+  operator_notes: z._default(z.nullable(z.string()), null),
+  is_standard_length: z._default(z.boolean(), true),
+  sources: z.catch(z.array(cutlistSourceSchema), [])
+})
+
+export type CutlistRow = z.infer<typeof cutlistRowSchema>
+
+const cutlistSchema = z.object({
+  id: z.number(),
+  department: z._default(z.nullable(z.number()), null),
+  kind: z._default(z.string(), 'cutlist'),
+  machine: z._default(z.nullable(z.number()), null),
+  production_date: z._default(z.nullable(z.string()), null),
+  gauge: z._default(z.nullable(z.string()), null),
+  color: z._default(z.nullable(z.string()), null),
+  gauge_color: z._default(z.nullable(z.string()), null),
+  priority: z._default(z.nullable(prioritySchema), null),
+  released_at: z._default(z.nullable(z.string()), null),
+  completed_at: z._default(z.nullable(z.string()), null),
+  is_complete: z._default(z.boolean(), false),
+  rows: z.catch(z.array(cutlistRowSchema), [])
+})
+
+export type Cutlist = z.infer<typeof cutlistSchema>
+
+/**
+ * The lists in one Production sub-tab, already sorted the way the board sorts them: production date
+ * first, then priority, then gauge/colour — a list with a priority still sits below one with an
+ * earlier date. `done` switches to the completed lists, which the server holds for 90 days.
+ */
+export const cutlistsQuery = (
+  departmentId: number | undefined,
+  kind: CutlistKind,
+  machine: number | null,
+  done: boolean
+) =>
+  queryOptions({
+    queryKey: trimKeys.cutlistBoard(departmentId ?? 0, kind, machine, done),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z.array(cutlistSchema).parse(
+        await authApi
+          .get('cutlists/', {
+            searchParams: {
+              department_id: departmentId!,
+              kind,
+              completed: done,
+              ...(machine === null ? {} : { machine })
+            }
+          })
+          .json()
+      )
+  })
+
+/**
+ * Marking a row complete is how the material gets its status — the Slinet's list cuts it, a machine's
+ * list bends it. The server owns that; this only reports the row.
+ */
+export const useUpdateCutlistRow = () =>
+  useMutation({
+    mutationFn: ({
+      rowId,
+      edit
+    }: {
+      rowId: number
+      edit: { complete?: boolean; operator_notes?: string }
+    }) => authApi.patch(`cutlists/rows/${rowId}/`, { json: edit }).json(),
+    // A completed row moves the line items behind it, and those move their order — so the whole
+    // board, not just this list.
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+/**
+ * Done takes the list off the Production tab and into Completed, where it stays for 90 days. The
+ * server refuses it while any row is outstanding.
+ */
+export const useFinishCutlist = () =>
+  useMutation({
+    mutationFn: (cutlistId: number) => authApi.post(`cutlists/${cutlistId}/done/`).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.cutlists() })
+  })
+
+const coilLotSchema = z.object({
+  id: z.number(),
+  lot_number: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  coil_thickness: z._default(z.nullable(z.number()), null),
+  linear_feet: z._default(z.nullable(z.number()), null),
+  weight: z._default(z.nullable(z.number()), null),
+  note: z._default(z.nullable(z.string()), null)
+})
+
+export type CoilLot = z.infer<typeof coilLotSchema>
+
+/**
+ * The Cutlist Coils window: the coils checked into the Slinet whose colour matches the list in front
+ * of the worker. Gauge and width deliberately do not narrow it.
+ */
+export const cutlistCoilsQuery = (cutlistId: number | null) =>
+  queryOptions({
+    queryKey: trimKeys.cutlistCoils(cutlistId ?? 0),
+    enabled: cutlistId !== null,
+    queryFn: async () =>
+      z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
   })

@@ -120,3 +120,33 @@ department's, so the Trim board pulls the lot and filters in memory (`priorities
 `src/features/trim/api.ts`), keeping the ones with a matching department plus the ones with none.
 
 **On our side once it lands:** move the filter into the query key and drop the `select`.
+
+## Backend: a cutlist row says nothing about the line items on it
+
+**Ask:** carry the line item's own fields on `CutlistRowSourceSchema` — at least `id_inven`,
+`description`, `quantity` (ordered), `pull_from_stock` and `status` — or accept a list of
+`origin_item`s on `GET /items/`.
+
+**Why:** the board's bendlist is Qty Ordered | Stock | Qty to Manufacture | ID | Description |
+Remanufacture | Machine | Status | Complete | Drawing | Line Item Notes (p1 (507,291)). A row from
+`GET /cutlists/` carries the width, the length, the quantity to make, the machine and the sources —
+and a source is `order`, `origin_item`, `quantity` and nothing else. So the columns that describe
+the trim itself cannot be filled, and neither can the per-line actions beside them: reassigning a
+machine and the Stock keypad both need the numeric `pm_item` id, which no cutlist response names.
+
+**On our side once it lands:** `CutlistRows` in `src/features/trim/components/cutlist-rows.tsx`
+grows the remaining columns; today it shows the size, the quantity, the machine split, the vented
+pieces, the operator note and Complete.
+
+## Backend: no Stock Manufacturing
+
+**Ask:** an endpoint that records pieces the floor made against no order and pushes them to EBMS as
+a manufacturing batch, plus one that lists what has been sent.
+
+**Why:** Production has two modes on the board — Trim and Stock Manufacturing (p1 (660,522)) — and
+the second is a grid of Qty / Product ID / Description typed straight in by the worker. Nothing in
+`stages/` records it: `stock.py` is Stock Cards, `stock_orders.py` raises an order that then goes
+through the tabs like any other. There is no way to post a bare manufactured quantity.
+
+**On our side once it lands:** the Production tab grows its mode switch and the Stock Manufacturing
+grid beside it. Today the tab is the Trim mode only.

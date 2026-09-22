@@ -8,13 +8,8 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
-import {
-  departmentStateOf,
-  prioritiesQuery,
-  useSetPriority,
-  type Priority,
-  type TrimOrder
-} from '../api'
+import { departmentStateOf, prioritiesQuery, useSetPriority, type TrimOrder } from '../api'
+import { PriorityPill } from './priority-pill'
 
 const NO_PRIORITY = 'none'
 
@@ -25,39 +20,12 @@ type PriorityCellProps = {
   readOnly: boolean
 }
 
-/**
- * The priority's own colour tints the pill, so a row is read by colour before it is read by word. The
- * colour arrives per row, so it is handed to the classes as custom properties.
- */
-const wash = (color: string) => `color-mix(in oklch, ${color} 16%, transparent)`
-
-const Pill = ({ priority, className }: { priority: Priority | null; className?: string }) => (
-  <span
-    style={
-      priority?.color
-        ? ({ '--ink': priority.color, '--wash': wash(priority.color) } as CSSProperties)
-        : undefined
-    }
-    className={cn(
-      'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium tracking-wider uppercase',
-      priority ? 'bg-(--wash) text-(--ink)' : 'bg-muted text-muted-foreground',
-      className
-    )}
-  >
-    <span
-      aria-hidden
-      className={cn('size-1.5 rounded-full', priority ? 'bg-(--ink)' : 'bg-muted-foreground')}
-    />
-    {priority ? priority.name : 'Set priority'}
-  </span>
-)
-
 export const PriorityCell = ({ order, departmentId, readOnly }: PriorityCellProps) => {
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const mutation = useSetPriority()
   const current = departmentStateOf(order, departmentId)?.priority ?? null
 
-  if (readOnly || !departmentId) return <Pill priority={current} />
+  if (readOnly || !departmentId) return <PriorityPill priority={current} />
 
   return (
     <DropdownMenu>
@@ -70,7 +38,7 @@ export const PriorityCell = ({ order, departmentId, readOnly }: PriorityCellProp
           />
         }
       >
-        <Pill priority={current} className='cursor-pointer hover:brightness-95' />
+        <PriorityPill priority={current} className='cursor-pointer hover:brightness-95' />
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' className='min-w-48'>
         <DropdownMenuRadioGroup

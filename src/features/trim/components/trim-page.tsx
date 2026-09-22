@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { scheduledOrdersQuery, unscheduledOrdersQuery, useTrimDepartment } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { DeptBar } from './dept-bar'
+import { ProductionTab } from './production-tab'
 import { ScheduledTab } from './scheduled-tab'
 import { TrimSearch } from './trim-search'
 import { UnscheduledTab } from './unscheduled-tab'
@@ -50,6 +51,12 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
         <UnscheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
       ) : view === 'scheduled' ? (
         <ScheduledTab search={search} departmentId={department?.id} readOnly={readOnly} />
+      ) : view === 'production' ? (
+        <ProductionTab
+          departmentId={department?.id}
+          readOnly={readOnly}
+          onOpenCoils={() => onViewChange('coils')}
+        />
       ) : (
         <PagePlaceholder title={`Trim · ${VIEW_LABELS[view]}`} />
       )}

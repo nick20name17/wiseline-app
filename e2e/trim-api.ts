@@ -61,15 +61,32 @@ const STOCK_ORDER = {
   origin_items: []
 }
 
+const machine = (id: number, name: string, position: number, kind: string) => ({
+  id,
+  name,
+  department: DEPARTMENT.id,
+  position,
+  kind,
+  daily_max_pieces: null,
+  daily_max_bends: kind === 'bending' ? 1200 : null
+})
+
+// The Slinet cuts, the rest bend, and Wrapping is the station after them — which is what tells the
+// Production tab apart from the machine it is standing at.
+const SLINET = machine(8, 'Slinet', 0, 'cutting')
+
 const MACHINES = [
-  { id: 1, name: 'Press Brake', department: DEPARTMENT.id, position: 1 },
-  { id: 2, name: 'V1', department: DEPARTMENT.id, position: 2 },
-  { id: 3, name: 'V2', department: DEPARTMENT.id, position: 3 },
-  { id: 4, name: 'Roll Former', department: DEPARTMENT.id, position: 4 },
-  { id: 5, name: 'Caps', department: DEPARTMENT.id, position: 5 },
-  { id: 6, name: 'Flat Stock', department: DEPARTMENT.id, position: 6 },
-  { id: 7, name: 'Wrapping', department: DEPARTMENT.id, position: 7 }
+  SLINET,
+  machine(1, 'Press Brake', 1, 'bending'),
+  machine(2, 'V1', 2, 'bending'),
+  machine(3, 'V2', 3, 'bending'),
+  machine(4, 'Roll Former', 4, 'rollforming'),
+  machine(5, 'Caps', 5, 'bending'),
+  machine(6, 'Flat Stock', 6, 'bending'),
+  machine(7, 'Wrapping', 7, 'wrapping')
 ]
+
+const BENDERS = MACHINES.filter(entry => entry.kind !== 'cutting' && entry.kind !== 'wrapping')
 
 const SCHEDULED_DAY = '2026-09-23'
 
@@ -132,7 +149,7 @@ const READY_ORDER = {
     ]
   },
   origin_items: [
-    scheduledLine('101', 'TRC8250', 'Ridge Cap Dark Red', 8, { id: 101, flow: MACHINES[0] })
+    scheduledLine('101', 'TRC8250', 'Ridge Cap Dark Red', 8, { id: 101, flow: BENDERS[0] })
   ]
 }
 
@@ -223,6 +240,96 @@ export const SCHEDULED_ORDERS = [
   UNREVIEWED_ORDER
 ]
 
+const cutlistRow = (
+  id: number,
+  width: number,
+  length: number,
+  machine: number | null,
+  quantity: number,
+  extra: Record<string, unknown> = {}
+) => ({
+  id,
+  width,
+  length,
+  machine,
+  vented: false,
+  quantity,
+  complete: false,
+  operator_notes: null,
+  is_standard_length: length === 120,
+  sources: [{ order: 'ARINV-2', origin_item: '101', quantity }],
+  ...extra
+})
+
+/** The Slinet's list: one row per machine per size, which the board reads as columns. */
+const CUTLIST = {
+  id: 501,
+  department: DEPARTMENT.id,
+  kind: 'cutlist',
+  machine: SLINET.id,
+  production_date: SCHEDULED_DAY,
+  gauge: '26ga',
+  color: 'Charcoal',
+  gauge_color: '26ga - Charcoal',
+  priority: PRIORITIES[0],
+  released_at: '2026-09-21T09:00:00',
+  completed_at: null,
+  is_complete: false,
+  rows: [
+    cutlistRow(1, 12.5, 120, 1, 12),
+    cutlistRow(2, 14, 96, 3, 8),
+    // The same size again, vented: on the Slinet those pieces leave V2's column for their own.
+    cutlistRow(3, 14, 96, 3, 18, { vented: true })
+  ]
+}
+
+/** A list from a day already gone, and unfinished — the board paints those overdue. */
+const OVERDUE_CUTLIST = {
+  ...CUTLIST,
+  id: 502,
+  production_date: '2026-09-18',
+  gauge_color: '24ga - Galvalume',
+  priority: null,
+  rows: [cutlistRow(4, 8, 120, 1, 4)]
+}
+
+/** Every row signed off, so Done has something to act on. */
+const READY_CUTLIST = {
+  ...CUTLIST,
+  id: 503,
+  gauge_color: '26ga - Bright White',
+  is_complete: true,
+  rows: [cutlistRow(5, 10, 120, 1, 6, { complete: true })]
+}
+
+const DONE_CUTLIST = {
+  ...READY_CUTLIST,
+  id: 504,
+  completed_at: '2026-09-21T16:20:00'
+}
+
+/** Press Brake's own list: one row per size, all of it for this machine. */
+const BENDLIST = {
+  ...CUTLIST,
+  id: 601,
+  kind: 'bendlist',
+  machine: 1,
+  gauge_color: '26ga - Charcoal',
+  rows: [cutlistRow(11, 12.5, 120, 1, 12)]
+}
+
+const COILS = [
+  {
+    id: 71,
+    lot_number: '37067677',
+    product_id: 'CS488306',
+    coil_thickness: 4.125,
+    linear_feet: 1533,
+    weight: 3986,
+    note: null
+  }
+]
+
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {
     const date = new Date(`${start}T00:00:00Z`)
@@ -268,9 +375,9 @@ export const mockTrimApi = async (page: Page) => {
           bends_from_stock: 0,
           capacity: 5000
         },
-        machines: MACHINES.map(machine => ({
-          flow_id: machine.id,
-          name: machine.name,
+        machines: BENDERS.map(station => ({
+          flow_id: station.id,
+          name: station.name,
           pieces: 8,
           pieces_from_stock: 0,
           max_pieces: null,
@@ -311,6 +418,22 @@ export const mockTrimApi = async (page: Page) => {
     })
   )
   await page.route(`${API_URL}/items/notes/`, route => route.fulfill({ json: {} }))
+  await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
+  await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
+  await page.route(`${API_URL}/cutlists/rows/*`, route =>
+    route.fulfill({ json: { ...CUTLIST.rows[0], complete: true } })
+  )
+  // One route for both sub-tabs: the tab the request is for is in `kind`, and `completed` says
+  // which half of it.
+  await page.route(`${API_URL}/cutlists/*`, route => {
+    const params = new URL(route.request().url()).searchParams
+    const done = params.get('completed') === 'true'
+    if (params.get('kind') === 'bendlist')
+      return void route.fulfill({ json: done ? [] : [BENDLIST] })
+    void route.fulfill({
+      json: done ? [DONE_CUTLIST] : [OVERDUE_CUTLIST, CUTLIST, READY_CUTLIST]
+    })
+  })
   await page.route(`${API_URL}/departments/${DEPARTMENT.id}/day-strip/*`, route => {
     const url = new URL(route.request().url())
     const start = url.searchParams.get('start') ?? '2024-05-08'

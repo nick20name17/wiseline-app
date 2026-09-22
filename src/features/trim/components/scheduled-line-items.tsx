@@ -60,6 +60,11 @@ export const ScheduledLineItems = ({
 }: ScheduledLineItemsProps) => {
   const noteState = useLineNoteState(order.origin_items)
   const { data: machines } = useQuery(machinesQuery(departmentId))
+  // A trim is assigned to the machine that bends it. The Slinet cuts every one of them and Wrapping
+  // comes after all of them, so neither is a choice here.
+  const stations = machines?.filter(
+    machine => machine.kind !== 'cutting' && machine.kind !== 'wrapping'
+  )
   const update = useUpdateLineItem()
 
   const edit = (item: TrimLineItem, patch: Parameters<typeof update.mutate>[0]['edit']) => {
@@ -197,7 +202,7 @@ export const ScheduledLineItems = ({
                             value={machine ? String(machine.id) : ''}
                             onValueChange={value => edit(item, { flow: Number(value) })}
                           >
-                            {machines?.map(option => (
+                            {stations?.map(option => (
                               <DropdownMenuRadioItem key={option.id} value={String(option.id)}>
                                 {option.name ?? `Machine ${option.id}`}
                               </DropdownMenuRadioItem>

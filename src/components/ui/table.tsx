@@ -59,6 +59,9 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
         // A row the board marks as past due carries the warning across every column, not just the
         // one holding the date. Selection still outranks it: it is the thing being acted on.
         'data-overdue:bg-destructive/5 data-overdue:hover:bg-destructive/10 data-overdue:data-[state=selected]:bg-muted',
+        // A cutlist row the floor has signed off is crossed out and stays in place: the list is a
+        // record of the cut, not a queue that empties.
+        'data-complete:text-muted-foreground data-complete:line-through',
         className
       )}
       {...props}
