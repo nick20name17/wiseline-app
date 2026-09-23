@@ -711,7 +711,8 @@ export const useMarkLineNoteRead = (originItem: string) =>
  * constraint instead of repeating the real error. Hence `onSettled` below rather than `onSuccess`.
  */
 const ensureSalesOrderId = async (order: TrimOrder) => {
-  if (order.sales_order) return order.sales_order.id
+  // A negative id is the stand-in an optimistic update drew, not a row the server has.
+  if (order.sales_order && order.sales_order.id > 0) return order.sales_order.id
   const created = salesOrderSchema.parse(
     await authApi.post('sales-orders/', { json: { order: order.id } }).json()
   )
@@ -785,24 +786,108 @@ export const useBypassProduction = (onSuccess: () => void) =>
   })
 
 /** Set or clear an order's Priority. It belongs to one department and never leaks to another. */
-export const useSetPriority = () =>
+/**
+ * Every cached copy of one order under the order lists — a tab's page, a whole order — rewritten by
+ * `edit`.
+ */
+const patchCachedOrder = (
+  client: QueryClient,
+  orderId: string,
+  edit: (order: TrimOrder) => TrimOrder
+) => {
+  const patch = (order: TrimOrder) => (order.id === orderId ? edit(order) : order)
+  client.setQueriesData({ queryKey: trimKeys.orders() }, (data: unknown) => {
+    if (!data || typeof data !== 'object') return data
+    if ('results' in data && Array.isArray(data.results))
+      return { ...data, results: (data.results as TrimOrder[]).map(patch) }
+    if ('origin_items' in data) return patch(data as TrimOrder)
+    return data
+  })
+}
+
+/** The newest cached copy of an order that has a real sales order, or the one given. */
+const freshOrder = (client: QueryClient, order: TrimOrder) =>
+  client
+    .getQueriesData({ queryKey: trimKeys.orders() })
+    .flatMap(([, data]): TrimOrder[] =>
+      data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)
+        ? (data.results as TrimOrder[])
+        : data && typeof data === 'object' && 'origin_items' in data
+          ? [data as TrimOrder]
+          : []
+    )
+    .find(cached => cached.id === order.id && (cached.sales_order?.id ?? 0) > 0) ?? order
+
+/**
+ * The order with `priority` on its row for the department, the row made up if it has none yet. A
+ * made-up sales order carries id -1, which `ensureSalesOrderId` reads as none.
+ */
+const withPriority = (order: TrimOrder, departmentId: number, priority: Priority | null) => {
+  const states = order.sales_order?.department_states ?? []
+  const has = states.some(state => state.department === departmentId)
+  const blank: DepartmentState = {
+    id: -1,
+    department: departmentId,
+    reviewed: false,
+    release_to_production: false,
+    priority: null,
+    production_date: null,
+    status: null,
+    over_due: false
+  }
+  return {
+    ...order,
+    sales_order: {
+      id: order.sales_order?.id ?? -1,
+      order: order.sales_order?.order ?? order.id,
+      is_stock: order.sales_order?.is_stock ?? false,
+      department_states: (has ? states : [...states, blank]).map(state =>
+        state.department === departmentId ? { ...state, priority } : state
+      )
+    }
+  }
+}
+
+/**
+ * A priority shows the moment it is picked; the save follows in the background and the pick snaps
+ * back if it is refused. `scope` queues one order's picks, so two quick ones reach the server in the
+ * order they were made.
+ */
+export const useSetPriority = (orderId: string) =>
   useMutation({
-    mutationFn: async ({
-      order,
-      departmentId,
-      priorityId
-    }: {
-      order: TrimOrder
-      departmentId: number
-      priorityId: number | null
-    }) => {
-      const id = await ensureSalesOrderId(order)
+    meta: { errorTitle: 'The priority was not saved' },
+    scope: { id: `priority:${orderId}` },
+    mutationFn: async (
+      {
+        order,
+        departmentId,
+        priority
+      }: {
+        order: TrimOrder
+        departmentId: number
+        priority: Priority | null
+      },
+      { client }
+    ) => {
+      // The order as it stands now, not as it was clicked: a pick queued behind the one that created
+      // the sales order must use that order, not the stand-in the first pick drew.
+      const id = await ensureSalesOrderId(freshOrder(client, order))
       return authApi
         .patch(`sales-orders/${id}/departments/${departmentId}/`, {
-          json: { priority: priorityId }
+          json: { priority: priority?.id ?? null }
         })
         .json()
     },
+    onMutate: async ({ order, departmentId, priority }, { client }) => {
+      await client.cancelQueries({ queryKey: trimKeys.orders() })
+      patchCachedOrder(client, order.id, cached => withPriority(cached, departmentId, priority))
+    },
+    // Only this order goes back: a snapshot of every list would also undo another order's pick that
+    // is still on its way.
+    onError: (_, { order, departmentId }, __, { client }) =>
+      patchCachedOrder(client, order.id, cached =>
+        withPriority(cached, departmentId, departmentStateOf(order, departmentId)?.priority ?? null)
+      ),
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
     }

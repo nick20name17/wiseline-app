@@ -21,8 +21,11 @@ export const PriorityPill = ({ priority, className }: PriorityPillProps) => (
         : undefined
     }
     className={cn(
-      'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium tracking-wider uppercase',
-      priority ? 'bg-(--wash) text-(--ink)' : 'bg-muted text-muted-foreground',
+      'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium',
+      // A priority's name is a status and reads like one; the invitation to set one is plain words.
+      priority
+        ? 'bg-(--wash) tracking-wider text-(--ink) uppercase'
+        : 'bg-muted text-muted-foreground',
       className
     )}
   >
