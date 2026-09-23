@@ -44,6 +44,7 @@ export const ScheduledDayTabs = ({
 
   const inWindow = new Set(window?.map(entry => entry.date))
   const overdueDays = new Set(overdue?.days)
+  const anyOverdue = overdueDays.size > 0
 
   // Each day outside the window — every overdue one, and the one picked from the calendar — is its
   // own one-day strip, since the days in between are not tabs.
@@ -77,14 +78,22 @@ export const ScheduledDayTabs = ({
       {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
       {/* The label is set in the strip's own size rather than the button's, so the control reads as
           one of the cards beside it. */}
+      {/* Red while any day carries overdue work, tab on the strip or not (p1 (293,540), (326,569)). */}
       <Button
         variant='outline'
         className='h-13 w-44'
-        title='Jump to a production day'
+        title={
+          anyOverdue
+            ? 'Jump to a production day — some days have overdue orders'
+            : 'Jump to a production day'
+        }
         onClick={() => setPickerOpen(true)}
       >
-        <CalendarDays data-icon='inline-start' />
-        <span className='text-xs font-semibold'>{day ? formatDate(day) : 'Pick a day'}</span>
+        {/* The Button owns its colours, so the red goes on what it holds. */}
+        <span className={cn('inline-flex items-center gap-2', anyOverdue && 'text-destructive')}>
+          {anyOverdue ? <TriangleAlert /> : <CalendarDays />}
+          <span className='text-xs font-semibold'>{day ? formatDate(day) : 'Pick a day'}</span>
+        </span>
       </Button>
 
       {isPending

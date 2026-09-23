@@ -20,13 +20,17 @@ type OrderRowProps = {
   selected: boolean
   /** The line items picked off this order for a split; empty unless this is the order being split. */
   splitLineIds: string[]
+  /** Line items are picked for a split somewhere on the board, which shuts every order's box. */
+  splitting: boolean
+  /** An order is ticked for scheduling somewhere on the board, which shuts every line's box. */
+  scheduling: boolean
   noteState: NoteState
   onToggleExpanded: () => void
   onToggleSelected: () => void
   onToggleLine: (lineId: string) => void
   onSplit: () => void
   onOpenOrderNotes: () => void
-  onOpenLineNotes: (item: TrimLineItem) => void
+  onOpenLineNotes: (item: TrimLineItem, readOnly: boolean) => void
 }
 
 export const OrderRow = ({
@@ -35,6 +39,8 @@ export const OrderRow = ({
   expanded,
   selected,
   splitLineIds,
+  splitting,
+  scheduling,
   noteState,
   onToggleExpanded,
   onToggleSelected,
@@ -58,11 +64,10 @@ export const OrderRow = ({
           <Checkbox
             aria-label={`Select order ${order.invoice}`}
             checked={selected}
-            // Picking line items for a split and ticking the whole order are mutually exclusive.
-            disabled={splitLineIds.length > 0}
-            title={
-              splitLineIds.length ? 'Clear the Split selection on this order first' : undefined
-            }
+            // Picking line items for a split and ticking orders are mutually exclusive, board-wide
+            // (p1 (286,309), (332,315)).
+            disabled={splitting}
+            title={splitting ? 'Clear the Split selection first' : undefined}
             onCheckedChange={onToggleSelected}
           />
         </TableCell>
@@ -137,7 +142,7 @@ export const OrderRow = ({
               order={order}
               ready={departmentId !== undefined}
               selectedLineIds={splitLineIds}
-              orderSelected={selected}
+              scheduling={scheduling}
               onToggleLine={onToggleLine}
               onSplit={onSplit}
               onOpenNotes={onOpenLineNotes}

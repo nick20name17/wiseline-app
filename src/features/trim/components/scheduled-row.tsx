@@ -38,7 +38,7 @@ type ScheduledRowProps = {
   onToggleSelected: () => void
   onReschedule: () => void
   onOpenOrderNotes: () => void
-  onOpenLineNotes: (item: TrimLineItem) => void
+  onOpenLineNotes: (item: TrimLineItem, readOnly: boolean) => void
 }
 
 const SPLIT_LABEL = {
@@ -102,10 +102,9 @@ const ProductionDateCell = ({
   fixed: boolean
   onReschedule: () => void
 }) => (
-  <span className='flex items-center gap-1'>
-    {/* A stock order is marked where its production date is — the one column every row shares. */}
-    {stock ? <Package className='size-3.5 text-muted-foreground' aria-label='Stock order' /> : null}
-    {overdue ? <TriangleAlert className='size-3.5 text-destructive' aria-label='Past due' /> : null}
+  // The marks follow the date so every row's date starts at the same edge, and never shrink: the cell
+  // runs out of room before they do.
+  <span className='flex items-center gap-1.5'>
     {fixed ? (
       <span className={cn(overdue ? 'text-destructive' : 'text-muted-foreground')}>
         {formatDate(day)}
@@ -116,6 +115,13 @@ const ProductionDateCell = ({
         {formatDate(day)}
       </Button>
     )}
+    {/* A stock order is marked where its production date is — the one column every row shares. */}
+    {stock ? (
+      <Package className='size-3.5 shrink-0 text-muted-foreground' aria-label='Stock order' />
+    ) : null}
+    {overdue ? (
+      <TriangleAlert className='size-3.5 shrink-0 text-destructive' aria-label='Past due' />
+    ) : null}
   </span>
 )
 

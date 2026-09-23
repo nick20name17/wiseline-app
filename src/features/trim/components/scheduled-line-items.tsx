@@ -23,6 +23,7 @@ import { Calendar, ChevronDown, Lock } from 'lucide-react'
 import {
   isStockOrder,
   machinesQuery,
+  wholeOrderQuery,
   useUpdateLineItem,
   type LineItemEdit,
   type TrimLineItem,
@@ -30,15 +31,12 @@ import {
 } from '../api'
 import { SCHEDULED_LINES_TABLE, withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
-import { formatDate } from '../lib/format'
+import { formatDate, STANDARD_LENGTH } from '../lib/format'
 import { lineDay, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
-
-// The length every trim is cut to unless somebody says otherwise; anything else is worth a second look.
-const STANDARD_LENGTH = 120
 
 type ScheduledLineItemsProps = {
   order: TrimOrder
@@ -49,7 +47,7 @@ type ScheduledLineItemsProps = {
   /** Bypassed work skips the machines, so there is nothing to vent or assign. */
   bypassed: boolean
   onReschedule: () => void
-  onOpenNotes: (item: TrimLineItem) => void
+  onOpenNotes: (item: TrimLineItem, readOnly: boolean) => void
 }
 
 /**
@@ -76,7 +74,7 @@ const commitNumber = (
  * everything the floor reports back once it is released.
  */
 export const ScheduledLineItems = ({
-  order,
+  order: listed,
   departmentId,
   day,
   released,
@@ -84,6 +82,7 @@ export const ScheduledLineItems = ({
   onReschedule,
   onOpenNotes
 }: ScheduledLineItemsProps) => {
+  const { data: order = listed } = useQuery(wholeOrderQuery(listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const { data: machines } = useQuery(machinesQuery(departmentId))
   // A trim is assigned to the machine that bends it.
@@ -145,13 +144,20 @@ export const ScheduledLineItems = ({
               const otherDay = !own.has(item.id)
               const editable = !released && !otherDay
               const fromStock = item.item?.pull_from_stock ?? 0
-              const allFromStock = fromStock >= item.quantity
+              const allFromStock = item.quantity > 0 && fromStock >= item.quantity
+              // A line says nothing about itself until the order is released — except a line pulled
+              // whole from stock, which is Stock the moment the figure matches (p1 (292,449)).
+              const status = released
+                ? (item.item?.status ?? null)
+                : allFromStock && !otherDay
+                  ? 'stock'
+                  : null
               const machine = item.item?.flow ?? null
               const width = item.item?.width ?? item.width
               const description = item.item?.description ?? item.description
 
               return (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} data-locked={otherDay || undefined}>
                   <TableCell>
                     {otherDay ? (
                       <Lock
@@ -166,9 +172,7 @@ export const ScheduledLineItems = ({
                   {columns.cells({
                     qty: (
                       <TableCell>
-                        <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
-                          {item.quantity}
-                        </span>
+                        <span className='font-mono'>{item.quantity}</span>
                       </TableCell>
                     ),
                     vent: (
@@ -263,18 +267,14 @@ export const ScheduledLineItems = ({
                     ),
                     status: (
                       <TableCell>
-                        {/* A line says nothing about itself until the order is released, and a dash is
-                            that nothing. */}
-                        <StatusPill
-                          status={released ? itemStatus(item.item?.status ?? null) : null}
-                        />
+                        <span className={cn(otherDay && 'opacity-50')}>
+                          <StatusPill status={itemStatus(status)} />
+                        </span>
                       </TableCell>
                     ),
                     pid: (
                       <TableCell>
-                        <span className={cn('font-mono', otherDay && 'text-muted-foreground')}>
-                          {item.id_inven ?? '—'}
-                        </span>
+                        <span className='font-mono'>{item.id_inven ?? '—'}</span>
                       </TableCell>
                     ),
                     desc: (
@@ -294,9 +294,7 @@ export const ScheduledLineItems = ({
                             }}
                           />
                         ) : (
-                          <span className={cn('truncate', otherDay && 'text-muted-foreground')}>
-                            {description ?? '—'}
-                          </span>
+                          <span className='truncate'>{description ?? '—'}</span>
                         )}
                       </TableCell>
                     ),
@@ -327,7 +325,9 @@ export const ScheduledLineItems = ({
                         <span
                           className={cn(
                             'font-mono',
-                            item.length !== STANDARD_LENGTH && 'text-destructive'
+                            otherDay
+                              ? 'text-muted-foreground'
+                              : item.length !== STANDARD_LENGTH && 'text-destructive'
                           )}
                           title={
                             item.length === STANDARD_LENGTH
@@ -344,7 +344,7 @@ export const ScheduledLineItems = ({
                         <NoteButton
                           state={noteState(item.id)}
                           label='Line item notes'
-                          onClick={() => onOpenNotes(item)}
+                          onClick={() => onOpenNotes(item, otherDay)}
                         />
                       </TableCell>
                     )

@@ -53,7 +53,8 @@ export const SCHEDULED_TABLE: ColumnTable = {
     { key: 'customer', label: 'Customer' },
     { key: 'priority', label: 'Priority', width: 'w-32' },
     { key: 'reviewed', label: 'Reviewed', width: 'w-40' },
-    { key: 'status', label: 'Status', width: 'w-28' },
+    // The widest pill, «In progress» / «Not started», sits whole beside the cell's padding.
+    { key: 'status', label: 'Status', width: 'w-40' },
     // Every column holds its own heading: the headings are the widest thing several of them ever
     // carry, and a heading crushed against the next one reads as one word.
     { key: 'trimloc', label: 'Trim Location', width: 'w-36' },
@@ -69,7 +70,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'machine', label: 'Machine', width: 'w-32' },
     // A stock order is what puts trims on the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'status', label: 'Status', width: 'w-32' },
+    { key: 'status', label: 'Status', width: 'w-40' },
     { key: 'pid', label: 'Product ID', width: 'w-32' },
     { key: 'desc', label: 'Description' },
     { key: 'w', label: 'W"', width: 'w-20' },
@@ -81,11 +82,14 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
 export const WRAPPING_TABLE: ColumnTable = {
   table: 'wrapping',
   columns: [
-    { key: 'order', label: 'Order #', width: 'w-44' },
-    { key: 'qty', label: 'Qty', width: 'w-28' },
-    { key: 'priority', label: 'Priority', width: 'w-40' },
-    { key: 'remfg', label: 'Remfg', width: 'w-28' },
+    { key: 'order', label: 'Order #', width: 'w-36' },
+    { key: 'customer', label: 'Customer', width: 'w-48' },
+    { key: 'qty', label: 'Qty', width: 'w-20' },
+    { key: 'stock', label: 'Stock', width: 'w-20' },
+    { key: 'priority', label: 'Priority', width: 'w-36' },
+    { key: 'remfg', label: 'Remfg', width: 'w-24' },
     { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'pid', label: 'ID', width: 'w-36' },
     { key: 'desc', label: 'Description' },
     { key: 'notes', label: 'Notes', width: 'w-24' }
   ]
@@ -94,15 +98,17 @@ export const WRAPPING_TABLE: ColumnTable = {
 export const WRAP_LINES_TABLE: ColumnTable = {
   table: 'wrap-lines',
   columns: [
-    { key: 'line', label: 'Line item' },
+    // Description takes what is left, so Wrapping — the column the bench works in — stays on screen.
+    { key: 'line', label: 'ID', width: 'w-28' },
     { key: 'desc', label: 'Description' },
-    { key: 'qty', label: 'Qty ordered' },
-    { key: 'wrapped', label: 'Wrapped' },
-    { key: 'left', label: 'Left to wrap' },
-    { key: 'status', label: 'Status' },
-    { key: 'reman', label: 'Remanufacture' },
-    { key: 'wrapping', label: 'Wrapping' },
-    { key: 'notes', label: 'Notes' }
+    { key: 'qty', label: 'Qty ordered', width: 'w-24' },
+    { key: 'stock', label: 'Stock', width: 'w-16' },
+    { key: 'wrapped', label: 'Wrapped', width: 'w-20' },
+    { key: 'left', label: 'Left to wrap', width: 'w-24' },
+    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'reman', label: 'Remanufacture', width: 'w-32' },
+    { key: 'wrapping', label: 'Wrapping', width: 'w-40' },
+    { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
 }
 
@@ -110,6 +116,8 @@ export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
     { key: 'pid', label: 'Product ID', width: 'w-40' },
+    { key: 'color', label: 'Color', width: 'w-40' },
+    { key: 'width', label: 'Width (in.)', width: 'w-28' },
     { key: 'count', label: 'Count', width: 'w-24' },
     { key: 'lf', label: 'Total Linear Feet', width: 'w-40' },
     { key: 'weight', label: 'Total Weight (lbs.)' }
@@ -123,7 +131,8 @@ export const COMPLETED_TABLE: ColumnTable = {
     { key: 'prod', label: 'Production Date', width: 'w-44' },
     { key: 'completed', label: 'Completed Date & Time', width: 'w-60' },
     { key: 'order', label: 'Order #', width: 'w-36' },
-    { key: 'customer', label: 'Customer Name' }
+    { key: 'customer', label: 'Customer Name' },
+    { key: 'location', label: 'Trim Location', width: 'w-44' }
   ]
 }
 

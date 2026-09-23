@@ -20,6 +20,8 @@ type LineNotesDialogProps = {
   /** The EBMS autoid of the line item; `null` closes the dialog. */
   originItem: string | null
   productId: string
+  /** A line greyed out where it was opened can be read, not written to or marked dealt with. */
+  readOnly?: boolean
   onOpenChange: (open: boolean) => void
 }
 
@@ -43,11 +45,13 @@ const stamp = (iso: string | null) => (iso ? stampFormat.format(new Date(iso)) :
 export const LineNotesDialog = ({
   originItem: current,
   productId: currentProductId,
+  readOnly: currentReadOnly = false,
   onOpenChange
 }: LineNotesDialogProps) => {
   const [originItem, release] = useRetained(current)
   // Only a label, so nothing needs releasing: the next opening replaces it.
   const [productId] = useRetained(current === null ? null : currentProductId)
+  const [readOnly] = useRetained(current === null ? null : currentReadOnly)
   const [draft, setDraft] = useState('')
   const { data: thread, isPending } = useQuery(lineNotesQuery(originItem))
   const add = useAddLineNote(originItem ?? '')
@@ -88,7 +92,7 @@ export const LineNotesDialog = ({
                     <span className='text-xs text-muted-foreground'>
                       {note.author?.email} · {stamp(note.created_at)}
                     </span>
-                    {note.read ? (
+                    {readOnly ? null : note.read ? (
                       <Check className='ml-auto size-3.5 text-success' aria-label='Dealt with' />
                     ) : (
                       <Button
@@ -112,27 +116,29 @@ export const LineNotesDialog = ({
           )}
         </div>
 
-        <DialogFooter className='flex-col items-stretch sm:flex-col sm:items-stretch'>
-          <Textarea
-            rows={2}
-            placeholder='Add a note…'
-            aria-label='New note'
-            value={draft}
-            onChange={event => setDraft(event.target.value)}
-          />
-          <Button
-            className='self-end'
-            disabled={!draft.trim() || add.isPending}
-            onClick={() => add.mutate(draft.trim(), { onSuccess: () => setDraft('') })}
-          >
-            {add.isPending ? (
-              <Spinner data-icon='inline-start' />
-            ) : (
-              <SendHorizontal data-icon='inline-start' />
-            )}
-            Add note
-          </Button>
-        </DialogFooter>
+        {readOnly ? null : (
+          <DialogFooter className='flex-col items-stretch sm:flex-col sm:items-stretch'>
+            <Textarea
+              rows={2}
+              placeholder='Add a note…'
+              aria-label='New note'
+              value={draft}
+              onChange={event => setDraft(event.target.value)}
+            />
+            <Button
+              className='self-end'
+              disabled={!draft.trim() || add.isPending}
+              onClick={() => add.mutate(draft.trim(), { onSuccess: () => setDraft('') })}
+            >
+              {add.isPending ? (
+                <Spinner data-icon='inline-start' />
+              ) : (
+                <SendHorizontal data-icon='inline-start' />
+              )}
+              Add note
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )

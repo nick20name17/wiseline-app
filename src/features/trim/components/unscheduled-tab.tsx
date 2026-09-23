@@ -50,7 +50,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
   const [split, setSplit] = useState<Split | null>(null)
   const [dialog, setDialog] = useState<OpenDialog>(null)
   const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
-  const [noteLine, setNoteLine] = useState<TrimLineItem | null>(null)
+  const [noteLine, setNoteLine] = useState<{ item: TrimLineItem; readOnly: boolean } | null>(null)
 
   // Only EBMS orders carry a note; a stock order has no EBMS row to import one from.
   const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
@@ -124,7 +124,8 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
           <Table className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-10' />
-              <col className='w-10' />
+              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+              <col className='w-15' />
               {columns.cols}
             </colgroup>
             <TableHeader>
@@ -146,13 +147,15 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
                     expanded={expandedIds.has(order.id)}
                     selected={selectedIds.has(order.id)}
                     splitLineIds={split?.orderId === order.id ? split.lineIds : []}
+                    splitting={!!split}
+                    scheduling={selected.length > 0}
                     noteState={noteState(order)}
                     onToggleExpanded={() => setExpandedIds(current => toggled(current, order.id))}
                     onToggleSelected={() => setSelectedIds(current => toggled(current, order.id))}
                     onToggleLine={lineId => toggleLine(order.id, lineId)}
                     onSplit={() => setDialog('split')}
                     onOpenOrderNotes={() => setNoteOrder(order)}
-                    onOpenLineNotes={setNoteLine}
+                    onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}
                   />
                 ))
               )}
@@ -237,8 +240,9 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
         onOpenChange={open => !open && setNoteOrder(null)}
       />
       <LineNotesDialog
-        originItem={noteLine?.id ?? null}
-        productId={noteLine?.id_inven ?? ''}
+        originItem={noteLine?.item.id ?? null}
+        productId={noteLine?.item.id_inven ?? ''}
+        readOnly={noteLine?.readOnly}
         onOpenChange={open => !open && setNoteLine(null)}
       />
     </div>

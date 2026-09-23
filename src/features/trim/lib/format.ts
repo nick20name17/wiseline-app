@@ -51,3 +51,6 @@ export const fromIsoDay = (iso: string) => {
 const numbers = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 export const formatCount = (value: number) => numbers.format(value)
+
+/** The length every trim is cut to unless somebody says otherwise; anything else is worth a second look. */
+export const STANDARD_LENGTH = 120

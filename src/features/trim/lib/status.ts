@@ -2,8 +2,8 @@
  * What a status reads as on the board, and the colour it reads in.
  *
  * The board tints by what the status means rather than by how far along it is: grey for standing
- * still, blue for the floor working on it, amber while the order is moving, green once it is wrapped,
- * and orange for a trim that took a route it normally would not.
+ * still, blue for the floor working on it, amber while the order is moving or a trim waits on the
+ * shelf, green once it is wrapped, and orange for a trim that took a route it normally would not.
  *
  * One value set spans every department; which of them an order or a line item can actually reach in
  * Trim is the server's business. Anything unrecognised still has to render, so it falls back to its
@@ -30,8 +30,7 @@ const ITEM_STATUS: Record<string, { label: string; tint: string }> = {
   bent: { label: 'Bent', tint: BLUE },
   in_progress: { label: 'In Progress', tint: AMBER },
   wrapped: { label: 'Wrapped', tint: GREEN },
-  // Coming off the shelf is not progress through the shop, so it sits with the neutral ones.
-  stock: { label: 'Stock', tint: GREY },
+  stock: { label: 'Stock', tint: AMBER },
   bypassed: { label: 'Bypassed', tint: ORANGE }
 }
 

@@ -2,7 +2,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
-import { dayStripQuery } from '../api'
+import { dayStripQuery, overdueQuery } from '../api'
 import { fromIsoDay, toIsoDay, today } from '../lib/format'
 
 const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
@@ -38,6 +38,8 @@ export const CapacityCalendar = ({
     dayStripQuery(departmentId, toIsoDay(firstOfMonth(month)), daysInMonth(month))
   )
   const budgets = new Map(strip?.map(entry => [entry.date, entry]))
+  const { data: overdue } = useQuery(overdueQuery(departmentId))
+  const overdueDays = new Set(overdue?.days)
 
   return (
     <Calendar
@@ -61,14 +63,20 @@ export const CapacityCalendar = ({
             ? `${budget.bends}${budget.capacity === null ? '' : ` of ${budget.capacity}`} bends scheduled${budget.over_capacity ? ' — over the daily capacity' : ''}`
             : undefined
           const past = !allowPast && iso < today()
+          const late = overdueDays.has(iso)
+          const hint = [late ? 'Overdue orders' : null, past ? 'Past date' : null, load]
+            .filter(Boolean)
+            .join(' · ')
 
           return (
             <button
               type='button'
               data-day={day.date.toLocaleDateString()}
-              title={load && past ? `Past date · ${load}` : load}
+              title={hint || undefined}
               className={cn(
                 'relative flex size-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md pb-3 text-sm leading-none transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40',
+                // "The date that has the overdue order should be highlighted in red" p1 (326,574).
+                late && 'bg-destructive/10 text-destructive',
                 modifiers.selected && 'bg-primary text-primary-foreground hover:bg-primary',
                 className
               )}

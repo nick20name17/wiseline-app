@@ -1,13 +1,16 @@
-import { departmentStateOf, type TrimLineItem, type TrimOrder } from '../api'
+import { departmentStateOf, isNarrowed, type TrimLineItem, type TrimOrder } from '../api'
 
 /**
  * A part is one production day of one order — the row the Scheduled tab shows. A split order is one
  * part per day it has work on, and each is worked, locked and moved on its own.
  */
 
-/** The app's own row carries the day once the line is scheduled; the mirror only echoes it. */
-export const lineDay = (item: TrimLineItem) =>
-  item.item?.production_date ?? item.production_date ?? null
+/**
+ * The app's own row carries the day once the line is scheduled. The mirror's `production_date` is the
+ * order's earliest day in the department, not the line's — on a split order it dates the lines still
+ * waiting too — so it is never read as the line's own.
+ */
+export const lineDay = (item: TrimLineItem) => item.item?.production_date ?? null
 
 /** What still has to be made: the ordered quantity less whatever is being pulled from stock. */
 export const toMake = (item: TrimLineItem) => item.quantity - (item.item?.pull_from_stock ?? 0)
@@ -18,6 +21,7 @@ export const toMake = (item: TrimLineItem) => item.quantity - (item.item?.pull_f
  * decides where the rest of the order is to be found.
  */
 export const splitOf = (order: TrimOrder) => {
+  if (isNarrowed(order)) return 'partial'
   const days = order.origin_items.map(lineDay)
   if (days.some(day => !day) && days.some(day => day)) return 'partial'
   return new Set(days).size > 1 ? 'split' : null

@@ -7,7 +7,6 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -19,9 +18,9 @@ import {
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
-import { cutlistRowSourcesQuery, scheduledOrdersQuery } from '../api'
+import { scheduledOrdersQuery } from '../api'
 import { CUTLIST_TOTAL_TABLE } from '../lib/columns'
-import { indexLines, type CutlistGroup } from '../lib/cutlists'
+import { linesOf, type CutlistGroup } from '../lib/cutlists'
 import { Figure } from './figure'
 
 type CutlistTotalDialogProps = {
@@ -34,8 +33,9 @@ type CutlistTotalDialogProps = {
  * together, which is right for cutting and useless for answering «whose is this» — this is that
  * answer, so it names the orders and their lines rather than repeating the size.
  *
- * A source says only which line it came from; the line itself is read off the Scheduled tab's
- * orders. PO# and Drawing have nothing behind them yet (TODO.md).
+ * The row's sources describe each line; only the order's number and customer are read off the
+ * Scheduled tab, since a source names its order by autoid. PO# and Drawing have nothing behind them
+ * yet (TODO.md).
  */
 export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTotalDialogProps) => {
   const [group, release] = useRetained(current)
@@ -43,25 +43,9 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
   // The word takes the first column that is not the figure's own, so dragging Qty to mfg to the
   // front moves «Total» along rather than losing it.
   const totalLabel = columns.order.find(key => key !== 'qty')
-  const rowIds = group?.rows.map(row => row.id) ?? []
-  const { data: sources, isPending } = useQuery(cutlistRowSourcesQuery(rowIds))
-  const { data: orders } = useQuery({ ...scheduledOrdersQuery(undefined, null), enabled: !!group })
-  const lines = indexLines(orders?.results ?? [])
-
-  // One line can be behind several of the group's rows — a machine's pieces and its vented ones —
-  // and the breakdown is read per line, not per row.
-  const byLine = new Map<string, { order: string; item: string | null; quantity: number }>()
-  for (const source of sources ?? []) {
-    const key = source.origin_item ?? `order:${source.order ?? '—'}`
-    const entry = byLine.get(key) ?? {
-      order: source.order ?? '—',
-      item: source.origin_item,
-      quantity: 0
-    }
-    entry.quantity += source.quantity
-    byLine.set(key, entry)
-  }
-  const entries = [...byLine.entries()]
+  const { data: orders } = useQuery({ ...scheduledOrdersQuery(undefined), enabled: !!group })
+  const byOrder = new Map(orders?.results.map(order => [order.id, order]))
+  const entries = group ? linesOf(group) : []
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
@@ -76,50 +60,50 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
         </DialogHeader>
 
         <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
-          {isPending ? (
-            <Skeleton className='h-40' />
-          ) : entries.length ? (
+          {entries.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
               <Table>
                 <TableHeader>
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entries.map(([key, entry]) => {
-                    const found = entry.item ? lines.get(entry.item) : undefined
+                  {entries.map(entry => {
+                    const order = entry.order ? byOrder.get(entry.order) : undefined
                     return (
-                      <TableRow key={key}>
+                      <TableRow key={entry.origin_item ?? entry.order}>
                         {columns.cells({
                           order: (
                             <TableCell>
-                              <Figure value={found?.order.invoice || entry.order} />
+                              <Figure value={order?.invoice || entry.order} />
                             </TableCell>
                           ),
                           customer: (
                             <TableCell>
-                              <span className='truncate'>{found?.order.customer ?? '—'}</span>
+                              <span className='truncate'>
+                                {entry.is_stock ? 'Stock' : (order?.customer ?? '—')}
+                              </span>
                             </TableCell>
                           ),
                           pid: (
                             <TableCell>
-                              <Figure value={found?.line.id_inven} />
+                              <Figure value={entry.product_id} />
                             </TableCell>
                           ),
                           desc: (
                             <TableCell>
                               <span className='truncate text-muted-foreground'>
-                                {found?.line.item?.description ?? found?.line.description ?? '—'}
+                                {entry.description ?? '—'}
                               </span>
                             </TableCell>
                           ),
                           qtyord: (
                             <TableCell>
-                              <Figure value={found?.line.quantity} />
+                              <Figure value={entry.qty_ordered} />
                             </TableCell>
                           ),
                           stock: (
                             <TableCell>
-                              <Figure value={found?.line.item?.pull_from_stock || null} />
+                              <Figure value={entry.pull_from_stock || null} />
                             </TableCell>
                           ),
                           qty: (
@@ -149,7 +133,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
               </Table>
             </div>
           ) : (
-            <Empty className='h-full'>
+            <Empty className='min-h-40'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Layers />

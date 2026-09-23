@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import { addDays, addMonths, getDaysInMonth, isWeekend, startOfMonth } from 'date-fns'
+import { addDays, addMonths, endOfMonth, getDaysInMonth, isWeekend, startOfMonth } from 'date-fns'
 import { useMemo, useState } from 'react'
 import {
   calendarOrdersQuery,
@@ -47,7 +47,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selected, setSelected] = useState(start)
 
-  const { data: orders = [], isPending } = useQuery(calendarOrdersQuery)
+  const { data: orders = [], isPending } = useQuery(
+    calendarOrdersQuery(toIsoDay(month), toIsoDay(endOfMonth(month)))
+  )
   const { data: overdue } = useQuery(overdueQuery(departmentId))
   const { data: strip } = useQuery(
     dayStripQuery(departmentId, toIsoDay(month), getDaysInMonth(month))

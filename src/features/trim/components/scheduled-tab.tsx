@@ -13,6 +13,7 @@ import {
   departmentStateOf,
   isStockOrder,
   orderNotesQuery,
+  orderCountQuery,
   overdueQuery,
   scheduledOrdersQuery,
   useReleaseOrders,
@@ -150,7 +151,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<Part | null>(null)
   const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
-  const [noteLine, setNoteLine] = useState<TrimLineItem | null>(null)
+  const [noteLine, setNoteLine] = useState<{ item: TrimLineItem; readOnly: boolean } | null>(null)
 
   // The board opens on the first day of the window the tabs show, which the day strip decides — a day
   // the shop is shut is not one it lists.
@@ -161,11 +162,11 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
     setSelectedIds(new Set())
   }
 
-  const { data: page, isPending } = useQuery(scheduledOrdersQuery(search, day))
+  const { data: page, isPending } = useQuery(scheduledOrdersQuery(search))
   const columns = useColumnOrder(SCHEDULED_TABLE)
   const orders = page?.results ?? []
   // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
-  const { data: everything } = useQuery(scheduledOrdersQuery(undefined, null))
+  const { data: everything } = useQuery(orderCountQuery(true))
   const { data: overdue } = useQuery(overdueQuery(departmentId))
   const overdueDays = new Set(overdue?.days)
 
@@ -218,7 +219,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   }
 
   // Nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing.
-  if (everything && !everything.count)
+  if (everything === 0)
     return (
       <Empty>
         <EmptyHeader>
@@ -238,7 +239,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
       <ScheduledDayTabs
         departmentId={departmentId}
         day={day}
-        total={everything?.count ?? 0}
+        total={everything ?? 0}
         onDayChange={changeDay}
         onOpenCapacities={setCapacitiesDay}
       />
@@ -280,7 +281,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
           <Table className='min-w-360 table-fixed'>
             <colgroup>
               <col className='w-12' />
-              <col className='w-10' />
+              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+              <col className='w-15' />
               {columns.cols}
             </colgroup>
             <TableHeader>
@@ -318,7 +320,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
                       onToggleSelected={() => setSelectedIds(current => toggled(current, order.id))}
                       onReschedule={() => setRescheduling(part)}
                       onOpenOrderNotes={() => setNoteOrder(order)}
-                      onOpenLineNotes={setNoteLine}
+                      onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}
                     />
                   )
                 })
@@ -352,8 +354,9 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
         onOpenChange={open => !open && setNoteOrder(null)}
       />
       <LineNotesDialog
-        originItem={noteLine?.id ?? null}
-        productId={noteLine?.id_inven ?? ''}
+        originItem={noteLine?.item.id ?? null}
+        productId={noteLine?.item.id_inven ?? ''}
+        readOnly={noteLine?.readOnly}
         onOpenChange={open => !open && setNoteLine(null)}
       />
     </div>

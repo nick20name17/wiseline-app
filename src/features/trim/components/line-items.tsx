@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { cn } from 'cn'
 import { CalendarDays, Lock, Split } from 'lucide-react'
-import type { TrimLineItem, TrimOrder } from '../api'
+import { useQuery } from '@tanstack/react-query'
+import { wholeOrderQuery, type TrimLineItem, type TrimOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { formatDate } from '../lib/format'
 import { lineDay } from '../lib/parts'
@@ -23,22 +23,23 @@ type LineItemsProps = {
   selectedLineIds: string[]
   /** The department id is known, so a split has somewhere to go. */
   ready: boolean
-  /** True while the whole order is ticked for scheduling: the two selections are mutually exclusive. */
-  orderSelected: boolean
+  /** An order is ticked for scheduling somewhere on the board: the two selections are exclusive. */
+  scheduling: boolean
   onToggleLine: (originItem: string) => void
   onSplit: () => void
-  onOpenNotes: (item: TrimLineItem) => void
+  onOpenNotes: (item: TrimLineItem, readOnly: boolean) => void
 }
 
 export const LineItems = ({
-  order,
+  order: listed,
   selectedLineIds,
   ready,
-  orderSelected,
+  scheduling,
   onToggleLine,
   onSplit,
   onOpenNotes
 }: LineItemsProps) => {
+  const { data: order = listed } = useQuery(wholeOrderQuery(listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const picked = new Set(selectedLineIds)
   const columns = useColumnOrder(UNSCHEDULED_LINES_TABLE)
@@ -95,7 +96,7 @@ export const LineItems = ({
 
               return (
                 // A line already on a day is read-only here; the mute says so before the lock does.
-                <TableRow key={item.id}>
+                <TableRow key={item.id} data-locked={locked || undefined}>
                   <TableCell>
                     {locked ? (
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
@@ -103,10 +104,10 @@ export const LineItems = ({
                       <Checkbox
                         aria-label={`Select line item ${item.id_inven ?? item.id}`}
                         checked={picked.has(item.id)}
-                        disabled={orderSelected}
+                        disabled={scheduling}
                         title={
-                          orderSelected
-                            ? 'Order selected for whole-order Schedule — clear it first'
+                          scheduling
+                            ? 'Orders are ticked to Schedule — clear them first'
                             : undefined
                         }
                         onCheckedChange={() => onToggleLine(item.id)}
@@ -116,23 +117,17 @@ export const LineItems = ({
                   {columns.cells({
                     qty: (
                       <TableCell>
-                        <span className={cn('font-mono', locked && 'text-muted-foreground')}>
-                          {item.quantity}
-                        </span>
+                        <span className='font-mono'>{item.quantity}</span>
                       </TableCell>
                     ),
                     pid: (
                       <TableCell>
-                        <span className={cn('font-mono', locked && 'text-muted-foreground')}>
-                          {item.id_inven ?? '—'}
-                        </span>
+                        <span className='font-mono'>{item.id_inven ?? '—'}</span>
                       </TableCell>
                     ),
                     desc: (
                       <TableCell>
-                        <span className={cn('truncate', locked && 'text-muted-foreground')}>
-                          {item.description ?? '—'}
-                        </span>
+                        <span className='truncate'>{item.description ?? '—'}</span>
                       </TableCell>
                     ),
                     notes: (
@@ -140,7 +135,7 @@ export const LineItems = ({
                         <NoteButton
                           state={noteState(item.id)}
                           label='Line item notes'
-                          onClick={() => onOpenNotes(item)}
+                          onClick={() => onOpenNotes(item, locked)}
                         />
                       </TableCell>
                     )
