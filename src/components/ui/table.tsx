@@ -63,6 +63,8 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
         // A cutlist row the floor has signed off is crossed out and stays in place: the list is a
         // record of the cut, not a queue that empties.
         'data-complete:text-muted-foreground data-complete:line-through',
+        // A line that belongs to another day is shown for context and left alone: greyed, not struck.
+        'data-locked:text-muted-foreground',
         className
       )}
       {...props}
