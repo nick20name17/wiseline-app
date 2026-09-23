@@ -185,8 +185,13 @@
  *
  * Put it on any element that scrolls and holds something focusable. The width covers the 3px ring
  * plus the focus border every control in the sheet draws.
+ *
+ * `content-box`, so the padding sits outside a height set on it: `min-h-56` is then 56 in the layout
+ * too, and a 56-tall placeholder inside it fits exactly instead of overshooting the floor by the
+ * padding — the sheet would otherwise shrink when the answer replaces the placeholder.
  */
 @utility scrollport {
+  box-sizing: content-box;
   margin: calc(var(--spacing) * -1.5);
   padding: calc(var(--spacing) * 1.5);
 }

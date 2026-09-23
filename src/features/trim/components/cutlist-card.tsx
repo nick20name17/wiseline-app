@@ -69,13 +69,20 @@ export const CutlistCard = ({
         overdue && 'bg-destructive/5'
       )}
     >
-      <div className='flex flex-wrap items-center gap-3 px-3 py-2'>
-        <Button
-          variant='ghost'
-          size='icon'
-          aria-label={expanded ? 'Hide rows' : 'Show rows'}
-          onClick={() => toggleExpanded(cutlist.id)}
-        >
+      {/* The whole header opens the list; the chevron is its keyboard stop, and its click reaches the
+          header like any other. */}
+      <div
+        // A mouse shortcut to the chevron, which is the control that keyboards and readers use.
+        role='presentation'
+        className='flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2'
+        onClick={event => {
+          if (event.target instanceof Element && event.target.closest('[data-card-actions]')) return
+          // A drag that selected the header's text is a copy, not a click.
+          if (window.getSelection()?.toString()) return
+          toggleExpanded(cutlist.id)
+        }}
+      >
+        <Button variant='ghost' size='icon' aria-label={expanded ? 'Hide rows' : 'Show rows'}>
           <ChevronRight className={cn('transition-transform', expanded && 'rotate-90')} />
         </Button>
 
@@ -103,7 +110,7 @@ export const CutlistCard = ({
 
         {/* The material is being cut: the machine's own work has not started, but it is coming. */}
         {slinetStarted && !done ? (
-          <span className='inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium tracking-wider text-warning uppercase'>
+          <span className='inline-flex items-center gap-1.5 rounded-md bg-warning/15 px-2 py-0.5 text-xs font-medium tracking-wider text-warning uppercase'>
             <span aria-hidden className='size-1.5 rounded-full bg-current' />
             In progress
           </span>
@@ -115,7 +122,8 @@ export const CutlistCard = ({
           </span>
         ) : null}
 
-        <span className='ml-auto flex items-center gap-3'>
+        {/* The list's own actions do not open or close it. */}
+        <span data-card-actions className='ml-auto flex cursor-auto items-center gap-3'>
           {isSlinet && !done ? (
             <Button variant='outline' onClick={() => onOpenCoils(cutlist)}>
               <Database data-icon='inline-start' />
@@ -125,7 +133,7 @@ export const CutlistCard = ({
 
           {done ? (
             <>
-              <span className='inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium tracking-wider text-success uppercase'>
+              <span className='inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2 py-0.5 text-xs font-medium tracking-wider text-success uppercase'>
                 <Check className='size-3.5' />
                 Done
               </span>

@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Database, Search } from 'lucide-react'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { allocatedStockQuery } from '../api'
 import { ALLOCATED_STOCK_TABLE } from '../lib/columns'
 
@@ -51,7 +51,7 @@ export const AllocatedStockDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent className='sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>Allocated stock</DialogTitle>
           <DialogDescription>
@@ -79,47 +79,40 @@ export const AllocatedStockDialog = ({
             <Skeleton className='h-56' />
           ) : rows?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table>
+              <Table className='table-fixed'>
+                <colgroup>{columns.cols}</colgroup>
                 <TableHeader>
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map(row => (
-                    <Fragment key={`${row.color}-${row.product_id}`}>
-                      {/* The board asks for a distinct line between the colours; a row of its own
-                          draws it and names the colour at the same time. */}
-                      {row.starts_color_group ? (
-                        <TableRow>
-                          <TableCell colSpan={4}>
-                            <span className='text-xs font-semibold tracking-wider uppercase'>
-                              {row.color ?? 'No colour'}
+                  {rows.map((row, index) => (
+                    // «A distinct line between the colours» p1 (336,554): a heavier rule above the
+                    // first row of each, which the Colour column already names.
+                    <TableRow
+                      key={`${row.color}-${row.product_id}`}
+                      data-divider={(row.starts_color_group && index > 0) || undefined}
+                    >
+                      {columns.cells({
+                        color: <TableCell>{row.color ?? '—'}</TableCell>,
+                        pid: (
+                          <TableCell>
+                            <span className='font-mono'>{row.product_id || '—'}</span>
+                          </TableCell>
+                        ),
+                        desc: (
+                          <TableCell>
+                            <span className='truncate text-muted-foreground'>
+                              {row.description ?? '—'}
                             </span>
                           </TableCell>
-                        </TableRow>
-                      ) : null}
-                      <TableRow>
-                        {columns.cells({
-                          color: <TableCell>{row.color ?? '—'}</TableCell>,
-                          pid: (
-                            <TableCell>
-                              <span className='font-mono'>{row.product_id}</span>
-                            </TableCell>
-                          ),
-                          desc: (
-                            <TableCell>
-                              <span className='truncate text-muted-foreground'>
-                                {row.description ?? '—'}
-                              </span>
-                            </TableCell>
-                          ),
-                          qty: (
-                            <TableCell>
-                              <span className='font-mono'>{row.qty}</span>
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    </Fragment>
+                        ),
+                        qty: (
+                          <TableCell>
+                            <span className='font-mono'>{row.qty}</span>
+                          </TableCell>
+                        )
+                      })}
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>

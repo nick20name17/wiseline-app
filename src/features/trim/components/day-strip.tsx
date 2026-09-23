@@ -18,23 +18,23 @@ const TILE = 'h-11 w-40 rounded-md border px-2 py-1 leading-tight'
 type DayPillProps = {
   entry: DayStripEntry
   isToday: boolean
-  onRemove?: () => void
 }
 
 /**
  * One day and what is already on it. The pills answer «how full is this week» while somebody decides
  * what to schedule, and nothing more — they are not a selector, and the board does not make them one.
  */
-const DayPill = ({ entry, isToday, onRemove }: DayPillProps) => (
+const DayPill = ({ entry, isToday }: DayPillProps) => (
   <div
-    className={cn(
-      TILE,
-      'relative border-border bg-muted/40',
-      isToday && 'border-primary bg-primary/10',
-      onRemove && 'border-dashed pr-6'
-    )}
+    className={cn(TILE, 'border-border bg-muted/40', isToday && 'border-primary bg-primary/10')}
     title={`${formatDayLabel(entry.date)} — bends scheduled against the daily capacity`}
   >
+    <DayFigures entry={entry} isToday={isToday} />
+  </div>
+)
+
+const DayFigures = ({ entry, isToday }: DayPillProps) => (
+  <>
     <span className='block truncate text-xs font-semibold'>
       {formatDayLabel(entry.date)}
       {isToday ? ' · today' : ''}
@@ -47,17 +47,38 @@ const DayPill = ({ entry, isToday, onRemove }: DayPillProps) => (
     >
       ({entry.bends} / {entry.capacity ?? '—'})
     </span>
-    {onRemove ? (
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label='Remove this day'
-        className='absolute top-0.5 right-0.5 size-4'
-        onClick={onRemove}
-      >
-        <X className='size-3' />
-      </Button>
-    ) : null}
+  </>
+)
+
+type PinnedDayProps = {
+  entry: DayStripEntry
+  onChange: () => void
+  onRemove: () => void
+}
+
+/** The day pinned beside the five: clicking it picks another in its place, the cross takes it off. */
+const PinnedDay = ({ entry, onChange, onRemove }: PinnedDayProps) => (
+  <div className='relative'>
+    <button
+      type='button'
+      className={cn(
+        TILE,
+        'block border-dashed border-border bg-muted/40 pr-6 text-left transition-colors hover:bg-muted'
+      )}
+      title={`${formatDayLabel(entry.date)} — click to show another day`}
+      onClick={onChange}
+    >
+      <DayFigures entry={entry} isToday={false} />
+    </button>
+    <Button
+      variant='ghost'
+      size='icon-sm'
+      aria-label='Remove this day'
+      className='absolute top-0.5 right-0.5 size-4'
+      onClick={onRemove}
+    >
+      <X className='size-3' />
+    </Button>
   </div>
 )
 
@@ -72,11 +93,12 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
 
   const { data: days, isPending } = useQuery(dayStripQuery(departmentId, start, STRIP_DAYS))
   // The pinned day is its own one-day strip: it is usually outside the window the five pills cover.
-  const { data: peekDays } = useQuery({
+  const { data: peekDays, isFetching: peekLoading } = useQuery({
     ...dayStripQuery(departmentId, peek ?? start, 1),
     enabled: departmentId !== undefined && peek !== null
   })
   const peekEntry = peek && peekDays?.[0]?.date === peek ? peekDays[0] : null
+  const stripDays = new Set(days?.map(entry => entry.date))
 
   return (
     // `items-stretch`: the day picker is as tall as the pills beside it, as it is on the board.
@@ -89,15 +111,24 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
             <DayPill key={entry.date} entry={entry} isToday={entry.date === start} />
           ))}
 
-      {peekEntry && !days?.some(day => day.date === peekEntry.date) ? (
-        <DayPill entry={peekEntry} isToday={false} onRemove={() => setPeek(null)} />
-      ) : null}
-
-      {/* The control is one of the boxes in the strip, so it carries the same height and width. */}
-      <Button variant='dashed' className='h-11 w-40' onClick={() => setPickerOpen(true)}>
-        <CalendarDays data-icon='inline-start' />
-        {peek ? 'Another day' : 'Pick a day'}
-      </Button>
+      {/* One box for a day off the strip: the picker until a day is pinned, then that day, which is
+          clicked to pick another. Either is a box in the strip, the same height and width. */}
+      {/* A pinned day whose figures did not come back falls back to the picker, never a placeholder
+          that stays. */}
+      {peek === null || (!peekEntry && !peekLoading) ? (
+        <Button variant='dashed' className='h-11 w-40' onClick={() => setPickerOpen(true)}>
+          <CalendarDays data-icon='inline-start' />
+          Pick a day
+        </Button>
+      ) : peekEntry ? (
+        <PinnedDay
+          entry={peekEntry}
+          onChange={() => setPickerOpen(true)}
+          onRemove={() => setPeek(null)}
+        />
+      ) : (
+        <Skeleton className='h-11 w-40' />
+      )}
 
       {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may
           be pinned, including one already past: that is often the point of looking. */}
@@ -109,9 +140,11 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         actionLabel='Show day'
         departmentId={departmentId}
         allowPast
+        initialDay={peek}
         isPending={false}
         onPick={date => {
-          setPeek(date)
+          // A day the strip already shows needs no pin of its own.
+          setPeek(stripDays.has(date) ? null : date)
           setPickerOpen(false)
         }}
       />

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
 import { dayStripQuery, overdueQuery } from '../api'
-import { fromIsoDay, toIsoDay, today } from '../lib/format'
+import { toIsoDay, today } from '../lib/format'
 
 const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
 const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
@@ -52,7 +52,7 @@ export const CapacityCalendar = ({
       onMonthChange={onMonthChange}
       selected={selected}
       onSelect={onSelect}
-      disabled={allowPast ? undefined : { before: fromIsoDay(today()) }}
+      disabled={date => !allowPast && toIsoDay(date) < today()}
       components={{
         // A plain button, not the shared one: the cell carries two lines — the date and the day's
         // budget — which no button size describes.

@@ -118,7 +118,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
               onChange={event => edit(bound.key, { max: event.target.value })}
             />
             <span className='w-8 text-sm text-muted-foreground'>{bound.unit}</span>
-            <span className='ml-auto flex items-center gap-2 text-sm'>
+            <span className='ml-auto flex shrink-0 items-center gap-2 text-sm whitespace-nowrap'>
               <Checkbox
                 id={`coil-${bound.key}-all`}
                 checked={ranges[bound.key].all}
@@ -191,7 +191,7 @@ export const CoilFilterDialog = ({ departmentId, open, onOpenChange }: CoilFilte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-xl'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Coil Filter</DialogTitle>
           <DialogDescription>

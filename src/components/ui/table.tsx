@@ -65,6 +65,8 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
         'data-complete:text-muted-foreground data-complete:line-through',
         // A line that belongs to another day is shown for context and left alone: greyed, not struck.
         'data-locked:text-muted-foreground',
+        // The first row of a new group under a sort, where the board asks for a distinct line.
+        'data-divider:*:border-t-2 data-divider:*:border-t-foreground/15',
         className
       )}
       {...props}

@@ -75,9 +75,9 @@ export const ScheduledDayTabs = ({
         </span>
       </button>
 
-      {/* The jump sits between «all» and the days, and reads as the day it would take you back to. */}
-      {/* The label is set in the strip's own size rather than the button's, so the control reads as
-          one of the cards beside it. */}
+      {/* The jump sits between «all» and the days. It does not name the day picked: that day is a tab
+          of its own, already marked. The label is set in the strip's own size rather than the
+          button's, so the control reads as one of the cards beside it. */}
       {/* Red while any day carries overdue work, tab on the strip or not (p1 (293,540), (326,569)). */}
       <Button
         variant='outline'
@@ -92,7 +92,7 @@ export const ScheduledDayTabs = ({
         {/* The Button owns its colours, so the red goes on what it holds. */}
         <span className={cn('inline-flex items-center gap-2', anyOverdue && 'text-destructive')}>
           {anyOverdue ? <TriangleAlert /> : <CalendarDays />}
-          <span className='text-xs font-semibold'>{day ? formatDate(day) : 'Pick a day'}</span>
+          <span className='text-xs font-semibold'>Pick a day</span>
         </span>
       </Button>
 
@@ -110,7 +110,7 @@ export const ScheduledDayTabs = ({
                 : 0
 
             return (
-              <div key={entry.date} className='relative'>
+              <div key={entry.date} className='group/day relative'>
                 <button
                   type='button'
                   className={cn(
@@ -150,7 +150,9 @@ export const ScheduledDayTabs = ({
                     />
                   </span>
                 </button>
-                <span className='absolute top-1/2 right-1.5 -translate-y-1/2'>
+                {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
+                    a keyboard reaching it shows it too. */}
+                <span className='absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 focus-within:opacity-100'>
                   <Button
                     variant='outline'
                     size='icon-sm'
@@ -173,7 +175,6 @@ export const ScheduledDayTabs = ({
         actionLabel='Go to day'
         departmentId={departmentId}
         allowPast
-        initialDay={day}
         isPending={false}
         onPick={date => {
           onDayChange(date)

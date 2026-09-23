@@ -96,41 +96,35 @@ export const StockManufacturingDialog = ({
 
         <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
           {view === 'new' ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className='w-28'>Qty</TableHead>
-                  <TableHead>ID</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.map((line, index) => (
-                  <TableRow key={line.id}>
-                    <TableCell>
-                      <Input
-                        type='number'
-                        min={1}
-                        inputMode='numeric'
-                        aria-label={`Quantity, row ${index + 1}`}
-                        placeholder='0'
-                        value={line.quantity}
-                        onChange={event => edit(index, { quantity: event.target.value })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        aria-label={`Product ID, row ${index + 1}`}
-                        placeholder='e.g. TJC8262'
-                        value={line.productId}
-                        onChange={event =>
-                          edit(index, { productId: event.target.value.toUpperCase() })
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            // Labels over the boxes, as Create stock order has them: the lines are a form being
+            // written, not a table of records.
+            <div className='space-y-2'>
+              <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+                <span className='w-24'>Qty</span>
+                <span className='flex-1'>Product ID</span>
+              </div>
+              {lines.map((line, index) => (
+                <div key={line.id} className='flex items-center gap-3'>
+                  <Input
+                    className='w-24'
+                    type='number'
+                    min={1}
+                    inputMode='numeric'
+                    aria-label={`Quantity, row ${index + 1}`}
+                    placeholder='0'
+                    value={line.quantity}
+                    onChange={event => edit(index, { quantity: event.target.value })}
+                  />
+                  <Input
+                    className='flex-1'
+                    aria-label={`Product ID, row ${index + 1}`}
+                    placeholder='e.g. TJC8262'
+                    value={line.productId}
+                    onChange={event => edit(index, { productId: event.target.value.toUpperCase() })}
+                  />
+                </div>
+              ))}
+            </div>
           ) : batches?.length ? (
             <Table>
               <TableHeader>

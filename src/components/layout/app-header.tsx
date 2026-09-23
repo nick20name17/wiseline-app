@@ -50,7 +50,7 @@ export const AppHeader = ({ actions }: AppHeaderProps) => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {search ? <div className='ml-4 w-full max-w-lg'>{search}</div> : null}
+      {search ? <div className='ml-4 w-full max-w-104'>{search}</div> : null}
 
       <div className='ml-auto flex items-center gap-2.5'>{actions}</div>
     </header>

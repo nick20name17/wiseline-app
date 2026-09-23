@@ -74,7 +74,8 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'pid', label: 'Product ID', width: 'w-32' },
     { key: 'desc', label: 'Description' },
     { key: 'w', label: 'W"', width: 'w-20' },
-    { key: 'l', label: 'L"', width: 'w-16' },
+    // Room for a four-figure length and its inch mark — «1200"» — whole.
+    { key: 'l', label: 'L"', width: 'w-24' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
@@ -161,10 +162,12 @@ export const COMPLETED_PACKAGES_TABLE: ColumnTable = {
 export const ALLOCATED_STOCK_TABLE: ColumnTable = {
   table: 'allocated-stock',
   columns: [
-    { key: 'color', label: 'Colour' },
-    { key: 'pid', label: 'Product ID' },
+    // Fixed widths, so the description is what gives when the sheet is narrow — not the quantity,
+    // which is what the window is opened for.
+    { key: 'color', label: 'Colour', width: 'w-36' },
+    { key: 'pid', label: 'Product ID', width: 'w-36' },
     { key: 'desc', label: 'Description' },
-    { key: 'qty', label: 'Qty allocated' }
+    { key: 'qty', label: 'Qty allocated', width: 'w-36' }
   ]
 }
 
