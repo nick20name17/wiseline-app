@@ -254,6 +254,7 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
             : `By clicking Yes, the new Linear Feet amount (${(asking?.linear_feet ?? num(draft.linear_feet)).toLocaleString('en-US')} ft) gets pushed back into EBMS for coil ${name}.`
         }
         confirmLabel={depleting ? 'Yes, Deplete & Delete Coil' : 'Yes, Make Adjustment'}
+        destructive={depleting}
         cancelLabel='No'
         isPending={confirm.isPending || deplete.isPending}
         onConfirm={() => {

@@ -317,6 +317,7 @@ export const RemoveLocationDialog = ({
       title='Remove location'
       description='Are you sure you want to remove this location from this order?'
       confirmLabel='Yes, remove'
+      destructive
       cancelLabel='Cancel'
       isPending={remove.isPending}
       onConfirm={() =>

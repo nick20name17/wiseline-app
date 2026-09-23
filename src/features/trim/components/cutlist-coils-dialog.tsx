@@ -234,6 +234,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
             asking === 'deplete' ? 'Yes, Deplete & Delete Coil' : 'Yes, Make Adjustment'
           }
           cancelLabel='No'
+          destructive={asking === 'deplete'}
           isPending={adjust.isPending || deplete.isPending}
           onConfirm={onConfirm}
         />

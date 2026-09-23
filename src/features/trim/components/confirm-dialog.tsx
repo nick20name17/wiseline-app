@@ -18,6 +18,8 @@ type ConfirmDialogProps = {
   confirmLabel: string
   cancelLabel?: string
   isPending?: boolean
+  /** The answer takes something away that cannot be put back, so it is red, not the primary blue. */
+  destructive?: boolean
   onConfirm: () => void
 }
 
@@ -31,6 +33,7 @@ export const ConfirmDialog = ({
   confirmLabel,
   cancelLabel = 'No',
   isPending = false,
+  destructive = false,
   onConfirm
 }: ConfirmDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
@@ -43,7 +46,11 @@ export const ConfirmDialog = ({
         <Button variant='outline' onClick={() => onOpenChange(false)}>
           {cancelLabel}
         </Button>
-        <Button disabled={isPending} onClick={onConfirm}>
+        <Button
+          variant={destructive ? 'destructive' : 'default'}
+          disabled={isPending}
+          onClick={onConfirm}
+        >
           {isPending ? <Spinner data-icon='inline-start' /> : null}
           {confirmLabel}
         </Button>

@@ -131,15 +131,16 @@ export const PackagesDialog = ({
           open={!!deleting}
           onOpenChange={next => !next && setDeleting(null)}
           title='Delete this package?'
-          description={`Package ${deleting?.name ?? ''} is taken apart and its pieces go back to Left To Wrap. Scanning its label will say it was deleted.`}
+          description={`${deleting?.name ?? 'The package'} is taken apart and its pieces go back to Left To Wrap. Scanning its label will say it was deleted.`}
           confirmLabel='Yes, Delete Package'
+          destructive
           cancelLabel='No'
           isPending={remove.isPending}
           onConfirm={() =>
             deleting &&
             remove.mutate(deleting.package_id, {
               onSuccess: () => {
-                toast.add({ type: 'success', title: `Deleted package ${deleting.name ?? ''}` })
+                toast.add({ type: 'success', title: `Deleted ${deleting.name ?? 'the package'}` })
                 setDeleting(null)
               }
             })

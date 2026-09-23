@@ -332,6 +332,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
           onOpenChange={next => !next && setDeleting(null)}
           onOpenChangeComplete={releaseAsking}
           title='Delete stock card?'
+          destructive
           description={`This removes ${asking?.product_id ?? ''} (${asking?.description ?? '—'}) from the list. This can’t be undone.`}
           confirmLabel='Confirm'
           cancelLabel='Cancel'

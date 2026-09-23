@@ -40,7 +40,7 @@ export const ReviewedToggle = ({
   // Once an order is out on the floor the toggle is a record, not a control, and reads as one.
   if (released)
     return (
-      <span className='inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium tracking-wider text-muted-foreground uppercase'>
+      <span className='inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium tracking-wider text-muted-foreground uppercase'>
         Reviewed
       </span>
     )
