@@ -1,2 +1,2 @@
-export { TrimPage } from './components/trim-page'
+export { TrimGate } from './components/trim-gate'
 export { trimSearchSchema } from './lib/search'

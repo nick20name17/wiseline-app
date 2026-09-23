@@ -1,13 +1,7 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import {
-  cutlistsQuery,
-  scheduledOrdersQuery,
-  unscheduledOrdersQuery,
-  useTrimCoils,
-  useTrimDepartment
-} from '../api'
+import { cutlistsQuery, orderCountQuery, useTrimCoils } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
@@ -21,14 +15,21 @@ import { UnscheduledTab } from './unscheduled-tab'
 type TrimPageProps = {
   view: TrimView
   search: string | undefined
-  /** The viewer's role. It comes from the route, which is the layer allowed to reach auth. */
-  role: string
+  departmentId: number
+  /** The viewer's role inside Trim, settled before the board mounts — see `TrimGate`. */
+  role: 'manager' | 'worker'
   onViewChange: (view: TrimView) => void
   onSearchChange: (search: string | undefined) => void
 }
 
-export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: TrimPageProps) => {
-  const { data: department } = useTrimDepartment()
+export const TrimPage = ({
+  view,
+  search,
+  departmentId,
+  role,
+  onViewChange,
+  onSearchChange
+}: TrimPageProps) => {
   // A Worker works the floor tabs as fully as a Manager; what he cannot reach is kept off the strip.
   const worker = role === 'worker'
   // The Calendar hands the Scheduled tab a day to open on; going through the strip drops it.
@@ -36,14 +37,11 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
 
   // The strip counts the whole board, not what the search has narrowed it to, and reads the server's
   // total rather than the length of one page. A Worker has no order tabs, so their lists stay unasked.
-  const { data: unscheduled } = useQuery({ ...unscheduledOrdersQuery(undefined), enabled: !worker })
-  const { data: scheduled } = useQuery({
-    ...scheduledOrdersQuery(undefined, null),
-    enabled: !worker
-  })
+  const { data: unscheduled } = useQuery({ ...orderCountQuery(false), enabled: !worker })
+  const { data: scheduled } = useQuery({ ...orderCountQuery(true), enabled: !worker })
   // The same lists Production and Coils open on: the Slinet's active cutlists, and Trim's coils.
-  const { data: cutlists } = useQuery(cutlistsQuery(department?.id, 'cutlist', null, false))
-  const { trimLots } = useTrimCoils(department?.id)
+  const { data: cutlists } = useQuery(cutlistsQuery(departmentId, 'cutlist', null, false))
+  const { trimLots } = useTrimCoils(departmentId)
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
@@ -52,7 +50,7 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
 
   // A role that cannot see the tab in the URL is moved to the first one it can.
   useEffect(() => {
-    if (role && !canAccess(view, role)) onViewChange(defaultView(role))
+    if (!canAccess(view, role)) onViewChange(defaultView(role))
   }, [role, view, onViewChange])
 
   return (
@@ -61,8 +59,8 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
         view={view}
         role={role}
         counts={{
-          unscheduled: unscheduled?.count,
-          scheduled: scheduled?.count,
+          unscheduled,
+          scheduled,
           production: cutlists?.length,
           coils: trimLots?.length
         }}
@@ -73,14 +71,14 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
       />
 
       {view === 'unscheduled' ? (
-        <UnscheduledTab search={search} departmentId={department?.id} />
+        <UnscheduledTab search={search} departmentId={departmentId} />
       ) : view === 'scheduled' ? (
-        <ScheduledTab search={search} departmentId={department?.id} initialDay={openDay} />
+        <ScheduledTab search={search} departmentId={departmentId} initialDay={openDay} />
       ) : view === 'coils' ? (
-        <CoilsTab departmentId={department?.id} worker={worker} />
+        <CoilsTab departmentId={departmentId} worker={worker} />
       ) : view === 'calendar' ? (
         <CalendarTab
-          departmentId={department?.id}
+          departmentId={departmentId}
           // A day leads back to the board: the calendar reads the month, the Scheduled tab works it.
           onOpenDay={day => {
             setOpenDay(day)
@@ -88,9 +86,9 @@ export const TrimPage = ({ view, search, role, onViewChange, onSearchChange }: T
           }}
         />
       ) : view === 'completed' ? (
-        <CompletedTab departmentId={department?.id} />
+        <CompletedTab departmentId={departmentId} />
       ) : (
-        <ProductionTab departmentId={department?.id} onOpenCoils={() => onViewChange('coils')} />
+        <ProductionTab departmentId={departmentId} onOpenCoils={() => onViewChange('coils')} />
       )}
     </section>
   )

@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
 import * as z from 'zod/mini'
-import { departmentCoilFilter, passesCoilFilter } from './lib/coils'
+import { departmentCoilFilter, filterFor, passesCoilFilter } from './lib/coils'
 
 /**
  * Trim reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
@@ -38,6 +38,26 @@ export const departmentsQuery = queryOptions({
 })
 
 /** The department row the whole page is scoped to. Every query below waits on its id. */
+/** The user's role inside one department — `manager`, `worker`, or `null` for no assignment. */
+export const departmentRoleQuery = (userId: number | undefined, departmentId: number | undefined) =>
+  queryOptions({
+    // Outside `trimKeys.all`: an assignment changes in Settings, not with every click on the board.
+    queryKey: ['departments', 'role', userId ?? 0, departmentId ?? 0] as const,
+    enabled: userId !== undefined && departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(z.object({ user: z.number(), department: z.number(), role: z.string() }))
+        .parse(
+          await authApi
+            .get('departments/users/assignments/', {
+              searchParams: { user_id: userId!, department_id: departmentId! }
+            })
+            .json()
+        )
+        // The filter is the server's, but a role handed to the wrong person is not worth trusting it.
+        .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
 export const useTrimDepartment = () =>
   useQuery({
     ...departmentsQuery,
@@ -120,7 +140,7 @@ const lineItemSchema = z.object({
   length: z._default(z.number(), 0),
   bends: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
-  production_date: z._default(z.nullable(z.string()), null),
+  // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
   item: z._default(z.nullable(itemSchema), null)
 })
 
@@ -152,6 +172,18 @@ export const departmentStateOf = (order: TrimOrder, departmentId: number | undef
 
 export const isStockOrder = (order: TrimOrder) => order.sales_order?.is_stock ?? false
 
+/**
+ * The tab lists hand an order over with only the lines that match the tab, so an order scheduled in
+ * part arrives on each tab with fewer lines than `count_items`. The count alone is not enough — some
+ * orders count a line the list never sends (W20109: 5 against 4) — so only an order that has been put
+ * on a day at all is read as narrowed. One with no lines at all is a stock order whose lines the list
+ * does not send yet.
+ */
+export const isNarrowed = (order: TrimOrder) =>
+  order.origin_items.length > 0 &&
+  order.origin_items.length < (order.count_items ?? 0) &&
+  !!order.sales_order?.department_states.some(state => state.production_date)
+
 // The EBMS category that routes a line item to this department. `ebms/orders/` filters on the category
 // name rather than on the department id, and narrows the returned line items to it as well.
 const TRIM_CATEGORY = 'Trim'
@@ -164,9 +196,9 @@ export const trimKeys = {
   orders: () => [...trimKeys.all, 'orders'] as const,
   unscheduled: (search: string | undefined) =>
     [...trimKeys.orders(), 'unscheduled', { search: search ?? '' }] as const,
-  scheduled: (search: string | undefined, day: string | null) =>
-    [...trimKeys.orders(), 'scheduled', { search: search ?? '', day: day ?? 'all' }] as const,
-  calendar: () => [...trimKeys.orders(), 'calendar'] as const,
+  scheduled: (search: string | undefined) =>
+    [...trimKeys.orders(), 'scheduled', { search: search ?? '' }] as const,
+  calendar: (from: string, to: string) => [...trimKeys.orders(), 'calendar', { from, to }] as const,
   machines: () => [...trimKeys.all, 'machines'] as const,
   overdue: (departmentId: number) => [...trimKeys.all, 'overdue', departmentId] as const,
   machineCapacities: (departmentId: number, day: string) =>
@@ -175,7 +207,6 @@ export const trimKeys = {
     [...trimKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
     [...trimKeys.all, 'day-strip', departmentId, start, days] as const,
-  priorities: () => [...trimKeys.all, 'priorities'] as const,
   orderNotes: (orders: string[]) => [...trimKeys.all, 'order-notes', orders] as const,
   lineNotes: (originItem: string) => [...trimKeys.all, 'line-notes', originItem] as const,
   // Its own branch, not a child of `lineNotes`: invalidating one thread must reach every table dot,
@@ -194,7 +225,6 @@ export const trimKeys = {
       done ? 'done' : 'active'
     ] as const,
   cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const,
-  cutlistSources: (rowIds: number[]) => [...trimKeys.cutlists(), 'sources', rowIds] as const,
   completedOrders: () => [...trimKeys.all, 'completed'] as const,
   completed: (departmentId: number) => [...trimKeys.completedOrders(), departmentId] as const,
   completedOrder: (departmentId: number, order: string) =>
@@ -207,11 +237,60 @@ export const trimKeys = {
     [...trimKeys.wrapping(), departmentId, day ?? 'all'] as const,
   wrappingLocations: (departmentId: number) =>
     [...trimKeys.wrapping(), 'locations', departmentId] as const,
+  stockOrderRows: (departmentId: number, order: string) =>
+    [...trimKeys.wrapping(), 'stock-order', departmentId, order] as const,
+  manufacturingBatches: (departmentId: number) =>
+    [...trimKeys.all, 'manufacturing-batches', departmentId] as const,
+  orderPackages: (order: string) => [...trimKeys.wrapping(), 'packages', order] as const,
   orderLocations: (order: string) => [...trimKeys.wrapping(), 'order-locations', order] as const,
   orderComplete: (departmentId: number, order: string) =>
     [...trimKeys.wrapping(), 'complete', departmentId, order] as const,
   remanufacturings: () => [...trimKeys.all, 'remanufacturings'] as const
 }
+
+type OrderFilters = Record<string, string | number | boolean>
+
+const orderPage = async (filters: OrderFilters, offset: number, limit: number) =>
+  orderPageSchema.parse(
+    await authApi
+      .get('ebms/orders/', {
+        searchParams: { category: TRIM_CATEGORY, ...filters, limit, offset }
+      })
+      .json()
+  )
+
+/**
+ * Every page of a paged list: the first says how many there are, so the rest are asked for at once.
+ * Returned as pages, so the caller keeps whatever else the first one carries.
+ */
+const allPages = async <Page extends { count: number }>(
+  pageAt: (offset: number) => Promise<Page>
+) => {
+  const first = await pageAt(0)
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, Math.ceil(first.count / PAGE_SIZE) - 1) }, (_, index) =>
+      pageAt((index + 1) * PAGE_SIZE)
+    )
+  )
+  return [first, ...rest] as const
+}
+
+/**
+ * Every order the filters match. Stock orders ride along on every page, whatever the filters, which
+ * is why the orders are deduplicated.
+ */
+const allOrders = async (filters: OrderFilters) => {
+  const pages = await allPages(offset => orderPage(filters, offset, PAGE_SIZE))
+  const orders = new Map(pages.flatMap(page => page.results).map(order => [order.id, order]))
+  return { count: pages[0].count, results: [...orders.values()] }
+}
+
+/** How many orders a tab holds, for the tab strip — one row asked for, the server's total read. */
+export const orderCountQuery = (scheduled: boolean) =>
+  queryOptions({
+    queryKey: [...trimKeys.orders(), 'count', scheduled] as const,
+    queryFn: async () => (await orderPage({ is_scheduled: scheduled }, 0, 1)).count
+  })
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
   queryOptions({
@@ -219,73 +298,56 @@ export const unscheduledOrdersQuery = (search: string | undefined) =>
     // Each search term is its own cache entry; without this the table falls back to the skeleton on
     // every keystroke pause and resizes itself twice per search.
     placeholderData: keepPreviousData,
+    queryFn: () => allOrders({ is_scheduled: false, ...(search ? { search } : {}) })
+  })
+
+/**
+ * Every Trim line of one order. The tab lists narrow an order's lines to the ones matching the tab —
+ * Unscheduled drops the scheduled ones, Scheduled the waiting ones — but an expanded order shows
+ * them all, the rest greyed out (p1 (330,354), (316,381)). `order=` is not honoured by the list, so
+ * the invoice is searched and the order picked out by id.
+ */
+export const wholeOrderQuery = (order: TrimOrder) =>
+  queryOptions({
+    queryKey: [...trimKeys.orders(), 'whole', order.id] as const,
+    // An order the list handed over whole needs nothing more.
+    enabled: isNarrowed(order),
+    placeholderData: order,
     queryFn: async () =>
-      orderPageSchema.parse(
-        await authApi
-          .get('ebms/orders/', {
-            searchParams: {
-              category: TRIM_CATEGORY,
-              is_scheduled: false,
-              limit: PAGE_SIZE,
-              offset: 0,
-              ...(search ? { search } : {})
-            }
-          })
-          .json()
-      )
+      (await orderPage({ search: order.invoice || order.id }, 0, PAGE_SIZE)).results.find(
+        found => found.id === order.id
+      ) ?? order
   })
 
 /**
  * The Scheduled tab: orders whose Trim line items carry a production date, released or not.
  *
- * A day narrows the list to that production date; `null` is the board's «All Scheduled Orders».
+ * Every day at once — the tab picks a day's parts out itself. The server's `production_date=` matches
+ * an order's earliest day only, so it would drop a split order from the tab of its later day.
  */
-export const scheduledOrdersQuery = (search: string | undefined, day: string | null) =>
+export const scheduledOrdersQuery = (search: string | undefined) =>
   queryOptions({
-    queryKey: trimKeys.scheduled(search, day),
+    queryKey: trimKeys.scheduled(search),
     placeholderData: keepPreviousData,
-    queryFn: async () =>
-      orderPageSchema.parse(
-        await authApi
-          .get('ebms/orders/', {
-            searchParams: {
-              category: TRIM_CATEGORY,
-              is_scheduled: true,
-              limit: PAGE_SIZE,
-              offset: 0,
-              ...(day ? { production_date: day } : {}),
-              ...(search ? { search } : {})
-            }
-          })
-          .json()
-      )
+    queryFn: () => allOrders({ is_scheduled: true, ...(search ? { search } : {}) })
   })
 
 /**
- * Every scheduled order, however many pages that takes: the Calendar counts whole months, and the
- * endpoint filters by one production date or none, so the first page alone would drop days.
+ * The orders with a Trim line on a production day in `[from, to]`. The range narrows the line items
+ * as well, so a split order carries only its days inside it.
  */
-export const calendarOrdersQuery = queryOptions({
-  queryKey: trimKeys.calendar(),
-  queryFn: async () => {
-    const pageAt = async (offset: number) =>
-      orderPageSchema.parse(
-        await authApi
-          .get('ebms/orders/', {
-            searchParams: { category: TRIM_CATEGORY, is_scheduled: true, limit: PAGE_SIZE, offset }
-          })
-          .json()
-      )
-    // The first page says how many there are, so the rest are asked for at once.
-    const first = await pageAt(0)
-    const offsets = Array.from(
-      { length: Math.max(0, Math.ceil(first.count / PAGE_SIZE) - 1) },
-      (_, index) => (index + 1) * PAGE_SIZE
-    )
-    const rest = await Promise.all(offsets.map(pageAt))
-    return [first, ...rest].flatMap(page => page.results)
-  }
-})
+export const calendarOrdersQuery = (from: string, to: string) =>
+  queryOptions({
+    queryKey: trimKeys.calendar(from, to),
+    queryFn: async () =>
+      (
+        await allOrders({
+          is_scheduled: true,
+          production_date__gte: from,
+          production_date__lte: to
+        })
+      ).results
+  })
 
 // --- Machines ------------------------------------------------------------
 
@@ -481,22 +543,28 @@ export const dayStripQuery = (departmentId: number | undefined, start: string, d
 // --- Priorities ----------------------------------------------------------
 
 /**
- * Priorities are created per department and must not leak between them, so the list is narrowed here:
- * `GET /priorities/` takes no department parameter. One with no department of its own belongs to none
- * in particular and fits anywhere, which is how the backend validates it too.
+ * The department's priorities plus the ones with no department, which fit anywhere — the server
+ * answers `?department=` with exactly that set.
  */
 export const prioritiesQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.priorities(),
-    queryFn: async () => z.array(prioritySchema).parse(await authApi.get('priorities/').json()),
+    // Under the Priorities page's own `['priorities']` root, so an edit or a drag there reaches the
+    // board too.
+    queryKey: ['priorities', 'department', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(prioritySchema)
+        .parse(
+          await authApi
+            .get('priorities/', { searchParams: { department: departmentId ?? 0 } })
+            .json()
+        ),
+    // The board's Hierarchy is ascending: the priority numbered 1 sits on top.
     select: (priorities: Priority[]) =>
-      priorities
-        .filter(priority => priority.department === null || priority.department === departmentId)
-        // The board's Hierarchy is ascending: the priority numbered 1 sits on top.
-        .sort(
-          (a, b) =>
-            (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
-        )
+      priorities.toSorted(
+        (a, b) => (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
+      )
   })
 
 // --- Notes ---------------------------------------------------------------
@@ -866,6 +934,52 @@ export const stockCardsQuery = queryOptions({
   queryFn: async () => z.array(stockCardSchema).parse(await authApi.get('stock-cards/').json())
 })
 
+type StockCardValues = { stock_minimum: number; order_qty: number; image_id: number }
+
+/**
+ * The card's picture is uploaded first — the card needs its `image_id` — and claimed by the card when
+ * it is created. The response's `full_path` is the only place the picture can be shown from.
+ */
+export const useUploadStockCardImage = () =>
+  useMutation({
+    meta: { errorTitle: 'The image was not uploaded' },
+    mutationFn: async (file: File) => {
+      const body = new FormData()
+      body.append('file', file)
+      return z
+        .object({ id: z.number(), full_path: z._default(z.nullable(z.string()), null) })
+        .parse(
+          await authApi
+            .post('files/models/', { searchParams: { model_name: 'StockCard' }, body })
+            .json()
+        )
+    }
+  })
+
+/**
+ * Create adds the card; the description is filled from EBMS by the server, which also refuses a
+ * product ID EBMS does not know. Edit changes everything but the product.
+ */
+export const useSaveStockCard = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The stock card was not saved' },
+    mutationFn: ({
+      id,
+      productId,
+      values
+    }: {
+      id?: number
+      productId: string
+      values: StockCardValues
+    }) =>
+      id
+        ? authApi.patch(`stock-cards/${id}/`, { json: values }).json()
+        : authApi.post('stock-cards/', { json: { product_id: productId, ...values } }).json(),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.stockCards() })
+  })
+
 export const useDeleteStockCard = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`stock-cards/${id}/`),
@@ -881,25 +995,33 @@ export const usePrintStockCards = (onSuccess: () => void) =>
     onSuccess
   })
 
-/** One row of the Create Stock Order grid, once the blanks have been dropped. */
-export type StockOrderLine = { product_id: string; quantity: number }
+/**
+ * One row of the Create Stock Order grid, once the blanks have been dropped. A line left without a
+ * description or length takes the product's own from EBMS.
+ */
+export type StockOrderLine = {
+  product_id: string
+  quantity: number
+  description?: string
+  length?: number
+}
 
 /**
  * Create Stock Order: the rows the Manager filled in become an order of our own, which then goes
  * through Unscheduled and everything after it exactly like a customer's order from EBMS. Blank rows
  * are dropped rather than rejected — the modal always offers more than anyone fills.
  */
-export const useCreateStockOrder = (onSuccess: () => void) =>
+export const useCreateStockOrder = (onSuccess: (order: string) => void) =>
   useMutation({
-    mutationFn: (lines: StockOrderLine[]) =>
-      authApi
-        .post('stock-orders/', {
-          json: { lines }
-        })
-        .json(),
-    onSuccess: async (_, __, ___, { client }) => {
+    meta: { errorTitle: 'The stock order was not created' },
+    // The answer names the new order — the «S» number the floor will look for.
+    mutationFn: async (lines: StockOrderLine[]) =>
+      z
+        .object({ order: z.string() })
+        .parse(await authApi.post('stock-orders/', { json: { lines } }).json()),
+    onSuccess: async (created, _, __, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
-      onSuccess()
+      onSuccess(created.order)
     }
   })
 
@@ -927,12 +1049,20 @@ export const useScanStockCard = () =>
  */
 export type CutlistKind = 'cutlist' | 'bendlist'
 
-// Which line items are behind a row, and how much each one contributed — what a number in the Total
-// column opens up.
+// One line item's share of a row — what a number in the Total column opens up. `quantity` is that
+// share; the rest describes the line itself.
 const cutlistSourceSchema = z.object({
   order: z._default(z.nullable(z.string()), null),
   origin_item: z._default(z.nullable(z.string()), null),
-  quantity: z._default(z.number(), 0)
+  quantity: z._default(z.number(), 0),
+  // `null` once the line item is deleted; the breakdown outlives it.
+  item_id: z._default(z.nullable(z.number()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  qty_ordered: z._default(z.nullable(z.number()), null),
+  pull_from_stock: z._default(z.nullable(z.number()), null),
+  status: z._default(z.nullable(z.string()), null),
+  is_stock: z._default(z.boolean(), false)
 })
 
 export type CutlistSource = z.infer<typeof cutlistSourceSchema>
@@ -968,6 +1098,8 @@ const cutlistSchema = z.object({
   released_at: z._default(z.nullable(z.string()), null),
   completed_at: z._default(z.nullable(z.string()), null),
   is_complete: z._default(z.boolean(), false),
+  is_remanufacture: z._default(z.boolean(), false),
+  remanufacturing_id: z._default(z.nullable(z.number()), null),
   rows: z.catch(z.array(cutlistRowSchema), [])
 })
 
@@ -1028,15 +1160,35 @@ export const useUpdateCutlistRow = () =>
 export const useFinishCutlist = () =>
   useMutation({
     mutationFn: (cutlistId: number) => authApi.post(`cutlists/${cutlistId}/done/`).json(),
+    // A finished remake list moves its remanufacture on (Cut, then Bent), which the badges read.
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.cutlists() })
+      Promise.all([
+        client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
+        client.invalidateQueries({ queryKey: trimKeys.remanufacturings() })
+      ])
   })
+
+// EBMS pads its folder ids to the column width, so they are trimmed once here rather than at every
+// comparison; a blank one means none.
+const folderId = z._default(
+  z.pipe(
+    z.nullable(z.string()),
+    z.transform(id => id?.trim() || null)
+  ),
+  null
+)
 
 const coilLotSchema = z.object({
   id: z.number(),
   lot_autoid: z._default(z.string(), ''),
   lot_number: z._default(z.nullable(z.string()), null),
   product_id: z._default(z.nullable(z.string()), null),
+  // Read live from the EBMS coil product behind the lot.
+  color: z._default(z.nullable(z.string()), null),
+  gauge: z._default(z.nullable(z.number()), null),
+  width: z._default(z.nullable(z.number()), null),
+  // The EBMS product-tree folder, the same id the folder tabs are named by.
+  folder_id: folderId,
   coil_thickness: z._default(z.nullable(z.number()), null),
   material_thickness: z._default(z.nullable(z.number()), null),
   core_od: z._default(z.nullable(z.number()), null),
@@ -1054,23 +1206,6 @@ const coilLotSchema = z.object({
 })
 
 export type CoilLot = z.infer<typeof coilLotSchema>
-
-/**
- * What a number in the Total column is made of. The list itself carries the breakdown, but a row read
- * off the board can arrive without it, so the window asks for it outright — one call per row, because
- * a line of the Slinet's table is several rows, one per machine.
- */
-export const cutlistRowSourcesQuery = (rowIds: number[]) =>
-  queryOptions({
-    queryKey: trimKeys.cutlistSources(rowIds),
-    enabled: rowIds.length > 0,
-    queryFn: async () => {
-      const rows = await Promise.all(
-        rowIds.map(rowId => authApi.get(`cutlists/rows/${rowId}/sources/`).json())
-      )
-      return rows.flatMap(row => z.array(cutlistSourceSchema).parse(row))
-    }
-  })
 
 /**
  * The Cutlist Coils window: the coils checked into the Slinet whose colour matches the list in front
@@ -1093,7 +1228,9 @@ const completedOrderSchema = z.object({
   is_stock: z._default(z.boolean(), false),
   completed_at: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
-  ship_date: z._default(z.nullable(z.string()), null)
+  ship_date: z._default(z.nullable(z.string()), null),
+  // The codes the order's packages stand on, oldest first.
+  trim_location: z.catch(z.array(z.string()), [])
 })
 
 export type CompletedOrder = z.infer<typeof completedOrderSchema>
@@ -1104,26 +1241,62 @@ const completedPageSchema = z.object({
   results: z.catch(z.array(completedOrderSchema), [])
 })
 
-/** Everything this department finished inside the window the server keeps — 90 days. */
+/**
+ * Everything this department finished inside the window the server keeps — 90 days — however many
+ * pages that takes (p1 (912,545)): the first says how many there are, so the rest are asked at once.
+ */
 export const completedOrdersQuery = (departmentId: number | undefined) =>
   queryOptions({
     queryKey: trimKeys.completed(departmentId ?? 0),
     enabled: departmentId !== undefined,
     placeholderData: keepPreviousData,
-    queryFn: async () =>
-      completedPageSchema.parse(
-        await authApi
-          .get(`departments/${departmentId}/completed-orders/`, {
-            searchParams: { limit: PAGE_SIZE }
-          })
-          .json()
+    queryFn: async () => {
+      const pages = await allPages(async offset =>
+        completedPageSchema.parse(
+          await authApi
+            .get(`departments/${departmentId}/completed-orders/`, {
+              searchParams: { limit: PAGE_SIZE, offset }
+            })
+            .json()
+        )
       )
+      return { ...pages[0], results: pages.flatMap(page => page.results) }
+    }
   })
+
+/** A package as the server describes it, at the bench and once the order is complete alike. */
+const packageSchema = z.object({
+  package_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.nullable(z.number()), null),
+  location: z._default(z.nullable(z.string()), null),
+  is_loaded: z._default(z.boolean(), false),
+  contents: z.catch(
+    z.array(
+      z.object({
+        origin_item: z._default(z.nullable(z.string()), null),
+        quantity: z._default(z.number(), 0)
+      })
+    ),
+    []
+  )
+})
+
+export type Package = z.infer<typeof packageSchema>
 
 const completedDetailSchema = z.object({
   order: z._default(z.string(), ''),
   order_number: z._default(z.nullable(z.string()), null),
   is_stock: z._default(z.boolean(), false),
+  // The footer. A stock order has no EBMS order behind it, so all but `customer` are null there.
+  customer: z._default(z.nullable(z.string()), null),
+  po: z._default(z.nullable(z.string()), null),
+  salesman: z._default(z.nullable(z.string()), null),
+  ship_via: z._default(z.nullable(z.string()), null),
+  ship_date: z._default(z.nullable(z.string()), null),
+  production_date: z._default(z.nullable(z.string()), null),
+  priority: z._default(z.nullable(z.string()), null),
+  trim_location: z.catch(z.array(z.string()), []),
   completed_at: z._default(z.nullable(z.string()), null),
   line_items: z.catch(
     z.array(
@@ -1139,27 +1312,7 @@ const completedDetailSchema = z.object({
     ),
     []
   ),
-  packages: z.catch(
-    z.array(
-      z.object({
-        package_id: z.number(),
-        name: z._default(z.nullable(z.string()), null),
-        weight: z._default(z.nullable(z.number()), null),
-        location: z._default(z.nullable(z.string()), null),
-        is_loaded: z._default(z.boolean(), false),
-        contents: z.catch(
-          z.array(
-            z.object({
-              origin_item: z._default(z.nullable(z.string()), null),
-              quantity: z._default(z.number(), 0)
-            })
-          ),
-          []
-        )
-      })
-    ),
-    []
-  )
+  packages: z.catch(z.array(packageSchema), [])
 })
 
 export type CompletedDetail = z.infer<typeof completedDetailSchema>
@@ -1287,6 +1440,8 @@ export const useDepleteCoil = (onSuccess?: () => void) =>
 
 const coilFilterSchema = z.object({
   id: z.number(),
+  // Blank for the department-wide filter, of which a department holds one.
+  folder_autoid: folderId,
   folder_name: z._default(z.nullable(z.string()), null),
   thickness_min: z._default(z.nullable(z.number()), null),
   thickness_max: z._default(z.nullable(z.number()), null),
@@ -1310,16 +1465,61 @@ export type CoilFilterForm = {
 }
 
 /**
- * The department's coil filter, as the window writes it. There is one row per folder and the API
- * offers no way to change one — see TODO.md — so this only ever writes the first.
+ * The department-wide Coil Filter, as the window writes it: the first Apply creates it, later ones
+ * change it — a department holds one, and a second is refused. A bound sent as null is unbounded.
  */
-export const useCreateCoilFilter = (onSuccess: () => void) =>
+export const useSaveCoilFilter = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: ({ departmentId, values }: { departmentId: number; values: CoilFilterForm }) =>
-      authApi.post('coils/filters/', { json: { department: departmentId, ...values } }).json(),
+    meta: { errorTitle: 'The coil filter was not saved' },
+    mutationFn: ({
+      departmentId,
+      filterId,
+      values
+    }: {
+      departmentId: number
+      filterId?: number
+      values: CoilFilterForm
+    }) =>
+      filterId
+        ? authApi.patch(`coils/filters/${filterId}/`, { json: values }).json()
+        : authApi.post('coils/filters/', { json: { department: departmentId, ...values } }).json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+/** Removing the filter lets every coil through to the department again. */
+export const useDeleteCoilFilter = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The coil filter stayed' },
+    mutationFn: (filterId: number) => authApi.delete(`coils/filters/${filterId}/`),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.coils() })
+  })
+
+/** The folder tabs: only folders holding a coil that passes the department's filter. */
+export const coilFoldersQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: [...trimKeys.coils(), 'folders', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(
+          z.object({
+            folder_id: z.pipe(
+              z.string(),
+              z.transform(id => id.trim())
+            ),
+            name: z._default(z.string(), ''),
+            coils: z._default(z.number(), 0)
+          })
+        )
+        .parse(
+          await authApi
+            .get('coils/folders/', { searchParams: { department_id: departmentId! } })
+            .json()
+        )
   })
 
 /** Which coils EBMS is allowed to send this department — the bounds the Manager set. */
@@ -1349,7 +1549,7 @@ export const useTrimCoils = (departmentId: number | undefined) => {
 
   return {
     lots,
-    trimLots: lots?.filter(lot => passesCoilFilter(lot, filter)),
+    trimLots: lots?.filter(lot => passesCoilFilter(lot, filterFor(lot, filters))),
     filter,
     isPending,
     filterLoading
@@ -1362,11 +1562,16 @@ const wrappingRowSchema = z.object({
   origin_item: z._default(z.string(), ''),
   order: z._default(z.string(), ''),
   order_number: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  // «Stock» for a stock order.
+  customer: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   priority: z._default(z.nullable(z.string()), null),
   status: z._default(z.nullable(z.string()), null),
   qty_ordered: z._default(z.number(), 0),
+  // How much of the line comes off the shelf.
+  from_stock: z._default(z.number(), 0),
   wrapped: z._default(z.number(), 0),
   left_to_wrap: z._default(z.number(), 0),
   // Wrapping is blocked until the trim has actually been made, by whatever «made» means here.
@@ -1411,6 +1616,26 @@ const locationSlotSchema = z.object({
 
 export type LocationSlot = z.infer<typeof locationSlotSchema>
 
+/**
+ * The warehouse Select Location opens on, by the name a location slot carries. Keyed under the
+ * warehouses root, so marking another default in Settings reaches the bench.
+ */
+export const defaultWarehouseQuery = queryOptions({
+  queryKey: ['warehouses', 'default'] as const,
+  queryFn: async () =>
+    z
+      .object({
+        results: z.array(
+          z.object({
+            name: z._default(z.nullable(z.string()), null),
+            is_default: z._default(z.boolean(), false)
+          })
+        )
+      })
+      .parse(await authApi.get('warehouses/', { searchParams: { limit: 200 } }).json())
+      .results.find(warehouse => warehouse.is_default)?.name ?? null
+})
+
 /** The list behind Select Location, opened on this department's own locations. */
 export const wrappingLocationsQuery = (departmentId: number | undefined, enabled: boolean) =>
   queryOptions({
@@ -1450,6 +1675,34 @@ export const orderLocationsQuery = (order: string | null) =>
         .parse(await authApi.get(`wrapping/orders/${order}/locations/`).json())
   })
 
+/**
+ * Select Location: moves the order's packages onto a location — all of them, or the ones given, which
+ * is how a second location is added. Works on a completed order too; weight is not checked here.
+ */
+export const useMoveOrderPackages = () =>
+  useMutation({
+    meta: { errorTitle: 'The packages stayed where they were' },
+    mutationFn: ({
+      order,
+      locationId,
+      packageIds
+    }: {
+      order: string
+      locationId: number
+      packageIds?: number[]
+    }) =>
+      authApi
+        .post(`wrapping/orders/${order}/locations/`, {
+          json: {
+            location_id: locationId,
+            ...(packageIds?.length ? { package_ids: packageIds } : {})
+          }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
 export const useRemoveOrderLocation = () =>
   useMutation({
     meta: { errorTitle: 'The location stayed' },
@@ -1457,6 +1710,169 @@ export const useRemoveOrderLocation = () =>
       authApi.delete(`wrapping/orders/${order}/locations/${locationId}/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+  })
+
+/** The packages made for an order still at the bench — See Packages. */
+export const orderPackagesQuery = (order: string | null, enabled: boolean) =>
+  queryOptions({
+    queryKey: trimKeys.orderPackages(order ?? ''),
+    enabled: enabled && !!order,
+    queryFn: async () =>
+      z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
+  })
+
+// --- Stock window (a stock order at the bench) ---------------------------
+
+const stockOrderRowSchema = z.object({
+  origin_item: z.string(),
+  product_id: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  length: z._default(z.nullable(z.number()), null),
+  qty_ordered: z._default(z.number(), 0),
+  // Both blank once the row has its batch.
+  left_to_wrap: z._default(z.nullable(z.number()), null),
+  wrapped: z._default(z.nullable(z.number()), null),
+  qty_manufactured: z._default(z.nullable(z.number()), null),
+  manufactured: z._default(z.boolean(), false),
+  status: z._default(z.nullable(z.string()), null),
+  can_wrap: z._default(z.boolean(), false),
+  can_select: z._default(z.boolean(), false)
+})
+
+export type StockOrderRow = z.infer<typeof stockOrderRowSchema>
+
+/** A stock order is not packed: the floor enters what it wrapped and sends a batch per row. */
+export const stockOrderRowsQuery = (departmentId: number | undefined, order: string | null) =>
+  queryOptions({
+    queryKey: trimKeys.stockOrderRows(departmentId ?? 0, order ?? ''),
+    enabled: departmentId !== undefined && !!order,
+    queryFn: async () =>
+      z.array(stockOrderRowSchema).parse(
+        await authApi
+          .get(`wrapping/stock-orders/${order}/`, {
+            searchParams: { department_id: departmentId! }
+          })
+          .json()
+      )
+  })
+
+/** The Wrapped keypad. The server takes the row's new total; the +/- arithmetic happens here. */
+export const useSetStockWrapped = () =>
+  useMutation({
+    meta: { errorTitle: 'Wrapped was not changed' },
+    mutationFn: ({
+      departmentId,
+      order,
+      originItem,
+      wrapped
+    }: {
+      departmentId: number
+      order: string
+      originItem: string
+      wrapped: number
+    }) =>
+      authApi
+        .patch(`wrapping/stock-orders/${order}/lines/${originItem}/`, {
+          json: { department: departmentId, wrapped }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+  })
+
+/**
+ * Create Manufacturing Batch for the checked rows, each at its Wrapped figure. EBMS may refuse the
+ * batch (502), and then nothing changes.
+ */
+export const useCreateStockBatch = (onSuccess: (completed: boolean) => void) =>
+  useMutation({
+    meta: { errorTitle: 'EBMS refused the batch' },
+    mutationFn: async ({
+      departmentId,
+      order,
+      originItems
+    }: {
+      departmentId: number
+      order: string
+      originItems: string[]
+    }) =>
+      z.object({ completed: z._default(z.boolean(), false) }).parse(
+        await authApi
+          .post(`wrapping/stock-orders/${order}/manufacturing-batch/`, {
+            json: { department: departmentId, origin_items: originItems }
+          })
+          .json()
+      ),
+    onSuccess: result => onSuccess(result.completed),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+// --- Stock Manufacturing (pieces made against no order) --------------------
+
+const manufacturingBatchSchema = z.object({
+  id: z.number(),
+  // The stock order it came from; empty for Stock Manufacturing.
+  order: z._default(z.nullable(z.string()), null),
+  ebms_batch: z._default(z.nullable(z.string()), null),
+  created_at: z._default(z.nullable(z.string()), null),
+  lines: z.catch(
+    z.array(
+      z.object({
+        product_id: z._default(z.string(), ''),
+        description: z._default(z.nullable(z.string()), null),
+        quantity: z._default(z.number(), 0)
+      })
+    ),
+    []
+  )
+})
+
+export type ManufacturingBatch = z.infer<typeof manufacturingBatchSchema>
+
+/** What has gone to EBMS as manufacturing batches, newest first. */
+export const manufacturingBatchesQuery = (departmentId: number | undefined, enabled: boolean) =>
+  queryOptions({
+    queryKey: trimKeys.manufacturingBatches(departmentId ?? 0),
+    enabled: enabled && departmentId !== undefined,
+    queryFn: async () =>
+      z.array(manufacturingBatchSchema).parse(
+        await authApi
+          .get(`departments/${departmentId}/manufacturing-batches/`, {
+            searchParams: { days: 90 }
+          })
+          .json()
+      )
+  })
+
+/** Create Manufacturing Batch in the Stock Manufacturing window. EBMS may refuse it (502). */
+export const useCreateStockManufacturing = (onSuccess: (batch: ManufacturingBatch) => void) =>
+  useMutation({
+    meta: { errorTitle: 'EBMS refused the batch' },
+    mutationFn: async ({
+      departmentId,
+      lines
+    }: {
+      departmentId: number
+      lines: { quantity: number; product_id: string }[]
+    }) =>
+      manufacturingBatchSchema.parse(
+        await authApi
+          .post(`departments/${departmentId}/stock-manufacturing/`, { json: { lines } })
+          .json()
+      ),
+    onSuccess,
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+/** A package packed wrong comes apart: its pieces go back to Left To Wrap. */
+export const useDeletePackage = () =>
+  useMutation({
+    meta: { errorTitle: 'The package stayed' },
+    mutationFn: (packageId: number) => authApi.delete(`wrapping/packages/${packageId}/`),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: trimKeys.all })
   })
 
 export type PackageLine = { origin_item: string; quantity: number }
@@ -1487,6 +1903,8 @@ export const useCreatePackage = (onSuccess: () => void) =>
 
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
+  // A stock order is finished through its own Stock window, never through Order Complete.
+  is_stock: z._default(z.boolean(), false),
   outstanding: z.catch(
     z.array(
       z.object({
@@ -1530,6 +1948,8 @@ export const orderCompleteQuery = (departmentId: number | undefined, order: stri
  */
 export const useCompleteOrder = (onSuccess: () => void) =>
   useMutation({
+    // A refused batch answers 502 with EBMS's own reason, which goes under this title.
+    meta: { errorTitle: 'The order was not completed' },
     mutationFn: ({ order, departmentId }: { order: string; departmentId: number }) =>
       authApi
         .post(`wrapping/orders/${order}/complete/`, {

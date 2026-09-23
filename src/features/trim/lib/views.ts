@@ -23,9 +23,7 @@ export const VIEW_LABELS: Record<TrimView, string> = {
  * Production down — plus Coils, which both get, and Completed, which the board puts on the Worker's
  * Wrapping screens too.
  *
- * The board scopes this to the user's role *inside the department*; this app still carries one global
- * role per user, so the two managerial roles and admin get the Manager's view and a worker gets the
- * Worker's. `GET /departments/users/assignments/` is where the per-department role will come from.
+ * The role is the user's *inside the department* — see `departmentRole` in `src/lib/departments.ts`.
  */
 const MANAGER_VIEWS = TRIM_VIEWS
 const WORKER_VIEWS: readonly TrimView[] = ['production', 'coils', 'completed']

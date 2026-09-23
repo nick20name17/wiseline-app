@@ -9,3 +9,14 @@ export const departmentByCode = <T extends Department>(
   departments: T[],
   code: string | undefined
 ) => departments.find(department => department.code === code)
+
+// Global roles that run every department: «Admin can do everything everywhere» p1 (1037,210).
+const EVERYWHERE = new Set(['admin', 'super_manager'])
+
+/**
+ * The role a user works a department's board in: Manager for the roles that run every department,
+ * otherwise whatever their assignment to it says. No assignment is `null` — each department is
+ * separate p1 (1059,206), so a user assigned elsewhere has no business on its board.
+ */
+export const departmentRole = (globalRole: string, assigned: string | null) =>
+  EVERYWHERE.has(globalRole) ? 'manager' : assigned
