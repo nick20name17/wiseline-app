@@ -14,7 +14,13 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { coilFiltersQuery, useCreateCoilFilter, type CoilFilter, type CoilFilterForm } from '../api'
+import {
+  coilFiltersQuery,
+  useDeleteCoilFilter,
+  useSaveCoilFilter,
+  type CoilFilter,
+  type CoilFilterForm
+} from '../api'
 import { departmentCoilFilter, fieldText } from '../lib/coils'
 
 type Bound = { key: 'thickness' | 'width' | 'grade'; label: string; unit: string; step: string }
@@ -61,7 +67,8 @@ type FilterFormProps = {
 /** Mounted with the popup, so each opening starts from what is saved rather than the last draft. */
 const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
   const [ranges, setRanges] = useState<Ranges>(() => rangesOf(current))
-  const create = useCreateCoilFilter(onClose)
+  const save = useSaveCoilFilter(onClose)
+  const remove = useDeleteCoilFilter(onClose)
 
   const edit = (key: Bound['key'], patch: Partial<Range>) =>
     setRanges(all => ({ ...all, [key]: { ...all[key], ...patch } }))
@@ -123,26 +130,31 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
         ))}
       </div>
 
-      {current ? (
-        // The API can create a filter but not change one, so the window says so rather than offering
-        // a write that would be refused.
-        <p className='rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm'>
-          This is the filter saved for this department. Changing it needs an endpoint the API does
-          not have yet.
-        </p>
-      ) : null}
-
       <DialogFooter>
+        {current ? (
+          <Button
+            variant='destructive'
+            className='mr-auto'
+            disabled={remove.isPending}
+            onClick={() =>
+              remove.mutate(current.id, {
+                onSuccess: () => toast.add({ type: 'success', title: 'Coil filter removed' })
+              })
+            }
+          >
+            Remove filter
+          </Button>
+        ) : null}
         <Button variant='outline' onClick={() => setRanges(CLEARED)}>
           Clear
         </Button>
         <Button
-          disabled={!departmentId || !!current || create.isPending}
+          disabled={!departmentId || save.isPending}
           onClick={() => {
             if (!departmentId) return
             const next = values()
-            create.mutate(
-              { departmentId, values: next },
+            save.mutate(
+              { departmentId, filterId: current?.id, values: next },
               {
                 onSuccess: () =>
                   toast.add({
@@ -155,7 +167,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
             )
           }}
         >
-          {create.isPending ? <Spinner data-icon='inline-start' /> : null}
+          {save.isPending ? <Spinner data-icon='inline-start' /> : null}
           Apply
         </Button>
       </DialogFooter>

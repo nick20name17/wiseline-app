@@ -6,13 +6,14 @@ export const coilName = (lot: CoilLot) => lot.lot_number ?? String(lot.id)
 /** A stored figure as a number box holds it — blank for none, never «null». */
 export const fieldText = (value: number | null) => (value === null ? '' : String(value))
 
-/**
- * The filter that narrows Trim's Coils tab. The API keeps one row per EBMS folder, but a coil lot does
- * not say which folder it is in, so only the department-wide row — the one the Coil Filter window
- * writes — can be matched against a lot.
- */
+/** The department-wide row — the one the Coil Filter window writes. */
 export const departmentCoilFilter = (filters: CoilFilter[] | undefined) =>
-  filters?.find(filter => !filter.folder_name) ?? null
+  filters?.find(filter => !filter.folder_autoid) ?? null
+
+/** A folder's own filter wins over the department-wide one for the coils in that folder. */
+export const filterFor = (lot: CoilLot, filters: CoilFilter[] | undefined) =>
+  filters?.find(filter => !!lot.folder_id && filter.folder_autoid === lot.folder_id) ??
+  departmentCoilFilter(filters)
 
 const bounded = (min: number | null, max: number | null) => min !== null || max !== null
 
@@ -32,12 +33,12 @@ const withinLeg = (value: number | null, min: number | null, max: number | null)
 
 /**
  * "When the Thickness, Width and Grade ALL fall within the ranges set in the filter, then that coil will
- * show up in the Coils tab." A lot carries no width or grade yet (see TODO.md), so those two legs pass
- * and the Coil Thickness is the one tested.
+ * show up in the Coils tab." A lot carries no grade yet (see TODO.md), so that leg passes.
  */
 export const passesCoilFilter = (lot: CoilLot, filter: CoilFilter | null) =>
   !coilFilterActive(filter) ||
-  withinLeg(lot.coil_thickness, filter.thickness_min, filter.thickness_max)
+  (withinLeg(lot.coil_thickness, filter.thickness_min, filter.thickness_max) &&
+    withinLeg(lot.width, filter.width_min, filter.width_max))
 
 // --- Coil geometry -------------------------------------------------------
 
@@ -56,9 +57,9 @@ export const feetFromThickness = (thickness: number, material: number, core: num
 }
 
 /**
- * Pounds per foot of this coil at a given Material Thickness. Weight per foot is width × thickness ×
- * steel, and the lot carries no width (see TODO.md), so it is read off the coil's own current figures
- * and scaled by the thickness. A coil with no weight or length on record has nothing to read it from.
+ * Pounds per foot of this coil at a given Material Thickness, read off the coil's own current figures
+ * and scaled by the thickness — the board gives no steel density to work it out from width. A coil
+ * with no weight or length on record has nothing to read it from.
  */
 export const poundsPerFoot = (lot: CoilLot, material: number) =>
   lot.weight && lot.linear_feet && lot.material_thickness

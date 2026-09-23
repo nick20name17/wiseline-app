@@ -17,10 +17,17 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
-import { useSetCoilLocation, useTrimCoils, useUpdateCoilLot, type CoilLot } from '../api'
+import {
+  coilFoldersQuery,
+  useSetCoilLocation,
+  useTrimCoils,
+  useUpdateCoilLot,
+  type CoilLot
+} from '../api'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
@@ -34,12 +41,12 @@ const numberFormat = new Intl.NumberFormat('en-US')
 
 const figure = (value: number | null) => (value === null ? '—' : numberFormat.format(value))
 
-// A lot carries no colour yet (see TODO.md), so product and coil # are what there is to search.
 const matches = (lot: CoilLot, term: string) =>
-  `${lot.product_id ?? ''} ${lot.lot_number ?? ''}`.toLowerCase().includes(term)
+  `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.lot_number ?? ''}`.toLowerCase().includes(term)
 
-// The board reads by colour, then product, then coil #; colour is the one the lot does not carry.
-const byProductThenCoil = (a: CoilLot, b: CoilLot) =>
+// The board reads by colour, then product, then coil #.
+const byColorProductCoil = (a: CoilLot, b: CoilLot) =>
+  (a.color ?? '').localeCompare(b.color ?? '') ||
   (a.product_id ?? '').localeCompare(b.product_id ?? '') ||
   (a.lot_number ?? '').localeCompare(b.lot_number ?? '')
 
@@ -56,17 +63,26 @@ const DEPARTMENT_LABEL: Record<Department, string> = {
 const otherOf = (department: Department): Department =>
   department === 'in_trim' ? 'in_rollforming' : 'in_trim'
 
-/**
- * One size of coil. The board sizes a coil by Product ID, Color and Width; the lot only carries the
- * Product ID so far (see TODO.md), which is what the rows group on.
- */
-type CoilGroup = { key: string; productId: string | null; lots: CoilLot[] }
+/** One size of coil: the board sizes a coil by Product ID, Color and Width. */
+type CoilGroup = {
+  key: string
+  productId: string | null
+  color: string | null
+  width: number | null
+  lots: CoilLot[]
+}
 
 const groupsOf = (lots: CoilLot[]) => {
   const groups = new Map<string, CoilGroup>()
   for (const lot of lots) {
-    const key = lot.product_id ?? ''
-    const group = groups.get(key) ?? { key, productId: lot.product_id, lots: [] }
+    const key = `${lot.product_id ?? ''}|${lot.color ?? ''}|${lot.width ?? ''}`
+    const group = groups.get(key) ?? {
+      key,
+      productId: lot.product_id,
+      color: lot.color,
+      width: lot.width,
+      lots: []
+    }
     group.lots.push(lot)
     groups.set(key, group)
   }
@@ -199,10 +215,14 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
 }
 
 /** The lot columns' head, two rows deep: «Location» spans the three departments a coil can be in. */
-const LotHead = ({ lead }: { lead?: string }) => (
+const LotHead = ({ lead = [] }: { lead?: string[] }) => (
   <TableHeader>
     <TableRow>
-      {lead ? <TableHead rowSpan={2}>{lead}</TableHead> : null}
+      {lead.map(label => (
+        <TableHead key={label} rowSpan={2}>
+          {label}
+        </TableHead>
+      ))}
       <TableHead rowSpan={2}>Coil #</TableHead>
       <TableHead rowSpan={2}>Coil Thickness</TableHead>
       <TableHead rowSpan={2}>Linear Feet</TableHead>
@@ -246,17 +266,21 @@ const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => (
     <Table className='min-w-6xl table-fixed'>
       <colgroup>
         <col className='w-36' />
+        <col className='w-36' />
         <LotColumns />
       </colgroup>
-      <LotHead lead='Product ID' />
+      <LotHead lead={['Product ID', 'Color']} />
       <TableBody>
         {loading ? (
-          <TableSkeletonRows columns={8} />
+          <TableSkeletonRows columns={9} />
         ) : (
           coils.map(lot => (
             <TableRow key={lot.id}>
               <TableCell>
                 <span className='font-mono'>{lot.product_id ?? '—'}</span>
+              </TableCell>
+              <TableCell>
+                <span className='truncate'>{lot.color ?? '—'}</span>
               </TableCell>
               <LotCells lot={lot} {...handlers} />
             </TableRow>
@@ -291,7 +315,7 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableSkeletonRows columns={4} />
+            <TableSkeletonRows columns={6} />
           ) : (
             groupsOf(coils).map(group => {
               const open = expanded.has(group.key)
@@ -319,6 +343,16 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
                           <span className='font-mono'>{group.productId ?? '—'}</span>
                         </TableCell>
                       ),
+                      color: (
+                        <TableCell>
+                          <span className='truncate'>{group.color ?? '—'}</span>
+                        </TableCell>
+                      ),
+                      width: (
+                        <TableCell>
+                          <span className='font-mono'>{figure(group.width)}</span>
+                        </TableCell>
+                      ),
                       count: (
                         <TableCell>
                           <span className='font-mono'>{group.lots.length}</span>
@@ -341,7 +375,7 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
 
                   {open ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={7}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
                             <Table className='table-fixed'>
@@ -412,7 +446,7 @@ type Layout = 'coils' | 'sizes'
 
 const searched = (lots: CoilLot[], term: string) => {
   const search = term.trim().toLowerCase()
-  return lots.filter(lot => !search || matches(lot, search)).sort(byProductThenCoil)
+  return lots.filter(lot => !search || matches(lot, search)).sort(byColorProductCoil)
 }
 
 type LayoutBarProps = {
@@ -431,7 +465,7 @@ const LayoutBar = ({ layout, scope, canFilter, onLayoutChange, onOpenFilter }: L
         <TabsTrigger value='coils'>
           {scope === 'all' ? 'All Company Coils' : 'All Trim Coils'}
         </TabsTrigger>
-        <TabsTrigger value='sizes'>All folders</TabsTrigger>
+        <TabsTrigger value='sizes'>By size</TabsTrigger>
       </TabsList>
     </Tabs>
 
@@ -466,7 +500,7 @@ const CountBar = ({ count, badge, term, onTermChange }: CountBarProps) => (
       <InputGroupInput
         type='search'
         aria-label='Search coils'
-        placeholder='Search — product / coil #'
+        placeholder='Search — product / colour / coil #'
         value={term}
         onChange={event => onTermChange(event.target.value)}
       />
@@ -503,7 +537,10 @@ type MoveConfirmProps = {
   onConfirm: (moving: Moving) => void
 }
 
-/** Ticking one department's box on a coil the other holds moves it, which is asked first. */
+/**
+ * Ticking one department's box on a coil the other holds moves it. The board asks whether the other
+ * department agreed (p1 (300,689), (320,689)); Yes moves it and unticks theirs (p1 (276,702)).
+ */
 const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProps) => {
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
@@ -514,8 +551,8 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
       open={!!moving}
       onOpenChange={open => !open && onCancel()}
       onOpenChangeComplete={release}
-      title={`Move coil to ${to}?`}
-      description={`By clicking Yes, the location for this coil will change to the ${to} department. This will uncheck the ${from} department — both locations can NOT be checked at the same time.`}
+      title={`Have you checked with the ${from} department to ensure that it is ok to move this coil to the ${to} department?`}
+      description={`Yes moves the coil to ${to} and unchecks ${from} — a coil can only be in one department.`}
       confirmLabel='Yes'
       cancelLabel='No'
       isPending={isPending}
@@ -551,10 +588,17 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [adjusting, setAdjusting] = useState<{ lotId: number; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
+  // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
+  const [folder, setFolder] = useState<string | null>(null)
 
   const scoped: CoilScope = worker ? 'trim' : scope
   const trim = scoped === 'trim'
   const { lots, listed, filter, loading } = scopedCoils(useTrimCoils(departmentId), trim)
+  const { data: folders } = useQuery({
+    ...coilFoldersQuery(departmentId),
+    enabled: trim && departmentId !== undefined
+  })
+  const inFolder = trim && folder ? listed.filter(lot => lot.folder_id === folder) : listed
   const setLocation = useSetCoilLocation()
 
   const move = (lot: CoilLot, location: Parameters<typeof setLocation.mutate>[0]['location']) =>
@@ -571,16 +615,30 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     onSlinet: (lot, checked) => move(lot, { in_slinet: checked })
   }
 
-  const shown = searched(listed, term)
+  const shown = searched(inFolder, term)
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = lots.find(lot => lot.id === adjusting?.lotId) ?? null
 
+  const filterDialog = (
+    <CoilFilterDialog departmentId={departmentId} open={filterOpen} onOpenChange={setFilterOpen} />
+  )
+
+  // The filter decides which coils EBMS sends here, so it has to be reachable before any arrive.
   if (!loading && !lots.length)
     return (
-      <NoCoils
-        title='No coils loaded'
-        description='Coils sync in from EBMS with their linear feet. None are currently in the system.'
-      />
+      <div className='flex flex-col gap-4'>
+        {worker ? null : (
+          <Button variant='outline' className='self-end' onClick={() => setFilterOpen(true)}>
+            <SlidersHorizontal data-icon='inline-start' />
+            Coil Filter
+          </Button>
+        )}
+        <NoCoils
+          title='No coils loaded'
+          description='Coils sync in from EBMS with their linear feet. None are currently in the system.'
+        />
+        {filterDialog}
+      </div>
     )
 
   return (
@@ -609,6 +667,24 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         onOpenFilter={() => setFilterOpen(true)}
       />
 
+      {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. */}
+      {trim && folders?.length ? (
+        <Tabs
+          value={folder ?? 'all'}
+          onValueChange={value => setFolder(value === 'all' ? null : String(value))}
+        >
+          <TabsList variant='line'>
+            <TabsTrigger value='all'>All folders</TabsTrigger>
+            {folders.map(entry => (
+              <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
+                {entry.name}
+                <span className='font-mono text-xs text-muted-foreground'>{entry.coils}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      ) : null}
+
       <CountBar
         count={shown.length}
         badge={coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
@@ -630,11 +706,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         onOpenChange={open => !open && setAdjusting(null)}
       />
 
-      <CoilFilterDialog
-        departmentId={departmentId}
-        open={filterOpen}
-        onOpenChange={setFilterOpen}
-      />
+      {filterDialog}
 
       <MoveConfirm
         moving={moving}

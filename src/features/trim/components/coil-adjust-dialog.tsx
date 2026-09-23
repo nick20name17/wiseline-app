@@ -148,7 +148,12 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   // A cleared field would otherwise reach EBMS as 0: a coil reported as spent that nobody depleted.
   const ready =
     !!build && MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0)
-  const values = (): CoilAdjustment => ({ [driver.current]: num(draft[driver.current]) })
+  // A coil zeroed in any figure is spent, and the server offers Deplete only on a Coil Thickness of 0
+  // (p1 (305,644)) — so a 0 typed into Linear Feet or Weight is sent as that.
+  const values = (): CoilAdjustment => {
+    const figure = num(draft[driver.current])
+    return figure === 0 ? { coil_thickness: 0 } : { [driver.current]: figure }
+  }
   const name = coilName(lot)
   const depleting = asking?.action === DEPLETE
 

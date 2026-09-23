@@ -16,11 +16,26 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { stockCardsQuery, useCreateStockOrder, useScanStockCard } from '../api'
 
-type Row = { id: string; qty: string; productId: string; description: string }
+// `described` marks a description typed by hand, which a later Product ID must not overwrite.
+type Row = {
+  id: string
+  qty: string
+  productId: string
+  description: string
+  described: boolean
+  length: string
+}
 
-const blank = (): Row => ({ id: crypto.randomUUID(), qty: '', productId: '', description: '' })
+const blank = (): Row => ({
+  id: crypto.randomUUID(),
+  qty: '',
+  productId: '',
+  description: '',
+  described: false,
+  length: ''
+})
 
-const isBlank = (row: Row) => !row.qty && !row.productId && !row.description
+const isBlank = (row: Row) => !row.qty && !row.productId && !row.description && !row.length
 
 /**
  * A handheld QR scanner is a keyboard wedge: it types its payload in a burst and ends with Enter, so a
@@ -47,8 +62,8 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
   const [rows, setRows] = useState<Row[]>(() => [blank()])
   const [error, setError] = useState('')
 
-  const create = useCreateStockOrder(() => {
-    toast.add({ type: 'success', title: 'Stock order created' })
+  const create = useCreateStockOrder(order => {
+    toast.add({ type: 'success', title: `Stock order ${order} created` })
     setRows([blank()])
     onOpenChange(false)
   })
@@ -68,7 +83,9 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
           : {
               ...row,
               ...patch,
-              ...(patch.productId === undefined ? {} : { description: describe(patch.productId) })
+              ...(patch.productId === undefined || row.described
+                ? {}
+                : { description: describe(patch.productId) })
             }
       )
       // Typing into the last line is what grows the table.
@@ -90,7 +107,9 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
             id: crypto.randomUUID(),
             qty: card.order_qty === null ? '' : String(card.order_qty),
             productId: card.product_id,
-            description: card.description ?? ''
+            description: card.description ?? '',
+            described: false,
+            length: ''
           }
           const at = current.findIndex(isBlank)
           const next =
@@ -148,10 +167,18 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
     if (filled.some(row => !row.productId.trim())) return setError('Every row needs a Product ID.')
     if (filled.some(row => !(Number(row.qty) >= 1)))
       return setError('Every row needs a quantity of 1 or more.')
+    if (filled.some(row => row.length && !(Number(row.length) > 0)))
+      return setError('A length has to be more than 0.')
 
     setError('')
     create.mutate(
-      filled.map(row => ({ product_id: row.productId.trim(), quantity: Number(row.qty) }))
+      filled.map(row => ({
+        product_id: row.productId.trim(),
+        quantity: Number(row.qty),
+        // Left out, the line takes the product's own from EBMS.
+        ...(row.description.trim() ? { description: row.description.trim() } : {}),
+        ...(row.length ? { length: Number(row.length) } : {})
+      }))
     )
   }
 
@@ -172,6 +199,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
             <span className='w-24'>Qty</span>
             <span className='w-44'>Product ID</span>
             <span className='flex-1'>Description</span>
+            <span className='w-24'>Length (in.)</span>
             <span className='w-8' />
           </div>
 
@@ -194,14 +222,24 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 value={row.productId}
                 onChange={event => edit(row.id, { productId: event.target.value })}
               />
-              {/* Read-only: the order takes only the Product ID and the quantity, so an edited
-                  description would be dropped on the way. It is shown to confirm the right trim. */}
               <Input
                 className='flex-1'
-                readOnly
                 aria-label={`Description, row ${index + 1}`}
-                placeholder='Auto-fills from Product ID'
+                placeholder='From EBMS unless typed'
                 value={row.description}
+                onChange={event =>
+                  edit(row.id, { description: event.target.value, described: !!event.target.value })
+                }
+              />
+              <Input
+                className='w-24'
+                type='number'
+                min={1}
+                inputMode='decimal'
+                aria-label={`Length, row ${index + 1}`}
+                placeholder='120'
+                value={row.length}
+                onChange={event => edit(row.id, { length: event.target.value })}
               />
               {/* The trailing blank row is the grow-row — there is nothing to delete there. */}
               {index < rows.length - 1 ? (

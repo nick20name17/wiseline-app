@@ -19,7 +19,7 @@ import { toast } from '@/components/ui/toast'
 import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import {
   stockCardsQuery,
@@ -29,6 +29,7 @@ import {
   type StockCard
 } from '../api'
 import { ConfirmDialog } from './confirm-dialog'
+import { StockCardDialog } from './stock-card-dialog'
 
 type CardOrderFormProps = {
   card: StockCard
@@ -39,7 +40,10 @@ type CardOrderFormProps = {
 const CardOrderForm = ({ card, onClose }: CardOrderFormProps) => {
   const [qty, setQty] = useState('')
   const [error, setError] = useState('')
-  const create = useCreateStockOrder(onClose)
+  const create = useCreateStockOrder(order => {
+    toast.add({ type: 'success', title: `Stock order ${order} created — ${card.product_id}` })
+    onClose()
+  })
   const shown = qty || (card.order_qty === null ? '' : String(card.order_qty))
 
   const submit = () => {
@@ -47,13 +51,7 @@ const CardOrderForm = ({ card, onClose }: CardOrderFormProps) => {
     if (!Number.isInteger(quantity) || quantity < 1)
       return setError('Order Qty must be greater than 0.')
     setError('')
-    create.mutate([{ product_id: card.product_id, quantity }], {
-      onSuccess: () =>
-        toast.add({
-          type: 'success',
-          title: `Stock order created — ${card.product_id} × ${quantity}`
-        })
-    })
+    create.mutate([{ product_id: card.product_id, quantity }])
   }
 
   return (
@@ -134,10 +132,8 @@ type StockCardsDialogProps = {
 /**
  * The Stock Cards panel: the printable QR labels the floor scans to raise a stock order.
  *
- * Creating one is not here. A card needs an uploaded image and the file endpoint accepts only package,
- * skid and package-item attachments, so a card cannot be created from any client today — see TODO.md.
- * For the same reason the card face has no drawing, and it carries no width, gauge or colour to show
- * or filter by.
+ * The card face has no drawing and no width, gauge or colour to show or filter by: the card carries
+ * an image id but no URL, and none of those fields — see TODO.md.
  */
 export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) => {
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
@@ -145,6 +141,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
   const [deleting, setDeleting] = useState<StockCard | null>(null)
   const [asking, releaseAsking] = useRetained(deleting)
   const [ordering, setOrdering] = useState<StockCard | null>(null)
+  const [cardForm, setCardForm] = useState<StockCard | 'new' | null>(null)
   const { data: cards, isPending } = useQuery({ ...stockCardsQuery, enabled: open })
   const remove = useDeleteStockCard()
 
@@ -199,12 +196,14 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
           </InputGroup>
         </div>
 
-        {/* The floor matches the placeholders, so the sheet does not jump when the cards arrive. */}
+        {/* The placeholders and the empty states are all the floor's height, so the centred sheet does
+            not jump when the answer lands. The placeholder rows stretch to share it rather than
+            carrying heights of their own that would add up to something else. */}
         <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
           {isPending ? (
-            <div className='grid gap-3 sm:grid-cols-2'>
+            <div className='grid h-56 gap-3 sm:grid-cols-2'>
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className='h-28' />
+                <Skeleton key={index} />
               ))}
             </div>
           ) : shown.length ? (
@@ -224,14 +223,24 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
                       />
                       <Label htmlFor={`print-${card.id}`}>Print Select</Label>
                     </div>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      aria-label={`Delete ${card.product_id}`}
-                      onClick={() => setDeleting(card)}
-                    >
-                      <Trash2 />
-                    </Button>
+                    <span className='flex items-center gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        aria-label={`Edit ${card.product_id}`}
+                        onClick={() => setCardForm(card)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        aria-label={`Delete ${card.product_id}`}
+                        onClick={() => setDeleting(card)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </span>
                   </div>
 
                   <div className='flex items-start gap-3'>
@@ -270,7 +279,7 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
               ))}
             </div>
           ) : cards?.length ? (
-            <Empty>
+            <Empty className='min-h-56'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <SearchX />
@@ -283,15 +292,13 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
               </Button>
             </Empty>
           ) : (
-            <Empty>
+            <Empty className='min-h-56'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <QrCode />
                 </EmptyMedia>
                 <EmptyTitle>No stock cards</EmptyTitle>
-                <EmptyDescription>
-                  Creating a card needs an image upload the API does not offer yet.
-                </EmptyDescription>
+                <EmptyDescription>Create one to print and scan.</EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}
@@ -300,6 +307,10 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             Close
+          </Button>
+          <Button variant='outline' onClick={() => setCardForm('new')}>
+            <Plus data-icon='inline-start' />
+            Create stock card
           </Button>
           <Button
             disabled={!selected.size || print.isPending}
@@ -313,6 +324,8 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
             Print selected{selected.size ? ` (${selected.size})` : ''}
           </Button>
         </DialogFooter>
+
+        <StockCardDialog target={cardForm} onOpenChange={open => !open && setCardForm(null)} />
 
         <ConfirmDialog
           open={!!deleting}
