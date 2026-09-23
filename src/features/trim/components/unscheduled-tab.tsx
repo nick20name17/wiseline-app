@@ -1,4 +1,6 @@
 import { useColumnOrder } from '@/components/table/column-order'
+import { SpacerRows } from '@/components/table/spacer-rows'
+import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -44,6 +46,11 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
   const { data: page, isPending } = useQuery(unscheduledOrdersQuery(search))
   const columns = useColumnOrder(UNSCHEDULED_TABLE)
   const orders = page?.results ?? []
+  // Two hundred and more orders is too many rows to keep in the page at once; only those on screen are.
+  const { tableRef, items, measure, before, after } = useWindowRows(
+    orders.length,
+    index => orders[index]?.id ?? String(index)
+  )
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
@@ -90,7 +97,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
     })
 
   return (
-    <div className='flex min-w-0 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
       <UnscheduledToolbar
         total={orders.length}
         selectedCount={selected.length}
@@ -121,7 +128,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
               still between the skeleton, the data and every search. */}
-          <Table className='min-w-5xl table-fixed'>
+          <Table ref={tableRef} className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-10' />
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
@@ -135,31 +142,57 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
                 {columns.headers}
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isPending ? (
+            {isPending ? (
+              <TableBody>
                 <TableSkeletonRows columns={7} />
-              ) : (
-                orders.map(order => (
-                  <OrderRow
-                    key={order.id}
-                    order={order}
-                    departmentId={departmentId}
-                    expanded={expandedIds.has(order.id)}
-                    selected={selectedIds.has(order.id)}
-                    splitLineIds={split?.orderId === order.id ? split.lineIds : []}
-                    splitting={!!split}
-                    scheduling={selected.length > 0}
-                    noteState={noteState(order)}
-                    onToggleExpanded={() => setExpandedIds(current => toggled(current, order.id))}
-                    onToggleSelected={() => setSelectedIds(current => toggled(current, order.id))}
-                    onToggleLine={lineId => toggleLine(order.id, lineId)}
-                    onSplit={() => setDialog('split')}
-                    onOpenOrderNotes={() => setNoteOrder(order)}
-                    onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}
-                  />
-                ))
-              )}
-            </TableBody>
+              </TableBody>
+            ) : (
+              <>
+                <SpacerRows height={before} />
+                {items.map(item => {
+                  const order = orders[item.index]
+                  if (!order) return null
+                  return (
+                    // One body per order, measured whole, so an order opened into its line items keeps
+                    // the rows below it in place.
+                    <tbody
+                      key={item.key}
+                      data-index={item.index}
+                      ref={measure}
+                      // The last order's rule would double the card's edge, which `TableBody` drops.
+                      className={
+                        item.index === orders.length - 1 ? '[&>tr:last-child]:border-0' : undefined
+                      }
+                    >
+                      {/* The banding reads every other row by its place among its siblings; a hidden
+                          row in front of every second order keeps the stripes where they were. */}
+                      {item.index % 2 ? <tr hidden /> : null}
+                      <OrderRow
+                        order={order}
+                        departmentId={departmentId}
+                        expanded={expandedIds.has(order.id)}
+                        selected={selectedIds.has(order.id)}
+                        splitLineIds={split?.orderId === order.id ? split.lineIds : []}
+                        splitting={!!split}
+                        scheduling={selected.length > 0}
+                        noteState={noteState(order)}
+                        onToggleExpanded={() =>
+                          setExpandedIds(current => toggled(current, order.id))
+                        }
+                        onToggleSelected={() =>
+                          setSelectedIds(current => toggled(current, order.id))
+                        }
+                        onToggleLine={lineId => toggleLine(order.id, lineId)}
+                        onSplit={() => setDialog('split')}
+                        onOpenOrderNotes={() => setNoteOrder(order)}
+                        onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}
+                      />
+                    </tbody>
+                  )
+                })}
+                <SpacerRows height={after} />
+              </>
+            )}
           </Table>
         </div>
       )}
