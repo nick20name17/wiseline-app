@@ -2,126 +2,123 @@
 
 Work that is blocked on someone else, or deliberately deferred. Delete an entry once it lands.
 
-## Backend: filter users by role
+## Backend: release asks for a machine on a line pulled wholly from stock
 
-**Ask:** add a `role` query parameter to `GET /users/`, e.g. `GET /users/?role=driver`.
+**Ask:** skip the machine check in `OrderDepartmentStateService` (`stages/services.py`, «line item(s)
+still have no machine assigned») for a line whose `pull_from_stock >= quantity`.
 
-**Why:** the driver picker is out of the truck form for now, but it comes back the moment a truck
-carries a driver again, and Settings → Users needs the same narrowing. Today no endpoint can filter
-by role:
+**Why:** such a line reads Stock and needs no machine (p1 (292,449)), so the Scheduled tab shows
+«Stock» in place of the machine picker. Release then answers 400 and the order cannot be released at
+all — seen on 142885 with one of its two lines all from stock.
 
-- `GET /users/all/` takes no parameters at all;
-- `GET /users/` takes only `limit` and `offset`;
-- `GET /departments/users/assignments/` filters by `user_id` and `department_id`.
+**On our side once it lands:** nothing changes.
 
-Any client that wants drivers has to download every user and filter in memory. With a hundred
-users and five drivers that is ninety-five records fetched to be thrown away, and it grows with
-the company.
+## Backend: a line edited after release leaves its bendlist behind
 
-**Shape we need:** `role` optional, matched exactly against the values
-`GET /constants/users-roles/` returns, combinable with `limit`/`offset`. A `search` parameter on
-the same endpoint would help too: Settings → Users pulls one large page and filters it in memory
-(`usersQuery` in `src/features/users/api.ts`), the same stopgap the warehouses list uses.
+**Ask:** when a released line item's `flow` or `pull_from_stock` changes through `PATCH /items/{id}/`,
+move its pieces: reassigning the machine takes the line off its bendlist and onto a new one for the
+other machine; a Stock figure changed at the machine lowers the row's Qty to Manufacture.
 
-**On our side once it lands:** the driver picker and the users list both ask for the role they
-need instead of paging through everyone.
+**Why:** the board lets the worker reassign a line's machine, which «spins off a new bendlist»
+p1 (650,338), and enter Stock after damage p1 (700,451), with Qty to Manufacture following p1 (703,509).
+`ItemsService.partial_update` rolls up the order status and nothing else; bendlists are only built at
+release (`CutlistService.generate_for_releases`), so either edit would leave the list saying the old
+thing. The row's `sources[].item_id` is already there to address the line.
 
-## Backend: default warehouse
+**On our side once it lands:** the bendlist's Machine button and Stock keypad in `CutlistRows`.
 
-**Ask:** a boolean on the warehouse marking the default one, exclusive across the table.
+## Backend: a stock order comes to Scheduled without its lines
 
-**Why:** the board spec asks for a Default column on Settings → Warehouses, with one warehouse
-marked and a way to change which — "If we have multiply Warehouses then there needs to be a way to
-select the default Warehouse" p1 (246,139). `pm_warehouse` has no such column:
-its fields are `name`, `address`, `description`, `code`, `position`, `color` and the `c_*` contact
-block, so the client has nothing to render or toggle.
+**Ask:** fill `details` on the stock-order rows `GET ebms/orders/` returns — one per `pm_item` of the
+order, shaped like an EBMS line (`autoid` = the item's `origin_item`, `inven`, `descr`, `quanto`,
+and `item` with the app's row) — or accept `order=` on `GET /items/`.
 
-**Shape we need:** `is_default` on `WarehouseSchemaOut`, settable through `PATCH /warehouses/{id}/`,
-with the backend clearing the flag on the previous default so exactly one stays marked.
+**Why:** «the Manager would Schedule the Stock Order just like an EBMS order» p1 (146,355), which
+means assigning each line a machine before Reviewed and Release. `StockOrderRowService.rows`
+(`stages/stock_rows.py`) builds the row with `details = []`, and `GET /items/` has no order filter, so
+the Scheduled tab shows «This order has no Trim line items to show» for S10010 and S10014. With no
+line to assign, Release answers «no machine assigned» and the stock order never reaches the bench —
+so the Stock window (`StockWrap`) cannot be reached either.
 
-**Meanwhile:** the Default toggle writes `position` — 1 when on, 2 when off — and the badge marks
-the lowest position, which the spec describes as the warehouse that opens first. It is a stand-in:
-turning the toggle on does not turn the previous default off, so two warehouses can sit at 1 and
-the badge falls to whichever the API lists first.
+**On our side once it lands:** nothing changes; the Scheduled tab already renders `origin_items`.
 
-**On our side once it lands:** the badge reads `is_default` and the form gets a toggle instead of
-leaning on `position`.
+## Backend: no coil lots reach the app
 
-## Backend: filter warehouses
+**Ask:** mirror EBMS `INLOTS` so `CoilSyncService.sync` can create lot rows.
 
-**Ask:** a `search` query parameter on `GET /warehouses/`, matching name, address and description.
+**Why:** `_lots_for` (`stages/coil_sync.py`) returns nothing while `INLOTS` is missing from the mirror
+and logs «no coil lots were created», so `GET /coils/lots/` is empty and the Coils tab, the Slinet
+coil checkbox and Cutlist Coils have nothing to show. The colour, gauge, width and folder columns and
+the folder tabs are built but cannot be seen working until lots arrive.
 
-**Why:** the endpoint takes only `limit` and `offset` — no `FilterDepends`, unlike `GET /trucks/`.
-So the client pulls one large page and filters in memory (`warehousesQuery` in
-`src/features/warehouses/api.ts`). Fine for a handful of warehouses, wrong once the list outgrows
-a page.
+**On our side once it lands:** nothing changes.
 
-**On our side once it lands:** move the filter into the query key and drop the in-memory `select`.
+## Backend: a remake turns green on Done, not on the row's Complete
 
-## Backend: truck plate numbers
+**Ask:** move a remanufacture to Cut when its Slinet recut row is marked Complete (and to Bent when
+the machine's row is), not only when the whole list is marked Done.
 
-**Ask:** a plate field on the truck, e.g. `plate: str | None`.
+**Why:** «Once the Slinet Worker marks the material as Cut (Complete), then the Remanufacture column
+needs to change from orange to green here in the Machine tab» p1 (613,462), (478,590).
+`CutlistService._advance_remanufacture` (`stages/cutlist_services.py`) runs from `mark_done` only, so
+the machine tab stays orange until the Slinet worker also presses Done.
 
-**Why:** the floor identifies a truck by its plate, and the prototype's Settings → Trucks table is
-Name | Plate | Max Weight (`main`, `src/features/settings/config.tsx`). `pm_truck` carries no plate:
-it has `name`, `driver_id`, `notes` and the five measurements, so the column cannot be filled and is
-left out for now. The written spec does not mention a plate at all — this one comes from the board's
-own screens.
+**On our side once it lands:** `useUpdateCutlistRow` already invalidates everything under `trimKeys.all`.
 
-**Shape we need:** `plate` on `TruckSchemaIn`/`TruckSchemaOut`, writable through
-`POST /trucks/` and `PATCH /trucks/{id}/`, and matched by the existing `search` filter.
+## Backend: Order Complete answers nothing, not even an error
 
-**On our side once it lands:** add the Plate column between Name and Max Weight in
-`TrucksTable`, and a Plate box to the truck form.
+**Ask:** get the `C_MFG` write on `ARINVDET` accepted — EBMS answers `FORBIDDEN`, «this field is read
+only in EBMS»; it is a custom field and needs Jerry on the EBMS side — and send CORS headers on error
+responses too. An order not in EBMS `U` status may be refused as well; check that first and answer
+with a clear 400. Seen on 142837 (`04E5VCBAI5C7HEH0`).
 
-## Backend: line items of a fresh EBMS order carry no department
+**Why:** the browser gets no response at all — status and body are both hidden — so the 502 with
+EBMS's reason that #263 promises never reaches the toast. No order can be completed, so Completed
+Orders cannot be checked against a real one.
 
-**Ask:** create `pm_item` rows with `department_id` set when an order is first scheduled, or expose an
-endpoint that does it.
+**On our side once it lands:** nothing changes; the toast already shows the server's reason.
 
-**Why:** everything the Trim board writes goes through the department-scoped endpoints —
-`POST /sales-orders/schedule/`, `POST /sales-orders/{id}/departments/{dept}/schedule/`,
-`.../bypass/`. All of them reach the order's line items through
-`Item.order == <autoid> AND Item.department_id == <dept>` (`OrderDepartmentStateService._department_items`,
-`stages/services.py`). An EBMS order nobody has touched has no `pm_item` rows at all, so the call
-answers `400 No line items of this order belong to that department.`
+## Backend: a stock order shows on Unscheduled and Scheduled at once
 
-`POST /multiupdate/items/` does create missing rows (`ItemsService.multiupdate`), but from
-`MultiUpdateItemSchema`, which carries no department — so the rows it creates have
-`department_id = NULL` and are invisible to every query above, including the day strip
-(`CapacityViewService._totals` filters on the same column). Only the migration backfill and
-`StockOrderService` ever set the column today.
+**Ask:** check `StockOrderRowService.rows` (`stages/stock_rows.py`) for S10010 and S10014.
 
-**Shape we need:** the department derived the same way the stock order path derives it — the line
-item's `INVENTRY.PROD_TYPE` names an `INPRODTYPE` row whose autoid is the department's
-`category_autoid` — applied whenever an `Item` is created.
+**Why:** both are scheduled (they show on the Scheduled tab with a production date), yet both also
+come back with `is_scheduled=false`. The `having count(production_date) < count(id)` test is true,
+so some Trim line of theirs has no date — possibly rows the #16 fix created on scheduling.
 
-**On our side once it lands:** nothing changes. `src/features/trim/api.ts` already calls the
-department endpoints and creates the `SalesOrder` row when the EBMS order has none.
+**On our side once it lands:** nothing changes.
 
-## Backend: no image upload for a Stock Card
+## Backend: a bypassed order stays Bypassed after it is wrapped
 
-**Ask:** let `POST /files/models/` accept `model_name=StockCard`, or add an upload that returns a
-`pm_file` id a stock card can point at.
+**Ask:** roll the order's department status up to Wrapped once every line is Wrapped, bypassed or not.
 
-**Why:** `StockCardSchemaIn` requires `image_id`, and the board says the Manager uploads the profile
-sketch on the Create form (`docs/wiseline-spec.md`, p1 (71,307)). `files/routers.py` accepts only
-`PackageItem`, `Package` and `Skid`, so no client can produce an `image_id` and no stock card can be
-created from the app at all.
+**Why:** «It will stay Bypassed until the Worker wraps the trim» p1 (252,578). 142837 has every line
+Wrapped and still reads Bypassed on the Scheduled tab.
 
-**On our side once it lands:** `StockCardsDialog` in `src/features/trim/components/` gets its Create
-form; today it lists, prints and deletes only.
+**On our side once it lands:** nothing changes.
 
-## Backend: filter priorities by department
+## Backend: a released line shows no status
 
-**Ask:** a `department` query parameter on `GET /priorities/`.
+**Ask:** set `not_started` on the line items at release (`docs/backend-asks.md` #8).
 
-**Why:** priorities are created per department and "would ONLY be for the Trim department"
-(p1 (241,403)), and the write endpoints enforce that. The list endpoint does not: it returns every
-department's, so the Trim board pulls the lot and filters in memory (`prioritiesQuery` in
-`src/features/trim/api.ts`), keeping the ones with a matching department plus the ones with none.
+**Why:** after Release the lines of 142885 read «—» until the Slinet cut them; the board shows each
+trim's status once released p1 (293,492), (293,525).
 
-**On our side once it lands:** move the filter into the query key and drop the `select`.
+**On our side once it lands:** nothing changes.
+
+## Backend: remakes come unfiltered
+
+**Ask:** `origin_item` / `department` filters on `GET /remanufacturings/` (`docs/backend-asks.md` #30).
+
+**Why:** `remanufacturingsQuery` pulls one page of every remake and narrows it by line in the browser.
+
+**On our side once it lands:** the query asks for the lines it shows.
+
+## Client: a Stock column on a stock order?
+
+The board says both «no Stock column for Stock Orders» p1 (150,423) and «the Stock column needs to be
+editable» p1 (326,443); the backend asked which. The Scheduled tab follows p1 (150,423) today and hides
+the column on a stock order (`withoutStock` in `src/features/trim/lib/columns.ts`). Ask the client.
 
 ## Backend: reorder a department's priorities in one request
 
@@ -135,134 +132,17 @@ already landed and the department is left half-moved.
 
 **On our side once it lands:** `useReorderPriorities` sends the ids once instead of a PATCH per row.
 
-## Backend: a cutlist row says nothing about the line items on it
+## Backend: the Wrapping row still lacks what the order screen reads
 
-**Ask:** carry the line item's own fields on `CutlistRowSourceSchema` — at least `id_inven`,
-`description`, `quantity` (ordered), `pull_from_stock` and `status` — or accept a list of
-`origin_item`s on `GET /items/`.
+**Ask:** `length`, `unit_weight`, `po`, `salesman`, `ship_date` and `ship_via` on the rows
+`GET /wrapping/` returns. `product_id`, `customer` and `from_stock` have landed.
 
-**Why:** the board's bendlist is Width | Length | Qty Ordered | Stock | Qty to Manufacture | ID |
-Description | Remanufacture | Machine | Status | Complete | Drawing | Line Item Notes
-(`docs/wiseline-spec.md` screen (660,522)), and "Qty to Manufacture ... needs to show the difference
-between the Qty Ordered and Stock columns" p1 (687,302). A row from
-`GET /cutlists/` carries the width, the length, the quantity to make, the machine and the sources —
-and a source is `order`, `origin_item`, `quantity` and nothing else. So the columns that describe
-the trim itself cannot be filled, and neither can the per-line actions beside them: reassigning a
-machine and the Stock keypad both need the numeric `pm_item` id, which no cutlist response names.
+**Why:** the order screen marks a piece that is not 120" in red (`length`), works the package weight
+out from the pieces entered as `main` does (`unit_weight`), and carries the order info block under
+the table (`po`, `salesman`, `ship_date`, `ship_via`) — `docs/wiseline-spec.md` screen (885,283).
 
-The same gap hides the Stock Order mark: the board puts an icon on a list carrying stock-order lines
-p1 (585,288), and a source names its order only as an autoid.
-
-**On our side once it lands:** `CutlistRows` in `src/features/trim/components/cutlist-rows.tsx`
-grows the remaining columns; today it shows the size, the quantity, the machine split, the vented
-pieces, the operator note and Complete.
-
-## Backend: no Stock Manufacturing
-
-**Ask:** an endpoint that records pieces the floor made against no order and pushes them to EBMS as
-a manufacturing batch, plus one that lists what has been sent.
-
-**Why:** a machine tab carries a Stock Manufacturing button, and "clicking the Stock Manufacturing
-button opens this window" — a grid of Qty | ID | Description the worker types into, closed by
-**Create Manufacturing Batch** p1 (1009,302), (1013,320). Nothing in `stages/` records that:
-`stock.py` is Stock Cards, `stock_orders.py` raises an order that then goes through the tabs like
-any other. There is no way to post a bare manufactured quantity.
-
-**On our side once it lands:** the Production tab grows the button and the window behind it. Today
-it has neither.
-
-## Backend: no package list for an order still being wrapped
-
-**Ask:** a `GET /wrapping/orders/{order}/packages/` — the same shape
-`CompletedOrdersService.packages_for` already builds.
-
-**Why:** the board's See Packages button sits on the order at the wrapping bench
-(`docs/wiseline-spec.md` screen (808,517)) and opens the packages made for it, so one can be deleted
-when it was packed wrong (`DELETE /wrapping/packages/{id}/` is there for exactly that). The packages are only readable once the order is complete, through
-`GET /departments/{id}/completed-orders/{order}/` — which is the one moment the Worker no longer
-needs them.
-
-**On our side once it lands:** `WrapOrder` in `src/features/trim/components/wrap-order.tsx` gets
-See Packages beside Create & Print. Today it shows the locations the order stands on, which is the
-only part of that picture the API answers.
-
-## Backend: the Wrapping row names no product and no customer
-
-**Ask:** `product_id` and `customer` on the rows `GET /wrapping/` returns.
-
-**Why:** the board's Wrapping table is Production Date | Order # | Customer Name | Qty Ordered |
-Stock | Priority | Remanufacture | Status | ID | Description | Line Item Notes
-(`docs/wiseline-spec.md` screen (885,283)). The row carries `order_number`, `description`,
-`priority`, `status` and the three quantities — but nothing names the product, the customer, or how
-much of the line comes from stock, and all three are columns the floor reads the table by.
-
-The order screen needs more from the same row: `is_stock` (the stock-order icon and the stock
-order's own wrap screen), `length` (the red mark when a piece is not 120"), `from_stock` (the Stock
-column), `unit_weight` (the package weight worked out from the pieces entered, as `main` does it),
-and `po`, `salesman`, `ship_date`, `ship_via` for the order info block under the table.
-
-**On our side once it lands:** the two columns go into `WrappingTab`; it shows the line item's
-autoid in place of the product today. `WrapOrder` gets the Length and Stock columns, the full info
-block, and a read-only package weight in place of the box the floor types it into.
-
-## Backend: a coil filter can be created but never changed
-
-**Ask:** `PATCH /coils/filters/{id}/` and `DELETE /coils/filters/{id}/`.
-
-**Why:** the Coil Filter window sets the Thickness, Width and Grade a coil has to fall inside before
-EBMS sends it to a department — "when the Thickness, Width and Grade ALL fall within the ranges set
-in the filter, then that coil will show up in the Coils tab" p1 (253,609), with Apply All for a
-limitless range p1 (287,612) — and the board treats it as a setting the Manager revisits. The table
-holds one row per department and folder (`uq_coil_filter_folder`), and the only write is
-`POST /coils/filters/`, which inserts — so applying a second time on the same folder breaks the
-constraint. Today the window can write the first filter and nothing after it.
-
-**On our side once it lands:** `CoilFilterDialog` in `src/features/trim/components/` drops the note
-about the missing endpoint and its Apply saves whatever is on screen.
-
-## Backend: a coil says nothing about the material on it
-
-**Ask:** `color`, `gauge` and `width` on `CoilLotSchema`, from the EBMS product behind `inven`.
-
-**Why:** the board's Coils table is Product ID | Color | Width (in.) | Count | Total Linear Feet |
-Total Weight, opening into Coil # | Coil Thickness | Linear Feet | Weight | Location | Slinet | Note
-(`docs/wiseline-spec.md` screen (361,608)), and a cutlist is matched to a coil by **colour**
-p1 (426,341). The lot carries the product id and the measurements, so the three columns the floor
-reads the table by cannot be filled, and the Cutlist Coils window can only say «coils in the Slinet»
-rather than naming the colour it matched on.
-
-**On our side once it lands:** the three columns go into `CoilsTab`, and the folder tabs follow once
-`GET /coils/lots/` can filter by folder as well.
-
-## Backend: a cutlist does not say it is a remake
-
-**Ask:** `is_remanufacture` (or `remanufacturing_id`) on `CutlistSchema`.
-
-**Why:** a remanufacture request spins off its own cutlist and bendlist, and the board marks those
-lists so the floor knows the pieces on them are a remake rather than the order's own work — orange
-until the Slinet cuts them, green after (p1 (519,586), (686,514)). The model carries
-`remanufacturing_id` and the hybrid `is_remanufacture`, but `CutlistSchema` exposes neither, so the
-Production tab cannot tell one list from another.
-
-**On our side once it lands:** `CutlistCard` in `src/features/trim/components/` gets the badge; the
-remake is visible today only where it was raised, at the wrapping bench.
-
-## Backend: a completed order does not say where it is standing, or who it is for
-
-**Ask:** `trim_location` (the codes, as the Completed table shows them) on the rows
-`GET /departments/{id}/completed-orders/` returns, and `po`, `salesman`, `ship_via` and `priority`
-on the detail beside the customer.
-
-**Why:** the board's Completed Orders table is Ship Date | Production Date | Completed Date & Time |
-Order # | Customer Name | **Trim Location** (`docs/wiseline-spec.md` screen (912,545)), and opening
-one shows a footer of Customer Name, Order #, PO#, Salesman, Ship Date, Ship Via, Priority and Trim
-Location, with a Select Location button beside it p1 (912,576). The list endpoint returns neither
-the location nor those fields, and there is no endpoint that puts a location on an order that has no
-new package being made — only `DELETE /wrapping/orders/{order}/locations/{id}/`, which frees one.
-
-**On our side once it lands:** the Trim Location column goes into `CompletedTab` and the footer
-fills out in `CompletedOrderDialog`; today the window names the customer, the two dates and the
-locations the order still stands on, and can free one.
+**On our side once it lands:** `WrapOrder` gets the Length column, the full info block, and a
+read-only package weight in place of the box the floor types it into.
 
 ## Backend: no drawing behind a trim
 
@@ -276,6 +156,9 @@ a cutlist row points at one. The Stock Card holds a sketch through `image_id`, b
 stocked products alone.
 
 **On our side once it lands:** the Drawing column goes into `CutlistRows`, beside the notes.
+
+**Status:** deferred by the backend — drawings will live in S3, and it is still open whether a
+drawing belongs to the product or to the line item (a custom trim has its own profile per order).
 
 ## Backend: no coil suppliers to manage
 
@@ -357,41 +240,30 @@ still acts on every day of the order.
 **On our side once it lands:** selection and review key on (order, day) in `ScheduledTab`, and each
 call sends the row's day.
 
-## Backend: a coil lot has no folder, width or grade, and the lots list takes no department filter
+## Backend: a coil lot has no grade, and the lots list takes no department filter
 
-**Ask:** `folder_name`, `width` and `grade` on `CoilLotSchema`, and/or `GET /coils/lots/?department_id=`
-applying that department's Coil Filter on the server.
+**Ask:** `grade` on `CoilLotSchema`, and/or `GET /coils/lots/?department_id=` applying that
+department's Coil Filter on the server. `color`, `gauge`, `width`, `folder_id` and the folder filter
+have landed.
 
-**Why:** Trim Coils are the coils whose Thickness, Width and Grade all fall inside the filter. Today
-only Coil Thickness can be tested, and only against the department-wide row rather than the
-per-folder ones. Without a width, Coil Adjustment works weight out from the coil's own weight per
-foot instead of from the prototype's formula.
+**Why:** Trim Coils are the coils whose Thickness, Width and Grade all fall inside the filter; the
+Grade leg still cannot be tested in the browser.
 
 **On our side once it lands:** `passesCoilFilter` in `src/features/trim/lib/coils.ts` tests all
-three legs (or goes, if the server filters), and `poundsPerFoot` uses the width.
+three legs (or goes, if the server filters).
 
 ## Backend: a cutlist source names no PO and no drawing
 
-**Ask:** `po_number` and a drawing file URL on `CutlistRowSourceSchema`.
+**Ask:** `po_number`, the order's printed number and its customer on `CutlistRowSourceSchema`, and
+a drawing file URL once drawings exist.
 
 **Why:** the «Orders using this size» window on `main` is Order | Customer | PO# | Product ID |
-Description | Qty ord. | Stock | Qty to mfg | Drawing (`cutlist-total.tsx`). Customer and the
-quantities are looked up in the Scheduled list today, which only holds its first 100 orders.
+Description | Qty ord. | Stock | Qty to mfg | Drawing (`cutlist-total.tsx`). The line's own figures
+now come from the source; the order number and customer are still looked up in the Scheduled list,
+because a source names its order by autoid only.
 
-**On our side once it lands:** `CutlistTotalDialog` gets the two columns and reads every field from
-the source instead of the Scheduled list.
-
-## Backend: stock orders say too little about themselves
-
-**Ask:** return the new order's number from `POST /stock-orders/`, and accept an optional
-`description` on each line.
-
-**Why:** the prototype toasts «Stock order S1043 created» and lets the description be edited
-(`stock-order-modal.tsx` on `main`). Today the toast cannot name the order, and the description is
-read-only because an edit would be dropped.
-
-**On our side once it lands:** `StockOrderDialog` names the order in its toast and the description
-box becomes editable.
+**On our side once it lands:** `CutlistTotalDialog` gets PO# and Drawing and stops reading the
+Scheduled list.
 
 ## Backend: a stock card carries no width, gauge, colour or image
 
@@ -401,19 +273,6 @@ box becomes editable.
 (`src/features/stockcards/panel.tsx` on `main`).
 
 **On our side once it lands:** `StockCardsDialog` shows the face and gets the two filters.
-
-## Backend: a completed stock order does not say how much was made
-
-**Ask:** `qty_manufactured` on completed-order line items, and an endpoint that takes the Wrapped
-figures of a stock order and pushes its manufacturing batch to EBMS.
-
-**Why:** a stock order is not packed into locations: the floor enters what it wrapped and creates a
-manufacturing batch (`stock-wrap.tsx` on `main`), and Completed then shows what was made, labelled
-«(manufactured)». Today Completed can only show ordered minus stock, and the stock order goes
-through the ordinary package flow. Related to «no Stock Manufacturing» above.
-
-**On our side once it lands:** `WrapOrder` sends stock orders to their own screen, and
-`CompletedOrderDialog` reads the figure.
 
 ## Backend: an order's locations come one order at a time
 
@@ -446,12 +305,3 @@ cutlists, Trim coils (after the Coil Filter) — e.g. `GET /departments/{id}/cou
 the company and filters it in the browser, and the others pull a full page each.
 
 **On our side once it lands:** `TrimPage` reads the four figures from it.
-
-## Backend: no date range on the orders list
-
-**Ask:** `production_date__gte` / `production_date__lte` on `GET ebms/orders/`, or per-day order
-counts for a month.
-
-**Why:** the Calendar counts orders per day for one month by paging through every scheduled order.
-
-**On our side once it lands:** `calendarOrdersQuery` asks for the month only.
