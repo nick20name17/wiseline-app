@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
@@ -27,6 +27,7 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
     resolver: standardSchemaResolver(truckPayloadSchema),
     defaultValues: {
       name: truck?.name ?? '',
+      plate: truck?.plate ?? null,
       max_weight: truck?.max_weight ?? null
     }
   })
@@ -53,14 +54,18 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
           <FieldError errors={[errors.name]} />
         </Field>
 
-        {/* The truck record has no plate field yet, so the box is here but cannot be saved.
-            Drop the `disabled` and register it once the backend lands it — see TODO.md. */}
-        <Field data-disabled>
+        <Field data-invalid={errors.plate ? true : undefined}>
           <FieldLabel htmlFor='truck-plate'>Plate</FieldLabel>
           <InputGroup>
-            <InputGroupInput id='truck-plate' placeholder='e.g. AK-2231' disabled />
+            <InputGroupInput
+              id='truck-plate'
+              placeholder='e.g. AK-2231'
+              maxLength={32}
+              aria-invalid={errors.plate ? true : undefined}
+              {...form.register('plate', { setValueAs: value => value?.trim() || null })}
+            />
           </InputGroup>
-          <FieldDescription>Waiting on the backend.</FieldDescription>
+          <FieldError errors={[errors.plate]} />
         </Field>
 
         <Field data-invalid={errors.max_weight ? true : undefined}>

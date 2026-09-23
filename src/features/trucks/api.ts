@@ -7,6 +7,7 @@ import * as z from 'zod/mini'
 const truckSchema = z.object({
   id: z.number(),
   name: z.string(),
+  plate: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null)
 })
 
@@ -16,6 +17,7 @@ export type Truck = z.infer<typeof truckSchema>
 
 export const truckPayloadSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
+  plate: z.nullable(z.string().check(z.maxLength(32, 'At most 32 characters'))),
   max_weight: z.nullable(z.number().check(z.minimum(0, 'Must be zero or more')))
 })
 

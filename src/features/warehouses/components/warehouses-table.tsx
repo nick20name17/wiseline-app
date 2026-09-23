@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { defaultWarehouseId } from '@/lib/default-warehouse'
 import type { Warehouse } from '../api'
 import { WarehouseActions } from './warehouse-actions'
 
@@ -18,8 +17,6 @@ type WarehousesTableProps = {
 }
 
 export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps) => {
-  const defaultId = defaultWarehouseId(warehouses)
-
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
@@ -57,14 +54,14 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
                   <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
                 </TableCell>
                 <TableCell>
-                  {warehouse.id === defaultId ? (
+                  {warehouse.is_default ? (
                     <Badge variant='soft'>Default</Badge>
                   ) : (
                     <span className='text-muted-foreground'>—</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <WarehouseActions warehouse={warehouse} isDefault={warehouse.id === defaultId} />
+                  <WarehouseActions warehouse={warehouse} />
                 </TableCell>
               </TableRow>
             ))

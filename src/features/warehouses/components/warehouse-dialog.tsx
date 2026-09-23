@@ -29,18 +29,17 @@ const invalid = (error: unknown) => (error ? true : undefined)
 
 type WarehouseFormProps = {
   warehouse?: Warehouse
-  isDefault?: boolean
   onSuccess: () => void
 }
 
-const WarehouseForm = ({ warehouse, isDefault = false, onSuccess }: WarehouseFormProps) => {
+const WarehouseForm = ({ warehouse, onSuccess }: WarehouseFormProps) => {
   const form = useForm<WarehouseFormValues>({
     resolver: standardSchemaResolver(warehouseFormSchema),
     defaultValues: {
       name: warehouse?.name ?? '',
       address: warehouse?.address ?? '',
       description: warehouse?.description ?? null,
-      is_default: isDefault
+      is_default: warehouse?.is_default ?? false
     }
   })
 
@@ -98,9 +97,11 @@ const WarehouseForm = ({ warehouse, isDefault = false, onSuccess }: WarehouseFor
             control={form.control}
             name='is_default'
             render={({ field }) => (
+              // The server refuses to unmark the default: another one has to take its place.
               <Switch
                 id='warehouse-default'
                 checked={field.value}
+                disabled={warehouse?.is_default}
                 onCheckedChange={field.onChange}
               />
             )}
@@ -141,14 +142,12 @@ export const CreateWarehouseDialog = () => {
 
 type UpdateWarehouseDialogProps = {
   warehouse: Warehouse
-  isDefault: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export const UpdateWarehouseDialog = ({
   warehouse,
-  isDefault,
   open,
   onOpenChange
 }: UpdateWarehouseDialogProps) => (
@@ -157,11 +156,7 @@ export const UpdateWarehouseDialog = ({
       <DialogHeader>
         <DialogTitle>Edit warehouse</DialogTitle>
       </DialogHeader>
-      <WarehouseForm
-        warehouse={warehouse}
-        isDefault={isDefault}
-        onSuccess={() => onOpenChange(false)}
-      />
+      <WarehouseForm warehouse={warehouse} onSuccess={() => onOpenChange(false)} />
     </DialogContent>
   </Dialog>
 )

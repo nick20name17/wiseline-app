@@ -244,15 +244,15 @@ const LocationForm = ({ title, location, department: scope, onSuccess }: Locatio
 
         {multiOrder ? (
           <Field data-invalid={invalid(errors.max_orders)}>
-            <FieldLabel htmlFor='location-max-orders'>Number of orders</FieldLabel>
-            {/* Left empty it takes any number of them, which is what the board's blank means. */}
+            <RequiredLabel htmlFor='location-max-orders'>Number of orders</RequiredLabel>
             <InputGroup>
               <InputGroupInput
                 id='location-max-orders'
                 type='number'
                 min={1}
                 inputMode='numeric'
-                placeholder='Any'
+                placeholder='e.g. 12'
+                aria-required
                 aria-invalid={invalid(errors.max_orders)}
                 {...form.register('max_orders', { setValueAs: asNumber })}
               />

@@ -24,8 +24,7 @@ const warehouseSchema = z.object({
   id: z.number(),
   name: z._default(z.nullable(z.string()), null),
   address: z._default(z.nullable(z.string()), null),
-  // The lowest one is the default warehouse; see `defaultWarehouseId`.
-  position: z._default(z.number(), 0)
+  is_default: z._default(z.boolean(), false)
 })
 
 export type Warehouse = z.infer<typeof warehouseSchema>
@@ -137,15 +136,23 @@ export type Location = z.infer<typeof locationSchema>
 const picked = (message: string) =>
   z.nullable(z.number()).check(z.refine(value => value !== null, message))
 
-export const locationFormSchema = z.object({
-  code: z.string().check(z.minLength(1, 'Name is required')),
-  warehouse_id: picked('Warehouse is required'),
-  location_type_id: picked('Location Type is required'),
-  weight: z.number('Max weight is required'),
-  description: z.nullable(z.string()),
-  multi_order: z.boolean(),
-  max_orders: z.nullable(z.number())
-})
+export const locationFormSchema = z
+  .object({
+    code: z.string().check(z.minLength(1, 'Name is required')),
+    warehouse_id: picked('Warehouse is required'),
+    location_type_id: picked('Location Type is required'),
+    weight: z.number('Max weight is required'),
+    description: z.nullable(z.string()),
+    multi_order: z.boolean(),
+    max_orders: z.nullable(z.number())
+  })
+  .check(
+    // A multi-order location has to say how many orders it takes (p1 (731,91)).
+    z.refine(values => !values.multi_order || (values.max_orders ?? 0) >= 1, {
+      message: 'Number of orders is required',
+      path: ['max_orders']
+    })
+  )
 
 export type LocationForm = z.infer<typeof locationFormSchema>
 

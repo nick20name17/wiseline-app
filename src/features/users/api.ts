@@ -1,5 +1,5 @@
 import { authApi } from '@/api/client'
-import { queryOptions, useMutation } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 import { DEPARTMENTS, ROLES, toUserTypes, type Role } from './lib/roles'
 
@@ -53,27 +53,22 @@ const toPayload = ({ departments, role, ...names }: UserForm) => ({
 
 export const usersKeys = {
   all: ['users'] as const,
-  list: () => [...usersKeys.all, 'list'] as const
+  list: (search: string | undefined) => [...usersKeys.all, 'list', search ?? ''] as const
 }
 
-// `GET /users/` pages with `limit`/`offset` and cannot filter, so one page holds the lot and the
-// search narrows it here. See TODO.md for the filter this is waiting on.
 const PAGE_SIZE = 100
 
-const matches = (user: User, search: string) =>
-  [user.first_name, user.last_name, user.email, user.role].some(field =>
-    field.toLowerCase().includes(search)
-  )
-
+// The server matches the full name and the email.
 export const usersQuery = (search: string | undefined) =>
   queryOptions({
-    queryKey: usersKeys.list(),
+    queryKey: usersKeys.list(search),
+    placeholderData: keepPreviousData,
     queryFn: async () =>
       userPageSchema.parse(
-        await authApi.get('users/', { searchParams: { limit: PAGE_SIZE } }).json()
-      ),
-    select: ({ results }: z.infer<typeof userPageSchema>) =>
-      search ? results.filter(user => matches(user, search.toLowerCase())) : results
+        await authApi
+          .get('users/', { searchParams: { limit: PAGE_SIZE, ...(search ? { search } : {}) } })
+          .json()
+      ).results
   })
 
 export const useUpsertUser = (onSuccess: () => void) =>

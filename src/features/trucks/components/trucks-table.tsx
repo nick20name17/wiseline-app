@@ -47,8 +47,9 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
           trucks.map(truck => (
             <TableRow key={truck.id}>
               <TableCell>{truck.name}</TableCell>
-              {/* The record has no plate yet; the column holds its place — see TODO.md. */}
-              <TableCell>—</TableCell>
+              <TableCell>
+                <span className='font-mono'>{truck.plate ?? '—'}</span>
+              </TableCell>
               <TableCell>{formatWeight(truck.max_weight)}</TableCell>
               <TableCell>
                 <TruckActions truck={truck} />

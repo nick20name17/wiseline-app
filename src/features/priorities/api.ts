@@ -48,8 +48,8 @@ export const onBoard = (priority: Priority, departmentId: number) =>
 
 /**
  * One department's priorities, or every department's when none is given, top of the hierarchy
- * first; one with no department is listed and ordered with each. `GET /priorities/` takes no filter — see TODO.md — so
- * the list is fetched once and each tab picks its own out of the cache.
+ * first; one with no department is listed and ordered with each. The list is fetched whole, not with
+ * `?department=`, because a drag and a new priority's position are worked out against that one cache.
  */
 export const prioritiesQuery = (departmentId: number | undefined) =>
   queryOptions({
