@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ArrowLeft, Ban, Check, MapPin, Printer, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Ban, Check, MapPin, PackageSearch, Printer, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import {
   orderCompleteQuery,
@@ -13,6 +13,7 @@ import {
   remanufacturingsQuery,
   useCompleteOrder,
   useCreatePackage,
+  useMoveOrderPackages,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation,
@@ -29,13 +30,16 @@ import {
   remanOwed,
   remanState,
   stagedQuantity,
-  wrapAllowed
+  wrapAllowed,
+  lineName
 } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
+import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
 import { NoteButton } from './note-button'
-import { RemanBadge } from './reman-badge'
+import { PackagesDialog } from './packages-dialog'
+import { RemanBadge, RemanNotApplicable } from './reman-badge'
 import { RemanufactureDialog } from './remanufacture-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
@@ -50,20 +54,11 @@ type RemanCellProps = {
 }
 
 /**
- * A bypassed line never went through a machine, so there is nothing to remake it on. Otherwise the
- * cell shows what is outstanding and keeps offering the request beside it: a remake can be spoiled
+ * The cell shows what is outstanding and keeps offering the request beside it: a remake can be spoiled
  * too, and asked for again.
  */
 const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
-  if (row.status === 'bypassed')
-    return (
-      <span
-        className='text-xs text-muted-foreground'
-        title='Bypassed orders skip production — Remanufacture N/A'
-      >
-        N/A
-      </span>
-    )
+  if (row.status === 'bypassed') return <RemanNotApplicable />
 
   const room = remakeRoom(row.qty_ordered, remans)
   const made = row.status === 'bent' || row.status === 'wrapped'
@@ -76,7 +71,7 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
         <Button
           variant='ghost'
           size='icon-sm'
-          aria-label={`Remanufacture ${row.origin_item}`}
+          aria-label={`Remanufacture ${lineName(row)}`}
           disabled={!room}
           title={room ? again : `All ${row.qty_ordered} pcs. are already awaiting remanufacture`}
           onClick={onRemake}
@@ -114,7 +109,7 @@ const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
           max={allowed}
           step={1}
           inputMode='numeric'
-          aria-label={`Wrap from ${row.origin_item}`}
+          aria-label={`Wrap from ${lineName(row)}`}
           title={`Qty to wrap (1–${allowed})`}
           placeholder='0'
           value={staged || ''}
@@ -174,7 +169,9 @@ const WrapLines = ({
   return (
     <>
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-        <Table>
+        {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it. */}
+        <Table className='min-w-280 table-fixed'>
+          <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
           </TableHeader>
@@ -188,7 +185,7 @@ const WrapLines = ({
                   {columns.cells({
                     line: (
                       <TableCell>
-                        <span className='font-mono'>{row.origin_item}</span>
+                        <span className='font-mono'>{lineName(row)}</span>
                       </TableCell>
                     ),
                     desc: (
@@ -201,6 +198,11 @@ const WrapLines = ({
                     qty: (
                       <TableCell>
                         <span className='font-mono'>{row.qty_ordered}</span>
+                      </TableCell>
+                    ),
+                    stock: (
+                      <TableCell>
+                        <Figure value={row.from_stock || null} />
                       </TableCell>
                     ),
                     wrapped: (
@@ -241,7 +243,7 @@ const WrapLines = ({
                       <TableCell>
                         <NoteButton
                           state={noteState(row.origin_item)}
-                          label={`Line notes for ${row.origin_item}`}
+                          label={`Line notes for ${lineName(row)}`}
                           onClick={() => setNoteLine(row)}
                         />
                       </TableCell>
@@ -447,7 +449,7 @@ const CreatePrintButton = ({
 
 type BenchHeaderProps = { number: string; rows: WrappingRow[]; onBack: () => void }
 
-const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
+export const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
   const ordered = rows.reduce((total, row) => total + row.qty_ordered, 0)
   const wrapped = rows.reduce((total, row) => total + row.wrapped, 0)
 
@@ -517,13 +519,17 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const [amounts, setAmounts] = useState<Record<string, string>>({})
   const [weight, setWeight] = useState('')
   const [picked, setPicked] = useState<LocationSlot | null>(null)
-  const [picking, setPicking] = useState(false)
+  // Select Location either aims the next package, or — when the last location is taken off — moves
+  // every package already made.
+  const [picking, setPicking] = useState<'package' | 'replace' | null>(null)
   const [removing, setRemoving] = useState<OrderLocation | null>(null)
+  const [seeing, setSeeing] = useState(false)
 
   const { data: remans } = useQuery(remanufacturingsQuery)
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   // This department's cells, for the weight already standing on the one the package is going to.
   const { data: slots } = useQuery(wrappingLocationsQuery(departmentId, true))
+  const move = useMoveOrderPackages()
 
   const number = order?.order_number ?? order?.order ?? ''
 
@@ -540,6 +546,13 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
     .filter(line => line.quantity > 0)
 
   const { target, slot: targetSlot } = packageTarget(picked, locations, slots)
+  // Once a second location is picked, the one packages have been going to turns orange: nothing more
+  // goes on it (p1 (861,462)). The server marks it too, but only after the next package lands.
+  const shownLocations = (locations ?? []).map(spot =>
+    spot.current && picked && picked.location_id !== spot.location_id
+      ? { ...spot, orange: true }
+      : spot
+  )
   const packageWeight = Number(weight) || 0
   const overTarget = !!targetSlot && packageWeight > 0 && overWeight(targetSlot, packageWeight)
 
@@ -561,12 +574,12 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       <OrderFacts
         number={number}
         priority={order.priority}
-        locations={locations ?? []}
+        locations={shownLocations}
         onRemove={setRemoving}
       />
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
-        <Button variant='outline' disabled={!lines.length} onClick={() => setPicking(true)}>
+        <Button variant='outline' disabled={!lines.length} onClick={() => setPicking('package')}>
           <MapPin data-icon='inline-start' />
           Select location{target ? ` · ${target.name ?? target.location_id}` : ''}
         </Button>
@@ -587,6 +600,16 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
 
         <PackageWeight weight={weight} onWeight={setWeight} over={overTarget} slot={targetSlot} />
 
+        {/* p1 (911,425): there is something to see once the first package exists. */}
+        <Button
+          variant='outline'
+          disabled={!rows.some(row => row.wrapped > 0)}
+          onClick={() => setSeeing(true)}
+        >
+          <PackageSearch data-icon='inline-start' />
+          See packages
+        </Button>
+
         <CompleteOrderButton
           departmentId={departmentId}
           order={order.order}
@@ -599,12 +622,35 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       <LocationDialog
         departmentId={departmentId}
         orderNumber={number}
-        orderLocations={locations ?? []}
+        orderLocations={shownLocations}
         stagedWeight={packageWeight}
-        open={picking}
-        onOpenChange={setPicking}
-        onPick={setPicked}
+        open={!!picking}
+        onOpenChange={open => !open && setPicking(null)}
+        onPick={slot =>
+          picking === 'replace'
+            ? move.mutate(
+                { order: order.order, locationId: slot.location_id },
+                {
+                  onSuccess: () => {
+                    setPicked(null)
+                    toast.add({
+                      type: 'success',
+                      title: `Moved to ${slot.name ?? slot.location_id}`
+                    })
+                  }
+                }
+              )
+            : setPicked(slot)
+        }
         onRemove={setRemoving}
+      />
+
+      <PackagesDialog
+        order={order.order}
+        number={number}
+        rows={rows}
+        open={seeing}
+        onOpenChange={setSeeing}
       />
 
       <RemoveLocationDialog
@@ -614,6 +660,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         onOpenChange={open => !open && setRemoving(null)}
         // A location taken off is no longer somewhere the next package can go.
         onRemoved={gone => picked?.location_id === gone.location_id && setPicked(null)}
+        onReplace={() => setPicking('replace')}
       />
     </div>
   )

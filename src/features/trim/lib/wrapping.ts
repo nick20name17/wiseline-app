@@ -1,4 +1,4 @@
-import type { LocationSlot, OrderLocation, Remanufacturing, WrappingRow } from '../api'
+import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
 import { today } from './format'
 
 /** Every piece the remakes asked for, back or not. */
@@ -64,3 +64,41 @@ export const stagedQuantity = (raw: string | undefined, allowed: number) => {
   const parsed = Number.parseInt(raw ?? '', 10)
   return Math.min(Number.isNaN(parsed) || parsed < 0 ? 0 : parsed, allowed)
 }
+
+/**
+ * What a keypad entry makes of a figure: «+10» adds, «-5» takes away, a bare number replaces it
+ * (p1 (750,386)). Held to 0..max; `null` when nothing usable was typed.
+ */
+export const applyKeypad = (current: number, typed: string, max: number) => {
+  const match = /^([+-]?)(\d+)$/.exec(typed.trim())
+  if (!match) return null
+  const [, sign, digits] = match
+  const amount = Number(digits)
+  const next = sign === '+' ? current + amount : sign === '-' ? current - amount : amount
+  return Math.min(max, Math.max(0, next))
+}
+
+/**
+ * The warehouses a set of locations stands in, the default one first — «the one that opens first when
+ * selecting a location» p1 (543,104) — and the rest by name.
+ */
+export const warehousesOf = (slots: LocationSlot[], defaultName: string | null) =>
+  [...new Set(slots.map(slot => slot.warehouse ?? ''))].toSorted(
+    (a, b) => Number(b === defaultName) - Number(a === defaultName) || a.localeCompare(b)
+  )
+
+/** How the floor names a line: its product, or the EBMS autoid of one that has none. */
+export const lineName = (row: { product_id: string | null; origin_item: string }) =>
+  row.product_id ?? row.origin_item
+
+/**
+ * What went into a package, line by line. A package names its lines by autoid, so the caller's own
+ * lines say which product each one is.
+ */
+export const packageContents = (
+  contents: Package['contents'],
+  names: ReadonlyMap<string | null, string | null>
+) =>
+  contents
+    .map(item => `${item.quantity} × ${names.get(item.origin_item) ?? item.origin_item ?? '—'}`)
+    .join(', ') || '—'

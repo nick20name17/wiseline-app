@@ -1,20 +1,29 @@
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { prioritiesQuery, remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
+import {
+  orderCompleteQuery,
+  prioritiesQuery,
+  remanufacturingsQuery,
+  wrappingRowsQuery,
+  type WrappingRow
+} from '../api'
 import { WRAPPING_TABLE } from '../lib/columns'
 import { formatLongDate, today } from '../lib/format'
 import { itemStatus } from '../lib/status'
 import { remanState } from '../lib/wrapping'
+import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from './note-button'
 import { PriorityPill } from './priority-pill'
-import { RemanBadge } from './reman-badge'
+import { RemanBadge, RemanNotApplicable } from './reman-badge'
 import { StatusPill } from './status-pill'
+import { StockWrap } from './stock-wrap'
 import { useLineNoteState } from './use-line-note-state'
 import { WrapOrder } from './wrap-order'
 
@@ -50,11 +59,21 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const columns = useColumnOrder(WRAPPING_TABLE)
+  // The server is what knows a stock order, and a stock order opens its Stock window instead.
+  const { data: completion, isPending: sorting } = useQuery(orderCompleteQuery(departmentId, order))
 
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
+    const back = () => setOrder(null)
+    // Held on a placeholder until the server says which bench it is, rather than falling back to
+    // the list and looking like the click did nothing.
+    if (onOrder.length && sorting) return <Skeleton className='h-64' />
     if (onOrder.length)
-      return <WrapOrder departmentId={departmentId} rows={onOrder} onBack={() => setOrder(null)} />
+      return completion?.is_stock ? (
+        <StockWrap departmentId={departmentId} rows={onOrder} onBack={back} />
+      ) : (
+        <WrapOrder departmentId={departmentId} rows={onOrder} onBack={back} />
+      )
   }
 
   const days = byDay(rows ?? [])
@@ -76,7 +95,8 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table className='min-w-5xl table-fixed'>
+      {/* Wide enough for the fixed columns and a Description still worth reading. */}
+      <Table className='min-w-7xl table-fixed'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>
@@ -122,9 +142,24 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
                             </span>
                           </TableCell>
                         ),
+                        customer: (
+                          <TableCell>
+                            <span className='truncate'>{row.customer ?? '—'}</span>
+                          </TableCell>
+                        ),
                         qty: (
                           <TableCell>
                             <span className='font-mono'>{row.qty_ordered}</span>
+                          </TableCell>
+                        ),
+                        stock: (
+                          <TableCell>
+                            <Figure value={row.from_stock || null} />
+                          </TableCell>
+                        ),
+                        pid: (
+                          <TableCell>
+                            <span className='font-mono'>{row.product_id ?? '—'}</span>
                           </TableCell>
                         ),
                         priority: (
@@ -149,7 +184,11 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
                         ),
                         remfg: (
                           <TableCell>
-                            <RemanBadge remans={lineRemans} />
+                            {row.status === 'bypassed' ? (
+                              <RemanNotApplicable />
+                            ) : (
+                              <RemanBadge remans={lineRemans} />
+                            )}
                           </TableCell>
                         ),
                         status: (

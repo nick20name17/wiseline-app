@@ -20,19 +20,21 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
+import { inBoardOrder } from '@/lib/departments'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Timer, Warehouse } from 'lucide-react'
 import { useState } from 'react'
 import {
+  defaultWarehouseQuery,
   departmentsQuery,
   useRemoveOrderLocation,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation
 } from '../api'
-import { overWeight } from '../lib/wrapping'
+import { overWeight, warehousesOf } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
@@ -78,15 +80,30 @@ export const LocationDialog = ({
 }: LocationDialogProps) => {
   // Opens on this department's locations every time; another department's are one tab away.
   const [tab, setTab] = useState<number | null>(null)
+  const [warehouse, setWarehouse] = useState<string | null>(null)
   const shown = tab ?? departmentId
   const { data: departments } = useQuery(departmentsQuery)
   const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, open))
+  const { data: defaultName } = useQuery({ ...defaultWarehouseQuery, enabled: open })
+  // A department's locations can stand in several warehouses; the default one opens first.
+  const warehouses = warehousesOf(slots ?? [], defaultName ?? null)
+  // An order already standing somewhere opens where it stands, so its own cells are in view;
+  // otherwise the default warehouse opens first.
+  const standing = slots?.find(slot =>
+    orderLocations.some(spot => spot.current && spot.location_id === slot.location_id)
+  )
+  const inWarehouse = warehouse ?? standing?.warehouse ?? warehouses[0] ?? ''
+  const listed = (slots ?? []).filter(slot => (slot.warehouse ?? '') === inWarehouse)
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      onOpenChangeComplete={next => !next && setTab(null)}
+      onOpenChangeComplete={next => {
+        if (next) return
+        setTab(null)
+        setWarehouse(null)
+      }}
     >
       <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
@@ -100,26 +117,43 @@ export const LocationDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* No warehouse anywhere: location codes are unique across the app, so which warehouse a
-            cell sits in tells the Worker nothing he needs. */}
-        <Tabs value={String(shown ?? '')} onValueChange={value => setTab(Number(value))}>
+        <Tabs
+          value={String(shown ?? '')}
+          onValueChange={value => {
+            setTab(Number(value))
+            setWarehouse(null)
+          }}
+        >
           <TabsList variant='line'>
-            {[...(departments ?? [])]
-              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-              .map(department => (
-                <TabsTrigger key={department.id} value={String(department.id)}>
-                  {department.name}
-                </TabsTrigger>
-              ))}
+            {inBoardOrder(departments).map(department => (
+              <TabsTrigger key={department.id} value={String(department.id)}>
+                {department.name}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
+
+        {warehouses.length > 1 ? (
+          <Tabs value={inWarehouse} onValueChange={value => setWarehouse(String(value))}>
+            <TabsList>
+              {warehouses.map(name => (
+                <TabsTrigger key={name} value={name}>
+                  {name || 'No warehouse'}
+                  {name === defaultName ? (
+                    <span className='text-xs text-muted-foreground'>default</span>
+                  ) : null}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : null}
 
         <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
-          ) : slots?.length ? (
+          ) : listed.length ? (
             <div className='grid grid-cols-4 gap-2 sm:grid-cols-6'>
-              {slots.map(slot => {
+              {listed.map(slot => {
                 const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
                 const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
                 const over = overWeight(slot) || predictOver
@@ -155,7 +189,7 @@ export const LocationDialog = ({
               })}
             </div>
           ) : (
-            <Empty className='h-full'>
+            <Empty className='min-h-56'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Warehouse />
@@ -227,19 +261,22 @@ type RemoveLocationDialogProps = {
   location: OrderLocation | null
   onOpenChange: (open: boolean) => void
   onRemoved?: (location: OrderLocation) => void
+  /** Taking the last location off means choosing where every package goes instead. */
+  onReplace: () => void
 }
 
 /**
- * Taking a location off an order is asked about. An order with packages must keep at least one, so
- * removing its last is refused outright rather than confirmed: the packages are physically somewhere,
- * and the app has to be able to say where.
+ * Taking a location off an order is asked about. An order with packages must keep at least one: the
+ * packages are physically somewhere, and the app has to be able to say where. So removing the last
+ * one turns into choosing a new one, which all the packages move to (p1 (950,475)).
  */
 export const RemoveLocationDialog = ({
   order,
   locations,
   location: current,
   onOpenChange,
-  onRemoved
+  onRemoved,
+  onReplace
 }: RemoveLocationDialogProps) => {
   const [location, release] = useRetained(current)
   const remove = useRemoveOrderLocation()
@@ -258,7 +295,15 @@ export const RemoveLocationDialog = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel render={<Button />}>OK</AlertDialogCancel>
+            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={() => {
+                onOpenChange(false)
+                onReplace()
+              }}
+            >
+              Select new location
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

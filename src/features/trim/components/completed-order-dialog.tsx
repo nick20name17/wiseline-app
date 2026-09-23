@@ -1,5 +1,6 @@
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -17,14 +18,16 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
+import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { Printer } from 'lucide-react'
+import { MapPin, Printer } from 'lucide-react'
 import { useState } from 'react'
 import {
   completedOrderQuery,
   orderLocationsQuery,
   remanufacturingsQuery,
+  useMoveOrderPackages,
   useReprintPackage,
   type CompletedDetail,
   type CompletedOrder,
@@ -32,21 +35,24 @@ import {
 } from '../api'
 import { COMPLETED_LINES_TABLE, COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatLongDate, formatStamp } from '../lib/format'
-import { remanTotal } from '../lib/wrapping'
-import { LocationChips, RemoveLocationDialog } from './location-dialog'
+import { packageContents, remanTotal } from '../lib/wrapping'
+import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
 
 const titleOf = (order: CompletedOrder, isStock: boolean) =>
   `Completed · ${order.order_number ?? order.order}${isStock ? '' : ` · ${order.customer ?? '—'}`}`
 
-const Facts = ({ order, isStock }: { order: CompletedOrder; isStock: boolean }) => {
+/** The order info block under the tables: who it was for and how it goes out. */
+const Facts = ({ detail, isStock }: { detail: CompletedDetail; isStock: boolean }) => {
+  const date = (iso: string | null) => (iso ? formatLongDate(iso) : '—')
   const facts = [
-    { label: 'Customer', value: isStock ? 'Stock' : (order.customer ?? '—') },
-    { label: 'Ship date', value: order.ship_date ? formatLongDate(order.ship_date) : 'N/A' },
-    { label: 'Order #', value: order.order_number ?? '—' },
-    {
-      label: 'Production date',
-      value: order.production_date ? formatLongDate(order.production_date) : '—'
-    }
+    { label: 'Customer', value: isStock ? 'Stock' : (detail.customer ?? '—') },
+    { label: 'Order #', value: detail.order_number ?? '—' },
+    { label: 'PO', value: detail.po ?? '—' },
+    { label: 'Salesman', value: detail.salesman ?? '—' },
+    { label: 'Ship date', value: isStock ? 'N/A' : date(detail.ship_date) },
+    { label: 'Ship via', value: detail.ship_via ?? '—' },
+    { label: 'Production date', value: date(detail.production_date) },
+    { label: 'Priority', value: detail.priority ?? '—' }
   ]
 
   return (
@@ -152,9 +158,18 @@ const LineItemsSection = ({ detail, isStock }: LineItemsSectionProps) => {
   )
 }
 
+type PackagesSectionProps = {
+  packages: CompletedDetail['packages']
+  lines: CompletedDetail['line_items']
+  /** Ticked packages are the ones Select Location moves; none ticked moves them all. */
+  picked: ReadonlySet<number>
+  onToggle: (packageId: number) => void
+}
+
 /** The packages that carried the order out, each with a label the shop can print again. */
-const PackagesSection = ({ packages }: { packages: CompletedDetail['packages'] }) => {
+const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionProps) => {
   const reprint = useReprintPackage()
+  const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
 
   return (
@@ -169,6 +184,9 @@ const PackagesSection = ({ packages }: { packages: CompletedDetail['packages'] }
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className='w-10'>
+                  <span className='sr-only'>Move</span>
+                </TableHead>
                 {columns.headers}
                 <TableHead />
               </TableRow>
@@ -176,6 +194,13 @@ const PackagesSection = ({ packages }: { packages: CompletedDetail['packages'] }
             <TableBody>
               {packages.map(parcel => (
                 <TableRow key={parcel.package_id}>
+                  <TableCell>
+                    <Checkbox
+                      aria-label={`Move package ${parcel.name ?? parcel.package_id}`}
+                      checked={picked.has(parcel.package_id)}
+                      onCheckedChange={() => onToggle(parcel.package_id)}
+                    />
+                  </TableCell>
                   {columns.cells({
                     name: (
                       <TableCell>
@@ -185,9 +210,7 @@ const PackagesSection = ({ packages }: { packages: CompletedDetail['packages'] }
                     contents: (
                       <TableCell>
                         <span className='text-muted-foreground'>
-                          {parcel.contents
-                            .map(item => `${item.quantity} × ${item.origin_item ?? '—'}`)
-                            .join(', ') || '—'}
+                          {packageContents(parcel.contents, names)}
                         </span>
                       </TableCell>
                     ),
@@ -249,12 +272,25 @@ export const CompletedOrderDialog = ({
   // still has to be findable, and a location freed when it is no longer standing there.
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   const [removing, setRemoving] = useState<OrderLocation | null>(null)
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState<ReadonlySet<number>>(new Set())
+  const move = useMoveOrderPackages()
+
+  const toggle = (packageId: number) => setPicked(current => toggled(current, packageId))
 
   // A stock order is what is being manufactured, so nothing on it came off the shelf.
   const isStock = !!(data?.is_stock ?? order?.is_stock)
 
   return (
-    <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
+    <Dialog
+      open={!!current}
+      onOpenChange={onOpenChange}
+      // Ticks belong to this order's packages; the next order opened here starts clean.
+      onOpenChangeComplete={open => {
+        if (!open) setPicked(new Set())
+        release(open)
+      }}
+    >
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>{order ? titleOf(order, isStock) : 'Completed order'}</DialogTitle>
@@ -270,18 +306,38 @@ export const CompletedOrderDialog = ({
             <>
               <LineItemsSection detail={data} isStock={isStock} />
 
-              <PackagesSection packages={data.packages} />
+              <PackagesSection
+                packages={data.packages}
+                lines={data.line_items}
+                picked={picked}
+                onToggle={toggle}
+              />
 
-              {locations?.length ? (
-                <section className='flex flex-wrap items-center gap-2'>
-                  <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-                    Trim location
-                  </h3>
+              <section className='flex flex-wrap items-center gap-2'>
+                <h3 className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+                  Trim location
+                </h3>
+                {locations?.length ? (
                   <LocationChips locations={locations} onRemove={setRemoving} />
-                </section>
-              ) : null}
+                ) : (
+                  <span className='text-sm text-muted-foreground'>None</span>
+                )}
+                {/* p1 (912,576): a finished order can still be moved, or a location added to it by
+                    moving only some of its packages. */}
+                <Button
+                  variant='outline'
+                  className='ml-auto'
+                  disabled={!data.packages.length}
+                  onClick={() => setPicking(true)}
+                >
+                  <MapPin data-icon='inline-start' />
+                  {picked.size
+                    ? `Move ${picked.size} package${picked.size === 1 ? '' : 's'}`
+                    : 'Select location'}
+                </Button>
+              </section>
 
-              {order ? <Facts order={order} isStock={isStock} /> : null}
+              <Facts detail={data} isStock={isStock} />
 
               <p className='text-center text-sm text-muted-foreground'>
                 {data.completed_at
@@ -293,11 +349,37 @@ export const CompletedOrderDialog = ({
         </div>
       </DialogContent>
 
+      <LocationDialog
+        departmentId={departmentId}
+        orderNumber={order?.order_number ?? order?.order ?? ''}
+        orderLocations={locations ?? []}
+        stagedWeight={0}
+        open={picking}
+        onOpenChange={setPicking}
+        onPick={slot =>
+          order &&
+          move.mutate(
+            { order: order.order, locationId: slot.location_id, packageIds: [...picked] },
+            {
+              onSuccess: () => {
+                toast.add({ type: 'success', title: `Moved to ${slot.name ?? slot.location_id}` })
+                setPicked(new Set())
+              }
+            }
+          )
+        }
+        onRemove={setRemoving}
+      />
+
       <RemoveLocationDialog
         order={order?.order ?? ''}
         locations={locations ?? []}
         location={removing}
         onOpenChange={open => !open && setRemoving(null)}
+        onReplace={() => {
+          setPicked(new Set())
+          setPicking(true)
+        }}
       />
     </Dialog>
   )

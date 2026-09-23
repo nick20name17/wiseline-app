@@ -88,6 +88,11 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                             {order.is_stock ? 'Stock' : (order.customer ?? '—')}
                           </span>
                         </TableCell>
+                      ),
+                      location: (
+                        <TableCell>
+                          <span className='font-mono'>{order.trim_location.join(', ') || '—'}</span>
+                        </TableCell>
                       )
                     })}
                   </TableRow>
