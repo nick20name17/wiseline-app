@@ -39,7 +39,7 @@ const avatarFallbackVariants = cva(
     variants: {
       variant: {
         default: 'bg-muted text-muted-foreground',
-        primary: 'bg-primary font-semibold text-primary-foreground'
+        primary: 'bg-primary text-xs font-semibold text-primary-foreground'
       }
     },
     defaultVariants: {
