@@ -1,7 +1,34 @@
 import { cn } from 'cn'
 import { RefreshCw } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { Remanufacturing } from '../api'
 import { remanOwed, remanTotal } from '../lib/wrapping'
+
+type RemakePillProps = { done: boolean; title?: string; children: ReactNode }
+
+/** The remake pill: orange while it is outstanding, green once the step it waits on is done. */
+export const RemakePill = ({ done, title, children }: RemakePillProps) => (
+  <span
+    title={title}
+    className={cn(
+      'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-xs',
+      done ? 'bg-success/10 text-success' : 'bg-caution/15 text-caution'
+    )}
+  >
+    <RefreshCw className='size-3' />
+    {children}
+  </span>
+)
+
+/** A bypassed line never went through a machine, so there is nothing to remake it on (p1 (835,298)). */
+export const RemanNotApplicable = () => (
+  <span
+    className='text-xs text-muted-foreground'
+    title='Bypassed orders skip production — Remanufacture N/A'
+  >
+    N/A
+  </span>
+)
 
 /**
  * A remake raised against a line item. Orange until the machine marks it Bent — the Slinet's recut
@@ -15,20 +42,16 @@ export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
   const remade = remanTotal(remans)
 
   return (
-    <span
+    <RemakePill
+      done={!owed}
       title={
         remans
           .map(reman => reman.note)
           .filter(Boolean)
           .join(' · ') || `Remanufacture${owed ? ' outstanding' : ' complete'}`
       }
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-xs',
-        owed ? 'bg-caution/15 text-caution' : 'bg-success/10 text-success'
-      )}
     >
-      <RefreshCw className='size-3' />
       {owed || remade}
-    </span>
+    </RemakePill>
   )
 }

@@ -1,26 +1,34 @@
 import { Button } from '@/components/ui/button'
 import { cn } from 'cn'
-import { Check, ChevronRight, Database } from 'lucide-react'
+import { Check, ChevronRight, Database, Package } from 'lucide-react'
 import { useState } from 'react'
-import { useFinishCutlist, type Cutlist, type Machine, type WrappingRow } from '../api'
+import {
+  useFinishCutlist,
+  type Cutlist,
+  type Machine,
+  type Remanufacturing,
+  type WrappingRow
+} from '../api'
 import type { CutlistGroup } from '../lib/cutlists'
 import { today } from '../lib/format'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
 import { PriorityPill } from './priority-pill'
+import { RemakePill } from './reman-badge'
 
 const stamp = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''
 
 type CutlistCardProps = {
   cutlist: Cutlist
+  /** The request a remake list came from, when this is one. */
+  remake: Remanufacturing | null
   /** The bending machines, which are the Slinet cutlist's columns. */
   machines: Machine[]
   isSlinet: boolean
   /** The Slinet has started cutting the release this bendlist came from. */
   slinetStarted: boolean
-  isCut: (group: CutlistGroup) => boolean
   lines: ReadonlyMap<string, WrappingRow>
   onOpenTotal: (group: CutlistGroup) => void
   onOpenCoils: (cutlist: Cutlist) => void
@@ -33,10 +41,10 @@ type CutlistCardProps = {
  */
 export const CutlistCard = ({
   cutlist,
+  remake,
   machines,
   isSlinet,
   slinetStarted,
-  isCut,
   lines,
   onOpenTotal,
   onOpenCoils,
@@ -51,6 +59,7 @@ export const CutlistCard = ({
   // those highlighted as overdue." A finished list is not late.
   const overdue = !done && !!cutlist.production_date && cutlist.production_date < today()
   const word = isSlinet ? 'cutlist' : 'bendlist'
+  const hasStock = cutlist.rows.some(row => row.sources.some(source => source.is_stock))
 
   return (
     <div
@@ -76,6 +85,21 @@ export const CutlistCard = ({
         {/* A list carries the priority it was released under and nothing sets it here, so an
             unprioritised one shows nothing rather than an invitation. */}
         {cutlist.priority && !done ? <PriorityPill priority={cutlist.priority} /> : null}
+
+        {/* A remake list is extra work on top of the day's, so it says so before anything else —
+            orange until the Slinet has recut it, green after (p1 (686,514)). */}
+        {cutlist.is_remanufacture ? (
+          <RemakePill done={!!remake?.is_cut}>
+            Remake{remake?.remanufacturing_qty ? ` · ${remake.remanufacturing_qty}` : ''}
+          </RemakePill>
+        ) : null}
+
+        {/* p1 (585,288): a list carrying stock-order lines is marked. */}
+        {hasStock ? (
+          <span title='Carries stock-order lines' className='text-muted-foreground'>
+            <Package className='size-4' aria-label='Stock order' />
+          </span>
+        ) : null}
 
         {/* The material is being cut: the machine's own work has not started, but it is coming. */}
         {slinetStarted && !done ? (
@@ -126,8 +150,11 @@ export const CutlistCard = ({
           <CutlistRows
             rows={cutlist.rows}
             isSlinet={isSlinet}
+            remake={remake}
             machines={machines}
-            isCut={isCut}
+            // A bendlist is Not Started until the Slinet cuts into its release; from then on a row
+            // can be signed off before its own piece is cut, and Bent overrides Cut (p1 (686,329)).
+            waiting={!isSlinet && !slinetStarted}
             lines={lines}
             onOpenTotal={onOpenTotal}
             onRemanufacture={onRemanufacture}

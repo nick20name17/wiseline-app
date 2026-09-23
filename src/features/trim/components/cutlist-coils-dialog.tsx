@@ -193,7 +193,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
               </Table>
             </div>
           ) : (
-            <Empty className='h-full'>
+            <Empty className='min-h-56'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Database />
@@ -230,8 +230,10 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
               ? 'You entered the coil size as 0 — this fully depletes the coil and deletes it. Continue?'
               : 'Push the new linear feet amount back to EBMS for the coils in the Slinet?'
           }
-          confirmLabel='Confirm'
-          cancelLabel='Cancel'
+          confirmLabel={
+            asking === 'deplete' ? 'Yes, Deplete & Delete Coil' : 'Yes, Make Adjustment'
+          }
+          cancelLabel='No'
           isPending={adjust.isPending || deplete.isPending}
           onConfirm={onConfirm}
         />

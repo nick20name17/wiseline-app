@@ -23,6 +23,7 @@ import {
   type WrappingRow
 } from '../api'
 import { remakeRoom, remanOwed } from '../lib/wrapping'
+import { KeypadDialog } from './keypad-dialog'
 
 export type RemanufactureLine = Pick<
   WrappingRow,
@@ -56,11 +57,13 @@ export const RemanufactureDialog = ({
   const [quantity, setQuantity] = useState('')
   const [fromStock, setFromStock] = useState('')
   const [note, setNote] = useState('')
+  const [keying, setKeying] = useState(false)
   const [error, setError] = useState('')
 
   // Cleared once the popup is gone rather than on close, so the fields do not empty as it fades out.
+  // Opening goes straight to the keypad: the figure is the one thing every remake needs (p1 (677,470)).
   const settle = (open: boolean) => {
-    if (open) return
+    if (open) return setKeying(room > 0)
     setQuantity('')
     setFromStock('')
     setNote('')
@@ -121,18 +124,17 @@ export const RemanufactureDialog = ({
             <Label className='w-40' htmlFor='reman-quantity'>
               Pieces to remake
             </Label>
-            <Input
+            {/* p1 (677,470), (871,615): the figure is keyed in on the floor's keypad. */}
+            <Button
               id='reman-quantity'
-              placeholder='1'
+              variant='outline'
               className='w-24'
-              type='number'
-              min={1}
-              max={room}
-              inputMode='numeric'
               aria-describedby='reman-quantity-hint'
-              value={quantity}
-              onChange={event => setQuantity(event.target.value)}
-            />
+              disabled={!room}
+              onClick={() => setKeying(true)}
+            >
+              <span className='font-mono'>{quantity || '—'}</span>
+            </Button>
             <span id='reman-quantity-hint' className='text-sm text-muted-foreground'>
               {room ? `1–${room}` : 'None left to remake'}
               {awaiting ? ` · ${awaiting} of ${ordered} already awaited` : ''}
@@ -185,6 +187,19 @@ export const RemanufactureDialog = ({
             Request remake
           </Button>
         </DialogFooter>
+        <KeypadDialog
+          target={
+            // Opened before the line's remakes are known, it closes if they leave nothing to remake.
+            keying && room
+              ? { title: 'Pieces to remake', current: Number(quantity) || 0, max: room }
+              : null
+          }
+          onOpenChange={setKeying}
+          onEnter={value => {
+            setQuantity(value ? String(value) : '')
+            setKeying(false)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

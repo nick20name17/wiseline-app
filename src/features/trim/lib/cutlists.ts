@@ -1,4 +1,4 @@
-import type { Cutlist, CutlistRow, CutlistSource, Machine, TrimLineItem, TrimOrder } from '../api'
+import type { Cutlist, CutlistRow, CutlistSource, Machine } from '../api'
 
 /**
  * One line of the table the worker reads: a width and a length, and every row the server holds for
@@ -18,6 +18,44 @@ export type CutlistGroup = {
   complete: boolean
   isStandardLength: boolean
   sources: CutlistSource[]
+}
+
+/**
+ * The line items behind a row, one entry each: a line can sit under several of the row's own rows — a
+ * machine's pieces and its vented ones — and its share is summed across them.
+ */
+export const linesOf = (group: CutlistGroup) => {
+  const lines = new Map<string, CutlistSource>()
+  for (const source of group.sources) {
+    const key = source.origin_item ?? `order:${source.order ?? ''}`
+    const seen = lines.get(key)
+    lines.set(key, seen ? { ...seen, quantity: seen.quantity + source.quantity } : source)
+  }
+  return [...lines.values()]
+}
+
+/**
+ * What a bendlist row says about the trim: the line's own figures when one line is behind it, the
+ * sums when several orders' pieces were cut as one. A description or status the lines disagree on is
+ * `null` — the row cannot speak for all of them.
+ */
+export const describeGroup = (group: CutlistGroup) => {
+  const lines = linesOf(group)
+  const same = <T>(pick: (line: CutlistSource) => T) => {
+    const values = new Set(lines.map(pick))
+    return values.size === 1 ? ([...values][0] ?? null) : null
+  }
+  return {
+    lines: lines.length,
+    // The one line item behind the row — what a remake or a note thread is asked against.
+    originItem: lines.length === 1 ? (lines[0]?.origin_item ?? null) : null,
+    productId: same(line => line.product_id),
+    description: same(line => line.description),
+    status: same(line => line.status),
+    ordered: lines.reduce((total, line) => total + (line.qty_ordered ?? 0), 0),
+    fromStock: lines.reduce((total, line) => total + (line.pull_from_stock ?? 0), 0),
+    isStock: lines.some(line => line.is_stock)
+  }
 }
 
 /** What one machine's column holds on a Slinet line: its pieces, vented ones left out of it. */
@@ -92,29 +130,12 @@ export const slinetListsFor = (slinetLists: Cutlist[]) => {
 /**
  * «In progress» on a bendlist: the first cut is what starts it, and nothing after that un-starts it —
  * a Slinet list marked Done is the one that has cut the most.
- */
-export const hasSlinetStarted = (slinetList: Cutlist | undefined) =>
-  !!slinetList && (!!slinetList.completed_at || slinetList.rows.some(row => row.complete))
-
-/**
- * Whether the Slinet has cut this bendlist line. A machine cannot bend what has not been cut, so its
- * Complete waits on this.
  *
- * No list to look at counts as cut: the Slinet's completed lists are only kept for 90 days, and a
- * list that has aged out of them was cut long ago.
+ * Once the Slinet lists have loaded, no list to look at means it aged out of the 90 days the
+ * completed ones are kept for — cut long ago. Before they have loaded it means nothing yet.
  */
-export const isCutForMachine = (
-  group: CutlistGroup,
-  slinetList: Cutlist | undefined,
-  machineId: number
-) =>
-  !slinetList ||
-  !!slinetList.completed_at ||
-  slinetList.rows
-    .filter(
-      row => row.machine === machineId && row.width === group.width && row.length === group.length
-    )
-    .every(row => row.complete)
+export const hasSlinetStarted = (slinetList: Cutlist | undefined, loaded: boolean) =>
+  slinetList ? !!slinetList.completed_at || slinetList.rows.some(row => row.complete) : loaded
 
 /**
  * The machines that bend. The Slinet cuts every trim and Wrapping comes after all of them, so neither
@@ -137,29 +158,11 @@ export const slinetColumns = (machines: Machine[]): SlinetColumn[] => {
   return columns
 }
 
-/** Where a cutlist source's line item lives: the order it belongs to and its own EBMS row. */
-type SourceLine = { order: TrimOrder; line: TrimLineItem }
-
-/**
- * A cutlist source names its line only by autoid. The Scheduled tab's orders carry the lines
- * themselves, so they are what answers «whose is this» until the cutlist does (TODO.md).
- */
-export const indexLines = (orders: TrimOrder[]) => {
-  const lines = new Map<string, SourceLine>()
-  for (const order of orders)
-    for (const line of order.origin_items) lines.set(line.id, { order, line })
-  return lines
-}
-
 /**
  * What the Slinet cuts on one day: every piece on that day's cutlists, the ones already Done
  * included — the material was cut either way, and the strip is the day's work, not what is left.
  */
-export const slinetTotals = (
-  cutlists: Cutlist[],
-  day: string,
-  isStockOrder: (order: string | null) => boolean
-) => {
+export const slinetTotals = (cutlists: Cutlist[], day: string) => {
   let pieces = 0
   let stockPieces = 0
 
@@ -167,8 +170,7 @@ export const slinetTotals = (
     if (cutlist.production_date !== day) continue
     for (const row of cutlist.rows) {
       pieces += row.quantity
-      for (const source of row.sources)
-        if (isStockOrder(source.order)) stockPieces += source.quantity
+      for (const source of row.sources) if (source.is_stock) stockPieces += source.quantity
     }
   }
 

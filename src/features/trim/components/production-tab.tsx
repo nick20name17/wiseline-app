@@ -1,17 +1,16 @@
+import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getErrorMessage } from '@/lib/errors'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarCheck, Database, History, Layers, TriangleAlert } from 'lucide-react'
+import { CalendarCheck, Database, Factory, History, Layers } from 'lucide-react'
 import { useState } from 'react'
 import {
   cutlistsQuery,
-  isStockOrder,
   machineCapacitiesQuery,
   machinesQuery,
-  scheduledOrdersQuery,
+  remanufacturingsQuery,
   wrappingRowsQuery,
   type Cutlist,
   type Machine,
@@ -21,7 +20,6 @@ import {
   byDay,
   hasSlinetStarted,
   isBender,
-  isCutForMachine,
   slinetListsFor,
   slinetTotals,
   type CutlistGroup
@@ -32,6 +30,7 @@ import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
 import { RemanufactureDialog } from './remanufacture-dialog'
+import { StockManufacturingDialog } from './stock-manufacturing-dialog'
 import { WrappingTab } from './wrapping-tab'
 
 // The station that cuts the material, and the one that comes after every machine has bent it.
@@ -57,16 +56,10 @@ const Totals = ({ departmentId, machine, slinetLists }: TotalsProps) => {
     ...machineCapacitiesQuery(departmentId, day),
     enabled: departmentId !== undefined && !!machine
   })
-  // A cutlist source names its order by autoid only, and the orders are what say which are stock.
-  const { data: orders } = useQuery({
-    ...scheduledOrdersQuery(undefined, null),
-    enabled: !machine
-  })
-  const stockOrders = new Set(orders?.results.filter(isStockOrder).map(order => order.id))
   const station = machine ? data?.machines.find(row => row.flow_id === machine.id) : null
   // The capacity report counts everything scheduled for the day, routed or not; the Slinet cuts only
   // what has been released onto its lists.
-  const slinet = slinetTotals(slinetLists, day, order => !!order && stockOrders.has(order))
+  const slinet = slinetTotals(slinetLists, day)
   const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
   const over = !!station?.over_bends
   const where = machine ? 'Assigned to this machine for today' : 'Cut on the Slinet today'
@@ -130,6 +123,7 @@ type ProductionTabProps = {
 export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps) => {
   const view = useProductionView()
   const [total, setTotal] = useState<CutlistGroup | null>(null)
+  const [manufacturing, setManufacturing] = useState(false)
   const [coils, setCoils] = useState<Cutlist | null>(null)
   const [remaking, setRemaking] = useState<WrappingRow | null>(null)
 
@@ -160,8 +154,8 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
     enabled: departmentId !== undefined && !isWrapping && (isSlinet || !!activeMachine)
   })
   // The Slinet's lists are what every other station reads its progress from: a bendlist is «in
-  // progress» once they have started, and a line cannot be bent before they have cut it. The
-  // completed ones count too — a list marked Done has cut everything on it.
+  // progress», and its rows can be completed, once they have started on its release. The completed
+  // ones count too — a list marked Done has cut everything on it.
   const { data: slinetActive } = useQuery({
     ...cutlistsQuery(departmentId, 'cutlist', null, false),
     enabled: departmentId !== undefined && !isWrapping
@@ -174,33 +168,32 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
   // is the one that says what has been cut.
   const slinetLists = [...(slinetDone ?? []), ...(slinetActive ?? [])]
   const slinetListFor = slinetListsFor(slinetLists)
+  const slinetLoaded = !!slinetActive && !!slinetDone
   // The line behind a bendlist row, which is what a remanufacture is asked against.
   const { data: released } = useQuery({
     ...wrappingRowsQuery(departmentId, null),
     enabled: departmentId !== undefined && !!activeMachine
   })
   const lines = new Map(released?.map(line => [line.origin_item, line]))
+  // A remake list names the request it came from; the request says how far the remake has got.
+  const { data: remakes } = useQuery({
+    ...remanufacturingsQuery,
+    select: page => new Map(page.results.map(reman => [reman.id, reman]))
+  })
 
   const word = isSlinet ? 'cutlists' : 'bendlists'
   const days = byDay(lists.data ?? [])
   // Every release starts on the Slinet, so no Slinet list at all means nothing was ever released.
-  const nothingReleased = !!slinetActive && !!slinetDone && !slinetLists.length
+  const nothingReleased = slinetLoaded && !slinetLists.length
 
   const body = () => {
     if (lists.isError)
       return (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <TriangleAlert />
-            </EmptyMedia>
-            <EmptyTitle>The {word} did not load</EmptyTitle>
-            <EmptyDescription>{getErrorMessage(lists.error)}</EmptyDescription>
-          </EmptyHeader>
-          <Button variant='outline' onClick={() => void lists.refetch()}>
-            Try again
-          </Button>
-        </Empty>
+        <QueryError
+          title={`The ${word} did not load`}
+          error={lists.error}
+          onRetry={() => void lists.refetch()}
+        />
       )
 
     if (lists.isPending)
@@ -257,12 +250,14 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
             <CutlistCard
               key={cutlist.id}
               cutlist={cutlist}
+              remake={
+                cutlist.remanufacturing_id === null
+                  ? null
+                  : (remakes?.get(cutlist.remanufacturing_id) ?? null)
+              }
               machines={benders}
               isSlinet={isSlinet}
-              slinetStarted={hasSlinetStarted(slinetList)}
-              isCut={group =>
-                !activeMachine || isCutForMachine(group, slinetList, activeMachine.id)
-              }
+              slinetStarted={!isSlinet && hasSlinetStarted(slinetList, slinetLoaded)}
               lines={lines}
               onOpenTotal={setTotal}
               onOpenCoils={setCoils}
@@ -300,6 +295,12 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
 
         {/* The worker reaches the coils from where he is standing — the same list the Coils tab
             shows, under the Manager's filter. */}
+        {/* p1 (1004,289): on every station, for pieces made against no order. */}
+        <Button variant='outline' className='mb-1.5' onClick={() => setManufacturing(true)}>
+          <Factory data-icon='inline-start' />
+          Stock Manufacturing
+        </Button>
+
         <Button variant='outline' className='mb-1.5' onClick={onOpenCoils}>
           <Database data-icon='inline-start' />
           Coils
@@ -339,6 +340,12 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
           />
         </>
       )}
+
+      <StockManufacturingDialog
+        departmentId={departmentId}
+        open={manufacturing}
+        onOpenChange={setManufacturing}
+      />
     </div>
   )
 }

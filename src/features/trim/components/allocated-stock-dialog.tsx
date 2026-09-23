@@ -18,6 +18,8 @@ import { allocatedStockQuery } from '../api'
 import { ALLOCATED_STOCK_TABLE } from '../lib/columns'
 
 const DEBOUNCE_MS = 250
+// Other people review and wrap while the report is open; it has to follow them (p1 (371,560)).
+const LIVE_MS = 15_000
 
 type AllocatedStockDialogProps = {
   departmentId: number | undefined
@@ -43,7 +45,8 @@ export const AllocatedStockDialog = ({
     ...allocatedStockQuery(departmentId, search || undefined),
     // A new term keeps the last answer on screen rather than dropping back to the placeholder.
     placeholderData: keepPreviousData,
-    enabled: open && departmentId !== undefined
+    enabled: open && departmentId !== undefined,
+    refetchInterval: LIVE_MS
   })
 
   return (
@@ -122,7 +125,7 @@ export const AllocatedStockDialog = ({
               </Table>
             </div>
           ) : (
-            <Empty className='h-full'>
+            <Empty className='min-h-56'>
               <EmptyHeader>
                 <EmptyMedia variant='icon'>
                   <Database />
