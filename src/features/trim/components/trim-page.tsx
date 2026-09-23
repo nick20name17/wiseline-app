@@ -54,7 +54,8 @@ export const TrimPage = ({
   }, [role, view, onViewChange])
 
   return (
-    <section className='flex min-w-0 flex-col gap-4'>
+    // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
+    <section className='flex min-w-0 flex-1 flex-col gap-4'>
       <DeptBar
         view={view}
         role={role}

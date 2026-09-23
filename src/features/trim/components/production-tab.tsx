@@ -270,7 +270,7 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
   }
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='flex flex-1 flex-col gap-4'>
       <div className='flex items-center gap-3 border-b border-border'>
         <Tabs className='min-w-0 flex-1' value={station} onValueChange={setStation}>
           {/* The scroll sits on a wrapper rather than on the list, so the first and last station

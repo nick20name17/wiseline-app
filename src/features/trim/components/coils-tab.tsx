@@ -626,7 +626,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   // The filter decides which coils EBMS sends here, so it has to be reachable before any arrive.
   if (!loading && !lots.length)
     return (
-      <div className='flex flex-col gap-4'>
+      <div className='flex flex-1 flex-col gap-4'>
         {worker ? null : (
           <Button variant='outline' className='self-end' onClick={() => setFilterOpen(true)}>
             <SlidersHorizontal data-icon='inline-start' />

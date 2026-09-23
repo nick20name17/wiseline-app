@@ -79,7 +79,7 @@ export const LocationTypesPage = ({
   const types = (page?.results ?? []).filter(type => !active || type.department_id === active.id)
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
 
       <div className='flex items-center justify-between gap-3.5'>

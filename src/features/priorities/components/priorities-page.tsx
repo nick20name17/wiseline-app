@@ -31,7 +31,7 @@ export const PrioritiesPage = ({ department, onDepartmentChange }: PrioritiesPag
     : found.toSorted((a, b) => rank(a.department) - rank(b.department))
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex items-center gap-3.5'>

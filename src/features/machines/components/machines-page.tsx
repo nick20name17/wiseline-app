@@ -134,7 +134,7 @@ export const MachinesPage = () => {
   const sections = machineSections({ machines, departments })
 
   return (
-    <section className='flex flex-col gap-3'>
+    <section className='flex flex-1 flex-col gap-3'>
       <div className='flex items-center justify-between gap-3.5'>
         <p className='text-sm text-muted-foreground'>
           <b className='font-semibold text-foreground'>{machines?.length ?? 0}</b> machines across

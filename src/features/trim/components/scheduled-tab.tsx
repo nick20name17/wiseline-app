@@ -117,6 +117,7 @@ const ReschedulePartDialog = ({
         onOpenChange={open => !open && setUnscheduling(null)}
         onOpenChangeComplete={releaseUnscheduled}
         title={`Unschedule order ${unscheduled?.invoice ?? ''}?`}
+        destructive
         description='Moves it back to Unscheduled and resets all Manager edits (Priority, Reviewed, machines, # From Stock).'
         cancelLabel='Cancel'
         confirmLabel='Confirm'
@@ -235,7 +236,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
       <ScheduledDayTabs
         departmentId={departmentId}
         day={day}

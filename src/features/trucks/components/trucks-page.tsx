@@ -29,7 +29,7 @@ export const TrucksPage = ({ search, onSearchChange }: TrucksPageProps) => {
   }
 
   return (
-    <section className='flex flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4'>
       <div className='flex items-center justify-between gap-3.5'>
         <div className='flex items-center gap-3'>
           <InputGroup className='w-60'>

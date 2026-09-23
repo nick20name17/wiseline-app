@@ -26,7 +26,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const columns = useColumnOrder(COMPLETED_TABLE)
 
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
+    <div className='flex min-w-0 flex-1 flex-col gap-4'>
       {!isPending && !orders.length ? (
         <Empty>
           <EmptyHeader>
