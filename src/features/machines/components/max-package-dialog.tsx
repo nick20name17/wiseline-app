@@ -1,4 +1,3 @@
-import { RequiredLabel } from '@/components/required-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -9,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { Field, FieldError } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import {
   InputGroup,
   InputGroupAddon,
@@ -17,6 +16,7 @@ import {
   InputGroupText
 } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
+import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { Package } from 'lucide-react'
 import { useState } from 'react'
@@ -28,18 +28,12 @@ import {
   type MaxPackageWeightForm as MaxPackageWeightFormValues
 } from '../api'
 
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
-
-// An emptied box is left for the schema to name as missing, rather than read as 0.
-const asNumber = (value: string) => (value.trim() === '' ? undefined : Number(value))
-
 type MaxPackageFormProps = { department: Department; onSuccess: () => void }
 
 const MaxPackageForm = ({ department, onSuccess }: MaxPackageFormProps) => {
   const form = useForm<MaxPackageWeightFormValues>({
     resolver: standardSchemaResolver(maxPackageWeightFormSchema),
-    defaultValues: { max_package_weight: department.max_package_weight ?? undefined }
+    defaultValues: { max_package_weight: department.max_package_weight }
   })
 
   const mutation = useUpdateMaxPackageWeight(onSuccess)
@@ -51,7 +45,7 @@ const MaxPackageForm = ({ department, onSuccess }: MaxPackageFormProps) => {
       noValidate
     >
       <Field data-invalid={invalid(errors.max_package_weight)}>
-        <RequiredLabel htmlFor='max-package-weight'>Max weight per package</RequiredLabel>
+        <FieldLabel htmlFor='max-package-weight'>Max weight per package</FieldLabel>
         <InputGroup>
           <InputGroupInput
             id='max-package-weight'
@@ -67,6 +61,7 @@ const MaxPackageForm = ({ department, onSuccess }: MaxPackageFormProps) => {
             <InputGroupText>lb</InputGroupText>
           </InputGroupAddon>
         </InputGroup>
+        <FieldDescription>Leave empty for no limit.</FieldDescription>
         <FieldError errors={[errors.max_package_weight]} />
       </Field>
 

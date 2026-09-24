@@ -19,11 +19,11 @@ const departmentSchema = z.object({
 
 export type Department = z.infer<typeof departmentSchema>
 
-// The server refuses 0 or less (gt=0), so the form does too.
+// The server refuses 0 or less (gt=0), so the form does too. `null` takes the ceiling off.
 export const maxPackageWeightFormSchema = z.object({
-  max_package_weight: z
-    .number({ error: 'Enter a weight above 0' })
-    .check(z.positive('Enter a weight above 0'))
+  max_package_weight: z.nullable(
+    z.number({ error: 'Enter a weight above 0' }).check(z.positive('Enter a weight above 0'))
+  )
 })
 
 export type MaxPackageWeightForm = z.infer<typeof maxPackageWeightFormSchema>
