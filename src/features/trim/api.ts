@@ -2116,6 +2116,27 @@ export const useDeletePackage = () =>
       client.invalidateQueries({ queryKey: trimKeys.all })
   })
 
+const packageScanSchema = z.object({
+  name: z._default(z.string(), ''),
+  status: z.enum(['ok', 'deleted', 'unknown']),
+  detail: z._default(z.nullable(z.string()), null)
+})
+
+export type PackageScan = z.infer<typeof packageScanSchema>
+
+/**
+ * What a package label's barcode is: a live package, one deleted since it was printed, or nothing
+ * p1 (835,528). A read, but asked once per scan rather than cached, so a mutation.
+ */
+export const useScanPackage = () =>
+  useMutation({
+    meta: { errorTitle: 'The scan could not be checked' },
+    mutationFn: async (name: string) =>
+      packageScanSchema.parse(
+        await authApi.get(`wrapping/packages/scan/${encodeURIComponent(name)}/`).json()
+      )
+  })
+
 export type PackageLine = { origin_item: string; quantity: number }
 
 /**
