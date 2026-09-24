@@ -2062,7 +2062,9 @@ const manufacturingBatchSchema = z.object({
       z.object({
         product_id: z._default(z.string(), ''),
         description: z._default(z.nullable(z.string()), null),
-        quantity: z._default(z.number(), 0)
+        quantity: z._default(z.number(), 0),
+        // The stock-order line it was made against; empty for Stock Manufacturing.
+        origin_item: z._default(z.nullable(z.string()), null)
       })
     ),
     []
