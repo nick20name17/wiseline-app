@@ -34,20 +34,6 @@ describe('reorder', () => {
     )
 
     expect(moved?.ids).toEqual([3, 1, 2])
-    expect(moved?.changed).toEqual([
-      { id: 3, position: 1 },
-      { id: 1, position: 2 },
-      { id: 2, position: 3 }
-    ])
-  })
-
-  it('names only the rows whose number moved', () => {
-    const moved = reorder([priority(1, null), priority(2, null), priority(3, null)], null, 2, 3)
-
-    expect(moved?.changed).toEqual([
-      { id: 3, position: 2 },
-      { id: 2, position: 3 }
-    ])
   })
 
   it('does nothing when only another hierarchy’s row is passed', () => {

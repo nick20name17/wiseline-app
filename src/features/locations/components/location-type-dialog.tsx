@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
@@ -33,9 +34,6 @@ import {
   type LocationTypeForm as LocationTypeFormValues
 } from '../api'
 import { WarehouseOptions } from './warehouse-options'
-
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
 
 type LocationTypeFormProps = {
   locationType?: LocationType

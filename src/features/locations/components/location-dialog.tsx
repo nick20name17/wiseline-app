@@ -21,6 +21,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
@@ -38,17 +39,7 @@ import {
 } from '../api'
 import { WarehouseOptions } from './warehouse-options'
 
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
-
 const DEFAULT_WEIGHT = 1000
-
-// An empty number box means «not set», which the API stores as null rather than 0. The box starts
-// out holding that null, so this has to read one as well as a string.
-const asNumber = (value: string | number | null) => {
-  const typed = `${value ?? ''}`.trim()
-  return typed === '' ? null : Number(typed)
-}
 
 type LocationFormProps = {
   title: string

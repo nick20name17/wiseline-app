@@ -317,8 +317,8 @@ export const unscheduledOrdersQuery = (search: string | undefined) =>
 /**
  * Every Trim line of one order. The tab lists narrow an order's lines to the ones matching the tab —
  * Unscheduled drops the scheduled ones, Scheduled the waiting ones — but an expanded order shows
- * them all, the rest greyed out (p1 (330,354), (316,381)). `order=` is not honoured by the list, so
- * the invoice is searched and the order picked out by id.
+ * them all, the rest greyed out (p1 (330,354), (316,381)). `order=` sets the tab filters aside and
+ * answers that one order whole; a stock order's id is its S number, which it matches too.
  */
 export const wholeOrderQuery = (order: TrimOrder) =>
   queryOptions({
@@ -327,9 +327,8 @@ export const wholeOrderQuery = (order: TrimOrder) =>
     enabled: isNarrowed(order),
     placeholderData: order,
     queryFn: async () =>
-      (await orderPage({ search: order.invoice || order.id }, 0, PAGE_SIZE)).results.find(
-        found => found.id === order.id
-      ) ?? order
+      (await orderPage({ order: order.id }, 0, 1)).results.find(found => found.id === order.id) ??
+      order
   })
 
 /**
@@ -1206,6 +1205,11 @@ const stockCardLabelSchema = z.object({
   stock_minimum: z._default(z.nullable(z.number()), null),
   order_qty: z._default(z.nullable(z.number()), null),
   width: z._default(z.nullable(z.number()), null),
+  // Printed when no Width was typed on the card.
+  width_from_orders: z._default(z.nullable(z.number()), null),
+  color: z._default(z.nullable(z.string()), null),
+  gauge: gaugeOf,
+  image_url: z._default(z.nullable(z.string()), null),
   // What the label's QR encodes; scanning it back raises a stock order.
   qr: z._default(z.nullable(z.string()), null)
 })
@@ -1634,8 +1638,7 @@ export const useSetCoilLocation = () =>
       lotId: number
       location: { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
     }) => authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
 /** Enter exactly one of the three; the other two follow from the Material Thickness and Core OD. */
@@ -1797,6 +1800,8 @@ const wrappingRowSchema = z.object({
   production_date: z._default(z.nullable(z.string()), null),
   priority: z._default(z.nullable(z.string()), null),
   status: z._default(z.nullable(z.string()), null),
+  // Still true once a bypassed line is packed and reads Wrapped: it may never be remade.
+  is_bypassed: z._default(z.boolean(), false),
   qty_ordered: z._default(z.number(), 0),
   // How much of the line comes off the shelf.
   from_stock: z._default(z.number(), 0),
@@ -2057,7 +2062,9 @@ const manufacturingBatchSchema = z.object({
       z.object({
         product_id: z._default(z.string(), ''),
         description: z._default(z.nullable(z.string()), null),
-        quantity: z._default(z.number(), 0)
+        quantity: z._default(z.number(), 0),
+        // The stock-order line it was made against; empty for Stock Manufacturing.
+        origin_item: z._default(z.nullable(z.string()), null)
       })
     ),
     []
@@ -2109,6 +2116,27 @@ export const useDeletePackage = () =>
     mutationFn: (packageId: number) => authApi.delete(`wrapping/packages/${packageId}/`),
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.all })
+  })
+
+const packageScanSchema = z.object({
+  name: z._default(z.string(), ''),
+  status: z.enum(['ok', 'deleted', 'unknown']),
+  detail: z._default(z.nullable(z.string()), null)
+})
+
+export type PackageScan = z.infer<typeof packageScanSchema>
+
+/**
+ * What a package label's barcode is: a live package, one deleted since it was printed, or nothing
+ * p1 (835,528). A read, but asked once per scan rather than cached, so a mutation.
+ */
+export const useScanPackage = () =>
+  useMutation({
+    meta: { errorTitle: 'The scan could not be checked' },
+    mutationFn: async (name: string) =>
+      packageScanSchema.parse(
+        await authApi.get(`wrapping/packages/scan/${encodeURIComponent(name)}/`).json()
+      )
   })
 
 export type PackageLine = { origin_item: string; quantity: number }

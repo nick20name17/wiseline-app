@@ -18,6 +18,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
@@ -33,9 +34,6 @@ import {
   type PriorityForm as PriorityFormValues
 } from '../api'
 import { PALETTE, paletteFor } from '../lib/palette'
-
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
 
 type PriorityFormProps = {
   priority?: Priority

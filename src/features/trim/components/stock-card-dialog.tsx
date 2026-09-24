@@ -23,6 +23,7 @@ import {
   useUploadStockCardImage,
   type StockCard
 } from '../api'
+import { productFacts } from '../lib/format'
 
 // The upload is refused for anything else, so the picker does not offer it.
 const IMAGE_TYPES = '.jpg,.jpeg,.png,.gif'
@@ -31,9 +32,6 @@ type StockCardFormProps = {
   card: StockCard | null
   onClose: () => void
 }
-
-const productFacts = (product: { color: string | null; gauge: string | null }) =>
-  [product.color, product.gauge === null ? null : `${product.gauge} ga`].filter(Boolean).join(' · ')
 
 /**
  * Create enables once all five fields are filled (p1 (72,321)); Width is optional. On Create the

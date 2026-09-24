@@ -89,26 +89,17 @@ export type PriorityOrder = {
   /** `null` is the hierarchy of the priorities with no department. */
   department: number | null
   ids: number[]
-  changed: { id: number; position: number }[]
 }
 
 /**
- * Saves a drag. A department's hierarchy is one write: the server renumbers its priorities 1..n in
- * the order given. `priorities/reorder/` only renumbers a department's own, so the ones with no
- * department are saved a PATCH per moved row. The list moves at once and snaps back if the save
- * fails.
+ * Saves a drag in one write: the server renumbers the hierarchy 1..n in the order given. The list
+ * moves at once and snaps back if the save fails.
  */
 export const useReorderPriorities = () =>
   useMutation({
     meta: { errorTitle: 'The order was not saved' },
-    mutationFn: ({ department, ids, changed }: PriorityOrder) =>
-      department === null
-        ? Promise.all(
-            changed.map(({ id, position }) =>
-              authApi.patch(`priorities/${id}/`, { json: { position } }).json()
-            )
-          )
-        : authApi.post('priorities/reorder/', { json: { department, ids } }).json(),
+    mutationFn: ({ department, ids }: PriorityOrder) =>
+      authApi.post('priorities/reorder/', { json: { department, ids } }).json(),
     onMutate: async ({ ids }, { client }) => {
       await client.cancelQueries({ queryKey: prioritiesKeys.list() })
       const previous = client.getQueryData<Priority[]>(prioritiesKeys.list())

@@ -30,6 +30,7 @@ import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
 import { RemanufactureDialog } from './remanufacture-dialog'
+import { ScanPackageDialog } from './scan-package-dialog'
 import { StockManufacturingDialog } from './stock-manufacturing-dialog'
 import { WrappingTab } from './wrapping-tab'
 
@@ -300,6 +301,8 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
           <Factory data-icon='inline-start' />
           Stock Manufacturing
         </Button>
+
+        {isWrapping ? <ScanPackageDialog /> : null}
 
         <Button variant='outline' className='mb-1.5' onClick={onOpenCoils}>
           <Database data-icon='inline-start' />

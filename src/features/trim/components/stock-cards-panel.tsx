@@ -39,7 +39,7 @@ import {
 } from '../api'
 import { ConfirmDialog } from './confirm-dialog'
 import { StockCardDialog } from './stock-card-dialog'
-import { StockCardLabels, type PrintedLabel } from './stock-card-labels'
+import { StockCardLabels } from './stock-card-labels'
 
 type CardOrderFormProps = {
   card: StockCard
@@ -187,12 +187,6 @@ const CardWidth = ({ card }: { card: StockCard }) =>
     <p className='text-xs text-muted-foreground'>Width: —</p>
   )
 
-/** The server's labels, each with its card's picture; a card gone since the click prints without. */
-const labelsFor = (labels: StockCardLabel[], cards: StockCard[] | undefined): PrintedLabel[] => {
-  const images = new Map(cards?.map(card => [card.id, card.image_url]))
-  return labels.map(label => ({ ...label, image_url: images.get(label.id) ?? null }))
-}
-
 type StockCardsPanelProps = {
   /** The cards are asked for only while the panel is on show. */
   enabled: boolean
@@ -232,8 +226,8 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
       next.delete(id)
       return next
     })
-  const [printing, setPrinting] = useState<PrintedLabel[] | null>(null)
-  const print = usePrintStockCards(labels => setPrinting(labelsFor(labels, cards)))
+  const [printing, setPrinting] = useState<StockCardLabel[] | null>(null)
+  const print = usePrintStockCards(setPrinting)
 
   const toggle = (id: number) => setSelected(current => toggled(current, id))
 

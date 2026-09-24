@@ -13,6 +13,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
+import { invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
@@ -21,9 +22,6 @@ import { newUserFormSchema, useUpsertUser, userFormSchema, type User, type UserF
 import { reachesEveryDepartment, toDepartments } from '../lib/roles'
 import { DepartmentChips } from './department-chips'
 import { RoleSelect } from './role-select'
-
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
 
 type UserFormProps = {
   user?: User
