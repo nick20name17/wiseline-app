@@ -94,7 +94,7 @@ export const CutlistCard = ({
         {cutlist.priority && !done ? <PriorityPill priority={cutlist.priority} /> : null}
 
         {/* A remake list is extra work on top of the day's, so it says so before anything else —
-            orange until the Slinet has recut it, green after (p1 (686,514)). */}
+            orange until the Slinet marks its recut row Complete, green after (p1 (686,514)). */}
         {cutlist.is_remanufacture ? (
           <RemakePill done={!!remake?.is_cut}>
             Remake{remake?.remanufacturing_qty ? ` · ${remake.remanufacturing_qty}` : ''}
@@ -163,6 +163,7 @@ export const CutlistCard = ({
             // A bendlist is Not Started until the Slinet cuts into its release; from then on a row
             // can be signed off before its own piece is cut, and Bent overrides Cut (p1 (686,329)).
             waiting={!isSlinet && !slinetStarted}
+            lineEdits={!isSlinet && !cutlist.is_remanufacture && !done}
             lines={lines}
             onOpenTotal={onOpenTotal}
             onRemanufacture={onRemanufacture}

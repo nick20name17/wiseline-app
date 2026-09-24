@@ -24,12 +24,15 @@ import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFoldersQuery,
   useSetCoilLocation,
-  useTrimCoils,
+  coilFiltersQuery,
+  coilLotsQuery,
+  departmentCoilLotsQuery,
   useUpdateCoilLot,
+  type CoilFilter,
   type CoilLot
 } from '../api'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
-import { coilFilterActive, coilName } from '../lib/coils'
+import { coilFilterActive, coilName, departmentCoilFilter } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
 import { ConfirmDialog } from './confirm-dialog'
@@ -267,12 +270,13 @@ const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => (
       <colgroup>
         <col className='w-36' />
         <col className='w-36' />
+        <col className='w-28' />
         <LotColumns />
       </colgroup>
-      <LotHead lead={['Product ID', 'Color']} />
+      <LotHead lead={['Product ID', 'Color', 'Grade (ksi)']} />
       <TableBody>
         {loading ? (
-          <TableSkeletonRows columns={9} />
+          <TableSkeletonRows columns={10} />
         ) : (
           coils.map(lot => (
             <TableRow key={lot.id}>
@@ -281,6 +285,9 @@ const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => (
               </TableCell>
               <TableCell>
                 <span className='truncate'>{lot.color ?? '—'}</span>
+              </TableCell>
+              <TableCell>
+                <span className='font-mono'>{figure(lot.grade)}</span>
               </TableCell>
               <LotCells lot={lot} {...handlers} />
             </TableRow>
@@ -434,11 +441,31 @@ const FilterBadge = ({ worker }: { worker: boolean }) => (
   </Badge>
 )
 
-const noMatch = (scope: CoilScope, worker: boolean) => {
-  if (scope === 'all') return 'Clear the search to see every coil.'
-  return worker
-    ? 'The Trim Manager’s Coil Filter is excluding every coil — clear the search, or ask him to widen the ranges.'
-    : 'Widen the Coil Filter ranges, or clear the search.'
+const NO_COILS: NoCoilsProps = {
+  title: 'No coils loaded',
+  description: 'Coils sync in from EBMS with their linear feet. None are currently in the system.'
+}
+
+/**
+ * An empty list, said the way its scope makes it empty. Trim Coils starts empty: without a Coil
+ * Filter the server lets no coil in, rather than every one.
+ */
+const nothingListed = (trim: boolean, filter: CoilFilter | null, worker: boolean): NoCoilsProps => {
+  if (!trim) return NO_COILS
+  if (!filter)
+    return {
+      title: 'No Coil Filter yet',
+      description: worker
+        ? 'The Trim Manager has not set which coils belong in Trim yet.'
+        : 'Trim lists only the coils a Coil Filter lets in — set one to fill this list.'
+    }
+  if (!coilFilterActive(filter)) return NO_COILS
+  return {
+    title: 'No coils pass the Coil Filter',
+    description: worker
+      ? 'The Trim Manager’s Coil Filter is excluding every coil — ask him to widen the ranges.'
+      : 'Widen the Coil Filter ranges to let coils through to Trim.'
+  }
 }
 
 /** The two ways to read the list: one row per coil, or one row per size opening into its coils. */
@@ -561,14 +588,6 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
   )
 }
 
-/** Trim Coils are narrowed by the filter and wait for it; All Coils is every lot, unfiltered. */
-const scopedCoils = (coils: ReturnType<typeof useTrimCoils>, trim: boolean) => ({
-  lots: coils.lots ?? [],
-  listed: (trim ? coils.trimLots : coils.lots) ?? [],
-  filter: trim ? coils.filter : null,
-  loading: coils.isPending || (trim && coils.filterLoading)
-})
-
 type CoilsTabProps = {
   departmentId: number | undefined
   /** A Worker works the coils but sees them through the Manager's filter: no scope switch, no filter. */
@@ -593,7 +612,23 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   const scoped: CoilScope = worker ? 'trim' : scope
   const trim = scoped === 'trim'
-  const { lots, listed, filter, loading } = scopedCoils(useTrimCoils(departmentId), trim)
+  // Trim Coils come narrowed by the server, folder filters included; the company-wide list is only
+  // fetched while All Coils is open, which a Worker never sees.
+  const trimLots = useQuery({
+    ...departmentCoilLotsQuery(departmentId),
+    enabled: trim && departmentId !== undefined
+  })
+  const allLots = useQuery({ ...coilLotsQuery, enabled: !trim })
+  const { data: lots, isPending: lotsPending } = trim ? trimLots : allLots
+  const listed = lots ?? []
+  // Read for the badge and the empty-state wording; an empty Trim list is worded by it, so nothing
+  // is called empty until it is in.
+  const { data: filters, isLoading: filterLoading } = useQuery({
+    ...coilFiltersQuery(departmentId),
+    enabled: trim && departmentId !== undefined
+  })
+  const filter = trim ? departmentCoilFilter(filters) : null
+  const loading = lotsPending || (trim && filterLoading)
   const { data: folders } = useQuery({
     ...coilFoldersQuery(departmentId),
     enabled: trim && departmentId !== undefined
@@ -617,41 +652,44 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   const shown = searched(inFolder, term)
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
-  const adjusted = lots.find(lot => lot.id === adjusting?.lotId) ?? null
+  const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
   const filterDialog = (
     <CoilFilterDialog departmentId={departmentId} open={filterOpen} onOpenChange={setFilterOpen} />
   )
 
-  // The filter decides which coils EBMS sends here, so it has to be reachable before any arrive.
-  if (!loading && !lots.length)
+  const scopeTabs = worker ? null : (
+    <ScopeTabs
+      scope={scope}
+      onScopeChange={next => {
+        setScope(next)
+        setLayout('coils')
+      }}
+    />
+  )
+
+  // The filter decides which coils reach Trim, so it has to be reachable while none do — and the
+  // scope switch too, or an empty Trim list would hide every other coil.
+  if (!loading && !listed.length)
     return (
       <div className='flex flex-1 flex-col gap-4'>
-        {worker ? null : (
-          <Button variant='outline' className='self-end' onClick={() => setFilterOpen(true)}>
-            <SlidersHorizontal data-icon='inline-start' />
-            Coil Filter
-          </Button>
-        )}
-        <NoCoils
-          title='No coils loaded'
-          description='Coils sync in from EBMS with their linear feet. None are currently in the system.'
-        />
+        <div className='flex items-center gap-3'>
+          {scopeTabs}
+          {!worker && trim ? (
+            <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
+              <SlidersHorizontal data-icon='inline-start' />
+              Coil Filter
+            </Button>
+          ) : null}
+        </div>
+        <NoCoils {...nothingListed(trim, filter, worker)} />
         {filterDialog}
       </div>
     )
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      {worker ? null : (
-        <ScopeTabs
-          scope={scope}
-          onScopeChange={next => {
-            setScope(next)
-            setLayout('coils')
-          }}
-        />
-      )}
+      {scopeTabs}
 
       <p className='flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground'>
         <Database aria-hidden className='size-4 shrink-0' />
@@ -693,7 +731,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       />
 
       {!loading && !shown.length ? (
-        <NoCoils title='No coils match' description={noMatch(scoped, worker)} />
+        <NoCoils title='No coils match' description='Clear the search to see every coil.' />
       ) : layout === 'coils' ? (
         <CoilList coils={shown} loading={loading} {...handlers} />
       ) : (

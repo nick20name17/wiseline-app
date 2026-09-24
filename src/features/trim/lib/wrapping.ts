@@ -26,6 +26,24 @@ export const remakeRoom = (qtyOrdered: number, remans: Remanufacturing[]) =>
 export const remanState = (remans: Remanufacturing[]) =>
   !remans.length ? undefined : remanOwed(remans) ? 'owed' : 'done'
 
+/**
+ * What a package weighs: every staged piece at its line's weight. `null` once any line's weight is
+ * unknown — a partial sum would read as the package's weight and slip under the ceiling.
+ */
+export const packageWeight = (lines: { row: WrappingRow; quantity: number }[]) => {
+  let total = 0
+  for (const { row, quantity } of lines) {
+    if (row.unit_weight === null) return null
+    total += row.unit_weight * quantity
+  }
+  // Cents of a pound only undo the float noise of the multiplication.
+  return Math.round(total * 100) / 100
+}
+
+/** Over the department's Max Weight per package; `null` is no ceiling. */
+export const overPackageLimit = (weight: number | null, limit: number | null) =>
+  weight !== null && limit !== null && weight > limit
+
 /** Past its ceiling already, or would be once `adding` more pounds stand on it. */
 export const overWeight = (slot: LocationSlot, adding = 0) =>
   slot.max_weight !== null && slot.used_weight + adding > slot.max_weight
@@ -86,6 +104,10 @@ export const warehousesOf = (slots: LocationSlot[], defaultName: string | null) 
   [...new Set(slots.map(slot => slot.warehouse ?? ''))].toSorted(
     (a, b) => Number(b === defaultName) - Number(a === defaultName) || a.localeCompare(b)
   )
+
+/** The warehouse the server marks as the default, among the ones these locations stand in. */
+export const defaultWarehouseOf = (slots: LocationSlot[]) =>
+  slots.find(slot => slot.warehouse_is_default)?.warehouse ?? null
 
 /** How the floor names a line: its product, or the EBMS autoid of one that has none. */
 export const lineName = (row: { product_id: string | null; origin_item: string }) =>

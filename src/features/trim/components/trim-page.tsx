@@ -1,7 +1,7 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { cutlistsQuery, orderCountQuery, useTrimCoils } from '../api'
+import { countsQuery, cutlistsQuery, departmentCoilLotsQuery } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
@@ -35,13 +35,16 @@ export const TrimPage = ({
   // The Calendar hands the Scheduled tab a day to open on; going through the strip drops it.
   const [openDay, setOpenDay] = useState<string>()
 
-  // The strip counts the whole board, not what the search has narrowed it to, and reads the server's
-  // total rather than the length of one page. A Worker has no order tabs, so their lists stay unasked.
-  const { data: unscheduled } = useQuery({ ...orderCountQuery(false), enabled: !worker })
-  const { data: scheduled } = useQuery({ ...orderCountQuery(true), enabled: !worker })
-  // The same lists Production and Coils open on: the Slinet's active cutlists, and Trim's coils.
+  // The strip counts the whole board, not what the search has narrowed it to. A Worker has no order
+  // tabs, so the counts stay unasked.
+  const { data: counts } = useQuery({ ...countsQuery(departmentId), enabled: !worker })
+  // Production and Coils count the very lists their tabs open on — the Slinet's active cutlists, and
+  // the coils Trim's filter admits — so a cutlist written or a coil moved shows on the strip at once.
   const { data: cutlists } = useQuery(cutlistsQuery(departmentId, 'cutlist', null, false))
-  const { trimLots } = useTrimCoils(departmentId)
+  const { data: coils } = useQuery({
+    ...departmentCoilLotsQuery(departmentId),
+    select: lots => lots.length
+  })
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
@@ -60,10 +63,10 @@ export const TrimPage = ({
         view={view}
         role={role}
         counts={{
-          unscheduled,
-          scheduled,
+          unscheduled: counts?.unscheduled,
+          scheduled: counts?.scheduled,
           production: cutlists?.length,
-          coils: trimLots?.length
+          coils
         }}
         onNavigate={next => {
           setOpenDay(undefined)

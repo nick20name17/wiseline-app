@@ -1,15 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, Settings2, TriangleAlert } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
-import { dayStripQuery, overdueQuery } from '../api'
+import {
+  dayStripDatesQuery,
+  dayStripQuery,
+  overdueQuery,
+  WORK_WEEK_DAYS,
+  workWeekQuery
+} from '../api'
 import { formatDate, today } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
-
-// Today plus the rest of the working week, so the strip does not change shape as work is scheduled.
-export const WINDOW_DAYS = 5
 
 // Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —
 // and the strip from changing height — when the placeholders are replaced by the days themselves.
@@ -39,24 +42,31 @@ export const ScheduledDayTabs = ({
   const start = today()
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  const { data: window, isPending } = useQuery(dayStripQuery(departmentId, start, WINDOW_DAYS))
+  const { data: window, isPending } = useQuery(workWeekQuery(departmentId, start))
   const { data: overdue } = useQuery(overdueQuery(departmentId))
 
   const inWindow = new Set(window?.map(entry => entry.date))
   const overdueDays = new Set(overdue?.days)
   const anyOverdue = overdueDays.size > 0
 
-  // Each day outside the window — every overdue one, and the one picked from the calendar — is its
-  // own one-day strip, since the days in between are not tabs.
-  const extra = [...new Set([...overdueDays, ...(day ? [day] : [])])].filter(
-    iso => !inWindow.has(iso)
-  )
-  const extraDays = useQueries({
-    queries: extra.map(iso => dayStripQuery(departmentId, iso, 1)),
-    combine: results => results.flatMap(result => result.data ?? [])
+  // The days outside the window are tabs of their own, since the days in between are not. The overdue
+  // ones rarely change, so they are one request by date (sorted: the same days, the same query); the
+  // day picked from the calendar is its own, so picking another does not ask for them all again.
+  // Both wait for the window, which is what says whether a day is outside it.
+  const late = [...overdueDays].filter(iso => !inWindow.has(iso)).sort()
+  const { data: lateDays } = useQuery({
+    ...dayStripDatesQuery(departmentId, late),
+    enabled: !!window && departmentId !== undefined && late.length > 0
+  })
+  const picked = day && !inWindow.has(day) && !overdueDays.has(day) ? day : null
+  const { data: pickedDay } = useQuery({
+    ...dayStripQuery(departmentId, picked ?? start, 1),
+    enabled: !!window && departmentId !== undefined && picked !== null
   })
 
-  const days = [...(window ?? []), ...extraDays].sort((a, b) => a.date.localeCompare(b.date))
+  const days = [...(window ?? []), ...(lateDays ?? []), ...(picked ? (pickedDay ?? []) : [])].sort(
+    (a, b) => a.date.localeCompare(b.date)
+  )
 
   return (
     <div className='flex flex-wrap items-stretch gap-1.5'>
@@ -97,7 +107,7 @@ export const ScheduledDayTabs = ({
       </Button>
 
       {isPending
-        ? Array.from({ length: WINDOW_DAYS }, (_, index) => (
+        ? Array.from({ length: WORK_WEEK_DAYS }, (_, index) => (
             <Skeleton key={index} className='h-13 w-44' />
           ))
         : days.map(entry => {
@@ -174,7 +184,7 @@ export const ScheduledDayTabs = ({
         description='Focus the board on a production day.'
         actionLabel='Go to day'
         departmentId={departmentId}
-        allowPast
+        anyDay
         isPending={false}
         onPick={date => {
           onDayChange(date)

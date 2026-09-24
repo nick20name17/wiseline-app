@@ -1,12 +1,10 @@
 import { Calendar } from '@/components/ui/calendar'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
+import { getDaysInMonth, startOfMonth } from 'date-fns'
 import type { CSSProperties } from 'react'
 import { dayStripQuery, overdueQuery } from '../api'
 import { toIsoDay, today } from '../lib/format'
-
-const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
-const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
 
 type CapacityCalendarProps = {
   departmentId: number | undefined
@@ -14,8 +12,8 @@ type CapacityCalendarProps = {
   onMonthChange: (month: Date) => void
   selected: Date | undefined
   onSelect: (date: Date | undefined) => void
-  /** Scheduling cannot reach into the past; looking at a day can. */
-  allowPast?: boolean
+  /** Scheduling cannot reach into the past or onto a day the shop is shut; looking at a day can. */
+  anyDay?: boolean
 }
 
 /**
@@ -32,12 +30,14 @@ export const CapacityCalendar = ({
   onMonthChange,
   selected,
   onSelect,
-  allowPast = false
+  anyDay = false
 }: CapacityCalendarProps) => {
   const { data: strip } = useQuery(
-    dayStripQuery(departmentId, toIsoDay(firstOfMonth(month)), daysInMonth(month))
+    dayStripQuery(departmentId, toIsoDay(startOfMonth(month)), getDaysInMonth(month))
   )
   const budgets = new Map(strip?.map(entry => [entry.date, entry]))
+  // Holidays are not known to the server, so a day it has no word on is open.
+  const closed = (iso: string) => budgets.get(iso)?.is_work_day === false
   const { data: overdue } = useQuery(overdueQuery(departmentId))
   const overdueDays = new Set(overdue?.days)
 
@@ -52,7 +52,10 @@ export const CapacityCalendar = ({
       onMonthChange={onMonthChange}
       selected={selected}
       onSelect={onSelect}
-      disabled={date => !allowPast && toIsoDay(date) < today()}
+      disabled={date => {
+        const iso = toIsoDay(date)
+        return !anyDay && (iso < today() || closed(iso))
+      }}
       components={{
         // A plain button, not the shared one: the cell carries two lines — the date and the day's
         // budget — which no button size describes.
@@ -62,9 +65,14 @@ export const CapacityCalendar = ({
           const load = budget
             ? `${budget.bends}${budget.capacity === null ? '' : ` of ${budget.capacity}`} bends scheduled${budget.over_capacity ? ' — over the daily capacity' : ''}`
             : undefined
-          const past = !allowPast && iso < today()
+          const past = !anyDay && iso < today()
           const late = overdueDays.has(iso)
-          const hint = [late ? 'Overdue orders' : null, past ? 'Past date' : null, load]
+          const hint = [
+            late ? 'Overdue orders' : null,
+            past ? 'Past date' : null,
+            closed(iso) ? 'Not a work day' : null,
+            load
+          ]
             .filter(Boolean)
             .join(' · ')
 

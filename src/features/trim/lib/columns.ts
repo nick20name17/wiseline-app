@@ -102,6 +102,7 @@ export const WRAP_LINES_TABLE: ColumnTable = {
     // Description takes what is left, so Wrapping — the column the bench works in — stays on screen.
     { key: 'line', label: 'ID', width: 'w-28' },
     { key: 'desc', label: 'Description' },
+    { key: 'length', label: 'Length', width: 'w-20' },
     { key: 'qty', label: 'Qty ordered', width: 'w-24' },
     { key: 'stock', label: 'Stock', width: 'w-16' },
     { key: 'wrapped', label: 'Wrapped', width: 'w-20' },
@@ -188,6 +189,7 @@ export const CUTLIST_TOTAL_TABLE: ColumnTable = {
   columns: [
     { key: 'order', label: 'Order' },
     { key: 'customer', label: 'Customer' },
+    { key: 'po', label: 'PO#' },
     { key: 'pid', label: 'Product ID' },
     { key: 'desc', label: 'Description' },
     { key: 'qtyord', label: 'Qty ord.' },

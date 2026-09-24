@@ -9,16 +9,15 @@ import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, SearchX } from 'lucide-react'
 import { useState } from 'react'
 import {
-  dayStripQuery,
+  countsQuery,
   departmentStateOf,
   isStockOrder,
   orderNotesQuery,
-  orderCountQuery,
-  overdueQuery,
   scheduledOrdersQuery,
   useReleaseOrders,
   useSplitOrder,
   useUnscheduleOrder,
+  workWeekQuery,
   type TrimLineItem,
   type TrimOrder
 } from '../api'
@@ -31,7 +30,7 @@ import { LineNotesDialog } from './line-notes-dialog'
 import type { NoteState } from './note-button'
 import { OrderNoteDialog } from './order-note-dialog'
 import { ScheduleDialog } from './schedule-dialog'
-import { ScheduledDayTabs, WINDOW_DAYS } from './scheduled-day-tabs'
+import { ScheduledDayTabs } from './scheduled-day-tabs'
 import { ScheduledRow } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
@@ -62,11 +61,15 @@ const ReschedulePartDialog = ({
   onMoved
 }: ReschedulePartDialogProps) => {
   const [shown, releaseShown] = useRetained(part)
-  const [unscheduling, setUnscheduling] = useState<TrimOrder | null>(null)
+  const [unscheduling, setUnscheduling] = useState<Part | null>(null)
   const [unscheduled, releaseUnscheduled] = useRetained(unscheduling)
   // Moving a scheduled part to another day is the same call as scheduling it in the first place.
   const reschedule = useSplitOrder(onClose)
   const unschedule = useUnscheduleOrder(() => setUnscheduling(null))
+  // An order on one day goes back whole; one spread over several gives back only the row's day.
+  const oneDayOf = (target: Part) =>
+    partDays(target.order, departmentId).length > 1 ? target.day : undefined
+  const unscheduledDay = unscheduled ? oneDayOf(unscheduled) : undefined
 
   return (
     <>
@@ -105,34 +108,45 @@ const ReschedulePartDialog = ({
         }
         onUnschedule={() => {
           if (!part) return
-          setUnscheduling(part.order)
+          setUnscheduling(part)
           onClose()
         }}
       />
 
-      {/* The endpoint unschedules the order in this department, not one day of it: a split order
-          goes back whole. */}
+      {/* A split order gives back only the row's day; the rest keeps its days, and the order its
+          Priority and Reviewed while any of it is still scheduled. */}
       <ConfirmDialog
         open={!!unscheduling}
         onOpenChange={open => !open && setUnscheduling(null)}
         onOpenChangeComplete={releaseUnscheduled}
-        title={`Unschedule order ${unscheduled?.invoice ?? ''}?`}
+        title={
+          unscheduledDay
+            ? `Unschedule order ${unscheduled?.order.invoice ?? ''} on ${formatDate(unscheduledDay)}?`
+            : `Unschedule order ${unscheduled?.order.invoice ?? ''}?`
+        }
         destructive
-        description='Moves it back to Unscheduled and resets all Manager edits (Priority, Reviewed, machines, # From Stock).'
+        description={
+          unscheduledDay
+            ? `Moves this day's line items back to Unscheduled and resets their Manager edits (machines, # From Stock). The line items on the order's other days stay scheduled.`
+            : 'Moves it back to Unscheduled and resets all Manager edits (Priority, Reviewed, machines, # From Stock).'
+        }
         cancelLabel='Cancel'
         confirmLabel='Confirm'
         isPending={unschedule.isPending}
         onConfirm={() => {
-          const salesOrderId = unscheduling?.sales_order?.id
+          const salesOrderId = unscheduling?.order.sales_order?.id
           if (!unscheduling || salesOrderId === undefined || !departmentId) return
-          const { invoice } = unscheduling
+          const { invoice } = unscheduling.order
+          const productionDate = unscheduledDay
           unschedule.mutate(
-            { salesOrderId, departmentId },
+            { salesOrderId, departmentId, productionDate },
             {
               onSuccess: () =>
                 toast.add({
                   type: 'success',
-                  title: `Order ${invoice} unscheduled — Manager edits reset`
+                  title: productionDate
+                    ? `Order ${invoice} unscheduled from ${formatDate(productionDate)} — Manager edits reset`
+                    : `Order ${invoice} unscheduled — Manager edits reset`
                 })
             }
           )
@@ -156,7 +170,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
 
   // The board opens on the first day of the window the tabs show, which the day strip decides — a day
   // the shop is shut is not one it lists.
-  const { data: window } = useQuery(dayStripQuery(departmentId, today(), WINDOW_DAYS))
+  const { data: window } = useQuery(workWeekQuery(departmentId, today()))
   const day = chosenDay === undefined ? (window?.[0]?.date ?? today()) : chosenDay
   const changeDay = (next: string | null) => {
     setChosenDay(next)
@@ -167,9 +181,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   const columns = useColumnOrder(SCHEDULED_TABLE)
   const orders = page?.results ?? []
   // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
-  const { data: everything } = useQuery(orderCountQuery(true))
-  const { data: overdue } = useQuery(overdueQuery(departmentId))
-  const overdueDays = new Set(overdue?.days)
+  const { data: counts } = useQuery(countsQuery(departmentId))
+  const everything = counts?.scheduled
 
   const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
   const { data: notes } = useQuery(orderNotesQuery(noteOrderIds))
@@ -220,7 +233,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   }
 
   // Nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing.
-  if (everything === 0)
+  // The count takes Open orders only, so an order the list does hold still keeps the table up.
+  if (everything === 0 && !isPending && !orders.length)
     return (
       <Empty>
         <EmptyHeader>
@@ -301,10 +315,9 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
                   const { order } = part
                   const key = partKey(order.id, part.day)
                   const stock = isStockOrder(order)
-                  // The part's own day is what can be late, not the order's earliest.
-                  const late =
-                    overdueDays.has(part.day) ||
-                    (!!departmentStateOf(order, departmentId)?.over_due && part.day < today())
+                  // Only the orders that are late are red on an overdue day p1 (293,555): a line
+                  // of this part past its day and not yet wrapped.
+                  const late = partLines(order, part.day).some(item => item.item?.over_due)
 
                   return (
                     <ScheduledRow

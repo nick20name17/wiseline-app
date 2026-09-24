@@ -25,6 +25,8 @@ type FigureProps = {
   value: number
   /** Pieces have no ceiling; bends do. */
   max?: number | null
+  /** The server's verdict against `max`, not worked out here. */
+  over?: boolean
   /** Part of the value beside it, never an addition to it. */
   fromStock: number
   /** The day still has trim with no machine, which is what the gap below this row is. */
@@ -37,27 +39,23 @@ type FigureProps = {
  * Value, slash, max and the parenthetical are tracks of one fixed-width row, so the slashes and the
  * «(n - Stock)» notes line up down the column without the slash being dragged from its own number.
  */
-const Figure = ({ value, max, fromStock, unrouted }: FigureProps) => {
-  const over = !!max && value > max
-
-  return (
-    <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold'>
-      {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
-      <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
-        {value}
-      </span>
-      {max ? (
-        <>
-          <span className='mx-1.5 text-muted-foreground'>/</span>
-          <span className={cn(over && 'text-destructive')}>{max}</span>
-        </>
-      ) : null}
-      {fromStock ? (
-        <span className='ml-auto pl-2 text-xs font-normal text-primary'>({fromStock} - Stock)</span>
-      ) : null}
+const Figure = ({ value, max, over = false, fromStock, unrouted }: FigureProps) => (
+  <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold'>
+    {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
+    <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
+      {value}
     </span>
-  )
-}
+    {max ? (
+      <>
+        <span className='mx-1.5 text-muted-foreground'>/</span>
+        <span className={cn(over && 'text-destructive')}>{max}</span>
+      </>
+    ) : null}
+    {fromStock ? (
+      <span className='ml-auto pl-2 text-xs font-normal text-primary'>({fromStock} - Stock)</span>
+    ) : null}
+  </span>
+)
 
 const Row = ({
   name,
@@ -186,6 +184,7 @@ export const MachineCapacitiesDialog = ({
                     <Figure
                       value={data.total.bends}
                       max={data.total.capacity}
+                      over={data.total.over_capacity}
                       fromStock={data.total.bends_from_stock}
                       unrouted={unrouted}
                     />
@@ -201,6 +200,7 @@ export const MachineCapacitiesDialog = ({
                       <Figure
                         value={machine.bends}
                         max={machine.max_bends}
+                        over={machine.over_bends}
                         fromStock={machine.bends_from_stock}
                       />
                     </Cell>

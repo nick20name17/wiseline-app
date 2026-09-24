@@ -8,8 +8,11 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
+import { useQuery } from '@tanstack/react-query'
+import { getDaysInMonth, startOfMonth } from 'date-fns'
 import { CalendarX } from 'lucide-react'
 import { useState } from 'react'
+import { dayStripQuery } from '../api'
 import { fromIsoDay, toIsoDay, today } from '../lib/format'
 import { CapacityCalendar } from './capacity-calendar'
 
@@ -21,8 +24,8 @@ type ScheduleDialogProps = {
   description: string
   actionLabel: string
   departmentId: number | undefined
-  /** Scheduling cannot reach into the past; pinning a day to look at it can. */
-  allowPast?: boolean
+  /** Scheduling cannot reach a past day or one the shop is shut; pinning a day to look at it can. */
+  anyDay?: boolean
   /** The day the calendar opens on, already picked: the part being moved, or the day being shown. */
   initialDay?: string | null
   isPending: boolean
@@ -33,7 +36,7 @@ type ScheduleDialogProps = {
 
 type PickerProps = Pick<
   ScheduleDialogProps,
-  'actionLabel' | 'departmentId' | 'allowPast' | 'isPending' | 'onPick' | 'onUnschedule'
+  'actionLabel' | 'departmentId' | 'anyDay' | 'isPending' | 'onPick' | 'onUnschedule'
 > & {
   initialDay: string | null
   onCancel: () => void
@@ -46,7 +49,7 @@ type PickerProps = Pick<
 const Picker = ({
   actionLabel,
   departmentId,
-  allowPast = false,
+  anyDay = false,
   initialDay,
   isPending,
   onPick,
@@ -57,14 +60,21 @@ const Picker = ({
   const [month, setMonth] = useState(() => initial ?? new Date())
   const [selected, setSelected] = useState(initial)
   // Gated on the same rule as the cells: a reschedule opens with the part's own day picked, and a
-  // part sitting on a past day would otherwise be re-committed to it without a click on a closed cell.
-  const canPick = !!selected && (allowPast || toIsoDay(selected) >= today())
+  // part sitting on a past or shut day would otherwise be re-committed to it without a click on a
+  // closed cell. Read from the selected day's month — the calendar's own request when it is on show.
+  const monthOf = selected ?? month
+  const { data: selectedMonth } = useQuery(
+    dayStripQuery(departmentId, toIsoDay(startOfMonth(monthOf)), getDaysInMonth(monthOf))
+  )
+  const selectedIso = selected ? toIsoDay(selected) : null
+  const shut = selectedMonth?.find(entry => entry.date === selectedIso)?.is_work_day === false
+  const canPick = !!selectedIso && (anyDay || (selectedIso >= today() && !shut))
 
   return (
     <>
       <CapacityCalendar
         departmentId={departmentId}
-        allowPast={allowPast}
+        anyDay={anyDay}
         month={month}
         onMonthChange={setMonth}
         selected={selected}
@@ -94,8 +104,9 @@ const Picker = ({
 }
 
 /**
- * The calendar every scheduling decision goes through. Past days are closed; a day the shop is shut is
- * refused by the server, which owns the Work Days setting.
+ * The calendar every scheduling decision goes through. Past days are closed, and so are the days the
+ * shop is shut — the server owns the Work Days setting and refuses them too. It knows no holidays, so
+ * those stay open.
  */
 export const ScheduleDialog = ({
   open,

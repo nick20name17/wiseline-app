@@ -71,13 +71,14 @@ const made = (line: { qty_ordered: number; from_stock: number }) =>
   Math.max(line.qty_ordered - line.from_stock, 0)
 
 type LineItemsSectionProps = {
+  departmentId: number | undefined
   detail: CompletedDetail
   isStock: boolean
 }
 
 /** What actually went to EBMS when the order was closed: ordered minus stock, line by line. */
-const LineItemsSection = ({ detail, isStock }: LineItemsSectionProps) => {
-  const { data: remans } = useQuery(remanufacturingsQuery)
+const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionProps) => {
+  const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
   // A count, not the chain: every piece ever remade on the line.
   const remade = (originItem: string | null) =>
     remanTotal(
@@ -304,7 +305,7 @@ export const CompletedOrderDialog = ({
             <Skeleton className='h-56' />
           ) : (
             <>
-              <LineItemsSection detail={data} isStock={isStock} />
+              <LineItemsSection departmentId={departmentId} detail={data} isStock={isStock} />
 
               <PackagesSection
                 packages={data.packages}

@@ -148,6 +148,9 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   // A cleared field would otherwise reach EBMS as 0: a coil reported as spent that nobody depleted.
   const ready =
     !!build && MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0)
+  // «The Apply button ONLY becomes available if the Coil Thickness number changes» p1 (464,436). A
+  // Linear Feet or Weight typed in moves the thickness with it, so this covers all three figures.
+  const changed = num(draft.coil_thickness) !== lot.coil_thickness
   // A coil zeroed in any figure is spent, and the server offers Deplete only on a Coil Thickness of 0
   // (p1 (305,644)) — so a 0 typed into Linear Feet or Weight is sent as that.
   const values = (): CoilAdjustment => {
@@ -236,7 +239,10 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         <Button variant='outline' onClick={onClose}>
           Cancel
         </Button>
-        <Button disabled={!ready || saveBuild.isPending || apply.isPending} onClick={onApply}>
+        <Button
+          disabled={!ready || !changed || saveBuild.isPending || apply.isPending}
+          onClick={onApply}
+        >
           {saveBuild.isPending || apply.isPending ? <Spinner data-icon='inline-start' /> : null}
           Apply
         </Button>

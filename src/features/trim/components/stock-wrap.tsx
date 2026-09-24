@@ -22,7 +22,6 @@ import {
   type StockOrderRow,
   type WrappingRow
 } from '../api'
-import { STANDARD_LENGTH } from '../lib/format'
 import { itemStatus } from '../lib/status'
 import { lineName } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -160,9 +159,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     <span
                       className={cn(
                         'font-mono',
-                        line.length !== null &&
-                          line.length !== STANDARD_LENGTH &&
-                          'text-destructive'
+                        line.length !== null && !line.is_standard_length && 'text-destructive'
                       )}
                     >
                       {line.length === null ? '—' : `${line.length}"`}

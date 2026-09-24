@@ -1,18 +1,11 @@
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
-import { PackageCheck } from 'lucide-react'
+import { Package, PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import {
-  orderCompleteQuery,
-  prioritiesQuery,
-  remanufacturingsQuery,
-  wrappingRowsQuery,
-  type WrappingRow
-} from '../api'
+import { prioritiesQuery, remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
 import { WRAPPING_TABLE } from '../lib/columns'
 import { formatLongDate, today } from '../lib/format'
 import { itemStatus } from '../lib/status'
@@ -54,22 +47,18 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const { data: rows, isPending } = useQuery(wrappingRowsQuery(departmentId, null))
-  const { data: remans } = useQuery(remanufacturingsQuery)
+  const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
   const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const columns = useColumnOrder(WRAPPING_TABLE)
-  // The server is what knows a stock order, and a stock order opens its Stock window instead.
-  const { data: completion, isPending: sorting } = useQuery(orderCompleteQuery(departmentId, order))
 
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
     const back = () => setOrder(null)
-    // Held on a placeholder until the server says which bench it is, rather than falling back to
-    // the list and looking like the click did nothing.
-    if (onOrder.length && sorting) return <Skeleton className='h-64' />
+    // A stock order opens its Stock window instead of the package modal.
     if (onOrder.length)
-      return completion?.is_stock ? (
+      return onOrder[0]?.is_stock ? (
         <StockWrap departmentId={departmentId} rows={onOrder} onBack={back} />
       ) : (
         <WrapOrder departmentId={departmentId} rows={onOrder} onBack={back} />
@@ -137,8 +126,18 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
                       {columns.cells({
                         order: (
                           <TableCell>
-                            <span className='font-mono' title={row.order_number ?? row.order}>
-                              {row.order_number ?? row.order}
+                            {/* The list is grouped by production date, so the stock mark rides
+                                with the order p1 (755,283). */}
+                            <span className='flex items-center gap-1.5'>
+                              <span className='font-mono' title={row.order_number ?? row.order}>
+                                {row.order_number ?? row.order}
+                              </span>
+                              {row.is_stock ? (
+                                <Package
+                                  className='size-3.5 shrink-0 text-muted-foreground'
+                                  aria-label='Stock order'
+                                />
+                              ) : null}
                             </span>
                           </TableCell>
                         ),

@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
 import * as z from 'zod/mini'
-import { departmentCoilFilter, filterFor, passesCoilFilter } from './lib/coils'
 
 /**
  * Trim reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
@@ -27,7 +26,9 @@ const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   code: z._default(z.string(), ''),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. A package over it asks for an override p1 (940,365).
+  max_package_weight: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -154,7 +155,8 @@ const orderSchema = z.object({
   crea_date: z._default(z.nullable(z.string()), null),
   count_items: z._default(z.nullable(z.number()), 0),
   total_weight: z._default(z.nullable(z.number()), 0),
-  latest_location_id: z._default(z.nullable(z.number()), null),
+  // The codes the order's packages stand on, oldest first.
+  locations: z.catch(z.array(z.string()), []),
   sales_order: z._default(z.nullable(salesOrderSchema), null),
   origin_items: z.catch(z.array(lineItemSchema), [])
 })
@@ -176,8 +178,7 @@ export const isStockOrder = (order: TrimOrder) => order.sales_order?.is_stock ??
  * The tab lists hand an order over with only the lines that match the tab, so an order scheduled in
  * part arrives on each tab with fewer lines than `count_items`. The count alone is not enough — some
  * orders count a line the list never sends (W20109: 5 against 4) — so only an order that has been put
- * on a day at all is read as narrowed. One with no lines at all is a stock order whose lines the list
- * does not send yet.
+ * on a day at all is read as narrowed.
  */
 export const isNarrowed = (order: TrimOrder) =>
   order.origin_items.length > 0 &&
@@ -199,6 +200,8 @@ export const trimKeys = {
   scheduled: (search: string | undefined) =>
     [...trimKeys.orders(), 'scheduled', { search: search ?? '' }] as const,
   calendar: (from: string, to: string) => [...trimKeys.orders(), 'calendar', { from, to }] as const,
+  // Under `orders()`: every write that moves an order moves the counts with it.
+  counts: (departmentId: number) => [...trimKeys.orders(), 'counts', departmentId] as const,
   machines: () => [...trimKeys.all, 'machines'] as const,
   overdue: (departmentId: number) => [...trimKeys.all, 'overdue', departmentId] as const,
   machineCapacities: (departmentId: number, day: string) =>
@@ -207,6 +210,10 @@ export const trimKeys = {
     [...trimKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
     [...trimKeys.all, 'day-strip', departmentId, start, days] as const,
+  workWeek: (departmentId: number, start: string) =>
+    [...trimKeys.all, 'day-strip', departmentId, 'work-week', start] as const,
+  dayStripDates: (departmentId: number, dates: string[]) =>
+    [...trimKeys.all, 'day-strip', departmentId, 'dates', dates] as const,
   orderNotes: (orders: string[]) => [...trimKeys.all, 'order-notes', orders] as const,
   lineNotes: (originItem: string) => [...trimKeys.all, 'line-notes', originItem] as const,
   // Its own branch, not a child of `lineNotes`: invalidating one thread must reach every table dot,
@@ -231,6 +238,7 @@ export const trimKeys = {
     [...trimKeys.completedOrders(), departmentId, order] as const,
   coils: () => [...trimKeys.all, 'coils'] as const,
   coilLots: () => [...trimKeys.coils(), 'lots'] as const,
+  departmentCoilLots: (departmentId: number) => [...trimKeys.coilLots(), departmentId] as const,
   coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const,
   wrapping: () => [...trimKeys.all, 'wrapping'] as const,
   wrappingRows: (departmentId: number, day: string | null) =>
@@ -245,7 +253,9 @@ export const trimKeys = {
   orderLocations: (order: string) => [...trimKeys.wrapping(), 'order-locations', order] as const,
   orderComplete: (departmentId: number, order: string) =>
     [...trimKeys.wrapping(), 'complete', departmentId, order] as const,
-  remanufacturings: () => [...trimKeys.all, 'remanufacturings'] as const
+  remanufacturings: () => [...trimKeys.all, 'remanufacturings'] as const,
+  departmentRemanufacturings: (departmentId: number) =>
+    [...trimKeys.remanufacturings(), departmentId] as const
 }
 
 type OrderFilters = Record<string, string | number | boolean>
@@ -275,21 +285,24 @@ const allPages = async <Page extends { count: number }>(
   return [first, ...rest] as const
 }
 
-/**
- * Every order the filters match. Stock orders ride along on every page, whatever the filters, which
- * is why the orders are deduplicated.
- */
+/** Every order the filters match, stock orders paged with the rest. */
 const allOrders = async (filters: OrderFilters) => {
   const pages = await allPages(offset => orderPage(filters, offset, PAGE_SIZE))
-  const orders = new Map(pages.flatMap(page => page.results).map(order => [order.id, order]))
-  return { count: pages[0].count, results: [...orders.values()] }
+  return { count: pages[0].count, results: pages.flatMap(page => page.results) }
 }
 
-/** How many orders a tab holds, for the tab strip — one row asked for, the server's total read. */
-export const orderCountQuery = (scheduled: boolean) =>
+const countsSchema = z.object({
+  unscheduled: z._default(z.number(), 0),
+  scheduled: z._default(z.number(), 0)
+})
+
+/** The tab strip's figures in one call — the whole board, whatever the search has narrowed. */
+export const countsQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: [...trimKeys.orders(), 'count', scheduled] as const,
-    queryFn: async () => (await orderPage({ is_scheduled: scheduled }, 0, 1)).count
+    queryKey: trimKeys.counts(departmentId ?? 0),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      countsSchema.parse(await authApi.get(`departments/${departmentId}/counts/`).json())
   })
 
 export const unscheduledOrdersQuery = (search: string | undefined) =>
@@ -390,20 +403,6 @@ export const overdueQuery = (departmentId: number | undefined) =>
       overdueSchema.parse(await authApi.get(`departments/${departmentId}/overdue/`).json())
   })
 
-/**
- * A day holds as many bends as the department's machines can make: the sum of their daily max, as
- * the design has it. The `capacity` the day endpoints return hangs off the EBMS category instead,
- * and nothing on screen sets it, so it is replaced. A machine with no max adds nothing; a department
- * where none has one has no ceiling at all.
- */
-const dailyCapacity = async (client: QueryClient, departmentId: number | undefined) => {
-  const machines = (await client.ensureQueryData(machinesQuery(departmentId))).filter(
-    machine => machine.department === null || machine.department === departmentId
-  )
-  const rated = machines.filter(machine => machine.daily_max_bends !== null)
-  return rated.length ? rated.reduce((sum, machine) => sum + machine.daily_max_bends!, 0) : null
-}
-
 const machineCapacitySchema = z.object({
   date: z.string(),
   total: z.object({
@@ -411,7 +410,9 @@ const machineCapacitySchema = z.object({
     pieces_from_stock: z._default(z.number(), 0),
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
-    capacity: z._default(z.nullable(z.number()), null)
+    // The sum of the department's machines' daily max bends.
+    capacity: z._default(z.nullable(z.number()), null),
+    over_capacity: z._default(z.boolean(), false)
   }),
   machines: z.catch(
     z.array(
@@ -439,16 +440,12 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
   queryOptions({
     queryKey: trimKeys.machineCapacities(departmentId ?? 0, day ?? ''),
     enabled: departmentId !== undefined && !!day,
-    queryFn: async ({ client }) => {
-      const [breakdown, capacity] = await Promise.all([
-        authApi
+    queryFn: async () =>
+      machineCapacitySchema.parse(
+        await authApi
           .get(`departments/${departmentId}/machine-capacities/`, { searchParams: { day: day! } })
-          .json(),
-        dailyCapacity(client, departmentId)
-      ])
-      const parsed = machineCapacitySchema.parse(breakdown)
-      return { ...parsed, total: { ...parsed.total, capacity } }
-    }
+          .json()
+      )
   })
 
 const locationSchema = z.object({
@@ -513,30 +510,75 @@ const dayStripSchema = z.array(
     pieces_from_stock: z._default(z.number(), 0),
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
+    // The sum of the department's machines' daily max bends; `null` is no ceiling.
     capacity: z._default(z.nullable(z.number()), null),
-    over_capacity: z._default(z.boolean(), false)
+    over_capacity: z._default(z.boolean(), false),
+    // Monday to Friday, plus the weekend when the company works it. Holidays are not known.
+    is_work_day: z._default(z.boolean(), true)
   })
 )
 
 export type DayStripEntry = z.infer<typeof dayStripSchema>[number]
 
-/** `used / capacity` per day — what the board puts on every day pill. */
+/** `used / capacity` for `days` days in a row from `start` — a month, or a single pinned day. */
 export const dayStripQuery = (departmentId: number | undefined, start: string, days: number) =>
   queryOptions({
     queryKey: trimKeys.dayStrip(departmentId ?? 0, start, days),
     enabled: departmentId !== undefined,
-    queryFn: async ({ client }) => {
-      const [strip, capacity] = await Promise.all([
-        authApi
+    queryFn: async () =>
+      dayStripSchema.parse(
+        await authApi
           .get(`departments/${departmentId}/day-strip/`, { searchParams: { start, days } })
-          .json(),
-        dailyCapacity(client, departmentId)
-      ])
-      return dayStripSchema.parse(strip).map(entry => ({
-        ...entry,
-        capacity,
-        over_capacity: capacity !== null && entry.bends > capacity
-      }))
+          .json()
+      )
+  })
+
+/** Today plus the next work days: the strip the board walks p1 (81,286). */
+export const WORK_WEEK_DAYS = 5
+
+/**
+ * The work-week strip every tab opens on. The server steps over the days the shop is shut, so the
+ * five are work days; one query, so the Unscheduled pills and the Scheduled tabs share it.
+ */
+export const workWeekQuery = (departmentId: number | undefined, start: string) =>
+  queryOptions({
+    queryKey: trimKeys.workWeek(departmentId ?? 0, start),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      dayStripSchema.parse(
+        await authApi
+          .get(`departments/${departmentId}/day-strip/`, {
+            searchParams: { start, days: WORK_WEEK_DAYS, work_days_only: true }
+          })
+          .json()
+      )
+  })
+
+// The most dates one day-strip request may name; the server refuses more.
+const STRIP_DATES_MAX = 62
+
+/** Days that are neither in a row nor recent — the overdue ones — in as few calls as the cap allows. */
+export const dayStripDatesQuery = (departmentId: number | undefined, dates: string[]) =>
+  queryOptions({
+    queryKey: trimKeys.dayStripDates(departmentId ?? 0, dates),
+    enabled: departmentId !== undefined && dates.length > 0,
+    queryFn: async () => {
+      const batches = Array.from(
+        { length: Math.ceil(dates.length / STRIP_DATES_MAX) },
+        (_, index) => dates.slice(index * STRIP_DATES_MAX, (index + 1) * STRIP_DATES_MAX)
+      )
+      const strips = await Promise.all(
+        batches.map(async batch =>
+          dayStripSchema.parse(
+            await authApi
+              .get(`departments/${departmentId}/day-strip/`, {
+                searchParams: new URLSearchParams(batch.map(date => ['dates', date]))
+              })
+              .json()
+          )
+        )
+      )
+      return strips.flat()
     }
   })
 
@@ -660,9 +702,11 @@ export const lineNotesQuery = (originItem: string | null) =>
     }
   })
 
-export const useMarkOrderNoteRead = () =>
+/** The check on an Order Note, and taking it back when it was made by mistake. */
+export const useSetOrderNoteRead = () =>
   useMutation({
-    mutationFn: (order: string) => authApi.post(`orders/${order}/note/read/`).json(),
+    mutationFn: ({ order, read }: { order: string; read: boolean }) =>
+      authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
     onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
     }
@@ -691,9 +735,11 @@ export const useAddLineNote = (originItem: string) =>
     }
   })
 
-export const useMarkLineNoteRead = (originItem: string) =>
+/** One card's check, and taking it back; the thread's dot follows. */
+export const useSetLineNoteRead = (originItem: string) =>
   useMutation({
-    mutationFn: (noteId: number) => authApi.post(`notes/${noteId}/read/`).json(),
+    mutationFn: ({ noteId, read }: { noteId: number; read: boolean }) =>
+      authApi.post(`notes/${noteId}/${read ? 'read' : 'unread'}/`).json(),
     onSuccess: async (_, __, ___, { client }) => {
       await invalidateLineNotes(client, originItem)
     }
@@ -967,11 +1013,27 @@ export const useUnreleaseOrder = () =>
     }
   })
 
-/** Send the order back to Unscheduled. This also discards the Manager's edits, as the board says. */
+/**
+ * Send the order back to Unscheduled. This also discards the Manager's edits, as the board says.
+ * `productionDate` takes back only that day's lines — one row of a split order; the order keeps its
+ * priority and Reviewed while any line is still scheduled.
+ */
 export const useUnscheduleOrder = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: ({ salesOrderId, departmentId }: { salesOrderId: number; departmentId: number }) =>
-      authApi.post(`sales-orders/${salesOrderId}/departments/${departmentId}/unschedule/`).json(),
+    mutationFn: ({
+      salesOrderId,
+      departmentId,
+      productionDate
+    }: {
+      salesOrderId: number
+      departmentId: number
+      productionDate?: string
+    }) =>
+      authApi
+        .post(`sales-orders/${salesOrderId}/departments/${departmentId}/unschedule/`, {
+          searchParams: productionDate ? { production_date: productionDate } : {}
+        })
+        .json(),
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
     },
@@ -991,16 +1053,36 @@ export type LineItemEdit = {
  * Keyed on this app's own row for the line, which exists by the time an order reaches this tab —
  * scheduling is what puts the production date on it.
  */
-export const useUpdateLineItem = () =>
+export const useUpdateLineItem = ({ released = false } = {}) =>
   useMutation({
+    meta: { errorTitle: 'The line was not changed' },
     mutationFn: ({ itemId, edit }: { itemId: number; edit: LineItemEdit }) =>
       authApi.patch(`items/${itemId}/`, { json: edit }).json(),
+    // A released line's new machine or Stock moves its cutlist, bendlists and what is left to wrap;
+    // one still being reviewed has only the order lists to change.
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.orders() })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: trimKeys.orders() }),
+        ...(released
+          ? [
+              client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
+              client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+            ]
+          : [])
+      ])
     }
   })
 
 // --- Stock cards and stock orders ---------------------------------------
+
+// EBMS keeps 0 for a product with no gauge on record, which is none rather than a gauge.
+const gaugeOf = z._default(
+  z.pipe(
+    z.nullable(z.string()),
+    z.transform(gauge => (gauge === null || Number(gauge) === 0 ? null : gauge))
+  ),
+  null
+)
 
 const stockCardSchema = z.object({
   id: z.number(),
@@ -1009,7 +1091,14 @@ const stockCardSchema = z.object({
   stock_minimum: z._default(z.nullable(z.number()), null),
   order_qty: z._default(z.nullable(z.number()), null),
   image_id: z._default(z.nullable(z.number()), null),
-  qr_payload: z._default(z.nullable(z.string()), null)
+  image_url: z._default(z.nullable(z.string()), null),
+  qr_payload: z._default(z.nullable(z.string()), null),
+  // Typed in by the Manager; EBMS has no trustworthy trim width.
+  width: z._default(z.nullable(z.number()), null),
+  // Offered while `width` is empty: the width every past order of the product agrees on.
+  width_from_orders: z._default(z.nullable(z.number()), null),
+  color: z._default(z.nullable(z.string()), null),
+  gauge: gaugeOf
 })
 
 export type StockCard = z.infer<typeof stockCardSchema>
@@ -1019,7 +1108,44 @@ export const stockCardsQuery = queryOptions({
   queryFn: async () => z.array(stockCardSchema).parse(await authApi.get('stock-cards/').json())
 })
 
-type StockCardValues = { stock_minimum: number; order_qty: number; image_id: number }
+type StockCardValues = {
+  stock_minimum: number
+  order_qty: number
+  image_id: number
+  width: number | null
+}
+
+const stockCardProductSchema = z.object({
+  product_id: z.string(),
+  description: z._default(z.nullable(z.string()), null),
+  color: z._default(z.nullable(z.string()), null),
+  gauge: gaugeOf,
+  width_from_orders: z._default(z.nullable(z.number()), null),
+  has_card: z._default(z.boolean(), false)
+})
+
+export type StockCardProduct = z.infer<typeof stockCardProductSchema>
+
+/**
+ * What the Create form fills in once a Product ID is typed p1 (71,307). An ID EBMS does not know
+ * answers 404, which reads as `null` — the form says so rather than a toast.
+ */
+export const stockCardProductQuery = (productId: string) =>
+  queryOptions({
+    queryKey: [...trimKeys.stockCards(), 'product', productId] as const,
+    enabled: productId.length > 0,
+    retry: false,
+    queryFn: async () => {
+      try {
+        return stockCardProductSchema.parse(
+          await authApi.get(`stock-cards/product/${encodeURIComponent(productId)}/`).json()
+        )
+      } catch (error) {
+        if (error instanceof HTTPError && error.response.status === 404) return null
+        throw error
+      }
+    }
+  })
 
 /**
  * The card's picture is uploaded first — the card needs its `image_id` — and claimed by the card when
@@ -1073,10 +1199,27 @@ export const useDeleteStockCard = () =>
     }
   })
 
-export const usePrintStockCards = (onSuccess: () => void) =>
+const stockCardLabelSchema = z.object({
+  id: z.number(),
+  product_id: z._default(z.string(), ''),
+  description: z._default(z.nullable(z.string()), null),
+  stock_minimum: z._default(z.nullable(z.number()), null),
+  order_qty: z._default(z.nullable(z.number()), null),
+  width: z._default(z.nullable(z.number()), null),
+  // What the label's QR encodes; scanning it back raises a stock order.
+  qr: z._default(z.nullable(z.string()), null)
+})
+
+export type StockCardLabel = z.infer<typeof stockCardLabelSchema>
+
+/** Print Selected p1 (72,335): the server answers with what each label carries, and the app prints it. */
+export const usePrintStockCards = (onSuccess: (labels: StockCardLabel[]) => void) =>
   useMutation({
-    mutationFn: (cardIds: number[]) =>
-      authApi.post('stock-cards/print/', { json: { card_ids: cardIds } }).json(),
+    meta: { errorTitle: 'Nothing was printed' },
+    mutationFn: async (cardIds: number[]) =>
+      z
+        .array(stockCardLabelSchema)
+        .parse(await authApi.post('stock-cards/print/', { json: { card_ids: cardIds } }).json()),
     onSuccess
   })
 
@@ -1138,6 +1281,10 @@ export type CutlistKind = 'cutlist' | 'bendlist'
 // share; the rest describes the line itself.
 const cutlistSourceSchema = z.object({
   order: z._default(z.nullable(z.string()), null),
+  // The printed number — a stock order's own «S» number — and «Stock» for its customer.
+  order_number: z._default(z.nullable(z.string()), null),
+  customer: z._default(z.nullable(z.string()), null),
+  po_number: z._default(z.nullable(z.string()), null),
   origin_item: z._default(z.nullable(z.string()), null),
   quantity: z._default(z.number(), 0),
   // `null` once the line item is deleted; the breakdown outlives it.
@@ -1245,7 +1392,6 @@ export const useUpdateCutlistRow = () =>
 export const useFinishCutlist = () =>
   useMutation({
     mutationFn: (cutlistId: number) => authApi.post(`cutlists/${cutlistId}/done/`).json(),
-    // A finished remake list moves its remanufacture on (Cut, then Bent), which the badges read.
     onSettled: (_, __, ___, ____, { client }) =>
       Promise.all([
         client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
@@ -1272,6 +1418,7 @@ const coilLotSchema = z.object({
   color: z._default(z.nullable(z.string()), null),
   gauge: z._default(z.nullable(z.number()), null),
   width: z._default(z.nullable(z.number()), null),
+  grade: z._default(z.nullable(z.number()), null),
   // The EBMS product-tree folder, the same id the folder tabs are named by.
   folder_id: folderId,
   coil_thickness: z._default(z.nullable(z.number()), null),
@@ -1426,10 +1573,10 @@ export const useReprintPackage = (onSuccess?: () => void) =>
 
 // --- Coils ---------------------------------------------------------------
 
-// The lots list is not paginated by the server, so one page holds it.
+// The lots list answers a bare page with no count, so one page is asked to hold it all.
 const COIL_PAGE_SIZE = 500
 
-/** Every coil in the company. Trim Coils are narrowed from it by the department's Coil Filter. */
+/** Every coil in the company — All Coils. */
 export const coilLotsQuery = queryOptions({
   queryKey: trimKeys.coilLots(),
   queryFn: async () =>
@@ -1437,6 +1584,21 @@ export const coilLotsQuery = queryOptions({
       .array(coilLotSchema)
       .parse(await authApi.get('coils/lots/', { searchParams: { limit: COIL_PAGE_SIZE } }).json())
 })
+
+/** The coils the department's Coil Filter admits, folder filters included — Trim Coils. */
+export const departmentCoilLotsQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.departmentCoilLots(departmentId ?? 0),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z.array(coilLotSchema).parse(
+        await authApi
+          .get('coils/lots/', {
+            searchParams: { department_id: departmentId!, limit: COIL_PAGE_SIZE }
+          })
+          .json()
+      )
+  })
 
 /** The Cutlist Coils window reads its coils through the cutlist, so both lists hear of a change. */
 const invalidateCoils = (client: QueryClient) =>
@@ -1573,7 +1735,7 @@ export const useSaveCoilFilter = (onSuccess: () => void) =>
       client.invalidateQueries({ queryKey: trimKeys.coils() })
   })
 
-/** Removing the filter lets every coil through to the department again. */
+/** Removing the filter admits no coil to the department's Trim Coils until another is set. */
 export const useDeleteCoilFilter = (onSuccess: () => void) =>
   useMutation({
     meta: { errorTitle: 'The coil filter stayed' },
@@ -1622,25 +1784,6 @@ export const coilFiltersQuery = (departmentId: number | undefined) =>
         )
   })
 
-/**
- * Every coil in the company, and the ones inside the department's Coil Filter — what the Coils tab
- * lists and what its count on the strip says. The lots endpoint cannot apply a department's filter
- * itself, so both are read and the narrowing happens here.
- */
-export const useTrimCoils = (departmentId: number | undefined) => {
-  const { data: lots, isPending } = useQuery(coilLotsQuery)
-  const { data: filters, isLoading: filterLoading } = useQuery(coilFiltersQuery(departmentId))
-  const filter = departmentCoilFilter(filters)
-
-  return {
-    lots,
-    trimLots: lots?.filter(lot => passesCoilFilter(lot, filterFor(lot, filters))),
-    filter,
-    isPending,
-    filterLoading
-  }
-}
-
 // --- Wrapping ------------------------------------------------------------
 
 const wrappingRowSchema = z.object({
@@ -1662,7 +1805,25 @@ const wrappingRowSchema = z.object({
   // Wrapping is blocked until the trim has actually been made, by whatever «made» means here.
   can_wrap: z._default(z.boolean(), false),
   auto_fill_available: z._default(z.boolean(), false),
-  auto_fill_amount: z._default(z.number(), 0)
+  auto_fill_amount: z._default(z.number(), 0),
+  // Which window the bench opens: a stock order's Stock window, or the package modal.
+  is_stock: z._default(z.boolean(), false),
+  length: z._default(z.nullable(z.number()), null),
+  is_standard_length: z._default(z.boolean(), true),
+  // lb per piece, what a package's weight is worked out from.
+  unit_weight: z._default(z.nullable(z.number()), null),
+  // The order info block; a stock order has none of it.
+  po: z._default(z.nullable(z.string()), null),
+  salesman: z._default(z.nullable(z.string()), null),
+  ship_via: z._default(z.nullable(z.string()), null),
+  // ARINV's SHIP_DATE arrives as a full timestamp here; the board only ever means the day.
+  ship_date: z._default(
+    z.pipe(
+      z.nullable(z.string()),
+      z.transform(date => date?.slice(0, 10) ?? null)
+    ),
+    null
+  )
 })
 
 export type WrappingRow = z.infer<typeof wrappingRowSchema>
@@ -1685,41 +1846,30 @@ export const wrappingRowsQuery = (departmentId: number | undefined, day: string 
       )
   })
 
+// The server sums package weights as floats (69.47999999999999); a pound to the hundredth is all
+// anybody reads.
+const pounds = z.pipe(
+  z.number(),
+  z.transform(weight => Math.round(weight * 100) / 100)
+)
+
 const locationSlotSchema = z.object({
   location_id: z.number(),
   name: z._default(z.nullable(z.string()), null),
   warehouse: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null),
-  used_weight: z._default(z.number(), 0),
+  used_weight: z._default(pounds, 0),
   orders_on_it: z._default(z.number(), 0),
   multi_order: z._default(z.boolean(), false),
   max_orders: z._default(z.nullable(z.number()), null),
   // Greyed out once full; the board still lets the Worker ask for another department's locations.
   available: z._default(z.boolean(), true),
-  remaining_weight: z._default(z.nullable(z.number()), null)
+  remaining_weight: z._default(z.nullable(pounds), null),
+  // Select Location opens on the default warehouse p1 (543,104).
+  warehouse_is_default: z._default(z.boolean(), false)
 })
 
 export type LocationSlot = z.infer<typeof locationSlotSchema>
-
-/**
- * The warehouse Select Location opens on, by the name a location slot carries. Keyed under the
- * warehouses root, so marking another default in Settings reaches the bench.
- */
-export const defaultWarehouseQuery = queryOptions({
-  queryKey: ['warehouses', 'default'] as const,
-  queryFn: async () =>
-    z
-      .object({
-        results: z.array(
-          z.object({
-            name: z._default(z.nullable(z.string()), null),
-            is_default: z._default(z.boolean(), false)
-          })
-        )
-      })
-      .parse(await authApi.get('warehouses/', { searchParams: { limit: 200 } }).json())
-      .results.find(warehouse => warehouse.is_default)?.name ?? null
-})
 
 /** The list behind Select Location, opened on this department's own locations. */
 export const wrappingLocationsQuery = (departmentId: number | undefined, enabled: boolean) =>
@@ -1741,7 +1891,7 @@ const orderLocationSchema = z.object({
   name: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null),
   packages: z._default(z.number(), 0),
-  weight_on_it: z._default(z.number(), 0),
+  weight_on_it: z._default(pounds, 0),
   // Only the newest location still takes packages; the earlier ones are marked, not hidden.
   orange: z._default(z.boolean(), false),
   current: z._default(z.boolean(), false)
@@ -1813,6 +1963,7 @@ const stockOrderRowSchema = z.object({
   product_id: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   length: z._default(z.nullable(z.number()), null),
+  is_standard_length: z._default(z.boolean(), true),
   qty_ordered: z._default(z.number(), 0),
   // Both blank once the row has its batch.
   left_to_wrap: z._default(z.nullable(z.number()), null),
@@ -2064,28 +2215,35 @@ const remanufacturingSchema = z.object({
 
 export type Remanufacturing = z.infer<typeof remanufacturingSchema>
 
-// One page holds them: a remanufacture is an exception, not a queue.
+// Module-level, so every caller's `select` is the same function and the grouping runs once per fetch.
+const byOriginItem = (page: { results: Remanufacturing[] }) => {
+  const byItem = new Map<string, Remanufacturing[]>()
+  for (const reman of page.results) {
+    const list = byItem.get(reman.origin_item)
+    if (list) list.push(reman)
+    else byItem.set(reman.origin_item, [reman])
+  }
+  return byItem
+}
+
+// One page holds a department's: a remanufacture is an exception, not a queue.
 const REMAN_PAGE_SIZE = 200
 
-/**
- * Every outstanding remake, keyed by the line item it came from. `GET /remanufacturings/` takes no
- * filter, so the page is narrowed here.
- */
-export const remanufacturingsQuery = queryOptions({
-  queryKey: trimKeys.remanufacturings(),
-  queryFn: async () =>
-    z
-      .object({ count: z.number(), results: z.array(remanufacturingSchema) })
-      .parse(
-        await authApi.get('remanufacturings/', { searchParams: { limit: REMAN_PAGE_SIZE } }).json()
+/** The department's remakes, keyed by the line item each came from. */
+export const remanufacturingsQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: trimKeys.departmentRemanufacturings(departmentId ?? 0),
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z.object({ count: z.number(), results: z.array(remanufacturingSchema) }).parse(
+        await authApi
+          .get('remanufacturings/', {
+            searchParams: { department: departmentId!, limit: REMAN_PAGE_SIZE }
+          })
+          .json()
       ),
-  select: (page: { results: Remanufacturing[] }) => {
-    const byItem = new Map<string, Remanufacturing[]>()
-    for (const reman of page.results)
-      byItem.set(reman.origin_item, [...(byItem.get(reman.origin_item) ?? []), reman])
-    return byItem
-  }
-})
+    select: byOriginItem
+  })
 
 /** Where a remake was asked for: a machine that spoiled the bend, or the bench that found it. */
 export type RemanufactureSource = 'wrapping' | 'machine'

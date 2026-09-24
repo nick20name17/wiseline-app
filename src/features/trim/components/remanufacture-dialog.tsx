@@ -53,7 +53,7 @@ export const RemanufactureDialog = ({
   onOpenChange
 }: RemanufactureDialogProps) => {
   const [line, release] = useRetained(current)
-  const { data: remans } = useQuery({ ...remanufacturingsQuery, enabled: !!line })
+  const { data: remans } = useQuery({ ...remanufacturingsQuery(departmentId), enabled: !!line })
   const [quantity, setQuantity] = useState('')
   const [fromStock, setFromStock] = useState('')
   const [note, setNote] = useState('')

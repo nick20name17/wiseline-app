@@ -27,14 +27,13 @@ import { cn } from 'cn'
 import { Timer, Warehouse } from 'lucide-react'
 import { useState } from 'react'
 import {
-  defaultWarehouseQuery,
   departmentsQuery,
   useRemoveOrderLocation,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation
 } from '../api'
-import { overWeight, warehousesOf } from '../lib/wrapping'
+import { defaultWarehouseOf, overWeight, warehousesOf } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
@@ -84,9 +83,9 @@ export const LocationDialog = ({
   const shown = tab ?? departmentId
   const { data: departments } = useQuery(departmentsQuery)
   const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, open))
-  const { data: defaultName } = useQuery({ ...defaultWarehouseQuery, enabled: open })
+  const defaultName = defaultWarehouseOf(slots ?? [])
   // A department's locations can stand in several warehouses; the default one opens first.
-  const warehouses = warehousesOf(slots ?? [], defaultName ?? null)
+  const warehouses = warehousesOf(slots ?? [], defaultName)
   // An order already standing somewhere opens where it stands, so its own cells are in view;
   // otherwise the default warehouse opens first.
   const standing = slots?.find(slot =>

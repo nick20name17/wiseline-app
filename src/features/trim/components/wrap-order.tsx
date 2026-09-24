@@ -14,6 +14,7 @@ import {
   useCompleteOrder,
   useCreatePackage,
   useMoveOrderPackages,
+  useTrimDepartment,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation,
@@ -21,11 +22,14 @@ import {
   type WrappingRow
 } from '../api'
 import { WRAP_LINES_TABLE } from '../lib/columns'
+import { formatDate } from '../lib/format'
 import { itemStatus } from '../lib/status'
 import {
   orderOverdue,
+  overPackageLimit,
   overWeight,
   packageTarget,
+  packageWeight,
   remakeRoom,
   remanOwed,
   remanState,
@@ -170,7 +174,7 @@ const WrapLines = ({
     <>
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
         {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it. */}
-        <Table className='min-w-280 table-fixed'>
+        <Table className='min-w-300 table-fixed'>
           <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
@@ -192,6 +196,20 @@ const WrapLines = ({
                       <TableCell>
                         <span className='truncate text-muted-foreground'>
                           {row.description ?? '—'}
+                        </span>
+                      </TableCell>
+                    ),
+                    // Anything but the standard 120" is worth a second look, as on the
+                    // cutlists p1 (465,337).
+                    length: (
+                      <TableCell>
+                        <span
+                          className={cn(
+                            'font-mono',
+                            row.length !== null && !row.is_standard_length && 'text-destructive'
+                          )}
+                        >
+                          {row.length === null ? '—' : `${row.length}"`}
                         </span>
                       </TableCell>
                     ),
@@ -272,36 +290,42 @@ const WrapLines = ({
 }
 
 type PackageWeightProps = {
-  weight: string
-  onWeight: (weight: string) => void
-  /** The package would push the location it is going to past its limit. */
-  over: boolean
+  /** `null` when nothing is staged or some staged line does not say what it weighs. */
+  weight: number | null
+  /** The department's Max Weight per package; `null` is no ceiling. */
+  limit: number | null
+  /** Over the Max Weight per package p1 (940,365). */
+  overPackage: boolean
+  /** The package would push the location it is going to past its own Max Weight. */
+  overLocation: boolean
   slot: LocationSlot | null
 }
 
-// Typed in: no line item says what its trims weigh, so the Worker reads the scale.
-const PackageWeight = ({ weight, onWeight, over, slot }: PackageWeightProps) => (
-  <span
-    className={cn(
-      'flex items-center gap-2 rounded-md px-1',
-      over && 'bg-destructive/10 text-destructive'
-    )}
-  >
+/**
+ * «The combined weight of the trims you are planning to wrap» p1 (912,358): worked out from the staged
+ * lines rather than typed, so the floor has nothing to weigh.
+ */
+const PackageWeight = ({ weight, limit, overPackage, overLocation, slot }: PackageWeightProps) => (
+  <span className='flex items-center gap-2'>
     <span className='text-xs tracking-wider text-muted-foreground uppercase'>Package weight</span>
-    <Input
-      className='w-24'
-      type='number'
-      min={0}
-      inputMode='numeric'
+    <output
       aria-label='Package weight'
-      aria-invalid={over || undefined}
-      placeholder='0'
-      value={weight}
-      onChange={event => onWeight(event.target.value)}
-    />
+      className={cn(
+        'flex h-8 min-w-24 items-center rounded-md border border-input px-2.5 font-mono text-sm',
+        overPackage && 'border-destructive bg-destructive/10 text-destructive'
+      )}
+      title={weight === null ? 'Not every staged line says what its pieces weigh' : undefined}
+    >
+      {weight === null ? '—' : weight}
+    </output>
     <span className='text-sm text-muted-foreground'>
-      lb{slot?.max_weight ? ` / ${slot.remaining_weight ?? slot.max_weight}` : ''}
+      lb{limit === null ? '' : ` · max ${limit} per package`}
     </span>
+    {slot?.max_weight ? (
+      <span className={cn('text-sm text-muted-foreground', overLocation && 'text-destructive')}>
+        {slot.remaining_weight ?? slot.max_weight} lb left on {slot.name ?? slot.location_id}
+      </span>
+    ) : null}
   </span>
 )
 
@@ -376,14 +400,18 @@ type CreatePrintButtonProps = {
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
   targetSlot: LocationSlot | null
-  /** What the Worker typed, or `null` when he left it empty. */
+  /** `null` when a staged line does not say what it weighs; then no weight is sent. */
   weight: number | null
-  /** The package would push its location past the limit. */
-  over: boolean
+  limit: number | null
+  overPackage: boolean
+  overLocation: boolean
   onPrinted: () => void
 }
 
-/** Create & print: waits for a quantity and a location, and asks before it overloads one. */
+/**
+ * Create & print: waits for a quantity and a location, and asks before a package goes over the Max
+ * Weight per package p1 (940,365) or overloads its location p1 (846,414) — one question for both.
+ */
 const CreatePrintButton = ({
   departmentId,
   order,
@@ -391,14 +419,21 @@ const CreatePrintButton = ({
   target,
   targetSlot,
   weight,
-  over,
+  limit,
+  overPackage,
+  overLocation,
   onPrinted
 }: CreatePrintButtonProps) => {
-  const [overLocation, setOverLocation] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const createPackage = useCreatePackage(() => {
-    setOverLocation(false)
+    setConfirming(false)
     onPrinted()
   })
+  const where = target?.name ?? target?.location_id ?? 'This location'
+  const reasons = [
+    overPackage && `This package is over the Max Weight per package (${weight} > ${limit} lb).`,
+    overLocation && `${where} would exceed ${targetSlot?.max_weight ?? 0} lb (soft limit).`
+  ].filter(Boolean)
   const pieces = lines.reduce((total, line) => total + line.quantity, 0)
 
   const print = (override: boolean) =>
@@ -426,18 +461,24 @@ const CreatePrintButton = ({
     <>
       <Button
         disabled={!lines.length || !target || createPackage.isPending}
-        onClick={() => (over ? setOverLocation(true) : print(false))}
+        onClick={() => (reasons.length ? setConfirming(true) : print(false))}
       >
         <Printer data-icon='inline-start' />
         Create &amp; print
       </Button>
 
-      {/* The weight limit is soft: the Worker can still print, and the server is told he chose to. */}
+      {/* Both limits are soft: the Worker can still print, and the server is told he chose to. */}
       <ConfirmDialog
-        open={overLocation}
-        onOpenChange={setOverLocation}
-        title='Location over weight limit'
-        description={`${target?.name ?? target?.location_id ?? 'This location'} would exceed ${targetSlot?.max_weight ?? 0} lb (soft limit). Print anyway?`}
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={
+          overPackage && overLocation
+            ? 'Package and location over weight limit'
+            : overPackage
+              ? 'Package over weight limit'
+              : 'Location over weight limit'
+        }
+        description={`${reasons.join(' ')} Print anyway?`}
         confirmLabel='Print anyway'
         cancelLabel='Cancel'
         isPending={createPackage.isPending}
@@ -474,25 +515,36 @@ export const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
 
 type OrderFactsProps = {
   number: string
-  priority: string | null
+  /** Any of the order's rows: the order info rides on every one. */
+  order: WrappingRow
   locations: OrderLocation[]
   onRemove: (location: OrderLocation) => void
 }
 
+const Fact = ({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) => (
+  <div className='flex flex-col gap-0.5'>
+    <dt className='text-xs tracking-wider text-muted-foreground uppercase'>{label}</dt>
+    <dd className={cn(mono && 'font-mono')}>{value ?? '—'}</dd>
+  </div>
+)
+
 /**
- * The order's own facts, and the only place its Trim Location is said: it belongs to the order, not
- * to each package.
+ * The order's own facts p1 (885,283), (885,389), and the only place its Trim Location is said: it
+ * belongs to the order, not to each package.
  */
-const OrderFacts = ({ number, priority, locations, onRemove }: OrderFactsProps) => (
+const OrderFacts = ({ number, order, locations, onRemove }: OrderFactsProps) => (
   <dl className='flex flex-wrap gap-x-8 gap-y-2 text-sm'>
-    <div className='flex flex-col gap-0.5'>
-      <dt className='text-xs tracking-wider text-muted-foreground uppercase'>Order #</dt>
-      <dd className='font-mono'>{number}</dd>
-    </div>
-    <div className='flex flex-col gap-0.5'>
-      <dt className='text-xs tracking-wider text-muted-foreground uppercase'>Priority</dt>
-      <dd>{priority ?? '—'}</dd>
-    </div>
+    <Fact label='Order #' value={number} mono />
+    <Fact label='Priority' value={order.priority} />
+    {/* A stock order has no customer behind it, so none of the EBMS order info. */}
+    {order.is_stock ? null : (
+      <>
+        <Fact label='PO' value={order.po} mono />
+        <Fact label='Salesman' value={order.salesman} />
+        <Fact label='Ship Via' value={order.ship_via} />
+        <Fact label='Ship Date' value={order.ship_date && formatDate(order.ship_date)} />
+      </>
+    )}
     <div className='flex flex-col gap-0.5'>
       <dt className='text-xs tracking-wider text-muted-foreground uppercase'>Trim Location</dt>
       <dd className='flex flex-wrap gap-1.5'>
@@ -517,7 +569,6 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const order = rows[0]
   // The operator's scratch pad, cleared by printing rather than kept anywhere.
   const [amounts, setAmounts] = useState<Record<string, string>>({})
-  const [weight, setWeight] = useState('')
   const [picked, setPicked] = useState<LocationSlot | null>(null)
   // Select Location either aims the next package, or — when the last location is taken off — moves
   // every package already made.
@@ -525,7 +576,8 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const [removing, setRemoving] = useState<OrderLocation | null>(null)
   const [seeing, setSeeing] = useState(false)
 
-  const { data: remans } = useQuery(remanufacturingsQuery)
+  const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
+  const { data: department } = useTrimDepartment()
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   // This department's cells, for the weight already standing on the one the package is going to.
   const { data: slots } = useQuery(wrappingLocationsQuery(departmentId, true))
@@ -553,8 +605,10 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       ? { ...spot, orange: true }
       : spot
   )
-  const packageWeight = Number(weight) || 0
-  const overTarget = !!targetSlot && packageWeight > 0 && overWeight(targetSlot, packageWeight)
+  const weight = lines.length ? packageWeight(lines) : null
+  const limit = department?.max_package_weight ?? null
+  const overPackage = overPackageLimit(weight, limit)
+  const overTarget = !!targetSlot && !!weight && overWeight(targetSlot, weight)
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
@@ -571,12 +625,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         }
       />
 
-      <OrderFacts
-        number={number}
-        priority={order.priority}
-        locations={shownLocations}
-        onRemove={setRemoving}
-      />
+      <OrderFacts number={number} order={order} locations={shownLocations} onRemove={setRemoving} />
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
         <Button variant='outline' disabled={!lines.length} onClick={() => setPicking('package')}>
@@ -590,15 +639,20 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
           lines={lines}
           target={target}
           targetSlot={targetSlot}
-          weight={weight.trim() ? packageWeight : null}
-          over={overTarget}
-          onPrinted={() => {
-            setAmounts({})
-            setWeight('')
-          }}
+          weight={weight}
+          limit={limit}
+          overPackage={overPackage}
+          overLocation={overTarget}
+          onPrinted={() => setAmounts({})}
         />
 
-        <PackageWeight weight={weight} onWeight={setWeight} over={overTarget} slot={targetSlot} />
+        <PackageWeight
+          weight={weight}
+          limit={limit}
+          overPackage={overPackage}
+          overLocation={overTarget}
+          slot={targetSlot}
+        />
 
         {/* p1 (911,425): there is something to see once the first package exists. */}
         <Button
@@ -623,7 +677,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         departmentId={departmentId}
         orderNumber={number}
         orderLocations={shownLocations}
-        stagedWeight={packageWeight}
+        stagedWeight={weight ?? 0}
         open={!!picking}
         onOpenChange={open => !open && setPicking(null)}
         onPick={slot =>
