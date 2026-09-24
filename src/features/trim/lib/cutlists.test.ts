@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Cutlist, CutlistRow, CutlistSource, Machine } from '../api'
 import {
   describeGroup,
+  editableLines,
   groupRows,
   hasSlinetStarted,
   slinetColumns,
@@ -21,6 +22,9 @@ const machine = (id: number, kind: string): Machine => ({
 
 const source = (extra: Partial<CutlistSource> = {}): CutlistSource => ({
   order: 'A',
+  order_number: 'A',
+  customer: null,
+  po_number: null,
   origin_item: '1',
   quantity: 4,
   item_id: 1,
@@ -175,5 +179,17 @@ describe('describeGroup', () => {
       ordered: 10,
       isStock: true
     })
+  })
+})
+
+describe('editableLines', () => {
+  it('leaves out a line whose item is gone', () => {
+    const [group] = groupRows([
+      row(1, 1, {
+        sources: [source({ origin_item: '1' }), source({ origin_item: '2', item_id: null })]
+      })
+    ])
+
+    expect(editableLines(group!).map(line => line.origin_item)).toEqual(['1'])
   })
 })

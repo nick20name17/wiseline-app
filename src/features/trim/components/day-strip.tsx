@@ -4,12 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
-import { dayStripQuery, type DayStripEntry } from '../api'
+import { dayStripQuery, WORK_WEEK_DAYS, workWeekQuery, type DayStripEntry } from '../api'
 import { formatDayLabel, today } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
-
-// The board shows the current day plus the rest of the working week.
-const STRIP_DAYS = 5
 
 // One box for every card in the strip, placeholders included: equal widths are what stop the strip
 // re-wrapping — and the page below it moving — when the days arrive.
@@ -91,7 +88,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
   const [peek, setPeek] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  const { data: days, isPending } = useQuery(dayStripQuery(departmentId, start, STRIP_DAYS))
+  const { data: days, isPending } = useQuery(workWeekQuery(departmentId, start))
   // The pinned day is its own one-day strip: it is usually outside the window the five pills cover.
   const { data: peekDays, isFetching: peekLoading } = useQuery({
     ...dayStripQuery(departmentId, peek ?? start, 1),
@@ -104,7 +101,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
     // `items-stretch`: the day picker is as tall as the pills beside it, as it is on the board.
     <div className='flex flex-wrap items-stretch gap-1.5'>
       {isPending
-        ? Array.from({ length: STRIP_DAYS }, (_, index) => (
+        ? Array.from({ length: WORK_WEEK_DAYS }, (_, index) => (
             <Skeleton key={index} className='h-11 w-40' />
           ))
         : days?.map(entry => (
@@ -131,7 +128,8 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
       )}
 
       {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may
-          be pinned, including one already past: that is often the point of looking. */}
+          be pinned, one already past or the shop was shut on included: that is often the point of
+          looking. */}
       <ScheduleDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -139,7 +137,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         description='Pin any day beside the five work days to see the bends already scheduled to it.'
         actionLabel='Show day'
         departmentId={departmentId}
-        allowPast
+        anyDay
         initialDay={peek}
         isPending={false}
         onPick={date => {

@@ -7,21 +7,27 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
-import { Package, RefreshCw } from 'lucide-react'
+import { ChevronDown, Package, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import {
   useUpdateCutlistRow,
+  useUpdateLineItem,
   type CutlistRow,
+  type CutlistSource,
   type Machine,
   type Remanufacturing,
   type WrappingRow
 } from '../api'
 import {
   describeGroup,
+  editableLines,
   groupRows,
   linesOf,
   machineQuantity,
@@ -31,6 +37,7 @@ import {
 import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
+import { KeypadDialog } from './keypad-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from './note-button'
 import { NoteInput } from './note-input'
@@ -161,6 +168,127 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
   )
 }
 
+type EditableLine = ReturnType<typeof editableLines>[number]
+
+const orderOf = (line: CutlistSource) => line.order_number ?? line.order
+
+type MachineCellProps = {
+  group: CutlistGroup
+  machines: Machine[]
+  onMove: (line: EditableLine, machine: Machine) => void
+}
+
+/**
+ * «Workers needs to be able to change the Machine a line item is assigned to» p1 (650,338): the line
+ * leaves this bendlist for a new one on the other machine. A machine is assigned per line, so a
+ * consolidated row first asks whose pieces move.
+ */
+const MachineCell = ({ group, machines, onMove }: MachineCellProps) => {
+  // Every row of a bendlist carries the list's own machine.
+  const current = group.rows[0]?.machine
+  const others = machines.filter(machine => machine.id !== current)
+  const lines = editableLines(group)
+  const moveTo = (line: EditableLine) =>
+    others.map(machine => (
+      <DropdownMenuItem key={machine.id} onClick={() => onMove(line, machine)}>
+        {machine.name ?? `Machine ${machine.id}`}
+      </DropdownMenuItem>
+    ))
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant='outline'
+            size='sm'
+            aria-label={`Change the machine for ${group.width ?? '—'} × ${group.length ?? '—'}`}
+            disabled={!lines.length || !others.length}
+          />
+        }
+      >
+        Machine
+        <ChevronDown data-icon='inline-end' />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='start' className='min-w-48'>
+        {/* Base UI throws for a group label outside a group. */}
+        <DropdownMenuGroup>
+          {lines.length > 1 ? (
+            <>
+              <DropdownMenuLabel>Move which order&apos;s pieces?</DropdownMenuLabel>
+              {lines.map(line => (
+                <DropdownMenuSub key={line.item_id}>
+                  <DropdownMenuSubTrigger>
+                    <span className='font-mono'>{orderOf(line)}</span>
+                    <span className='text-muted-foreground'>{line.quantity} pcs</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className='min-w-40'>
+                    {moveTo(line)}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ))}
+            </>
+          ) : (
+            <>
+              <DropdownMenuLabel>Move to</DropdownMenuLabel>
+              {lines[0] ? moveTo(lines[0]) : null}
+            </>
+          )}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+type StockCellProps = {
+  group: CutlistGroup
+  onStock: (line: EditableLine) => void
+}
+
+/**
+ * «If a worker damages a piece and decides to use some from stock then he needs to be able to enter
+ * that into the Stock column» p1 (700,451); the column opens a keypad p1 (714,470). A stock order
+ * puts trims on the shelf rather than taking them off it, so its lines are not offered.
+ */
+const StockCell = ({ group, onStock }: StockCellProps) => {
+  const figure = <Figure value={describeGroup(group).fromStock || null} />
+  const lines = editableLines(group).filter(line => !line.is_stock)
+  const label = `Stock for ${group.width ?? '—'} × ${group.length ?? '—'}`
+  const [first] = lines
+  if (!first) return figure
+  if (lines.length > 1)
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant='link' aria-label={label} />}>
+          {figure}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='start' className='min-w-48'>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Pull stock for which order?</DropdownMenuLabel>
+            {lines.map(line => (
+              <DropdownMenuItem key={line.item_id} onClick={() => onStock(line)}>
+                <span className='font-mono'>{orderOf(line)}</span>
+                <span className='ml-auto text-muted-foreground'>
+                  {line.pull_from_stock ?? 0} of {line.qty_ordered ?? 0}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  return (
+    <Button
+      variant='link'
+      aria-label={label}
+      title='Pull from stock'
+      onClick={() => onStock(first)}
+    >
+      {figure}
+    </Button>
+  )
+}
+
 type CutlistRowsProps = {
   rows: CutlistRow[]
   /** The request a remake list came from; `null` on the day's own lists. */
@@ -170,6 +298,11 @@ type CutlistRowsProps = {
   machines: Machine[]
   /** The bendlist is still Not Started, so nothing on it can be completed yet. */
   waiting: boolean
+  /**
+   * The rows' lines can still be moved to another machine or pulled from stock: only an ordinary
+   * bendlist not yet Done moves with its lines — a remake's lists belong to the remake.
+   */
+  lineEdits: boolean
   /** The released line items by autoid — what a bendlist row's Remanufacture opens. */
   lines: ReadonlyMap<string, WrappingRow>
   onOpenTotal: (group: CutlistGroup) => void
@@ -186,11 +319,16 @@ export const CutlistRows = ({
   remake,
   machines,
   waiting,
+  lineEdits,
   lines,
   onOpenTotal,
   onRemanufacture
 }: CutlistRowsProps) => {
   const update = useUpdateCutlistRow()
+  // A bendlist's lines are released by definition.
+  const updateLine = useUpdateLineItem({ released: true })
+  const [moving, setMoving] = useState<{ line: EditableLine; machine: Machine } | null>(null)
+  const [stocking, setStocking] = useState<EditableLine | null>(null)
   const groups = groupRows(rows)
   const [noteItem, setNoteItem] = useState<string | null>(null)
   // Only a bendlist carries the notes column, so only it asks for their state.
@@ -225,7 +363,8 @@ export const CutlistRows = ({
         ? []
         : [
             { key: 'pid', label: 'ID' },
-            { key: 'desc', label: 'Description' }
+            { key: 'desc', label: 'Description' },
+            { key: 'machine', label: 'Machine' }
           ]),
       ...(isSlinet
         ? [
@@ -296,7 +435,26 @@ export const CutlistRows = ({
                   ),
                   stock: (
                     <TableCell>
-                      <Figure value={about.fromStock || null} />
+                      {lineEdits && !group.complete ? (
+                        <StockCell group={group} onStock={setStocking} />
+                      ) : (
+                        <Figure value={about.fromStock || null} />
+                      )}
+                    </TableCell>
+                  ),
+                  machine: (
+                    <TableCell>
+                      {/* «When a row is marked as Complete ... the Machine button would disappear»
+                          p1 (653,358). */}
+                      {lineEdits && !group.complete ? (
+                        <MachineCell
+                          group={group}
+                          machines={machines}
+                          onMove={(line, machine) => setMoving({ line, machine })}
+                        />
+                      ) : (
+                        <span className='text-muted-foreground'>—</span>
+                      )}
                     </TableCell>
                   ),
                   pid: (
@@ -419,6 +577,50 @@ export const CutlistRows = ({
           })}
         </TableBody>
       </Table>
+
+      <ConfirmDialog
+        open={!!moving}
+        onOpenChange={open => !open && setMoving(null)}
+        title={`Move to ${moving?.machine.name ?? 'another machine'}?`}
+        description={
+          moving
+            ? `${orderOf(moving.line) ?? 'This line'}'s ${moving.line.quantity} pcs leave this bendlist for a new one on ${moving.machine.name ?? 'that machine'}.`
+            : ''
+        }
+        confirmLabel='Move'
+        cancelLabel='Cancel'
+        isPending={updateLine.isPending}
+        onConfirm={() =>
+          moving &&
+          updateLine.mutate(
+            { itemId: moving.line.item_id, edit: { flow: moving.machine.id } },
+            { onSuccess: () => setMoving(null) }
+          )
+        }
+      />
+
+      {/* Stock is the line's whole figure, «anything from zero up to the Qty Ordered» p1 (699,482);
+          the server lowers Qty to Manufacture on the rows not done yet. */}
+      <KeypadDialog
+        target={
+          stocking
+            ? {
+                title: `Stock for ${orderOf(stocking) ?? stocking.product_id ?? 'this line'}`,
+                current: stocking.pull_from_stock ?? 0,
+                max: stocking.qty_ordered ?? 0
+              }
+            : null
+        }
+        isPending={updateLine.isPending}
+        onOpenChange={open => !open && setStocking(null)}
+        onEnter={value =>
+          stocking &&
+          updateLine.mutate(
+            { itemId: stocking.item_id, edit: { pull_from_stock: value } },
+            { onSuccess: () => setStocking(null) }
+          )
+        }
+      />
 
       <LineNotesDialog
         originItem={noteItem}

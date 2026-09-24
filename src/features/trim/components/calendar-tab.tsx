@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import { addDays, addMonths, endOfMonth, getDaysInMonth, isWeekend, startOfMonth } from 'date-fns'
+import { addDays, addMonths, endOfMonth, getDaysInMonth, startOfMonth } from 'date-fns'
 import { useMemo, useState } from 'react'
 import {
   calendarOrdersQuery,
@@ -13,7 +13,7 @@ import {
   overdueQuery,
   type TrimOrder
 } from '../api'
-import { formatCount, formatDate, fromIsoDay, toIsoDay, today } from '../lib/format'
+import { formatCount, formatDate, toIsoDay, today } from '../lib/format'
 import { partDays } from '../lib/parts'
 import { PriorityPill } from './priority-pill'
 
@@ -27,9 +27,6 @@ const gridOf = (month: Date) => [
   ...Array.from({ length: month.getDay() }, () => null),
   ...Array.from({ length: getDaysInMonth(month) }, (_, index) => toIsoDay(addDays(month, index)))
 ]
-
-// Settings › Work Days has no endpoint yet (see TODO.md), so the weekend stands in for the days off.
-const isWorkDay = (day: string) => !isWeekend(fromIsoDay(day))
 
 type CalendarTabProps = {
   departmentId: number | undefined
@@ -56,6 +53,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   )
   const load = new Map(strip?.map(entry => [entry.date, entry]))
   const late = new Set(overdue?.days)
+  // Until the month's strip is in, no day is drawn back: shading every weekend and then taking it off
+  // again would flicker. Holidays are not known to the server.
+  const isWorkDay = (day: string) => load.get(day)?.is_work_day ?? true
 
   // A split order sits on each of its days.
   const byDay = useMemo(() => {

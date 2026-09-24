@@ -177,7 +177,7 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
   const lines = new Map(released?.map(line => [line.origin_item, line]))
   // A remake list names the request it came from; the request says how far the remake has got.
   const { data: remakes } = useQuery({
-    ...remanufacturingsQuery,
+    ...remanufacturingsQuery(departmentId),
     select: page => new Map(page.results.map(reman => [reman.id, reman]))
   })
 

@@ -42,8 +42,8 @@ export const PrioritiesPage = ({ department, onDepartmentChange }: PrioritiesPag
             {active ? ` in ${active.name}` : ''}
             <span className='text-xs'>
               {active
-                ? ' · drag rows to reorder hierarchy'
-                : ' · pick a department to reorder its hierarchy'}
+                ? ` · drag ${active.name}'s own rows to reorder; Every department ones reorder under All`
+                : ' · drag Every department rows to reorder them; a department’s own reorder under it'}
             </span>
           </p>
         ) : null}
@@ -69,6 +69,7 @@ export const PrioritiesPage = ({ department, onDepartmentChange }: PrioritiesPag
       ) : (
         <PrioritiesTable
           priorities={priorities}
+          scope={active?.id ?? null}
           departments={active ? undefined : ordered}
           isPending={isPending}
         />

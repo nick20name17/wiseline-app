@@ -12,9 +12,9 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useQuery } from '@tanstack/react-query'
 import { useRetained } from '@/lib/use-retained'
-import { Check, SendHorizontal } from 'lucide-react'
+import { Check, SendHorizontal, Undo2 } from 'lucide-react'
 import { useState } from 'react'
-import { lineNotesQuery, useAddLineNote, useMarkLineNoteRead } from '../api'
+import { lineNotesQuery, useAddLineNote, useSetLineNoteRead } from '../api'
 
 type LineNotesDialogProps = {
   /** The EBMS autoid of the line item; `null` closes the dialog. */
@@ -55,7 +55,7 @@ export const LineNotesDialog = ({
   const [draft, setDraft] = useState('')
   const { data: thread, isPending } = useQuery(lineNotesQuery(originItem))
   const add = useAddLineNote(originItem ?? '')
-  const markRead = useMarkLineNoteRead(originItem ?? '')
+  const setRead = useSetLineNoteRead(originItem ?? '')
 
   return (
     <Dialog
@@ -92,18 +92,17 @@ export const LineNotesDialog = ({
                     <span className='text-xs text-muted-foreground'>
                       {note.author?.email} · {stamp(note.created_at)}
                     </span>
-                    {readOnly ? null : note.read ? (
-                      <Check className='ml-auto size-3.5 text-success' aria-label='Dealt with' />
-                    ) : (
+                    {readOnly ? null : (
                       <Button
                         variant='ghost'
                         size='icon-sm'
                         className='ml-auto'
-                        aria-label='Mark dealt with'
-                        disabled={markRead.isPending}
-                        onClick={() => markRead.mutate(note.id)}
+                        aria-label={note.read ? 'Undo dealt with' : 'Mark dealt with'}
+                        title={note.read ? 'Undo dealt with' : 'Mark dealt with'}
+                        disabled={setRead.isPending}
+                        onClick={() => setRead.mutate({ noteId: note.id, read: !note.read })}
                       >
-                        <Check />
+                        {note.read ? <Undo2 /> : <Check />}
                       </Button>
                     )}
                   </div>

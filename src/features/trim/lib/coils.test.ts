@@ -4,10 +4,8 @@ import {
   coilFilterActive,
   coilName,
   departmentCoilFilter,
-  filterFor,
   feetFromThickness,
   fieldText,
-  passesCoilFilter,
   poundsPerFoot,
   thicknessFromFeet
 } from './coils'
@@ -34,6 +32,7 @@ const lot = (patch: Partial<CoilLot> = {}): CoilLot => ({
   color: 'Charcoal',
   gauge: 26,
   width: 48,
+  grade: null,
   folder_id: 'F26',
   coil_thickness: 5.95,
   material_thickness: 0.0179,
@@ -57,17 +56,11 @@ describe('the coil filter', () => {
     expect(departmentCoilFilter([filter({ folder_autoid: 'F26' })])).toBeNull()
   })
 
-  it('narrows nothing when every range is Apply All', () => {
+  it('counts as active only while some range is bounded', () => {
+    expect(coilFilterActive(null)).toBe(false)
     expect(coilFilterActive(filter())).toBe(false)
     expect(coilFilterActive(filter({ apply_all: true, thickness_min: 1 }))).toBe(false)
-    expect(passesCoilFilter(lot(), null)).toBe(true)
-  })
-
-  it('keeps a coil whose thickness is inside the range, and one not yet measured', () => {
-    const range = filter({ thickness_min: 5, thickness_max: 6 })
-    expect(passesCoilFilter(lot(), range)).toBe(true)
-    expect(passesCoilFilter(lot({ coil_thickness: 3 }), range)).toBe(false)
-    expect(passesCoilFilter(lot({ coil_thickness: null }), range)).toBe(true)
+    expect(coilFilterActive(filter({ grade_max: 50 }))).toBe(true)
   })
 })
 
@@ -94,24 +87,5 @@ describe('the coil as the floor reads it', () => {
   it('leaves a missing figure blank rather than writing null', () => {
     expect(fieldText(null)).toBe('')
     expect(fieldText(0)).toBe('0')
-  })
-})
-
-describe('a folder’s own filter', () => {
-  it('wins over the department-wide one for its coils only', () => {
-    const wide = filter({ id: 1 })
-    const own = filter({ id: 2, folder_autoid: 'F26' })
-
-    expect(filterFor(lot(), [wide, own])).toBe(own)
-    expect(filterFor(lot({ folder_id: 'F29' }), [wide, own])).toBe(wide)
-  })
-
-  it('tests the width leg now that a coil carries it', () => {
-    expect(passesCoilFilter(lot({ width: 48 }), filter({ width_min: 40, width_max: 50 }))).toBe(
-      true
-    )
-    expect(passesCoilFilter(lot({ width: 60 }), filter({ width_min: 40, width_max: 50 }))).toBe(
-      false
-    )
   })
 })

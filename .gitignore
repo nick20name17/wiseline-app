@@ -30,3 +30,4 @@ dist-ssr
 
 # Reference material, not source
 docs
+.claude/settings.local.json

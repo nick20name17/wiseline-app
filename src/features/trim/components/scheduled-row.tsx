@@ -2,17 +2,10 @@ import { useColumnCells } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
-import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
-import {
-  departmentStateOf,
-  isStockOrder,
-  orderLocationsQuery,
-  type TrimLineItem,
-  type TrimOrder
-} from '../api'
+import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
 import { SCHEDULED_TABLE } from '../lib/columns'
 import { formatDate } from '../lib/format'
 import { splitOf, toMake } from '../lib/parts'
@@ -147,12 +140,6 @@ export const ScheduledRow = ({
   const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const { cells } = useColumnCells(SCHEDULED_TABLE)
-  // Only an order that has been put somewhere has locations to list; the rest would each be a request
-  // answering with nothing.
-  const { data: locations } = useQuery({
-    ...orderLocationsQuery(order.id),
-    enabled: !stock && order.latest_location_id !== null
-  })
 
   // Gate 1: every line that still has to be made carries a machine. Review is recorded per order, so
   // every part of it has to pass.
@@ -258,11 +245,7 @@ export const ScheduledRow = ({
             <TableCell>
               {/* A stock order is what puts trims on the shelf, so it has no location of its own. */}
               <span className='font-mono text-muted-foreground'>
-                {stock
-                  ? 'N/A'
-                  : locations?.length
-                    ? locations.map(spot => spot.name ?? spot.location_id).join(', ')
-                    : '—'}
+                {stock ? 'N/A' : order.locations.length ? order.locations.join(', ') : '—'}
               </span>
             </TableCell>
           ),

@@ -20,9 +20,9 @@ import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
-import { Route as AppStockCardsRouteImport } from './routes/_app/stock-cards'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
+import { Route as AppAuthStockCardsRouteImport } from './routes/_app/_auth/stock-cards'
 import { Route as AppAuthTrimRouteImport } from './routes/_app/_auth/trim'
 import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
 import { Route as AppAuthSettingsIndexRouteImport } from './routes/_app/_auth/settings/index'
@@ -88,11 +88,6 @@ const AppShippingRoute = AppShippingRouteImport.update({
   path: '/shipping',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppStockCardsRoute = AppStockCardsRouteImport.update({
-  id: '/stock-cards',
-  path: '/stock-cards',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -101,6 +96,11 @@ const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
 const AppAuthSettingsRouteRoute = AppAuthSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthStockCardsRoute = AppAuthStockCardsRouteImport.update({
+  id: '/stock-cards',
+  path: '/stock-cards',
   getParentRoute: () => AppAuthRouteRoute,
 } as any)
 const AppAuthTrimRoute = AppAuthTrimRouteImport.update({
@@ -173,9 +173,9 @@ export interface FileRoutesByFullPath {
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
-  '/stock-cards': typeof AppStockCardsRoute
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/profile': typeof AppAuthProfileRoute
+  '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
@@ -198,8 +198,8 @@ export interface FileRoutesByTo {
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
-  '/stock-cards': typeof AppStockCardsRoute
   '/profile': typeof AppAuthProfileRoute
+  '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
@@ -224,10 +224,10 @@ export interface FileRoutesById {
   '/_app/loading': typeof AppLoadingRoute
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/shipping': typeof AppShippingRoute
-  '/_app/stock-cards': typeof AppStockCardsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/_app/_auth/profile': typeof AppAuthProfileRoute
+  '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
   '/_app/_auth/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
   '/_app/_auth/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
@@ -252,9 +252,9 @@ export interface FileRouteTypes {
     | '/loading'
     | '/rollforming'
     | '/shipping'
-    | '/stock-cards'
     | '/settings'
     | '/profile'
+    | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
     | '/settings/location-types'
@@ -277,8 +277,8 @@ export interface FileRouteTypes {
     | '/loading'
     | '/rollforming'
     | '/shipping'
-    | '/stock-cards'
     | '/profile'
+    | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
     | '/settings/location-types'
@@ -302,10 +302,10 @@ export interface FileRouteTypes {
     | '/_app/loading'
     | '/_app/rollforming'
     | '/_app/shipping'
-    | '/_app/stock-cards'
     | '/_app/'
     | '/_app/_auth/settings'
     | '/_app/_auth/profile'
+    | '/_app/_auth/stock-cards'
     | '/_app/_auth/trim'
     | '/password-reset/$uid64/$token'
     | '/_app/_auth/settings/location-types'
@@ -405,13 +405,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppShippingRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/stock-cards': {
-      id: '/_app/stock-cards'
-      path: '/stock-cards'
-      fullPath: '/stock-cards'
-      preLoaderRoute: typeof AppStockCardsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/_auth/profile': {
       id: '/_app/_auth/profile'
       path: '/profile'
@@ -424,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppAuthSettingsRouteRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/_app/_auth/stock-cards': {
+      id: '/_app/_auth/stock-cards'
+      path: '/stock-cards'
+      fullPath: '/stock-cards'
+      preLoaderRoute: typeof AppAuthStockCardsRouteImport
       parentRoute: typeof AppAuthRouteRoute
     }
     '/_app/_auth/trim': {
@@ -536,12 +536,14 @@ const AppAuthSettingsRouteRouteWithChildren =
 interface AppAuthRouteRouteChildren {
   AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
   AppAuthProfileRoute: typeof AppAuthProfileRoute
+  AppAuthStockCardsRoute: typeof AppAuthStockCardsRoute
   AppAuthTrimRoute: typeof AppAuthTrimRoute
 }
 
 const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
   AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
   AppAuthProfileRoute: AppAuthProfileRoute,
+  AppAuthStockCardsRoute: AppAuthStockCardsRoute,
   AppAuthTrimRoute: AppAuthTrimRoute,
 }
 
@@ -557,7 +559,6 @@ interface AppRouteRouteChildren {
   AppLoadingRoute: typeof AppLoadingRoute
   AppRollformingRoute: typeof AppRollformingRoute
   AppShippingRoute: typeof AppShippingRoute
-  AppStockCardsRoute: typeof AppStockCardsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -569,7 +570,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppLoadingRoute: AppLoadingRoute,
   AppRollformingRoute: AppRollformingRoute,
   AppShippingRoute: AppShippingRoute,
-  AppStockCardsRoute: AppStockCardsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

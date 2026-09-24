@@ -30,16 +30,17 @@ type PrioritiesTableProps = {
   /** In hierarchy order; under one department the rows are the hierarchy. */
   priorities: Priority[]
   /**
-   * Set when every department is listed: each row then names its own, and nothing drags, since a
-   * hierarchy only orders the priorities inside one department.
+   * The hierarchy the drag reorders: a department's own priorities, or `null` under All for the ones
+   * with no department. Other rows stay put.
    */
+  scope: number | null
+  /** Set when every department is listed, so each row names its own. */
   departments?: Department[]
   isPending: boolean
 }
 
 type SortableRowProps = {
   priority: Priority
-  sortable: boolean
   /** The department's name, shown when every department is listed. */
   department?: string
   disabled: boolean
@@ -75,7 +76,7 @@ class RowTouchSensor extends TouchSensor {
   ]
 }
 
-const SortableRow = ({ priority, sortable, department, disabled }: SortableRowProps) => {
+const SortableRow = ({ priority, department, disabled }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -84,7 +85,7 @@ const SortableRow = ({ priority, sortable, department, disabled }: SortableRowPr
     transform,
     transition,
     isDragging
-  } = useSortable({ id: priority.id, disabled: disabled || !sortable })
+  } = useSortable({ id: priority.id, disabled })
 
   return (
     <TableRow
@@ -94,29 +95,24 @@ const SortableRow = ({ priority, sortable, department, disabled }: SortableRowPr
       style={{ transform: CSS.Translate.toString(transform), transition }}
       // The row in hand borrows the selected fill, so it reads as lifted above the rows it passes.
       data-state={isDragging ? 'selected' : undefined}
-      className={cn(
-        sortable && !disabled && 'cursor-grab',
-        isDragging && 'relative z-10 cursor-grabbing'
-      )}
+      className={cn(!disabled && 'cursor-grab', isDragging && 'relative z-10 cursor-grabbing')}
       {...listeners}
     >
-      {sortable ? (
-        <TableCell>
-          {/* The keyboard's way in: Space picks the row up, the arrows move it. It is never
+      <TableCell>
+        {/* The keyboard's way in: Space picks the row up, the arrows move it. It is never
               natively disabled while a move saves: that would drop the focus it holds after a
               keyboard drop. */}
-          <button
-            ref={setActivatorNodeRef}
-            type='button'
-            data-grip
-            aria-label={`Move ${priority.name}`}
-            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
-            {...attributes}
-          >
-            <GripVertical className='size-3.5' />
-          </button>
-        </TableCell>
-      ) : null}
+        <button
+          ref={setActivatorNodeRef}
+          type='button'
+          data-grip
+          aria-label={`Move ${priority.name}`}
+          className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
+          {...attributes}
+        >
+          <GripVertical className='size-3.5' />
+        </button>
+      </TableCell>
       <TableCell>
         <span className='inline-flex items-center gap-2'>
           <span
@@ -133,7 +129,7 @@ const SortableRow = ({ priority, sortable, department, disabled }: SortableRowPr
       <TableCell>
         <span className='font-medium'>{priority.name}</span>
       </TableCell>
-      {sortable ? null : <TableCell>{department}</TableCell>}
+      {department === undefined ? null : <TableCell>{department}</TableCell>}
       <TableCell>
         <PriorityActions priority={priority} />
       </TableCell>
@@ -141,8 +137,12 @@ const SortableRow = ({ priority, sortable, department, disabled }: SortableRowPr
   )
 }
 
-export const PrioritiesTable = ({ priorities, departments, isPending }: PrioritiesTableProps) => {
-  const sortable = !departments
+export const PrioritiesTable = ({
+  priorities,
+  scope,
+  departments,
+  isPending
+}: PrioritiesTableProps) => {
   const sensors = useDragSensors({ mouse: RowMouseSensor, touch: RowTouchSensor })
   const save = useReorderPriorities()
 
@@ -165,13 +165,16 @@ export const PrioritiesTable = ({ priorities, departments, isPending }: Prioriti
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return
-    const { rows: next, moved } = reorder(rows, Number(active.id), Number(over.id))
-    if (!moved.length) return
-    setDropped(next)
-    save.mutate(moved, {
-      // By now the cache holds the saved order, or the old one again if the save failed.
-      onSettled: () => setDropped(null)
-    })
+    const moved = reorder(rows, scope, Number(active.id), Number(over.id))
+    if (!moved) return
+    setDropped(moved.rows)
+    save.mutate(
+      { department: scope, ids: moved.ids, changed: moved.changed },
+      {
+        // By now the cache holds the saved order, or the old one again if the save failed.
+        onSettled: () => setDropped(null)
+      }
+    )
   }
 
   return (
@@ -185,22 +188,20 @@ export const PrioritiesTable = ({ priorities, departments, isPending }: Prioriti
       >
         <Table className='min-w-3xl table-fixed'>
           <colgroup>
-            {sortable ? <col className='w-10' /> : null}
+            <col className='w-10' />
             <col className='w-40' />
             <col />
-            {sortable ? null : <col className='w-56' />}
+            {departments ? <col className='w-56' /> : null}
             <col className='w-24' />
           </colgroup>
           <TableHeader>
             <TableRow>
-              {sortable ? (
-                <TableHead>
-                  <span className='sr-only'>Move</span>
-                </TableHead>
-              ) : null}
+              <TableHead>
+                <span className='sr-only'>Move</span>
+              </TableHead>
               <TableHead>Colour</TableHead>
               <TableHead>Name</TableHead>
-              {sortable ? null : <TableHead>Department</TableHead>}
+              {departments ? <TableHead>Department</TableHead> : null}
               <TableHead>
                 {/* The column is obvious from its buttons; the label is for screen readers. */}
                 <span className='sr-only'>Actions</span>
@@ -220,9 +221,9 @@ export const PrioritiesTable = ({ priorities, departments, isPending }: Prioriti
                   <SortableRow
                     key={priority.id}
                     priority={priority}
-                    sortable={sortable}
                     department={departments ? departmentOf(priority) : undefined}
-                    disabled={save.isPending}
+                    // Only the hierarchy in scope moves: the server renumbers one at a time.
+                    disabled={save.isPending || priority.department !== scope}
                   />
                 ))}
               </SortableContext>

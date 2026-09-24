@@ -10,11 +10,6 @@ export const fieldText = (value: number | null) => (value === null ? '' : String
 export const departmentCoilFilter = (filters: CoilFilter[] | undefined) =>
   filters?.find(filter => !filter.folder_autoid) ?? null
 
-/** A folder's own filter wins over the department-wide one for the coils in that folder. */
-export const filterFor = (lot: CoilLot, filters: CoilFilter[] | undefined) =>
-  filters?.find(filter => !!lot.folder_id && filter.folder_autoid === lot.folder_id) ??
-  departmentCoilFilter(filters)
-
 const bounded = (min: number | null, max: number | null) => min !== null || max !== null
 
 export const coilFilterActive = (filter: CoilFilter | null): filter is CoilFilter =>
@@ -23,22 +18,6 @@ export const coilFilterActive = (filter: CoilFilter | null): filter is CoilFilte
   (bounded(filter.thickness_min, filter.thickness_max) ||
     bounded(filter.width_min, filter.width_max) ||
     bounded(filter.grade_min, filter.grade_max))
-
-/**
- * A blank value has nothing to range-test, so it passes rather than fails: a coil EBMS has only just
- * pushed in must not vanish for want of a measurement.
- */
-const withinLeg = (value: number | null, min: number | null, max: number | null) =>
-  value === null || ((min === null || value >= min) && (max === null || value <= max))
-
-/**
- * "When the Thickness, Width and Grade ALL fall within the ranges set in the filter, then that coil will
- * show up in the Coils tab." A lot carries no grade yet (see TODO.md), so that leg passes.
- */
-export const passesCoilFilter = (lot: CoilLot, filter: CoilFilter | null) =>
-  !coilFilterActive(filter) ||
-  (withinLeg(lot.coil_thickness, filter.thickness_min, filter.thickness_max) &&
-    withinLeg(lot.width, filter.width_min, filter.width_max))
 
 // --- Coil geometry -------------------------------------------------------
 

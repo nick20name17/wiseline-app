@@ -35,6 +35,15 @@ export const linesOf = (group: CutlistGroup) => {
 }
 
 /**
+ * The lines behind a row that an edit can still reach: a source outlives its line item, and one whose
+ * item is gone has nothing left to patch.
+ */
+export const editableLines = (group: CutlistGroup) =>
+  linesOf(group).filter(
+    (line): line is CutlistSource & { item_id: number } => line.item_id !== null
+  )
+
+/**
  * What a bendlist row says about the trim: the line's own figures when one line is behind it, the
  * sums when several orders' pieces were cut as one. A description or status the lines disagree on is
  * `null` — the row cannot speak for all of them.

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { LocationSlot } from '../api'
-import { applyKeypad, packageContents, warehousesOf } from './wrapping'
+import type { LocationSlot, WrappingRow } from '../api'
+import {
+  applyKeypad,
+  defaultWarehouseOf,
+  overPackageLimit,
+  packageContents,
+  packageWeight,
+  warehousesOf
+} from './wrapping'
 
 describe('applyKeypad', () => {
   it('adds, takes away, or replaces', () => {
@@ -35,6 +42,18 @@ describe('warehousesOf', () => {
   })
 })
 
+describe('defaultWarehouseOf', () => {
+  const slot = (warehouse: string | null, isDefault: boolean) =>
+    ({ warehouse, warehouse_is_default: isDefault }) as LocationSlot
+
+  it('names the warehouse the server marks as the default', () => {
+    expect(defaultWarehouseOf([slot('Coil Yard', false), slot('Main Warehouse', true)])).toBe(
+      'Main Warehouse'
+    )
+    expect(defaultWarehouseOf([slot('Coil Yard', false)])).toBeNull()
+  })
+})
+
 describe('packageContents', () => {
   it('names each line by product, falling back to its autoid', () => {
     const names = new Map([['A1', 'TBT8262']])
@@ -51,5 +70,29 @@ describe('packageContents', () => {
 
   it('says so when the package is empty', () => {
     expect(packageContents([], new Map())).toBe('—')
+  })
+})
+
+describe('packageWeight', () => {
+  const line = (unitWeight: number | null, quantity: number) => ({
+    row: { unit_weight: unitWeight } as WrappingRow,
+    quantity
+  })
+
+  it('weighs every staged piece at its line weight', () => {
+    expect(packageWeight([line(1.1, 3), line(2.5, 4)])).toBe(13.3)
+  })
+
+  it('knows no weight once a line does not say what it weighs', () => {
+    expect(packageWeight([line(1.1, 3), line(null, 4)])).toBeNull()
+  })
+})
+
+describe('overPackageLimit', () => {
+  it('holds a package to the ceiling, if there is one and its weight is known', () => {
+    expect(overPackageLimit(501, 500)).toBe(true)
+    expect(overPackageLimit(500, 500)).toBe(false)
+    expect(overPackageLimit(900, null)).toBe(false)
+    expect(overPackageLimit(null, 500)).toBe(false)
   })
 })

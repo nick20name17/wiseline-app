@@ -16,9 +16,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { useRetained } from '@/lib/use-retained'
-import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
-import { scheduledOrdersQuery } from '../api'
 import { CUTLIST_TOTAL_TABLE } from '../lib/columns'
 import { linesOf, type CutlistGroup } from '../lib/cutlists'
 import { Figure } from './figure'
@@ -33,9 +31,7 @@ type CutlistTotalDialogProps = {
  * together, which is right for cutting and useless for answering «whose is this» — this is that
  * answer, so it names the orders and their lines rather than repeating the size.
  *
- * The row's sources describe each line; only the order's number and customer are read off the
- * Scheduled tab, since a source names its order by autoid. PO# and Drawing have nothing behind them
- * yet (TODO.md).
+ * The board's columns p1 (538,353), less Drawing, which the backend has deferred (TODO.md).
  */
 export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTotalDialogProps) => {
   const [group, release] = useRetained(current)
@@ -43,8 +39,6 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
   // The word takes the first column that is not the figure's own, so dragging Qty to mfg to the
   // front moves «Total» along rather than losing it.
   const totalLabel = columns.order.find(key => key !== 'qty')
-  const { data: orders } = useQuery({ ...scheduledOrdersQuery(undefined), enabled: !!group })
-  const byOrder = new Map(orders?.results.map(order => [order.id, order]))
   const entries = group ? linesOf(group) : []
 
   return (
@@ -67,54 +61,54 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entries.map(entry => {
-                    const order = entry.order ? byOrder.get(entry.order) : undefined
-                    return (
-                      <TableRow key={entry.origin_item ?? entry.order}>
-                        {columns.cells({
-                          order: (
-                            <TableCell>
-                              <Figure value={order?.invoice || entry.order} />
-                            </TableCell>
-                          ),
-                          customer: (
-                            <TableCell>
-                              <span className='truncate'>
-                                {entry.is_stock ? 'Stock' : (order?.customer ?? '—')}
-                              </span>
-                            </TableCell>
-                          ),
-                          pid: (
-                            <TableCell>
-                              <Figure value={entry.product_id} />
-                            </TableCell>
-                          ),
-                          desc: (
-                            <TableCell>
-                              <span className='truncate text-muted-foreground'>
-                                {entry.description ?? '—'}
-                              </span>
-                            </TableCell>
-                          ),
-                          qtyord: (
-                            <TableCell>
-                              <Figure value={entry.qty_ordered} />
-                            </TableCell>
-                          ),
-                          stock: (
-                            <TableCell>
-                              <Figure value={entry.pull_from_stock || null} />
-                            </TableCell>
-                          ),
-                          qty: (
-                            <TableCell>
-                              <Figure value={entry.quantity} />
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
+                  {entries.map(entry => (
+                    <TableRow key={entry.origin_item ?? entry.order}>
+                      {columns.cells({
+                        order: (
+                          <TableCell>
+                            <Figure value={entry.order_number ?? entry.order} />
+                          </TableCell>
+                        ),
+                        customer: (
+                          <TableCell>
+                            <span className='truncate'>{entry.customer ?? '—'}</span>
+                          </TableCell>
+                        ),
+                        po: (
+                          <TableCell>
+                            <Figure value={entry.po_number} />
+                          </TableCell>
+                        ),
+                        pid: (
+                          <TableCell>
+                            <Figure value={entry.product_id} />
+                          </TableCell>
+                        ),
+                        desc: (
+                          <TableCell>
+                            <span className='truncate text-muted-foreground'>
+                              {entry.description ?? '—'}
+                            </span>
+                          </TableCell>
+                        ),
+                        qtyord: (
+                          <TableCell>
+                            <Figure value={entry.qty_ordered} />
+                          </TableCell>
+                        ),
+                        stock: (
+                          <TableCell>
+                            <Figure value={entry.pull_from_stock || null} />
+                          </TableCell>
+                        ),
+                        qty: (
+                          <TableCell>
+                            <Figure value={entry.quantity} />
+                          </TableCell>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
                 </TableBody>
                 {/* The figure the window was opened from, under the column it belongs to. */}
                 <TableFooter>

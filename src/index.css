@@ -209,8 +209,9 @@
     margin: 0.5in;
   }
 
-  /* Everything that is not the sheet steps out of the way, backdrop included. */
-  body:has([data-print-report]) > *:not(:has([data-print-report])) {
+  /* Everything that is not the sheet steps out of the way, backdrop included. The sheet may sit
+     straight under <body> too, which `:has()` alone would miss: it never matches an element itself. */
+  body:has([data-print-report]) > *:not([data-print-report], :has([data-print-report])) {
     display: none !important;
   }
   [data-slot='dialog-overlay'] {
