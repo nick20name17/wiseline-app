@@ -375,6 +375,8 @@ export const CompletedOrderDialog = ({
       <RemoveLocationDialog
         order={order?.order ?? ''}
         locations={locations ?? []}
+        // Until the detail loads the packages are unknown, so the last location stays.
+        hasPackages={data ? data.packages.length > 0 : true}
         location={removing}
         onOpenChange={open => !open && setRemoving(null)}
         onReplace={() => {

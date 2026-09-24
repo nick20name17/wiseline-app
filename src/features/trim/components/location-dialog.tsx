@@ -33,7 +33,7 @@ import {
   type LocationSlot,
   type OrderLocation
 } from '../api'
-import { defaultWarehouseOf, overWeight, warehousesOf } from '../lib/wrapping'
+import { defaultWarehouseOf, overWeight, warehousesOf, type ShownLocation } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
@@ -218,7 +218,7 @@ export const LocationDialog = ({
 }
 
 type LocationChipsProps = {
-  locations: OrderLocation[]
+  locations: ShownLocation[]
   onRemove: (location: OrderLocation) => void
 }
 
@@ -228,7 +228,7 @@ export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
     return <span className='text-xs text-muted-foreground'>No location assigned</span>
 
   return locations.map(spot => {
-    const over = spot.max_weight !== null && spot.weight_on_it > spot.max_weight
+    const over = !!spot.over || (spot.max_weight !== null && spot.weight_on_it > spot.max_weight)
 
     return (
       <button
@@ -254,8 +254,10 @@ export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
 
 type RemoveLocationDialogProps = {
   order: string
-  /** Every location the order stands on — the last one cannot go while packages are on it. */
+  /** Every location the order stands on — the last one cannot go while the order has packages. */
   locations: OrderLocation[]
+  /** Counted on the order, not its locations: taking one off can leave its packages on none. */
+  hasPackages: boolean
   /** The one being taken off, or `null` when nothing is being asked. */
   location: OrderLocation | null
   onOpenChange: (open: boolean) => void
@@ -272,6 +274,7 @@ type RemoveLocationDialogProps = {
 export const RemoveLocationDialog = ({
   order,
   locations,
+  hasPackages,
   location: current,
   onOpenChange,
   onRemoved,
@@ -280,7 +283,7 @@ export const RemoveLocationDialog = ({
   const [location, release] = useRetained(current)
   const remove = useRemoveOrderLocation()
   const code = location?.name ?? String(location?.location_id ?? '')
-  const blocked = locations.length <= 1 && locations.some(spot => spot.packages > 0)
+  const blocked = locations.length <= 1 && hasPackages
 
   if (blocked)
     return (
@@ -315,9 +318,9 @@ export const RemoveLocationDialog = ({
       onOpenChangeComplete={release}
       title='Remove location'
       description='Are you sure you want to remove this location from this order?'
-      confirmLabel='Yes, remove'
+      confirmLabel='Yes'
       destructive
-      cancelLabel='Cancel'
+      cancelLabel='No'
       isPending={remove.isPending}
       onConfirm={() =>
         location &&

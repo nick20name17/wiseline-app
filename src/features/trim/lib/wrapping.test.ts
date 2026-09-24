@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { LocationSlot, WrappingRow } from '../api'
+import type { LocationSlot, OrderLocation, WrappingRow } from '../api'
 import {
   applyKeypad,
+  benchLocations,
   defaultWarehouseOf,
   overPackageLimit,
   packageContents,
@@ -94,5 +95,40 @@ describe('overPackageLimit', () => {
     expect(overPackageLimit(500, 500)).toBe(false)
     expect(overPackageLimit(900, null)).toBe(false)
     expect(overPackageLimit(null, 500)).toBe(false)
+  })
+})
+
+describe('benchLocations', () => {
+  const spot = (location_id: number, current = false): OrderLocation => ({
+    location_id,
+    name: String(location_id),
+    max_weight: 1000,
+    packages: 1,
+    weight_on_it: 400,
+    orange: false,
+    current
+  })
+  const slot = (location_id: number) =>
+    ({ location_id, name: String(location_id), max_weight: 800, used_weight: 100 }) as LocationSlot
+
+  it('shows a picked location before any package lands on it, and locks the current one', () => {
+    const { shown, pendingId } = benchLocations([spot(405, true)], slot(410), null)
+    expect(pendingId).toBe(410)
+    expect(shown.map(({ location_id, orange }) => [location_id, orange])).toEqual([
+      [405, true],
+      [410, false]
+    ])
+    expect(shown[1]).toMatchObject({ packages: 0, weight_on_it: 100, current: true })
+  })
+
+  it('adds nothing for a pick the order already stands on', () => {
+    const { shown, pendingId } = benchLocations([spot(405, true)], slot(405), null)
+    expect(pendingId).toBeNull()
+    expect(shown).toEqual([spot(405, true)])
+  })
+
+  it('marks the location the staged package would overload', () => {
+    const { shown } = benchLocations([spot(405, true), spot(406)], null, 405)
+    expect(shown.map(location => !!location.over)).toEqual([true, false])
   })
 })

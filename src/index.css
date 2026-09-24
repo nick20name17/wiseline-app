@@ -34,6 +34,7 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-caution: var(--caution);
+  --color-bypass: var(--bypass);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -93,10 +94,12 @@
   --destructive: oklch(0.577 0.245 27.325);
 
   /* The board's signal colours, in its own order of escalation: dealt with, under way, stepped
-     around. Amber says work is moving, orange says it took a route it normally would not. */
+     around. Amber says work is moving, orange says a remake is owed or a location is locked, purple
+     says the order skipped production. */
   --success: oklch(0.596 0.145 152.2);
   --warning: oklch(0.639 0.129 82.4);
   --caution: oklch(0.652 0.151 52.3);
+  --bypass: oklch(0.56 0.17 300);
 
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -147,6 +150,7 @@
   --success: oklch(0.71 0.152 152.2);
   --warning: oklch(0.75 0.129 82.4);
   --caution: oklch(0.74 0.151 52.3);
+  --bypass: oklch(0.72 0.15 300);
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);

@@ -89,6 +89,27 @@ const solve = (lot: CoilLot, current: Draft, field: CoilFigure, raw: string): Dr
   return next
 }
 
+/** Which coil the window is adjusting, as the floor tells coils apart. */
+const CoilFacts = ({ lot }: { lot: CoilLot }) => (
+  <div className='flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm'>
+    <span>
+      <span className='font-medium'>Product ID:</span>{' '}
+      <span className='font-mono'>{lot.product_id ?? '—'}</span>
+    </span>
+    <span>
+      <span className='font-medium'>Colour:</span> {lot.color ?? '—'}
+    </span>
+    <span>
+      <span className='font-medium'>Width:</span>{' '}
+      <span className='font-mono'>{lot.width ?? '—'}</span>
+    </span>
+    <span>
+      <span className='font-medium'>Coil #:</span>{' '}
+      <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+    </span>
+  </div>
+)
+
 type MeasureFieldProps = {
   measure: Measure<string>
   value: string
@@ -224,16 +245,7 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         </p>
       )}
 
-      <div className='flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm'>
-        <span>
-          <span className='font-medium'>Product ID:</span>{' '}
-          <span className='font-mono'>{lot.product_id ?? '—'}</span>
-        </span>
-        <span>
-          <span className='font-medium'>Coil #:</span>{' '}
-          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
-        </span>
-      </div>
+      <CoilFacts lot={lot} />
 
       <DialogFooter>
         <Button variant='outline' onClick={onClose}>

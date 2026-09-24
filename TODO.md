@@ -111,3 +111,22 @@ Orders» p1 (245,508): make them the pieces of stock orders scheduled that day, 
 Slinet to be able to continue working on this cutlist» p1 (502,469). Gating the Slinet's Complete on a
 coil of the list's colour being checked into the Slinet is a few lines in `CutlistRows`, but while the
 backend has no coil lots it would stop every cutlist. Wait for coil lots, then add the gate.
+
+## Backend: a bendlist row mixes products of one size
+
+**Ask:** split bendlist rows by product as well as width × length, each with its own Complete.
+
+**Why:** «Click the drop down on a bendlist to see all the line items that were assigned to the
+Machine» p1 (653,304). A row holding two products of the same size shows «2 lines» and no ID or
+Description; Complete is per row, so the app cannot split it on its side.
+
+**On our side once it lands:** nothing changes; `describeGroup` names the one product behind a row.
+
+## Backend: no Length on a completed order's lines
+
+**Ask:** `length` on each line of `GET` completed-order detail.
+
+**Why:** the board's Completed Orders line table is Qty Ordered, Stock, ID, Description, Length, Line
+Item Notes p1 (878,571).
+
+**On our side once it lands:** Length and Line Item Notes columns go into `COMPLETED_LINES_TABLE`.

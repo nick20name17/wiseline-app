@@ -25,6 +25,7 @@ import { WRAP_LINES_TABLE } from '../lib/columns'
 import { formatDate } from '../lib/format'
 import { itemStatus } from '../lib/status'
 import {
+  benchLocations,
   orderOverdue,
   overPackageLimit,
   overWeight,
@@ -35,7 +36,8 @@ import {
   remanState,
   stagedQuantity,
   wrapAllowed,
-  lineName
+  lineName,
+  type ShownLocation
 } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
@@ -399,10 +401,8 @@ type CreatePrintButtonProps = {
   order: string
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
-  targetSlot: LocationSlot | null
   /** `null` when a staged line does not say what it weighs; then no weight is sent. */
   weight: number | null
-  limit: number | null
   overPackage: boolean
   overLocation: boolean
   onPrinted: () => void
@@ -417,9 +417,7 @@ const CreatePrintButton = ({
   order,
   lines,
   target,
-  targetSlot,
   weight,
-  limit,
   overPackage,
   overLocation,
   onPrinted
@@ -429,11 +427,12 @@ const CreatePrintButton = ({
     setConfirming(false)
     onPrinted()
   })
-  const where = target?.name ?? target?.location_id ?? 'This location'
-  const reasons = [
-    overPackage && `This package is over the Max Weight per package (${weight} > ${limit} lb).`,
-    overLocation && `${where} would exceed ${targetSlot?.max_weight ?? 0} lb (soft limit).`
-  ].filter(Boolean)
+  // The board's own questions p1 (951,365) and p1 (861,440); both at once reads as one.
+  const question = overPackage
+    ? overLocation
+      ? 'The package you are trying to create is over the weight limit, and with it the location will be over the weight limit too, are you sure you want to continue?'
+      : 'The package you are trying to create is over the weight limit, are you sure you want to continue?'
+    : 'With this package the location will be over the weight limit, are you sure you want to continue?'
   const pieces = lines.reduce((total, line) => total + line.quantity, 0)
 
   const print = (override: boolean) =>
@@ -461,7 +460,7 @@ const CreatePrintButton = ({
     <>
       <Button
         disabled={!lines.length || !target || createPackage.isPending}
-        onClick={() => (reasons.length ? setConfirming(true) : print(false))}
+        onClick={() => (overPackage || overLocation ? setConfirming(true) : print(false))}
       >
         <Printer data-icon='inline-start' />
         Create &amp; print
@@ -478,9 +477,9 @@ const CreatePrintButton = ({
               ? 'Package over weight limit'
               : 'Location over weight limit'
         }
-        description={`${reasons.join(' ')} Print anyway?`}
-        confirmLabel='Print anyway'
-        cancelLabel='Cancel'
+        description={question}
+        confirmLabel='Yes, Create & Print'
+        cancelLabel='No'
         isPending={createPackage.isPending}
         onConfirm={() => print(true)}
       />
@@ -517,7 +516,7 @@ type OrderFactsProps = {
   number: string
   /** Any of the order's rows: the order info rides on every one. */
   order: WrappingRow
-  locations: OrderLocation[]
+  locations: ShownLocation[]
   onRemove: (location: OrderLocation) => void
 }
 
@@ -598,17 +597,18 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
     .filter(line => line.quantity > 0)
 
   const { target, slot: targetSlot } = packageTarget(picked, locations, slots)
-  // Once a second location is picked, the one packages have been going to turns orange: nothing more
-  // goes on it (p1 (861,462)). The server marks it too, but only after the next package lands.
-  const shownLocations = (locations ?? []).map(spot =>
-    spot.current && picked && picked.location_id !== spot.location_id
-      ? { ...spot, orange: true }
-      : spot
-  )
   const weight = lines.length ? packageWeight(lines) : null
   const limit = department?.max_package_weight ?? null
   const overPackage = overPackageLimit(weight, limit)
   const overTarget = !!targetSlot && !!weight && overWeight(targetSlot, weight)
+  const { shown: shownLocations, pendingId } = benchLocations(
+    locations,
+    picked,
+    overTarget ? (target?.location_id ?? null) : null
+  )
+  // Nothing to take off the server for a location no package has gone to yet.
+  const removeLocation = (spot: OrderLocation) =>
+    spot.location_id === pendingId ? setPicked(null) : setRemoving(spot)
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
@@ -625,7 +625,12 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         }
       />
 
-      <OrderFacts number={number} order={order} locations={shownLocations} onRemove={setRemoving} />
+      <OrderFacts
+        number={number}
+        order={order}
+        locations={shownLocations}
+        onRemove={removeLocation}
+      />
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
         <Button variant='outline' disabled={!lines.length} onClick={() => setPicking('package')}>
@@ -638,9 +643,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
           order={order.order}
           lines={lines}
           target={target}
-          targetSlot={targetSlot}
           weight={weight}
-          limit={limit}
           overPackage={overPackage}
           overLocation={overTarget}
           onPrinted={() => setAmounts({})}
@@ -696,7 +699,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
               )
             : setPicked(slot)
         }
-        onRemove={setRemoving}
+        onRemove={removeLocation}
       />
 
       <PackagesDialog
@@ -710,11 +713,17 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       <RemoveLocationDialog
         order={order.order}
         locations={locations ?? []}
+        hasPackages={rows.some(row => row.wrapped > 0)}
         location={removing}
         onOpenChange={open => !open && setRemoving(null)}
         // A location taken off is no longer somewhere the next package can go.
         onRemoved={gone => picked?.location_id === gone.location_id && setPicked(null)}
-        onReplace={() => setPicking('replace')}
+        // Replacing the last location picks where every package goes, so a pending pick is dropped:
+        // left in, its cell would read as the order's own and clicking it would remove, not move.
+        onReplace={() => {
+          setPicked(null)
+          setPicking('replace')
+        }}
       />
     </div>
   )

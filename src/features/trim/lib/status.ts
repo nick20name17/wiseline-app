@@ -3,7 +3,7 @@
  *
  * The board tints by what the status means rather than by how far along it is: grey for standing
  * still, blue for the floor working on it, amber while the order is moving or a trim waits on the
- * shelf, green once it is wrapped, and orange for a trim that took a route it normally would not.
+ * shelf, green once it is wrapped, and purple for an order that bypassed production.
  *
  * One value set spans every department; which of them an order or a line item can actually reach in
  * Trim is the server's business. Anything unrecognised still has to render, so it falls back to its
@@ -13,13 +13,13 @@ const GREY = 'bg-muted text-muted-foreground'
 const BLUE = 'bg-primary/10 text-primary'
 const AMBER = 'bg-warning/15 text-warning'
 const GREEN = 'bg-success/10 text-success'
-const ORANGE = 'bg-caution/15 text-caution'
+const PURPLE = 'bg-bypass/15 text-bypass'
 
 const ORDER_STATUS: Record<string, { label: string; tint: string }> = {
   not_started: { label: 'Not Started', tint: GREY },
   in_progress: { label: 'In Progress', tint: AMBER },
   wrapped: { label: 'Wrapped', tint: GREEN },
-  bypassed: { label: 'Bypassed', tint: ORANGE },
+  bypassed: { label: 'Bypassed', tint: PURPLE },
   completed: { label: 'Completed', tint: GREEN }
 }
 
@@ -31,7 +31,7 @@ const ITEM_STATUS: Record<string, { label: string; tint: string }> = {
   in_progress: { label: 'In Progress', tint: AMBER },
   wrapped: { label: 'Wrapped', tint: GREEN },
   stock: { label: 'Stock', tint: AMBER },
-  bypassed: { label: 'Bypassed', tint: ORANGE }
+  bypassed: { label: 'Bypassed', tint: PURPLE }
 }
 
 const humanise = (status: string) =>
