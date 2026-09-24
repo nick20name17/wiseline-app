@@ -70,6 +70,38 @@ const list = (extra: Partial<Cutlist> = {}): Cutlist => ({
   ...extra
 })
 
+describe('groupRows', () => {
+  // p1 (650,330): width first, smallest on top, then the shortest length within a width.
+  it('sorts by width, then length', () => {
+    const groups = groupRows([
+      row(1, 1, { width: 14, length: 120 }),
+      row(2, 1, { width: 10, length: 198 }),
+      row(3, 1, { width: 10, length: 120 }),
+      row(4, 1, { width: 12, length: 96 })
+    ])
+
+    expect(groups.map(group => `${group.width}x${group.length}`)).toEqual([
+      '10x120',
+      '10x198',
+      '12x96',
+      '14x120'
+    ])
+  })
+
+  // p1 (507,291): one line per width and length, its pieces and line items summed in.
+  it('combines rows of the same width and length', () => {
+    const groups = groupRows([
+      row(1, 1, { quantity: 4 }),
+      row(2, 2, { quantity: 3, vented: true }),
+      row(3, 1, { width: 8, quantity: 1 })
+    ])
+
+    expect(groups).toHaveLength(2)
+    expect(groups[1]).toMatchObject({ width: 12, length: 120, quantity: 7, vented: 3 })
+    expect(groups[1]?.sources.map(line => line.origin_item)).toEqual(['1', '2'])
+  })
+})
+
 describe('slinetColumns', () => {
   it('puts Vented straight after the rollformer', () => {
     const columns = slinetColumns([
