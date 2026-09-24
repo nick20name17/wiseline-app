@@ -58,9 +58,17 @@ const SupplierList = () => {
             {suppliers.length} of {count} {count === 1 ? 'supplier' : 'suppliers'}
           </p>
           <ul className='max-h-80 overflow-y-auto rounded-lg border border-border'>
-            {suppliers.map(({ supplier }) => (
-              <li key={supplier} className='border-b border-border px-3 py-2 last:border-b-0'>
-                {supplier}
+            {suppliers.map(({ supplier, name }) => (
+              <li
+                key={supplier}
+                className='flex items-baseline justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0'
+              >
+                <span className='truncate'>{name ?? supplier}</span>
+                {name ? (
+                  <span className='shrink-0 font-mono text-xs text-muted-foreground'>
+                    {supplier}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

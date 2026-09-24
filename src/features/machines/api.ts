@@ -150,7 +150,16 @@ const SUPPLIERS_PAGE_SIZE = 50
 
 const suppliersPageSchema = z.object({
   count: z._default(z.number(), 0),
-  results: z._default(z.array(z.object({ supplier: z.string() })), [])
+  results: z._default(
+    z.array(
+      z.object({
+        // The EBMS vendor id; `name` is null for a vendor APVENDOR does not know.
+        supplier: z.string(),
+        name: z._default(z.nullable(z.string()), null)
+      })
+    ),
+    []
+  )
 })
 
 /** The vendors EBMS buys coils from, alphabetical, a page at a time. Read-only: EBMS keeps them. */
