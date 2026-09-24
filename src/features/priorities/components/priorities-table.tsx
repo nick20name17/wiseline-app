@@ -184,7 +184,7 @@ export const PrioritiesTable = ({
     if (!moved) return
     setDropped(moved.rows)
     save.mutate(
-      { department: scope, ids: moved.ids, changed: moved.changed },
+      { department: scope, ids: moved.ids },
       {
         // By now the cache holds the saved order, or the old one again if the save failed.
         onSettled: () => setDropped(null)
