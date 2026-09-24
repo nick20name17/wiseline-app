@@ -9,7 +9,10 @@ const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   code: z._default(z.string(), ''),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. Trim's schema reads it too, and whichever fetches first fills the
+  // shared cache, so every copy of this schema has to keep it.
+  max_package_weight: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>

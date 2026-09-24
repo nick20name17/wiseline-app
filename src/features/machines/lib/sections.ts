@@ -11,6 +11,8 @@ export type MachineSection = {
   key: string
   name: string
   code: string
+  /** Missing on the section of machines whose department is gone. */
+  department?: Department
   unit: 'bends' | 'pieces'
   machines: Machine[]
 }
@@ -31,6 +33,7 @@ export const machineSections = ({ machines, departments }: Input): MachineSectio
     key: String(department.id),
     name: department.name,
     code: department.code,
+    department,
     unit: department.code === BENDS_DEPARTMENT ? 'bends' : 'pieces',
     machines: all.filter(machine => machine.department === department.id)
   }))

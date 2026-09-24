@@ -6,7 +6,10 @@ const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   code: z._default(z.string(), ''),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. Trim's schema reads it too, and whichever fetches first fills the
+  // shared cache, so every copy of this schema has to keep it.
+  max_package_weight: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -82,24 +85,34 @@ export const useDeletePriority = (onSuccess: () => void) =>
     }
   })
 
+export type PriorityOrder = {
+  /** `null` is the hierarchy of the priorities with no department. */
+  department: number | null
+  ids: number[]
+  changed: { id: number; position: number }[]
+}
+
 /**
- * Saves a drag: each renumbered priority is its own PATCH, since there is no bulk endpoint (see
- * TODO.md). The list moves at once and snaps back if any save fails; the refetch afterwards shows
- * what the server kept, which after a partial failure is part of the move.
+ * Saves a drag. A department's hierarchy is one write: the server renumbers its priorities 1..n in
+ * the order given. `priorities/reorder/` only renumbers a department's own, so the ones with no
+ * department are saved a PATCH per moved row. The list moves at once and snaps back if the save
+ * fails.
  */
 export const useReorderPriorities = () =>
   useMutation({
     meta: { errorTitle: 'The order was not saved' },
-    mutationFn: (moved: Priority[]) =>
-      Promise.all(
-        moved.map(priority =>
-          authApi.patch(`priorities/${priority.id}/`, { json: { position: priority.position } })
-        )
-      ),
-    onMutate: async (moved, { client }) => {
+    mutationFn: ({ department, ids, changed }: PriorityOrder) =>
+      department === null
+        ? Promise.all(
+            changed.map(({ id, position }) =>
+              authApi.patch(`priorities/${id}/`, { json: { position } }).json()
+            )
+          )
+        : authApi.post('priorities/reorder/', { json: { department, ids } }).json(),
+    onMutate: async ({ ids }, { client }) => {
       await client.cancelQueries({ queryKey: prioritiesKeys.list() })
       const previous = client.getQueryData<Priority[]>(prioritiesKeys.list())
-      const positions = new Map(moved.map(priority => [priority.id, priority.position]))
+      const positions = new Map(ids.map((id, index) => [id, index + 1]))
       client.setQueryData<Priority[]>(prioritiesKeys.list(), priorities =>
         priorities?.map(priority => ({
           ...priority,

@@ -2,14 +2,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Cog, Database, Gauge, Package, Plus } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronRight, Cog, Gauge, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { departmentsQuery, machinesQuery, type Machine } from '../api'
 import { machineSections, type MachineSection } from '../lib/sections'
+import { CoilSuppliersDialog } from './coil-suppliers-dialog'
 import { MachineActions } from './machine-actions'
 import { CreateMachineDialog } from './machine-dialog'
+import { MaxPackageDialog } from './max-package-dialog'
 
 // The cutter is where a department's work enters its machines, which is why it is tagged.
 const GATEWAY_KIND = 'cutting'
@@ -17,22 +18,6 @@ const COIL_SUPPLIERS_DEPARTMENT = 'rollforming'
 
 // Cards stand in for the departments until they arrive; a plant runs three or four.
 const SKELETON_SECTIONS = 3
-
-type PendingButtonProps = { icon: ReactNode; children: ReactNode }
-
-/** A control the design has but the backend cannot serve yet (see TODO.md); shown, not usable. */
-const PendingButton = ({ icon, children }: PendingButtonProps) => (
-  <Tooltip>
-    {/* A disabled button takes no pointer events, so the hover lands on a wrapper instead. */}
-    <TooltipTrigger render={<span />}>
-      <Button variant='outline' disabled>
-        {icon}
-        {children}
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent>Waiting on the backend</TooltipContent>
-  </Tooltip>
-)
 
 type MachineRowProps = { machine: Machine; unit: MachineSection['unit'] }
 
@@ -79,12 +64,8 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
           <span className='font-mono text-xs text-muted-foreground'>{section.machines.length}</span>
         </button>
 
-        <PendingButton icon={<Package data-icon='inline-start' />}>
-          Max package · no limit
-        </PendingButton>
-        {section.code === COIL_SUPPLIERS_DEPARTMENT ? (
-          <PendingButton icon={<Database data-icon='inline-start' />}>Coil suppliers</PendingButton>
-        ) : null}
+        {section.department ? <MaxPackageDialog department={section.department} /> : null}
+        {section.code === COIL_SUPPLIERS_DEPARTMENT ? <CoilSuppliersDialog /> : null}
         <Button
           variant='ghost'
           size='icon-sm'

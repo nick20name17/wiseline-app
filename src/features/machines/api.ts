@@ -1,15 +1,32 @@
 import { authApi } from '@/api/client'
-import { queryOptions, useMutation } from '@tanstack/react-query'
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 const departmentSchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   code: z._default(z.string(), ''),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. Trim's schema reads it too, and whichever fetches first fills the
+  // shared cache, so every copy of this schema has to keep it.
+  max_package_weight: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
+
+// The server refuses 0 or less (gt=0), so the form does too.
+export const maxPackageWeightFormSchema = z.object({
+  max_package_weight: z
+    .number({ error: 'Enter a weight above 0' })
+    .check(z.positive('Enter a weight above 0'))
+})
+
+export type MaxPackageWeightForm = z.infer<typeof maxPackageWeightFormSchema>
 
 /** Same key and shape the boards use, so one copy of the departments is cached for all of them. */
 export const departmentsQuery = queryOptions({
@@ -115,4 +132,49 @@ export const useDeleteMachine = (onSuccess: () => void) =>
       await client.invalidateQueries({ queryKey: machinesKeys.all })
       onSuccess()
     }
+  })
+
+export const useUpdateMaxPackageWeight = (onSuccess: () => void) =>
+  useMutation({
+    mutationFn: ({ id, values }: { id: number; values: MaxPackageWeightForm }) =>
+      authApi.patch(`departments/${id}/`, { json: values }).json(),
+    onSuccess: async (_, __, ___, { client }) => {
+      // Every feature's copy of the departments, the boards' ceiling included.
+      await client.invalidateQueries({ queryKey: ['departments'] })
+      onSuccess()
+    }
+  })
+
+// A page is what the server hands out unasked; the list runs into the hundreds.
+const SUPPLIERS_PAGE_SIZE = 50
+
+const suppliersPageSchema = z.object({
+  count: z._default(z.number(), 0),
+  results: z._default(z.array(z.object({ supplier: z.string() })), [])
+})
+
+/** The vendors EBMS buys coils from, alphabetical, a page at a time. Read-only: EBMS keeps them. */
+export const coilSuppliersQuery = (search: string) =>
+  infiniteQueryOptions({
+    // Its own root: suppliers live in EBMS and nothing a machine write does touches them.
+    queryKey: ['coil-suppliers', search] as const,
+    queryFn: async ({ pageParam }) =>
+      suppliersPageSchema.parse(
+        await authApi
+          .get('coil-suppliers/', {
+            searchParams: {
+              search,
+              limit: SUPPLIERS_PAGE_SIZE,
+              offset: pageParam
+            }
+          })
+          .json()
+      ),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((sum, page) => sum + page.results.length, 0)
+      return loaded < last.count ? loaded : undefined
+    },
+    // The last term's list stays up while the next one loads, instead of blanking per keystroke.
+    placeholderData: keepPreviousData
   })
