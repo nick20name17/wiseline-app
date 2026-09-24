@@ -324,12 +324,21 @@ const PackageWeight = ({ weight, limit, overPackage, overLocation, slot }: Packa
       lb{limit === null ? '' : ` · max ${limit} per package`}
     </span>
     {slot?.max_weight ? (
-      <span className={cn('text-sm text-muted-foreground', overLocation && 'text-destructive')}>
-        {slot.remaining_weight ?? slot.max_weight} lb left on {slot.name ?? slot.location_id}
-      </span>
+      <LocationRoom slot={slot} max={slot.max_weight} over={overLocation} />
     ) : null}
   </span>
 )
+
+/** What the location still holds, or by how much it is already past its limit. */
+const LocationRoom = ({ slot, max, over }: { slot: LocationSlot; max: number; over: boolean }) => {
+  const room = slot.remaining_weight ?? max
+  const name = slot.name ?? slot.location_id
+  return (
+    <span className={cn('text-sm text-muted-foreground', (over || room < 0) && 'text-destructive')}>
+      {room < 0 ? `${-room} lb over on ${name}` : `${room} lb left on ${name}`}
+    </span>
+  )
+}
 
 type CompleteOrderButtonProps = {
   departmentId: number | undefined

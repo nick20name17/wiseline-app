@@ -86,6 +86,14 @@ export const CutlistCard = ({
           <ChevronRight className={cn('transition-transform', expanded && 'rotate-90')} />
         </Button>
 
+        {/* p1 (585,288): a list carrying stock-order lines is marked where the board's Production Date
+            cell would be; the day divider above the card carries the date itself. */}
+        {hasStock ? (
+          <span title='Carries stock-order lines' className='text-muted-foreground'>
+            <Package className='size-4' aria-label='Stock order' />
+          </span>
+        ) : null}
+
         {/* No title and no date: the day divider above the card says both. */}
         <span className='font-medium'>{cutlist.gauge_color || 'No gauge or colour'}</span>
 
@@ -100,13 +108,6 @@ export const CutlistCard = ({
           <RemakePill done={!!remake?.is_cut}>
             Remake{remake?.remanufacturing_qty ? ` · ${remake.remanufacturing_qty}` : ''}
           </RemakePill>
-        ) : null}
-
-        {/* p1 (585,288): a list carrying stock-order lines is marked. */}
-        {hasStock ? (
-          <span title='Carries stock-order lines' className='text-muted-foreground'>
-            <Package className='size-4' aria-label='Stock order' />
-          </span>
         ) : null}
 
         {/* The material is being cut: the machine's own work has not started, but it is coming. */}
