@@ -38,9 +38,19 @@ export const feetFromThickness = (thickness: number, material: number, core: num
 /**
  * Pounds per foot of this coil at a given Material Thickness, read off the coil's own current figures
  * and scaled by the thickness — the board gives no steel density to work it out from width. A coil
- * with no weight or length on record has nothing to read it from.
+ * being set up has no Material Thickness on record yet p1 (292,630), so its current weight per foot
+ * stands as it is; one with no weight or length on record has nothing to read it from.
  */
 export const poundsPerFoot = (lot: CoilLot, material: number) =>
-  lot.weight && lot.linear_feet && lot.material_thickness
-    ? (lot.weight / lot.linear_feet) * (material / lot.material_thickness)
+  lot.weight && lot.linear_feet
+    ? (lot.weight / lot.linear_feet) *
+      (lot.material_thickness ? material / lot.material_thickness : 1)
     : null
+
+/** Linear Feet and Weight at a typed Coil Thickness, for a coil whose build is on record. */
+export const figuresAtThickness = (lot: CoilLot, thickness: number) => {
+  if (!lot.material_thickness || !lot.core_od || !(thickness >= 0)) return null
+  const feet = feetFromThickness(thickness, lot.material_thickness, lot.core_od)
+  const perFoot = poundsPerFoot(lot, lot.material_thickness)
+  return { feet, weight: perFoot === null ? null : Math.round(feet * perFoot) }
+}

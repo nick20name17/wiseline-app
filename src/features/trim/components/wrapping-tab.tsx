@@ -92,13 +92,13 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={6} />
+            <TableSkeletonRows columns={WRAPPING_TABLE.columns.length} />
           ) : (
             days.map(day => (
               <Fragment key={day.date ?? 'undated'}>
                 {/* The date is said once, over the lines that share it. */}
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={WRAPPING_TABLE.columns.length}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
                       {day.date ? formatLongDate(day.date) : '—'}
                       {day.date === today() ? ' · today' : ''}

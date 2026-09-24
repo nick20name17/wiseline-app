@@ -90,8 +90,9 @@ export const CutlistCard = ({
         <span className='font-medium'>{cutlist.gauge_color || 'No gauge or colour'}</span>
 
         {/* A list carries the priority it was released under and nothing sets it here, so an
-            unprioritised one shows nothing rather than an invitation. */}
-        {cutlist.priority && !done ? <PriorityPill priority={cutlist.priority} /> : null}
+            unprioritised one shows nothing rather than an invitation. A done list keeps it: it stays
+            in Completed with the same formatting p1 (687,411). */}
+        {cutlist.priority ? <PriorityPill priority={cutlist.priority} /> : null}
 
         {/* A remake list is extra work on top of the day's, so it says so before anything else —
             orange until the Slinet marks its recut row Complete, green after (p1 (686,514)). */}
@@ -177,11 +178,11 @@ export const CutlistCard = ({
         title={`Mark this ${word} done?`}
         description={
           isSlinet
-            ? 'Confirm that you have made all the necessary coil adjustments and that you are done with this cutlist.'
-            : 'Confirm that you are done with this bendlist.'
+            ? 'Are you sure you have made all the necessary coil adjustments and that you are done with this cutlist?'
+            : 'Are you sure that you are done with this bendlist?'
         }
-        confirmLabel='Confirm'
-        cancelLabel='Cancel'
+        confirmLabel='Yes'
+        cancelLabel='No'
         isPending={finish.isPending}
         onConfirm={() => finish.mutate(cutlist.id, { onSuccess: () => setFinishing(false) })}
       />

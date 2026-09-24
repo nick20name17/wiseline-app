@@ -174,9 +174,13 @@ export const ALLOCATED_STOCK_TABLE: ColumnTable = {
 
 export const CUTLIST_COILS_TABLE: ColumnTable = {
   table: 'cutlist-coils',
+  // Gauge and width do not narrow this list, so they are what tells its coils apart p1 (463,379).
   columns: [
-    { key: 'num', label: 'Coil #' },
     { key: 'pid', label: 'Product ID' },
+    { key: 'width', label: 'Width' },
+    { key: 'gauge', label: 'Gauge' },
+    { key: 'color', label: 'Colour' },
+    { key: 'num', label: 'Coil #' },
     { key: 'thick', label: 'Thickness' },
     { key: 'lf', label: 'Linear feet' },
     { key: 'weight', label: 'Weight (lbs.)' },

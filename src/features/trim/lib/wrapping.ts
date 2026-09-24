@@ -63,6 +63,50 @@ export const packageTarget = (
   return { target, slot: slot ?? null }
 }
 
+/** An order's location as the bench shows it: `over` when the staged package would overload it. */
+export type ShownLocation = OrderLocation & { over?: boolean }
+
+/**
+ * The chips under Trim Location. A picked location shows the moment it is clicked p1 (937,395),
+ * though the server holds it only once a package lands there. Once a second one is picked, the one
+ * packages have been going to turns orange: nothing more goes on it p1 (861,462) — the server marks
+ * it too, but only after the next package lands. The one this package would overload is red before
+ * it is printed p1 (846,414).
+ */
+export const benchLocations = (
+  locations: OrderLocation[] | undefined,
+  picked: LocationSlot | null,
+  overloaded: number | null
+): { shown: ShownLocation[]; pendingId: number | null } => {
+  const onOrder = locations ?? []
+  const pending =
+    picked && !onOrder.some(spot => spot.location_id === picked.location_id) ? picked : null
+  const shown: ShownLocation[] = [
+    ...onOrder.map(spot =>
+      spot.current && picked && picked.location_id !== spot.location_id
+        ? { ...spot, orange: true }
+        : spot
+    ),
+    ...(pending
+      ? [
+          {
+            location_id: pending.location_id,
+            name: pending.name,
+            max_weight: pending.max_weight,
+            packages: 0,
+            weight_on_it: pending.used_weight,
+            orange: false,
+            current: true
+          }
+        ]
+      : [])
+  ]
+  return {
+    shown: shown.map(spot => (spot.location_id === overloaded ? { ...spot, over: true } : spot)),
+    pendingId: pending?.location_id ?? null
+  }
+}
+
 /** An order is late once its earliest production day has passed with pieces still to wrap. */
 export const orderOverdue = (rows: WrappingRow[]) => {
   const firstDay = rows

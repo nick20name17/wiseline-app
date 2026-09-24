@@ -208,7 +208,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
         open={confirming}
         onOpenChange={setConfirming}
         title='Create manufacturing batch?'
-        description={`Send ${picked.length} row${picked.length === 1 ? '' : 's'} to EBMS, each at its Wrapped figure. A row with its batch can no longer be wrapped.`}
+        description='This will create a manufacturing batch, are you sure that the amount(s) in the Wrapped column is (are) correct?'
         confirmLabel='Yes, Create Manufacturing Batch'
         cancelLabel='No'
         isPending={batch.isPending}

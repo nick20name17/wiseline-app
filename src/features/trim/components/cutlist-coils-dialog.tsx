@@ -26,7 +26,7 @@ import {
   type Cutlist
 } from '../api'
 import { CUTLIST_COILS_TABLE } from '../lib/columns'
-import { coilName } from '../lib/coils'
+import { coilName, figuresAtThickness } from '../lib/coils'
 import { ConfirmDialog } from './confirm-dialog'
 import { NoteInput } from './note-input'
 
@@ -112,7 +112,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent className='sm:max-w-5xl'>
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>
           <DialogDescription>
@@ -131,64 +131,87 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
                 <TableBody>
-                  {coils.map(coil => (
-                    <TableRow key={coil.id}>
-                      {columns.cells({
-                        num: (
-                          <TableCell>
-                            <span className='font-mono'>{coil.lot_number ?? '—'}</span>
-                          </TableCell>
-                        ),
-                        pid: (
-                          <TableCell>
-                            <span className='font-mono'>{coil.product_id ?? '—'}</span>
-                          </TableCell>
-                        ),
-                        thick: (
-                          <TableCell>
-                            <Input
-                              className='w-24'
-                              type='number'
-                              min={0}
-                              step='any'
-                              inputMode='decimal'
-                              aria-label={`Thickness in inches, coil ${coilName(coil)}`}
-                              placeholder={
-                                coil.coil_thickness === null ? '—' : String(coil.coil_thickness)
-                              }
-                              value={thickness[coil.id] ?? ''}
-                              onChange={event =>
-                                setThickness(current => ({
-                                  ...current,
-                                  [coil.id]: event.target.value
-                                }))
-                              }
-                            />
-                          </TableCell>
-                        ),
-                        lf: (
-                          <TableCell>
-                            <span className='font-mono'>{coil.linear_feet ?? '—'}</span>
-                          </TableCell>
-                        ),
-                        weight: (
-                          <TableCell>
-                            <span className='font-mono'>{coil.weight ?? '—'}</span>
-                          </TableCell>
-                        ),
-                        note: (
-                          <TableCell>
-                            <NoteInput
-                              aria-label={`Note, coil ${coilName(coil)}`}
-                              placeholder='Add note…'
-                              saved={coil.note ?? ''}
-                              onSave={note => update.mutate({ lotId: coil.id, edit: { note } })}
-                            />
-                          </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
+                  {coils.map(coil => {
+                    // The figures follow the thickness as it is typed p1 (471,427); Apply saves them.
+                    const typed = Number.parseFloat(thickness[coil.id] ?? '')
+                    // An unchanged thickness keeps the figures on record, not the formula's rounding.
+                    const preview =
+                      typed !== coil.coil_thickness ? figuresAtThickness(coil, typed) : null
+
+                    return (
+                      <TableRow key={coil.id}>
+                        {columns.cells({
+                          num: (
+                            <TableCell>
+                              <span className='font-mono'>{coil.lot_number ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          pid: (
+                            <TableCell>
+                              <span className='font-mono'>{coil.product_id ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          width: (
+                            <TableCell>
+                              <span className='font-mono'>{coil.width ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          gauge: (
+                            <TableCell>
+                              <span className='font-mono'>{coil.gauge ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          color: <TableCell>{coil.color ?? '—'}</TableCell>,
+                          thick: (
+                            <TableCell>
+                              <Input
+                                className='w-24'
+                                type='number'
+                                min={0}
+                                step='any'
+                                inputMode='decimal'
+                                aria-label={`Thickness in inches, coil ${coilName(coil)}`}
+                                placeholder={
+                                  coil.coil_thickness === null ? '—' : String(coil.coil_thickness)
+                                }
+                                value={thickness[coil.id] ?? ''}
+                                onChange={event =>
+                                  setThickness(current => ({
+                                    ...current,
+                                    [coil.id]: event.target.value
+                                  }))
+                                }
+                              />
+                            </TableCell>
+                          ),
+                          lf: (
+                            <TableCell>
+                              <span className='font-mono'>
+                                {preview?.feet ?? coil.linear_feet ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          weight: (
+                            <TableCell>
+                              <span className='font-mono'>
+                                {preview?.weight ?? coil.weight ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          note: (
+                            <TableCell>
+                              <NoteInput
+                                aria-label={`Note, coil ${coilName(coil)}`}
+                                placeholder='Add note…'
+                                saved={coil.note ?? ''}
+                                onSave={note => update.mutate({ lotId: coil.id, edit: { note } })}
+                              />
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

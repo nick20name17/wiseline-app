@@ -6,6 +6,7 @@ import {
   departmentCoilFilter,
   feetFromThickness,
   fieldText,
+  figuresAtThickness,
   poundsPerFoot,
   thicknessFromFeet
 } from './coils'
@@ -75,6 +76,28 @@ describe('the coil geometry', () => {
     expect(poundsPerFoot(lot(), 0.0179)).toBeCloseTo(6608 / 2260)
     expect(poundsPerFoot(lot(), 0.0358)).toBeCloseTo((2 * 6608) / 2260)
     expect(poundsPerFoot(lot({ weight: null }), 0.0179)).toBeNull()
+    expect(poundsPerFoot(lot({ material_thickness: null }), 0.0179)).toBeCloseTo(6608 / 2260)
+  })
+})
+
+describe('figuresAtThickness', () => {
+  it('works feet and weight out of a typed thickness on a coil whose build is on record', () => {
+    const feet = feetFromThickness(3, 0.0179, 20)
+    expect(figuresAtThickness(lot(), 3)).toEqual({
+      feet,
+      weight: Math.round(feet * (6608 / 2260))
+    })
+  })
+
+  it('has nothing to show without a build on record or a usable thickness', () => {
+    expect(figuresAtThickness(lot({ core_od: null }), 3)).toBeNull()
+    expect(figuresAtThickness(lot({ material_thickness: null }), 3)).toBeNull()
+    expect(figuresAtThickness(lot(), Number.NaN)).toBeNull()
+    expect(figuresAtThickness(lot(), -1)).toBeNull()
+  })
+
+  it('leaves Weight blank when the coil has no weight on record', () => {
+    expect(figuresAtThickness(lot({ weight: null }), 3)?.weight).toBeNull()
   })
 })
 

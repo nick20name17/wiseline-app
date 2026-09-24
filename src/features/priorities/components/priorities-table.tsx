@@ -41,6 +41,8 @@ type PrioritiesTableProps = {
 
 type SortableRowProps = {
   priority: Priority
+  /** Its place in its own hierarchy: 1 sorts above every other p1 (495,64). */
+  rank: number
   /** The department's name, shown when every department is listed. */
   department?: string
   disabled: boolean
@@ -76,7 +78,7 @@ class RowTouchSensor extends TouchSensor {
   ]
 }
 
-const SortableRow = ({ priority, department, disabled }: SortableRowProps) => {
+const SortableRow = ({ priority, rank, department, disabled }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -112,6 +114,9 @@ const SortableRow = ({ priority, department, disabled }: SortableRowProps) => {
         >
           <GripVertical className='size-3.5' />
         </button>
+      </TableCell>
+      <TableCell>
+        <span className='font-mono'>{rank}</span>
       </TableCell>
       <TableCell>
         <span className='inline-flex items-center gap-2'>
@@ -152,6 +157,16 @@ export const PrioritiesTable = ({
   const [dropped, setDropped] = useState<Priority[] | null>(null)
   const rows = dropped ?? priorities
 
+  // Each hierarchy counts from 1 on its own: a department's priorities, and those for every department.
+  const counted = new Map<number | null, number>()
+  const ranks = new Map(
+    rows.map(priority => {
+      const rank = (counted.get(priority.department) ?? 0) + 1
+      counted.set(priority.department, rank)
+      return [priority.id, rank]
+    })
+  )
+
   const departmentOf = (priority: Priority) =>
     departments?.find(department => department.id === priority.department)?.name ??
     'Every department'
@@ -189,6 +204,7 @@ export const PrioritiesTable = ({
         <Table className='min-w-3xl table-fixed'>
           <colgroup>
             <col className='w-10' />
+            <col className='w-24' />
             <col className='w-40' />
             <col />
             {departments ? <col className='w-56' /> : null}
@@ -199,6 +215,7 @@ export const PrioritiesTable = ({
               <TableHead>
                 <span className='sr-only'>Move</span>
               </TableHead>
+              <TableHead>Hierarchy</TableHead>
               <TableHead>Colour</TableHead>
               <TableHead>Name</TableHead>
               {departments ? <TableHead>Department</TableHead> : null}
@@ -210,7 +227,7 @@ export const PrioritiesTable = ({
           </TableHeader>
           <TableBody>
             {isPending ? (
-              <TableSkeletonRows columns={3} />
+              <TableSkeletonRows columns={4} />
             ) : (
               <SortableContext
                 items={rows.map(priority => priority.id)}
@@ -221,6 +238,7 @@ export const PrioritiesTable = ({
                   <SortableRow
                     key={priority.id}
                     priority={priority}
+                    rank={ranks.get(priority.id) ?? 0}
                     department={departments ? departmentOf(priority) : undefined}
                     // Only the hierarchy in scope moves: the server renumbers one at a time.
                     disabled={save.isPending || priority.department !== scope}
