@@ -17,6 +17,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
@@ -31,15 +32,6 @@ import {
   type MachineForm as MachineFormValues,
   type MachineKind
 } from '../api'
-
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
-
-// An empty ceiling means «no ceiling», which the API stores as null rather than 0.
-const asNumber = (value: string | number | null) => {
-  const typed = `${value ?? ''}`.trim()
-  return typed === '' ? null : Number(typed)
-}
 
 type MachineFormProps = {
   machine?: Machine

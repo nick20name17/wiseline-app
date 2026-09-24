@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
+import { asNumber } from '@/lib/form'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
@@ -56,8 +57,6 @@ const rangesOf = (filter: CoilFilter | null): Ranges => {
   }
 }
 
-const number = (value: string) => (value.trim() === '' ? null : Number(value))
-
 type FilterFormProps = {
   departmentId: number | undefined
   current: CoilFilter | null
@@ -74,12 +73,12 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
     setRanges(all => ({ ...all, [key]: { ...all[key], ...patch } }))
 
   const values = (): CoilFilterForm => ({
-    thickness_min: ranges.thickness.all ? null : number(ranges.thickness.min),
-    thickness_max: ranges.thickness.all ? null : number(ranges.thickness.max),
-    width_min: ranges.width.all ? null : number(ranges.width.min),
-    width_max: ranges.width.all ? null : number(ranges.width.max),
-    grade_min: ranges.grade.all ? null : number(ranges.grade.min),
-    grade_max: ranges.grade.all ? null : number(ranges.grade.max),
+    thickness_min: ranges.thickness.all ? null : asNumber(ranges.thickness.min),
+    thickness_max: ranges.thickness.all ? null : asNumber(ranges.thickness.max),
+    width_min: ranges.width.all ? null : asNumber(ranges.width.min),
+    width_max: ranges.width.all ? null : asNumber(ranges.width.max),
+    grade_min: ranges.grade.all ? null : asNumber(ranges.grade.min),
+    grade_max: ranges.grade.all ? null : asNumber(ranges.grade.max),
     apply_all: BOUNDS.every(bound => ranges[bound.key].all)
   })
 

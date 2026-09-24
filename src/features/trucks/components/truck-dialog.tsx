@@ -11,6 +11,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
+import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
@@ -41,34 +42,34 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
       noValidate
     >
       <FieldGroup>
-        <Field data-invalid={errors.name ? true : undefined}>
+        <Field data-invalid={invalid(errors.name)}>
           <RequiredLabel htmlFor='truck-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='truck-name'
               placeholder='e.g. Unit 12'
-              aria-invalid={errors.name ? true : undefined}
+              aria-invalid={invalid(errors.name)}
               {...form.register('name')}
             />
           </InputGroup>
           <FieldError errors={[errors.name]} />
         </Field>
 
-        <Field data-invalid={errors.plate ? true : undefined}>
+        <Field data-invalid={invalid(errors.plate)}>
           <FieldLabel htmlFor='truck-plate'>Plate</FieldLabel>
           <InputGroup>
             <InputGroupInput
               id='truck-plate'
               placeholder='e.g. AK-2231'
               maxLength={32}
-              aria-invalid={errors.plate ? true : undefined}
+              aria-invalid={invalid(errors.plate)}
               {...form.register('plate', { setValueAs: value => value?.trim() || null })}
             />
           </InputGroup>
           <FieldError errors={[errors.plate]} />
         </Field>
 
-        <Field data-invalid={errors.max_weight ? true : undefined}>
+        <Field data-invalid={invalid(errors.max_weight)}>
           <FieldLabel htmlFor='truck-max-weight'>Max weight (lb)</FieldLabel>
           <InputGroup>
             <InputGroupInput
@@ -77,14 +78,10 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
               min={0}
               inputMode='numeric'
               placeholder='e.g. 18000'
-              aria-invalid={errors.max_weight ? true : undefined}
+              aria-invalid={invalid(errors.max_weight)}
               // An empty weight is genuinely unknown, so it goes back as null rather than a zero
-              // the floor would read as "this truck carries nothing". The guard covers the null
-              // default too, which Number() would otherwise turn into 0.
-              {...form.register('max_weight', {
-                setValueAs: value =>
-                  value === '' || value === null || value === undefined ? null : Number(value)
-              })}
+              // the floor would read as "this truck carries nothing".
+              {...form.register('max_weight', { setValueAs: asNumber })}
             />
           </InputGroup>
           <FieldError errors={[errors.max_weight]} />

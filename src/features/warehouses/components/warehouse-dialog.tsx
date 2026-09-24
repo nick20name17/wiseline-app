@@ -13,6 +13,7 @@ import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
@@ -23,9 +24,6 @@ import {
   type Warehouse,
   type WarehouseForm as WarehouseFormValues
 } from '../api'
-
-// `Field` and `aria-invalid` both want `true` or nothing, never `false`.
-const invalid = (error: unknown) => (error ? true : undefined)
 
 type WarehouseFormProps = {
   warehouse?: Warehouse
