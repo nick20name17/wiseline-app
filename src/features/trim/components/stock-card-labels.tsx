@@ -3,55 +3,58 @@ import { toDataURL } from 'qrcode'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { StockCardLabel } from '../api'
-
-/** A label as printed: what the server says it carries, and the picture only the card knows. */
-export type PrintedLabel = StockCardLabel & { image_url: string | null }
+import { productFacts } from '../lib/format'
 
 // How long the sheet waits on the sketches before it prints without the late ones.
 const SKETCH_WAIT_MS = 10_000
 
-type LabelProps = { label: PrintedLabel; qr: string | undefined }
+type LabelProps = { label: StockCardLabel; qr: string | undefined }
 
 /**
  * One card as the floor gets it Screen (122,324): the sketch on the left, the QR top right, the
  * product and its width, the description in capitals, and the two figures boxed at the foot.
  */
-const Label = ({ label, qr }: LabelProps) => (
-  <article className='flex h-54 break-inside-avoid flex-col gap-2 rounded-md border border-black p-3 text-black'>
-    <div className='flex min-h-0 flex-1 gap-3'>
-      <div className='flex w-26 shrink-0 items-center justify-center'>
-        {label.image_url ? (
-          <img src={label.image_url} alt='' className='max-h-full max-w-full object-contain' />
-        ) : null}
-      </div>
-      <div className='flex min-w-0 flex-1 flex-col'>
-        <div className='flex items-start justify-between gap-2'>
-          <div className='min-w-0'>
-            <p className='font-mono text-base font-bold'>{label.product_id}</p>
-            {label.width === null ? null : <p className='text-xs'>Width: {label.width}&quot;</p>}
+const Label = ({ label, qr }: LabelProps) => {
+  const width = label.width ?? label.width_from_orders
+  const details = productFacts(label)
+  return (
+    <article className='flex h-54 break-inside-avoid flex-col gap-2 rounded-md border border-black p-3 text-black'>
+      <div className='flex min-h-0 flex-1 gap-3'>
+        <div className='flex w-26 shrink-0 items-center justify-center'>
+          {label.image_url ? (
+            <img src={label.image_url} alt='' className='max-h-full max-w-full object-contain' />
+          ) : null}
+        </div>
+        <div className='flex min-w-0 flex-1 flex-col'>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='min-w-0'>
+              <p className='font-mono text-base font-bold'>{label.product_id}</p>
+              {width === null ? null : <p className='text-xs'>Width: {width}&quot;</p>}
+              {details ? <p className='text-xs'>{details}</p> : null}
+            </div>
+            {qr ? <img src={qr} alt='' className='size-20 shrink-0' /> : null}
           </div>
-          {qr ? <img src={qr} alt='' className='size-20 shrink-0' /> : null}
+          <p className='mt-auto line-clamp-2 text-sm font-bold uppercase'>{label.description}</p>
         </div>
-        <p className='mt-auto line-clamp-2 text-sm font-bold uppercase'>{label.description}</p>
       </div>
-    </div>
-    <div className='grid grid-cols-2 gap-2'>
-      {[
-        ['Stock Minimum', label.stock_minimum],
-        ['Order Qty', label.order_qty]
-      ].map(([name, value]) => (
-        <div key={name} className='rounded-sm border border-black px-2 py-1'>
-          <p className='text-xs tracking-wider uppercase'>{name}</p>
-          <p className='font-mono text-lg leading-tight font-bold'>{value ?? '—'}</p>
-        </div>
-      ))}
-    </div>
-  </article>
-)
+      <div className='grid grid-cols-2 gap-2'>
+        {[
+          ['Stock Minimum', label.stock_minimum],
+          ['Order Qty', label.order_qty]
+        ].map(([name, value]) => (
+          <div key={name} className='rounded-sm border border-black px-2 py-1'>
+            <p className='text-xs tracking-wider uppercase'>{name}</p>
+            <p className='font-mono text-lg leading-tight font-bold'>{value ?? '—'}</p>
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
 
 type StockCardLabelsProps = {
   /** Mounted for one print: draws the sheet, prints it and hands back through `onDone`. */
-  labels: PrintedLabel[]
+  labels: StockCardLabel[]
   onDone: () => void
 }
 

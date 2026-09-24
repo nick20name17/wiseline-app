@@ -54,3 +54,7 @@ export const formatCount = (value: number) => numbers.format(value)
 
 /** The length every trim is cut to unless somebody says otherwise; anything else is worth a second look. */
 export const STANDARD_LENGTH = 120
+
+/** A product's colour and gauge the way the cards and their labels print them. */
+export const productFacts = (product: { color: string | null; gauge: string | null }) =>
+  [product.color, product.gauge === null ? null : `${product.gauge} ga`].filter(Boolean).join(' · ')

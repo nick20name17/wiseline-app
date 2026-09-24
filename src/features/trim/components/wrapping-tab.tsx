@@ -183,7 +183,7 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
                         ),
                         remfg: (
                           <TableCell>
-                            {row.status === 'bypassed' ? (
+                            {row.is_bypassed ? (
                               <RemanNotApplicable />
                             ) : (
                               <RemanBadge remans={lineRemans} />

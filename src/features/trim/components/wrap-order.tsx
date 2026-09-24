@@ -64,7 +64,7 @@ type RemanCellProps = {
  * too, and asked for again.
  */
 const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
-  if (row.status === 'bypassed') return <RemanNotApplicable />
+  if (row.is_bypassed) return <RemanNotApplicable />
 
   const room = remakeRoom(row.qty_ordered, remans)
   const made = row.status === 'bent' || row.status === 'wrapped'

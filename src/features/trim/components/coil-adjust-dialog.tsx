@@ -172,12 +172,8 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   // «The Apply button ONLY becomes available if the Coil Thickness number changes» p1 (464,436). A
   // Linear Feet or Weight typed in moves the thickness with it, so this covers all three figures.
   const changed = num(draft.coil_thickness) !== lot.coil_thickness
-  // A coil zeroed in any figure is spent, and the server offers Deplete only on a Coil Thickness of 0
-  // (p1 (305,644)) — so a 0 typed into Linear Feet or Weight is sent as that.
-  const values = (): CoilAdjustment => {
-    const figure = num(draft[driver.current])
-    return figure === 0 ? { coil_thickness: 0 } : { [driver.current]: figure }
-  }
+  // A 0 in any figure is a spent coil, and the server answers it with Deplete p1 (305,644).
+  const values = (): CoilAdjustment => ({ [driver.current]: num(draft[driver.current]) })
   const name = coilName(lot)
   const depleting = asking?.action === DEPLETE
 
