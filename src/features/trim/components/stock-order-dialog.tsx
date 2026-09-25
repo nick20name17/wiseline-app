@@ -13,7 +13,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Trash2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { stockCardsQuery, useCreateStockOrder, useScanStockCard } from '../api'
 
 // `described` marks a description typed by hand, which a later Product ID must not overwrite.
@@ -89,7 +89,8 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
             }
       )
       // Typing into the last line is what grows the table.
-      if (next[next.length - 1] && !isBlank(next[next.length - 1]!)) next.push(blank())
+      const last = next.at(-1)
+      if (last && !isBlank(last)) next.push(blank())
       return next
     })
 
@@ -99,17 +100,15 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
       return next.length ? next : [blank()]
     })
 
-  const applyScan = (payload: string) =>
+  const applyScan = useEffectEvent((payload: string) =>
     scanCard.mutate(payload, {
       onSuccess: card =>
         setRows(current => {
           const scanned: Row = {
-            id: crypto.randomUUID(),
+            ...blank(),
             qty: card.order_qty === null ? '' : String(card.order_qty),
             productId: card.product_id,
-            description: card.description ?? '',
-            described: false,
-            length: ''
+            description: card.description ?? ''
           }
           const at = current.findIndex(isBlank)
           const next =
@@ -129,6 +128,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
         }),
       onError: () => toast.add({ type: 'error', title: 'Unrecognised Stock Card — type the line' })
     })
+  )
 
   // The wedge types into whatever field has focus, which is why the burst is swallowed here rather
   // than left in the row it landed in.
@@ -158,7 +158,6 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const submit = () => {

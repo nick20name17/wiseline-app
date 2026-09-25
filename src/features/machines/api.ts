@@ -89,8 +89,6 @@ const categorySchema = z.object({
   name: z._default(z.nullable(z.string()), null)
 })
 
-export type Category = z.infer<typeof categorySchema>
-
 export const machinesKeys = {
   all: ['machines'] as const,
   list: () => [...machinesKeys.all, 'list'] as const,

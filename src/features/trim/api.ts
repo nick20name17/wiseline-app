@@ -17,10 +17,8 @@ import * as z from 'zod/mini'
  * every write below starts by making sure one exists.
  */
 
-// --- Departments ---------------------------------------------------------
-
 /** The stable code for the department this page is, independent of the EBMS category it is linked to. */
-export const TRIM_CODE = 'trim'
+const TRIM_CODE = 'trim'
 
 const departmentSchema = z.object({
   id: z.number(),
@@ -38,7 +36,6 @@ export const departmentsQuery = queryOptions({
   queryFn: async () => z.array(departmentSchema).parse(await authApi.get('departments/all/').json())
 })
 
-/** The department row the whole page is scoped to. Every query below waits on its id. */
 /** The user's role inside one department — `manager`, `worker`, or `null` for no assignment. */
 export const departmentRoleQuery = (userId: number | undefined, departmentId: number | undefined) =>
   queryOptions({
@@ -59,13 +56,12 @@ export const departmentRoleQuery = (userId: number | undefined, departmentId: nu
         .find(row => row.user === userId && row.department === departmentId)?.role ?? null
   })
 
+/** The department row the whole page is scoped to. Every query below waits on its id. */
 export const useTrimDepartment = () =>
   useQuery({
     ...departmentsQuery,
     select: departments => departments.find(department => department.code === TRIM_CODE)
   })
-
-// --- Orders --------------------------------------------------------------
 
 const prioritySchema = z.object({
   id: z.number(),
@@ -90,7 +86,7 @@ const departmentStateSchema = z.object({
   over_due: z._default(z.boolean(), false)
 })
 
-export type DepartmentState = z.infer<typeof departmentStateSchema>
+type DepartmentState = z.infer<typeof departmentStateSchema>
 
 const salesOrderSchema = z.object({
   id: z.number(),
@@ -192,7 +188,7 @@ const TRIM_CATEGORY = 'Trim'
 // One page holds the tab. The board's Unscheduled list is a working queue, not an archive.
 const PAGE_SIZE = 100
 
-export const trimKeys = {
+const trimKeys = {
   all: ['trim'] as const,
   orders: () => [...trimKeys.all, 'orders'] as const,
   unscheduled: (search: string | undefined) =>
@@ -361,8 +357,6 @@ export const calendarOrdersQuery = (from: string, to: string) =>
       ).results
   })
 
-// --- Machines ------------------------------------------------------------
-
 /**
  * The machines a line item can be assigned to. `GET /flows/all/` takes the EBMS category rather than
  * a department, which for this page is the same thing — the two are linked by `category_autoid`.
@@ -383,8 +377,6 @@ export const machinesQuery = (departmentId: number | undefined) =>
         .filter(machine => machine.department === null || machine.department === departmentId)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
   })
-
-// --- Overdue and machine capacities -------------------------------------
 
 const overdueSchema = z.object({
   days: z.catch(z.array(z.string()), []),
@@ -432,8 +424,6 @@ const machineCapacitySchema = z.object({
   pieces_without_a_machine: z._default(z.number(), 0)
 })
 
-export type MachineCapacities = z.infer<typeof machineCapacitySchema>
-
 /** One day broken down by machine — what the gear on a day tab opens. */
 export const machineCapacitiesQuery = (departmentId: number | undefined, day: string | null) =>
   queryOptions({
@@ -452,7 +442,7 @@ const locationSchema = z.object({
   code: z._default(z.nullable(z.string()), null)
 })
 
-export type TrimLocation = z.infer<typeof locationSchema>
+type TrimLocation = z.infer<typeof locationSchema>
 
 /**
  * Where a wrapped order is sitting. Location codes are unique across the whole app, so the label
@@ -468,8 +458,6 @@ export const locationsQuery = queryOptions({
     new Map(page.results.map(location => [location.id, location.code]))
 })
 
-// --- Allocated stock -----------------------------------------------------
-
 const allocatedStockSchema = z.array(
   z.object({
     color: z._default(z.nullable(z.string()), null),
@@ -479,8 +467,6 @@ const allocatedStockSchema = z.array(
     starts_color_group: z._default(z.boolean(), false)
   })
 )
-
-export type AllocatedStockRow = z.infer<typeof allocatedStockSchema>[number]
 
 /**
  * Every trim due to come from stock that has not been wrapped yet, across the orders marked Reviewed.
@@ -499,8 +485,6 @@ export const allocatedStockQuery = (departmentId: number | undefined, search: st
           .json()
       )
   })
-
-// --- The day strip -------------------------------------------------------
 
 const dayStripSchema = z.array(
   z.object({
@@ -581,8 +565,6 @@ export const dayStripDatesQuery = (departmentId: number | undefined, dates: stri
     }
   })
 
-// --- Priorities ----------------------------------------------------------
-
 /**
  * The department's priorities plus the ones with no department, which fit anywhere — the server
  * answers `?department=` with exactly that set.
@@ -607,8 +589,6 @@ export const prioritiesQuery = (departmentId: number | undefined) =>
         (a, b) => (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
       )
   })
-
-// --- Notes ---------------------------------------------------------------
 
 const orderNoteSchema = z.object({
   has_note: z._default(z.boolean(), false),
@@ -675,8 +655,7 @@ const lineNoteThreadSchema = z.object({
   count: z._default(z.number(), 0)
 })
 
-export type LineNote = z.infer<typeof lineNoteSchema>
-export type LineNoteThread = z.infer<typeof lineNoteThreadSchema>
+type LineNoteThread = z.infer<typeof lineNoteThreadSchema>
 
 const EMPTY_THREAD: LineNoteThread = { notes: [], unread: false, count: 0 }
 
@@ -711,20 +690,17 @@ export const useSetOrderNoteRead = () =>
     }
   })
 
-/**
- * Posted through `comments/` rather than `items/{autoid}/notes/`: this is the one endpoint that
- * creates the app's row for the line when it has none, which is every line on the Unscheduled tab.
- */
 /** The thread and the dot that summarises it in the table, which are two different queries. */
-const invalidateLineNotes = (
-  client: { invalidateQueries: (filters: { queryKey: readonly unknown[] }) => Promise<void> },
-  originItem: string
-) =>
+const invalidateLineNotes = (client: QueryClient, originItem: string) =>
   Promise.all([
     client.invalidateQueries({ queryKey: trimKeys.lineNotes(originItem) }),
     client.invalidateQueries({ queryKey: trimKeys.lineNotesSummaries() })
   ])
 
+/**
+ * Posted through `comments/` rather than `items/{autoid}/notes/`: this is the one endpoint that
+ * creates the app's row for the line when it has none, which is every line on the Unscheduled tab.
+ */
 export const useAddLineNote = (originItem: string) =>
   useMutation({
     mutationFn: (text: string) =>
@@ -744,8 +720,6 @@ export const useSetLineNoteRead = (originItem: string) =>
     }
   })
 
-// --- Scheduling ----------------------------------------------------------
-
 /**
  * Every write below is keyed on our own `SalesOrder` id, and an EBMS order that nobody has scheduled,
  * prioritised or annotated has none yet, so one is made on the way.
@@ -764,7 +738,7 @@ const ensureSalesOrderId = async (order: TrimOrder) => {
   return created.id
 }
 
-export type ScheduleOrdersInput = {
+type ScheduleOrdersInput = {
   orders: TrimOrder[]
   departmentId: number
   productionDate: string
@@ -787,7 +761,7 @@ export const useScheduleOrders = (onSuccess: () => void) =>
     onSuccess: onSuccess
   })
 
-export type SplitOrderInput = {
+type SplitOrderInput = {
   order: TrimOrder
   departmentId: number
   productionDate: string
@@ -830,37 +804,36 @@ export const useBypassProduction = (onSuccess: () => void) =>
     onSuccess: onSuccess
   })
 
-/** Set or clear an order's Priority. It belongs to one department and never leaks to another. */
 /**
  * Every cached copy of one order under the order lists — a tab's page, a whole order — rewritten by
  * `edit`.
  */
+const isOrderPage = (data: unknown): data is { results: TrimOrder[] } =>
+  !!data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)
+
+const isOrder = (data: unknown): data is TrimOrder =>
+  !!data && typeof data === 'object' && 'origin_items' in data
+
 const patchCachedOrder = (
   client: QueryClient,
   orderId: string,
   edit: (order: TrimOrder) => TrimOrder
 ) => {
   const patch = (order: TrimOrder) => (order.id === orderId ? edit(order) : order)
-  client.setQueriesData({ queryKey: trimKeys.orders() }, (data: unknown) => {
-    if (!data || typeof data !== 'object') return data
-    if ('results' in data && Array.isArray(data.results))
-      return { ...data, results: (data.results as TrimOrder[]).map(patch) }
-    if ('origin_items' in data) return patch(data as TrimOrder)
-    return data
-  })
+  client.setQueriesData({ queryKey: trimKeys.orders() }, (data: unknown) =>
+    isOrderPage(data)
+      ? { ...data, results: data.results.map(patch) }
+      : isOrder(data)
+        ? patch(data)
+        : data
+  )
 }
 
 /** The newest cached copy of an order that has a real sales order, or the one given. */
 const freshOrder = (client: QueryClient, order: TrimOrder) =>
   client
     .getQueriesData({ queryKey: trimKeys.orders() })
-    .flatMap(([, data]): TrimOrder[] =>
-      data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)
-        ? (data.results as TrimOrder[])
-        : data && typeof data === 'object' && 'origin_items' in data
-          ? [data as TrimOrder]
-          : []
-    )
+    .flatMap(([, data]) => (isOrderPage(data) ? data.results : isOrder(data) ? [data] : []))
     .find(cached => cached.id === order.id && (cached.sales_order?.id ?? 0) > 0) ?? order
 
 /**
@@ -894,6 +867,8 @@ const withPriority = (order: TrimOrder, departmentId: number, priority: Priority
 }
 
 /**
+ * Set or clear an order's Priority. It belongs to one department and never leaks to another.
+ *
  * A priority shows the moment it is picked; the save follows in the background and the pick snaps
  * back if it is refused. `scope` queues one order's picks, so two quick ones reach the server in the
  * order they were made.
@@ -998,20 +973,6 @@ export const useReleaseOrders = (onSuccess: (released: number, cutlists: number)
     onSuccess: result => onSuccess(result.released.length, result.cutlists.length)
   })
 
-/** Take a release back. Refused once production has started, which the server decides. */
-export const useUnreleaseOrder = () =>
-  useMutation({
-    mutationFn: ({ salesOrderId, departmentId }: { salesOrderId: number; departmentId: number }) =>
-      authApi
-        .post(`sales-orders/${salesOrderId}/departments/${departmentId}/release/`, {
-          json: { released: false }
-        })
-        .json(),
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
-    }
-  })
-
 /**
  * Send the order back to Unscheduled. This also discards the Manager's edits, as the board says.
  * `productionDate` takes back only that day's lines — one row of a split order; the order keeps its
@@ -1072,8 +1033,6 @@ export const useUpdateLineItem = ({ released = false } = {}) =>
     }
   })
 
-// --- Stock cards and stock orders ---------------------------------------
-
 // EBMS keeps 0 for a product with no gauge on record, which is none rather than a gauge.
 const gaugeOf = z._default(
   z.pipe(
@@ -1122,8 +1081,6 @@ const stockCardProductSchema = z.object({
   width_from_orders: z._default(z.nullable(z.number()), null),
   has_card: z._default(z.boolean(), false)
 })
-
-export type StockCardProduct = z.infer<typeof stockCardProductSchema>
 
 /**
  * What the Create form fills in once a Product ID is typed p1 (71,307). An ID EBMS does not know
@@ -1231,7 +1188,7 @@ export const usePrintStockCards = (onSuccess: (labels: StockCardLabel[]) => void
  * One row of the Create Stock Order grid, once the blanks have been dropped. A line left without a
  * description or length takes the product's own from EBMS.
  */
-export type StockOrderLine = {
+type StockOrderLine = {
   product_id: string
   quantity: number
   description?: string
@@ -1272,14 +1229,12 @@ export const useScanStockCard = () =>
         .parse(await authApi.post('stock-cards/scan/', { json: { payload } }).json())
   })
 
-// --- Cutlists and bendlists ---------------------------------------------
-
 /**
  * A cutlist belongs to the Slinet, which cuts the material; a bendlist belongs to one machine, which
  * bends it. Releasing an order to production is what creates them, and nothing ever adds to one: the
  * same gauge and colour released again later makes a second list beside the first.
  */
-export type CutlistKind = 'cutlist' | 'bendlist'
+type CutlistKind = 'cutlist' | 'bendlist'
 
 // One line item's share of a row — what a number in the Total column opens up. `quantity` is that
 // share; the rest describes the line itself.
@@ -1455,8 +1410,6 @@ export const cutlistCoilsQuery = (cutlistId: number | null) =>
       z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
   })
 
-// --- Completed orders ----------------------------------------------------
-
 const completedOrderSchema = z.object({
   order: z._default(z.string(), ''),
   order_number: z._default(z.nullable(z.string()), null),
@@ -1574,8 +1527,6 @@ export const useReprintPackage = (onSuccess?: () => void) =>
     mutationFn: (packageId: number) => authApi.post(`packages/${packageId}/reprint/`).json(),
     onSuccess
   })
-
-// --- Coils ---------------------------------------------------------------
 
 // The lots list answers a bare page with no count, so one page is asked to hold it all.
 const COIL_PAGE_SIZE = 500
@@ -1786,8 +1737,6 @@ export const coilFiltersQuery = (departmentId: number | undefined) =>
             .json()
         )
   })
-
-// --- Wrapping ------------------------------------------------------------
 
 const wrappingRowSchema = z.object({
   origin_item: z._default(z.string(), ''),
@@ -2071,7 +2020,7 @@ const manufacturingBatchSchema = z.object({
   )
 })
 
-export type ManufacturingBatch = z.infer<typeof manufacturingBatchSchema>
+type ManufacturingBatch = z.infer<typeof manufacturingBatchSchema>
 
 /** What has gone to EBMS as manufacturing batches, newest first. */
 export const manufacturingBatchesQuery = (departmentId: number | undefined, enabled: boolean) =>
@@ -2139,7 +2088,7 @@ export const useScanPackage = () =>
       )
   })
 
-export type PackageLine = { origin_item: string; quantity: number }
+type PackageLine = { origin_item: string; quantity: number }
 
 /**
  * Create & Print. A location is required, a quantity above Left To Wrap is refused, and an
@@ -2224,8 +2173,6 @@ export const useCompleteOrder = (onSuccess: () => void) =>
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: trimKeys.all })
   })
-
-// --- Remanufacturing -----------------------------------------------------
 
 const remanufacturingSchema = z.object({
   id: z.number(),

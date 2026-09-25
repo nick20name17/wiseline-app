@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import * as z from 'zod/mini'
 import { persistedStore } from './persisted-store'
 
-export const sessionSchema = z.object({
+const sessionSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string()
 })

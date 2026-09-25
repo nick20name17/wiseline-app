@@ -42,8 +42,6 @@ export const warehousePickerQuery = queryOptions({
   select: (page: { results: Warehouse[] }) => page.results
 })
 
-// --- Location types ------------------------------------------------------
-
 const locationTypeSchema = z.object({
   id: z.number(),
   name: z._default(z.nullable(z.string()), null),
@@ -116,8 +114,6 @@ export const useDeleteLocationType = (onSuccess: () => void) =>
       onSuccess()
     }
   })
-
-// --- Locations -----------------------------------------------------------
 
 const locationSchema = z.object({
   id: z.number(),

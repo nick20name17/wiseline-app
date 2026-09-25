@@ -1,7 +1,7 @@
 import { toast } from '@/components/ui/toast'
-import { getErrorMessage, isNetworkError } from '@/lib/errors'
+import { getErrorMessage } from '@/lib/errors'
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
-import { HTTPError, TimeoutError } from 'ky'
+import { HTTPError, NetworkError, TimeoutError } from 'ky'
 
 declare module '@tanstack/react-query' {
   interface Register {
@@ -22,7 +22,7 @@ export const shouldRetry = (failureCount: number, error: unknown) => {
     return RETRYABLE_STATUSES.has(error.response.status)
   }
 
-  return error instanceof TimeoutError || isNetworkError(error)
+  return error instanceof TimeoutError || error instanceof NetworkError
 }
 
 export const retryDelay = (attempt: number, error: unknown) => {

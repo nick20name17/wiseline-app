@@ -85,7 +85,7 @@ export const useDeletePriority = (onSuccess: () => void) =>
     }
   })
 
-export type PriorityOrder = {
+type PriorityOrder = {
   /** `null` is the hierarchy of the priorities with no department. */
   department: number | null
   ids: number[]

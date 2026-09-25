@@ -28,8 +28,6 @@ const userSchema = z.object({
   is_active: z._default(z.boolean(), true)
 })
 
-export type User = z.infer<typeof userSchema>
-
 export const login = async (credentials: Credentials) => {
   const body = await publicApi.post('token/', { json: credentials }).json()
   const bearer = bearerSchema.parse(body)

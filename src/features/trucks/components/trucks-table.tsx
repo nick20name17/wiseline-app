@@ -8,8 +8,17 @@ import {
   TableRow
 } from '@/components/ui/table'
 import type { Truck } from '../api'
-import { formatWeight } from '../lib/format'
 import { TruckActions } from './truck-actions'
+
+const weightFormatter = new Intl.NumberFormat('en-US', {
+  style: 'unit',
+  unit: 'pound',
+  unitDisplay: 'short',
+  maximumFractionDigits: 2
+})
+
+const formatWeight = (pounds: number | null) =>
+  pounds === null ? '—' : weightFormatter.format(pounds).replace(/\blb\b/, 'lbs')
 
 type TrucksTableProps = {
   trucks: Truck[]

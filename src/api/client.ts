@@ -1,10 +1,7 @@
 import { env } from '@/lib/env'
-import { sessionStore } from '@/lib/session-store'
-import { singleFlight } from '@/lib/single-flight'
+import { sessionStore, type Session } from '@/lib/session-store'
 import ky, { HTTPError, type Options } from 'ky'
 import * as z from 'zod/mini'
-
-const BASE_URL = env.VITE_API_URL
 
 const refreshSchema = z.object({
   access: z.string(),
@@ -29,7 +26,7 @@ const getServerMessage = (data: unknown) => {
 }
 
 const BASE_OPTIONS: Options = {
-  baseUrl: BASE_URL,
+  baseUrl: env.VITE_API_URL,
   retry: { limit: 1, methods: [], statusCodes: [] },
   hooks: {
     beforeError: [
@@ -46,8 +43,12 @@ const BASE_OPTIONS: Options = {
 
 export const publicApi = ky.create(BASE_OPTIONS)
 
-const refresh = singleFlight((refreshToken: string) =>
-  publicApi
+// Concurrent 401s share one refresh: each response rotates the refresh token, so parallel calls would
+// race to spend the same one.
+let refreshing: Promise<Session | null> | undefined
+
+const refresh = (refreshToken: string) =>
+  (refreshing ??= publicApi
     .post('token/refresh/', { json: { refresh: refreshToken } })
     .json()
     .then(body => {
@@ -60,7 +61,9 @@ const refresh = singleFlight((refreshToken: string) =>
       sessionStore.set(null)
       return null
     })
-)
+    .finally(() => {
+      refreshing = undefined
+    }))
 
 export const authApi = publicApi.extend({
   hooks: {

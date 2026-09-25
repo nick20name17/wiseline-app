@@ -294,8 +294,6 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
           </div>
         </Tabs>
 
-        {/* The worker reaches the coils from where he is standing — the same list the Coils tab
-            shows, under the Manager's filter. */}
         {/* p1 (1004,289): on every station, for pieces made against no order. */}
         <Button variant='outline' className='mb-1.5' onClick={() => setManufacturing(true)}>
           <Factory data-icon='inline-start' />
@@ -304,6 +302,8 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
 
         {isWrapping ? <ScanPackageDialog /> : null}
 
+        {/* The worker reaches the coils from where he is standing — the same list the Coils tab
+            shows, under the Manager's filter. */}
         <Button variant='outline' className='mb-1.5' onClick={onOpenCoils}>
           <Database data-icon='inline-start' />
           Coils

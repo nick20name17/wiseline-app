@@ -20,7 +20,7 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import {
   coilFoldersQuery,
   useSetCoilLocation,
@@ -476,86 +476,7 @@ const searched = (lots: CoilLot[], term: string) => {
   return lots.filter(lot => !search || matches(lot, search)).sort(byColorProductCoil)
 }
 
-type LayoutBarProps = {
-  layout: Layout
-  scope: CoilScope
-  canFilter: boolean
-  onLayoutChange: (layout: Layout) => void
-  onOpenFilter: () => void
-}
-
-const LayoutBar = ({ layout, scope, canFilter, onLayoutChange, onOpenFilter }: LayoutBarProps) => (
-  <div className='flex flex-wrap items-center gap-3'>
-    <Tabs value={layout} onValueChange={value => onLayoutChange(value as Layout)}>
-      <TabsList>
-        {/* Inside All Coils the outer tab already says «All Coils» — this one says whose. */}
-        <TabsTrigger value='coils'>
-          {scope === 'all' ? 'All Company Coils' : 'All Trim Coils'}
-        </TabsTrigger>
-        <TabsTrigger value='sizes'>By size</TabsTrigger>
-      </TabsList>
-    </Tabs>
-
-    {canFilter ? (
-      <Button variant='outline' className='ml-auto' onClick={onOpenFilter}>
-        <SlidersHorizontal data-icon='inline-start' />
-        Coil Filter
-      </Button>
-    ) : null}
-  </div>
-)
-
-type CountBarProps = {
-  count: number
-  badge: ReactNode
-  term: string
-  onTermChange: (term: string) => void
-}
-
-const CountBar = ({ count, badge, term, onTermChange }: CountBarProps) => (
-  <div className='flex flex-wrap items-center gap-3'>
-    <p className='text-sm text-muted-foreground'>
-      <span className='font-medium text-foreground'>{count}</span> {count === 1 ? 'coil' : 'coils'}
-    </p>
-
-    {badge}
-
-    <InputGroup className='ml-auto w-80'>
-      <InputGroupAddon>
-        <Search />
-      </InputGroupAddon>
-      <InputGroupInput
-        type='search'
-        aria-label='Search coils'
-        placeholder='Search — product / colour / coil #'
-        value={term}
-        onChange={event => onTermChange(event.target.value)}
-      />
-    </InputGroup>
-  </div>
-)
-
 type Moving = { lot: CoilLot; to: Department }
-
-const ScopeTabs = ({
-  scope,
-  onScopeChange
-}: {
-  scope: CoilScope
-  onScopeChange: (scope: CoilScope) => void
-}) => (
-  <Tabs value={scope} onValueChange={value => onScopeChange(value as CoilScope)}>
-    <TabsList className='h-10'>
-      <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
-      <TabsTrigger
-        value='all'
-        title='Every coil in the company — the Coil Filter does not narrow this list'
-      >
-        All Coils
-      </TabsTrigger>
-    </TabsList>
-  </Tabs>
-)
 
 type MoveConfirmProps = {
   moving: Moving | null
@@ -659,14 +580,32 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   )
 
   const scopeTabs = worker ? null : (
-    <ScopeTabs
-      scope={scope}
-      onScopeChange={next => {
-        setScope(next)
+    <Tabs
+      value={scope}
+      onValueChange={value => {
+        setScope(value as CoilScope)
         setLayout('coils')
       }}
-    />
+    >
+      <TabsList className='h-10'>
+        <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
+        <TabsTrigger
+          value='all'
+          title='Every coil in the company — the Coil Filter does not narrow this list'
+        >
+          All Coils
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   )
+
+  const filterButton =
+    !worker && trim ? (
+      <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
+        <SlidersHorizontal data-icon='inline-start' />
+        Coil Filter
+      </Button>
+    ) : null
 
   // The filter decides which coils reach Trim, so it has to be reachable while none do — and the
   // scope switch too, or an empty Trim list would hide every other coil.
@@ -675,12 +614,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       <div className='flex flex-1 flex-col gap-4'>
         <div className='flex items-center gap-3'>
           {scopeTabs}
-          {!worker && trim ? (
-            <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
-              <SlidersHorizontal data-icon='inline-start' />
-              Coil Filter
-            </Button>
-          ) : null}
+          {filterButton}
         </div>
         <NoCoils {...nothingListed(trim, filter, worker)} />
         {filterDialog}
@@ -697,13 +631,16 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         Thickness, Linear Feet or Weight to adjust it and push back to EBMS.
       </p>
 
-      <LayoutBar
-        layout={layout}
-        scope={scoped}
-        canFilter={!worker && trim}
-        onLayoutChange={setLayout}
-        onOpenFilter={() => setFilterOpen(true)}
-      />
+      <div className='flex flex-wrap items-center gap-3'>
+        <Tabs value={layout} onValueChange={value => setLayout(value as Layout)}>
+          <TabsList>
+            {/* Inside All Coils the outer tab already says «All Coils» — this one says whose. */}
+            <TabsTrigger value='coils'>{trim ? 'All Trim Coils' : 'All Company Coils'}</TabsTrigger>
+            <TabsTrigger value='sizes'>By size</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {filterButton}
+      </div>
 
       {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. */}
       {trim && folders?.length ? (
@@ -723,12 +660,27 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         </Tabs>
       ) : null}
 
-      <CountBar
-        count={shown.length}
-        badge={coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
-        term={term}
-        onTermChange={setTerm}
-      />
+      <div className='flex flex-wrap items-center gap-3'>
+        <p className='text-sm text-muted-foreground'>
+          <span className='font-medium text-foreground'>{shown.length}</span>{' '}
+          {shown.length === 1 ? 'coil' : 'coils'}
+        </p>
+
+        {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
+
+        <InputGroup className='ml-auto w-80'>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
+            type='search'
+            aria-label='Search coils'
+            placeholder='Search — product / colour / coil #'
+            value={term}
+            onChange={event => setTerm(event.target.value)}
+          />
+        </InputGroup>
+      </div>
 
       {!loading && !shown.length ? (
         <NoCoils title='No coils match' description='Clear the search to see every coil.' />

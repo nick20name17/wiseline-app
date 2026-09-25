@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { addDays, addMonths, endOfMonth, getDaysInMonth, startOfMonth } from 'date-fns'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   calendarOrdersQuery,
   dayStripQuery,
@@ -58,16 +58,13 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const isWorkDay = (day: string) => load.get(day)?.is_work_day ?? true
 
   // A split order sits on each of its days.
-  const byDay = useMemo(() => {
-    const days = new Map<string, TrimOrder[]>()
-    for (const order of orders)
-      for (const day of partDays(order, departmentId)) {
-        const list = days.get(day)
-        if (list) list.push(order)
-        else days.set(day, [order])
-      }
-    return days
-  }, [orders, departmentId])
+  const byDay = new Map<string, TrimOrder[]>()
+  for (const order of orders)
+    for (const day of partDays(order, departmentId)) {
+      const list = byDay.get(day)
+      if (list) list.push(order)
+      else byDay.set(day, [order])
+    }
 
   const onSelectedDay = byDay.get(selected) ?? []
   const step = (months: number) => setMonth(current => addMonths(current, months))

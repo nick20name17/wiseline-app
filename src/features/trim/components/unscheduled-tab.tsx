@@ -10,8 +10,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Inbox } from 'lucide-react'
 import { useState } from 'react'
 import {
-  isStockOrder,
-  orderNotesQuery,
   unscheduledOrdersQuery,
   useBypassProduction,
   useScheduleOrders,
@@ -24,13 +22,13 @@ import { formatLongDate, today } from '../lib/format'
 import { BypassDialog } from './bypass-dialog'
 import { DayStrip } from './day-strip'
 import { LineNotesDialog } from './line-notes-dialog'
-import type { NoteState } from './note-button'
 import { OrderNoteDialog } from './order-note-dialog'
 import { OrderRow } from './order-row'
 import { ScheduleDialog } from './schedule-dialog'
 import { StockCardsDialog } from './stock-cards-dialog'
 import { StockOrderDialog } from './stock-order-dialog'
 import { UnscheduledToolbar } from './unscheduled-toolbar'
+import { useOrderNotes } from './use-line-note-state'
 
 type UnscheduledTabProps = {
   search: string | undefined
@@ -59,9 +57,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
   const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
   const [noteLine, setNoteLine] = useState<{ item: TrimLineItem; readOnly: boolean } | null>(null)
 
-  // Only EBMS orders carry a note; a stock order has no EBMS row to import one from.
-  const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
-  const { data: notes } = useQuery(orderNotesQuery(noteOrderIds))
+  const { notes, noteState } = useOrderNotes(orders)
 
   const scheduled = (productionDate: string) => () =>
     toast.add({ type: 'success', title: `Scheduled to ${formatLongDate(productionDate)}` })
@@ -82,12 +78,6 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
   // The board counts only the rows on screen, so a search that hides a ticked order un-counts it.
   const selected = orders.filter(order => selectedIds.has(order.id))
   const splitting = split ? orders.find(order => order.id === split.orderId) : null
-
-  const noteState = (order: TrimOrder): NoteState => {
-    const note = notes?.[order.id]
-    if (!note?.has_note) return 'none'
-    return note.read ? 'read' : 'unread'
-  }
 
   const toggleLine = (orderId: string, lineId: string) =>
     setSplit(current => {

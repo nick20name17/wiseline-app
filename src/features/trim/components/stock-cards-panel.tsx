@@ -218,14 +218,6 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
   const colors = valuesOf(cards?.map(card => card.color) ?? [])
   const gauges = valuesOf(cards?.map(card => card.gauge) ?? [], (a, b) => Number(a) - Number(b))
 
-  // A deleted card must not stay ticked: the count and the print payload would carry an id the
-  // server no longer knows.
-  const drop = (id: number) =>
-    setSelected(current => {
-      const next = new Set(current)
-      next.delete(id)
-      return next
-    })
   const [printing, setPrinting] = useState<StockCardLabel[] | null>(null)
   const print = usePrintStockCards(setPrinting)
 
@@ -445,7 +437,13 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
           if (!asking) return
           remove.mutate(asking.id, {
             onSuccess: () => {
-              drop(asking.id)
+              // A deleted card must not stay ticked: the count and the print payload would carry an
+              // id the server no longer knows.
+              setSelected(current => {
+                const next = new Set(current)
+                next.delete(asking.id)
+                return next
+              })
               setDeleting(null)
               toast.add({ type: 'success', title: `Stock card ${asking.product_id} deleted` })
             }

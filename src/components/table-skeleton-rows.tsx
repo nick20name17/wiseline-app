@@ -42,7 +42,6 @@ export const TableSkeletonRows = ({ columns }: TableSkeletonRowsProps) => {
     <TableRow key={row} ref={row === 0 ? firstRow : undefined}>
       {Array.from({ length: columns }, (_, column) => (
         <TableCell key={column}>
-          {/* The bar takes the column's width, whatever the layout gave it. */}
           <Skeleton className='h-4 w-full' />
         </TableCell>
       ))}

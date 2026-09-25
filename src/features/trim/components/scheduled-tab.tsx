@@ -12,7 +12,6 @@ import {
   countsQuery,
   departmentStateOf,
   isStockOrder,
-  orderNotesQuery,
   scheduledOrdersQuery,
   useReleaseOrders,
   useSplitOrder,
@@ -27,13 +26,13 @@ import { partDays, partKey, partLines } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { ConfirmDialog } from './confirm-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
-import type { NoteState } from './note-button'
 import { OrderNoteDialog } from './order-note-dialog'
 import { ScheduleDialog } from './schedule-dialog'
 import { ScheduledDayTabs } from './scheduled-day-tabs'
 import { ScheduledRow } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
+import { useOrderNotes } from './use-line-note-state'
 
 type ScheduledTabProps = {
   search: string | undefined
@@ -184,8 +183,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   const { data: counts } = useQuery(countsQuery(departmentId))
   const everything = counts?.scheduled
 
-  const noteOrderIds = orders.filter(order => !isStockOrder(order)).map(order => order.id)
-  const { data: notes } = useQuery(orderNotesQuery(noteOrderIds))
+  const { notes, noteState } = useOrderNotes(orders)
 
   const release = useReleaseOrders((released, cutlists) => {
     setSelectedIds(new Set())
@@ -225,12 +223,6 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   const canRelease =
     selected.length > 0 &&
     selected.every(order => departmentStateOf(order, departmentId)?.reviewed ?? false)
-
-  const noteState = (order: TrimOrder): NoteState => {
-    const note = notes?.[order.id]
-    if (!note?.has_note) return 'none'
-    return note.read ? 'read' : 'unread'
-  }
 
   // Nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing.
   // The count takes Open orders only, so an order the list does hold still keeps the table up.

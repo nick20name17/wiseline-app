@@ -23,8 +23,6 @@ export const truckPayloadSchema = z.object({
 
 export type TruckPayload = z.infer<typeof truckPayloadSchema>
 
-// One place that builds every trucks key, so invalidation cannot drift from the queries it means
-// to reach.
 export const trucksKeys = {
   all: ['trucks'] as const,
   list: (search: string | undefined) => [...trucksKeys.all, { search: search ?? '' }] as const

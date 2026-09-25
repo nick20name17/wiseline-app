@@ -45,6 +45,8 @@ import { RemakePill } from './reman-badge'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
+const sizeOf = (group: CutlistGroup) => `${group.width ?? '—'} × ${group.length ?? '—'}`
+
 type CompleteCellProps = {
   group: CutlistGroup
   /** The bendlist is still Not Started. */
@@ -72,7 +74,7 @@ const CompleteCell = ({ group, waiting, onComplete }: CompleteCellProps) => {
         }
       >
         <Checkbox
-          aria-label={`Complete ${group.width ?? '—'} × ${group.length ?? '—'}`}
+          aria-label={`Complete ${sizeOf(group)}`}
           checked={group.complete}
           disabled={waiting && !group.complete}
           onCheckedChange={() => (group.complete ? setConfirming(true) : onComplete(true))}
@@ -129,7 +131,7 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
             <Button
               variant='ghost'
               size='sm'
-              aria-label={`Remanufacture ${group.width ?? '—'} × ${group.length ?? '—'}`}
+              aria-label={`Remanufacture ${sizeOf(group)}`}
               disabled={!onBoard.length}
             />
           }
@@ -158,7 +160,7 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
     <Button
       variant='ghost'
       size='icon-sm'
-      aria-label={`Remanufacture ${group.width ?? '—'} × ${group.length ?? '—'}`}
+      aria-label={`Remanufacture ${sizeOf(group)}`}
       title={line ? 'Remanufacture' : 'This line is not on the board any more'}
       disabled={!line}
       onClick={() => line && onRemanufacture(line)}
@@ -202,7 +204,7 @@ const MachineCell = ({ group, machines, onMove }: MachineCellProps) => {
           <Button
             variant='outline'
             size='sm'
-            aria-label={`Change the machine for ${group.width ?? '—'} × ${group.length ?? '—'}`}
+            aria-label={`Change the machine for ${sizeOf(group)}`}
             disabled={!lines.length || !others.length}
           />
         }
@@ -253,7 +255,7 @@ type StockCellProps = {
 const StockCell = ({ group, onStock }: StockCellProps) => {
   const figure = <Figure value={describeGroup(group).fromStock || null} />
   const lines = editableLines(group).filter(line => !line.is_stock)
-  const label = `Stock for ${group.width ?? '—'} × ${group.length ?? '—'}`
+  const label = `Stock for ${sizeOf(group)}`
   const [first] = lines
   if (!first) return figure
   if (lines.length > 1)

@@ -14,10 +14,8 @@ import { applyKeypad } from '../lib/wrapping'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '0', '-'] as const
 
-export type KeypadTarget = { title: string; current: number; max: number }
-
 type KeypadDialogProps = {
-  target: KeypadTarget | null
+  target: { title: string; current: number; max: number } | null
   isPending?: boolean
   onOpenChange: (open: boolean) => void
   onEnter: (value: number) => void

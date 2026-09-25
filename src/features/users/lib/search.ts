@@ -4,5 +4,3 @@ import * as z from 'zod/mini'
 export const usersSearchSchema = z.object({
   search: z.catch(z.optional(z.string()), undefined)
 })
-
-export type UsersSearch = z.infer<typeof usersSearchSchema>

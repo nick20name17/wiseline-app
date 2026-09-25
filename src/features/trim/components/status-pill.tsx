@@ -1,12 +1,11 @@
 import { cn } from 'cn'
 
 type StatusPillProps = {
+  /** No status is a dash, not an invented chip. */
   status: { label: string; tint: string } | null
-  /** Until an order is released it has no status, and a dash is that nothing — not an invented chip. */
-  fallback?: string
 }
 
-export const StatusPill = ({ status, fallback = '—' }: StatusPillProps) =>
+export const StatusPill = ({ status }: StatusPillProps) =>
   status ? (
     <span
       className={cn(
@@ -18,5 +17,5 @@ export const StatusPill = ({ status, fallback = '—' }: StatusPillProps) =>
       {status.label}
     </span>
   ) : (
-    <span className='text-muted-foreground'>{fallback}</span>
+    <span className='text-muted-foreground'>—</span>
   )

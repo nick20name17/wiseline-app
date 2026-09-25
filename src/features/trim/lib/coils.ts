@@ -19,8 +19,6 @@ export const coilFilterActive = (filter: CoilFilter | null): filter is CoilFilte
     bounded(filter.width_min, filter.width_max) ||
     bounded(filter.grade_min, filter.grade_max))
 
-// --- Coil geometry -------------------------------------------------------
-
 /**
  * A wound coil's steel fills the annulus between the core and the outer diameter, so Coil Thickness —
  * the radial build-up on the roll — is what ties Linear Feet to Material Thickness and Core OD. It moves

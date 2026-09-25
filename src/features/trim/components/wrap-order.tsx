@@ -591,9 +591,10 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const { data: slots } = useQuery(wrappingLocationsQuery(departmentId, true))
   const move = useMoveOrderPackages()
 
-  const number = order?.order_number ?? order?.order ?? ''
-
   if (!order) return null
+
+  const number = order.order_number ?? order.order
+  const hasPackages = rows.some(row => row.wrapped > 0)
 
   const remansOf = (row: WrappingRow) => remans?.get(row.origin_item) ?? []
   // The pieces an open remake still holds are wrapped once it is Bent, not before.
@@ -667,11 +668,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         />
 
         {/* p1 (911,425): there is something to see once the first package exists. */}
-        <Button
-          variant='outline'
-          disabled={!rows.some(row => row.wrapped > 0)}
-          onClick={() => setSeeing(true)}
-        >
+        <Button variant='outline' disabled={!hasPackages} onClick={() => setSeeing(true)}>
           <PackageSearch data-icon='inline-start' />
           See packages
         </Button>
@@ -722,7 +719,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       <RemoveLocationDialog
         order={order.order}
         locations={locations ?? []}
-        hasPackages={rows.some(row => row.wrapped > 0)}
+        hasPackages={hasPackages}
         location={removing}
         onOpenChange={open => !open && setRemoving(null)}
         // A location taken off is no longer somewhere the next package can go.

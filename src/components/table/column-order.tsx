@@ -7,8 +7,6 @@ import { dragAnnouncements, useDragSensors } from './drag'
 import { SortableHead, type Column } from './sortable-head'
 import { Fragment, useSyncExternalStore, type ReactNode } from 'react'
 
-export type { Column }
-
 /** A table whose columns move: the key its order is saved under, and its columns as declared. */
 export type ColumnTable = { table: string; columns: Column[] }
 

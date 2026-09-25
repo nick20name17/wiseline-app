@@ -5,5 +5,3 @@ export const prioritiesSearchSchema = z.object({
   // The department's code, which reads better in a link than its id.
   department: z.catch(z.optional(z.string()), undefined)
 })
-
-export type PrioritiesSearch = z.infer<typeof prioritiesSearchSchema>

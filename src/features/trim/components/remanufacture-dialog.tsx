@@ -25,15 +25,13 @@ import {
 import { remakeRoom, remanOwed } from '../lib/wrapping'
 import { KeypadDialog } from './keypad-dialog'
 
-export type RemanufactureLine = Pick<
-  WrappingRow,
-  'order' | 'origin_item' | 'order_number' | 'description' | 'qty_ordered'
->
-
 type RemanufactureDialogProps = {
   departmentId: number | undefined
   /** The line to remake part of, or `null` when the window is shut. */
-  line: RemanufactureLine | null
+  line: Pick<
+    WrappingRow,
+    'order' | 'origin_item' | 'order_number' | 'description' | 'qty_ordered'
+  > | null
   source?: RemanufactureSource
   /** The machine the new bendlist lands on, when the caller knows it. */
   machineName?: string | null
