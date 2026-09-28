@@ -496,8 +496,10 @@ const dayStripSchema = z.array(
     // The sum of the department's machines' daily max bends; `null` is no ceiling.
     capacity: z._default(z.nullable(z.number()), null),
     over_capacity: z._default(z.boolean(), false),
-    // Monday to Friday, plus the weekend when the company works it. Holidays are not known.
-    is_work_day: z._default(z.boolean(), true)
+    // Monday to Friday, plus the weekend when the company works it, and never a holiday.
+    is_work_day: z._default(z.boolean(), true),
+    // The holiday's name on a day the shop has closed, so a closed day can say why.
+    holiday: z._default(z.nullable(z.string()), null)
   })
 )
 

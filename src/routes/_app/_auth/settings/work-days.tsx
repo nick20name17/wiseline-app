@@ -1,7 +1,20 @@
-import { PagePlaceholder } from '@/components/page-placeholder'
+import { WorkDaysPage, holidaysSearchSchema } from '@/features/holidays'
 import { createFileRoute } from '@tanstack/react-router'
+
+const WorkDaysRoute = () => {
+  const { year } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  return (
+    <WorkDaysPage
+      year={year}
+      onYearChange={next => void navigate({ search: { year: next }, replace: true })}
+    />
+  )
+}
 
 export const Route = createFileRoute('/_app/_auth/settings/work-days')({
   staticData: { crumb: 'Work Days' },
-  component: () => <PagePlaceholder title='Work Days' />
+  validateSearch: holidaysSearchSchema,
+  component: WorkDaysRoute
 })

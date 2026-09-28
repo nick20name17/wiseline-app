@@ -36,7 +36,7 @@ export const CapacityCalendar = ({
     dayStripQuery(departmentId, toIsoDay(startOfMonth(month)), getDaysInMonth(month))
   )
   const budgets = new Map(strip?.map(entry => [entry.date, entry]))
-  // Holidays are not known to the server, so a day it has no word on is open.
+  // A day the server has no word on yet is open.
   const closed = (iso: string) => budgets.get(iso)?.is_work_day === false
   const { data: overdue } = useQuery(overdueQuery(departmentId))
   const overdueDays = new Set(overdue?.days)
@@ -70,7 +70,7 @@ export const CapacityCalendar = ({
           const hint = [
             late ? 'Overdue orders' : null,
             past ? 'Past date' : null,
-            closed(iso) ? 'Not a work day' : null,
+            closed(iso) ? (budget?.holiday ?? 'Not a work day') : null,
             load
           ]
             .filter(Boolean)

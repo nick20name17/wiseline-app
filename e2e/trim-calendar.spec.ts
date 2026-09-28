@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { mockTrimApi, SCHEDULED_ORDERS, signIn } from './trim-api.ts'
+import { HOLIDAY, mockTrimApi, SCHEDULED_ORDERS, signIn } from './trim-api.ts'
 
 // The reviewed order on Wed, Sep 23, whose one line the split below is drawn from.
 const READY = SCHEDULED_ORDERS[2]!
@@ -66,6 +66,14 @@ test('an empty day says so and leads nowhere', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Today' }).click()
   await expect(page.getByText(/· today/)).toBeVisible()
+})
+
+test('a holiday names itself on the month and under it', async ({ page }) => {
+  const day = page.getByRole('button', { name: `Wed, Sep 30, 2026 · ${HOLIDAY.name}` })
+  await expect(day).toContainText(HOLIDAY.name)
+
+  await day.click()
+  await expect(page.getByText(`${HOLIDAY.name}, closed`)).toBeVisible()
 })
 
 test('the day leads back to the board', async ({ page }) => {

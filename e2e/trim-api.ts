@@ -504,12 +504,20 @@ const WRAPPING_LOCATIONS = [
   }
 ]
 
+/** A closed weekday past the work week the board opens on, so the strips never step over it. */
+export const HOLIDAY = { date: '2026-09-30', name: 'Truth and Reconciliation Day' }
+
 const dayStrip = (start: string, days: number) =>
   Array.from({ length: days }, (_, index) => {
     const date = new Date(`${start}T00:00:00Z`)
     date.setUTCDate(date.getUTCDate() + index)
+    const iso = date.toISOString().slice(0, 10)
+    const holiday = iso === HOLIDAY.date ? HOLIDAY.name : null
     return {
-      date: date.toISOString().slice(0, 10),
+      date: iso,
+      // The shop works Monday to Friday, holidays aside.
+      is_work_day: !holiday && date.getUTCDay() !== 0 && date.getUTCDay() !== 6,
+      holiday,
       pieces: 120,
       pieces_from_stock: 0,
       bends: 1000,

@@ -55,8 +55,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const load = new Map(strip?.map(entry => [entry.date, entry]))
   const late = new Set(overdue?.days)
   // Until the month's strip is in, no day is drawn back: shading every weekend and then taking it off
-  // again would flicker. Holidays are not known to the server.
+  // again would flicker.
   const isWorkDay = (day: string) => load.get(day)?.is_work_day ?? true
+  const holidayOn = (day: string) => load.get(day)?.holiday ?? null
 
   // A split order sits on each of its days.
   const byDay = new Map<string, TrimOrder[]>()
@@ -125,7 +126,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
               <button
                 key={day}
                 type='button'
-                aria-label={formatDate(day)}
+                aria-label={[formatDate(day), holidayOn(day)].filter(Boolean).join(' · ')}
                 aria-pressed={day === selected}
                 className={cn(
                   'h-20 rounded-md border border-border p-2 text-left align-top hover:border-input',
@@ -139,6 +140,11 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                 <span className={cn('block text-sm font-medium', day === start && 'text-primary')}>
                   {Number(day.slice(-2))}
                 </span>
+                {holidayOn(day) ? (
+                  <span className='block truncate text-xs text-muted-foreground'>
+                    {holidayOn(day)}
+                  </span>
+                ) : null}
                 {count ? (
                   <span
                     title={bendsOn(day)}
@@ -165,7 +171,11 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
             </span>
             <span className='text-sm text-muted-foreground'>
               {onSelectedDay.length} order{onSelectedDay.length === 1 ? '' : 's'} scheduled
-              {isWorkDay(selected) ? '' : ' · non-work day'}
+              {holidayOn(selected)
+                ? ` · ${holidayOn(selected)}, closed`
+                : isWorkDay(selected)
+                  ? ''
+                  : ' · non-work day'}
             </span>
           </span>
 

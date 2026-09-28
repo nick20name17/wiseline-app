@@ -105,8 +105,7 @@ const Picker = ({
 
 /**
  * The calendar every scheduling decision goes through. Past days are closed, and so are the days the
- * shop is shut — the server owns the Work Days setting and refuses them too. It knows no holidays, so
- * those stay open.
+ * shop is shut, weekends and holidays alike — the server owns Work Days and refuses them too.
  */
 export const ScheduleDialog = ({
   open,
