@@ -20,9 +20,8 @@ test('the board lists unscheduled orders with the day strip and the tab count', 
   await expect(page.getByRole('tab', { name: 'Unscheduled 2' })).toBeVisible()
   await expect(page.getByText('2 unscheduled orders')).toBeVisible()
 
-  // The day pill carries the bends scheduled against its machines' daily max added up — five
-  // benders at 1200 — not the 5000 the day strip itself returns.
-  await expect(page.getByText('(1000 / 6000)').first()).toBeVisible()
+  // The day pill carries the bends scheduled against the capacity the day strip returns.
+  await expect(page.getByText('(1000 / 5000)').first()).toBeVisible()
 
   await expect(page.getByText('330605')).toBeVisible()
   await expect(page.getByText('H F H Inc')).toBeVisible()
@@ -90,11 +89,11 @@ test('Bypass Production asks first and reports where the order went', async ({ p
 })
 
 test('the priority list offers only this department’s priorities', async ({ page }) => {
-  await page.getByRole('button', { name: 'Set priority' }).first().click()
+  await page.getByRole('combobox', { name: 'Set priority' }).first().click()
 
-  await expect(page.getByRole('menuitemradio', { name: 'Rush' })).toBeVisible()
-  await expect(page.getByRole('menuitemradio', { name: 'Standard' })).toBeVisible()
-  await expect(page.getByRole('menuitemradio', { name: 'Rollforming only' })).toHaveCount(0)
+  await expect(page.getByRole('option', { name: 'Rush' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Standard' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Rollforming only' })).toHaveCount(0)
 })
 
 test('an unread order note opens and can be acknowledged', async ({ page }) => {

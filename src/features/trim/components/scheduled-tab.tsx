@@ -1,6 +1,7 @@
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
@@ -22,7 +23,7 @@ import {
   type TrimOrder
 } from '../api'
 import { SCHEDULED_TABLE } from '../lib/columns'
-import { partDays, partKey, partLines } from '../lib/parts'
+import { partDays, partKey, partLines, partState } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { ConfirmDialog } from './confirm-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
@@ -176,7 +177,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
     setSelectedIds(new Set())
   }
 
-  const { data: page, isPending } = useQuery(scheduledOrdersQuery(search))
+  const { data: page, isPending, isError, error, refetch } = useQuery(scheduledOrdersQuery(search))
   const columns = useColumnOrder(SCHEDULED_TABLE)
   const orders = page?.results ?? []
   // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
@@ -214,15 +215,27 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
         a.order.invoice.localeCompare(b.order.invoice)
     )
 
-  // Review and release are recorded per order, not per day, so both halves of a split order tick
-  // together; the API has no per-day release to offer.
-  const listed = new Set(parts.map(part => part.order.id))
-  const selected = orders.filter(order => selectedIds.has(order.id) && listed.has(order.id))
+  // A part ticks on its own: one day of a split order goes out without the others.
+  const selected = parts.filter(part => selectedIds.has(partKey(part.order.id, part.day)))
   // A release is all stock orders or all customer orders; the first tick decides which.
-  const selectionKind = selected.length ? (isStockOrder(selected[0]!) ? 'stock' : 'customer') : null
+  const selectionKind = selected.length
+    ? isStockOrder(selected[0]!.order)
+      ? 'stock'
+      : 'customer'
+    : null
   const canRelease =
     selected.length > 0 &&
-    selected.every(order => departmentStateOf(order, departmentId)?.reviewed ?? false)
+    selected.every(part => partState(part.order, part.day, departmentId).reviewed)
+
+  // A list that never arrived is not an empty one.
+  if (isError && !page)
+    return (
+      <QueryError
+        title='The scheduled orders did not load'
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    )
 
   // Nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing.
   // The count takes Open orders only, so an order the list does hold still keeps the table up.
@@ -260,10 +273,12 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
         isReleasing={release.isPending}
         onAllocatedStock={() => setStockOpen(true)}
         onRelease={() => {
-          const ids = selected
-            .map(order => order.sales_order?.id)
-            .filter((id): id is number => id !== undefined)
-          if (departmentId && ids.length) release.mutate({ salesOrderIds: ids, departmentId })
+          const days = selected.flatMap(part =>
+            part.order.sales_order
+              ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
+              : []
+          )
+          if (departmentId && days.length) release.mutate({ days, departmentId })
         }}
       />
 
@@ -318,12 +333,12 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
                       day={part.day}
                       departmentId={departmentId}
                       expanded={expandedIds.has(key)}
-                      selected={selectedIds.has(order.id)}
+                      selected={selectedIds.has(key)}
                       locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
                       overdue={late}
                       noteState={noteState(order)}
                       onToggleExpanded={() => setExpandedIds(current => toggled(current, key))}
-                      onToggleSelected={() => setSelectedIds(current => toggled(current, order.id))}
+                      onToggleSelected={() => setSelectedIds(current => toggled(current, key))}
                       onReschedule={() => setRescheduling(part)}
                       onOpenOrderNotes={() => setNoteOrder(order)}
                       onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}

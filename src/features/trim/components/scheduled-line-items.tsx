@@ -57,12 +57,13 @@ type ScheduledLineItemsProps = {
  */
 const commitNumber = (
   input: HTMLInputElement,
-  current: number,
+  /** `null` is a figure EBMS has none of: the box reverts to blank. */
+  current: number | null,
   range: { min: number; max?: number },
   write: (next: number, revert: () => void) => void
 ) => {
   const revert = () => {
-    input.value = String(current)
+    input.value = current === null ? '' : String(current)
   }
   if (input.value.trim() === '' || Number.isNaN(input.valueAsNumber)) return revert()
   const next = Math.min(range.max ?? Infinity, Math.max(range.min, input.valueAsNumber))
@@ -303,13 +304,13 @@ export const ScheduledLineItems = ({
                       <TableCell>
                         {editable ? (
                           <Input
-                            key={width}
+                            key={width ?? ''}
                             type='number'
                             min={0}
                             step={0.1}
                             aria-label={`Width for ${item.id_inven ?? item.id}`}
                             placeholder='0'
-                            defaultValue={width}
+                            defaultValue={width ?? ''}
                             onBlur={event =>
                               commitNumber(event.currentTarget, width, { min: 0 }, (next, revert) =>
                                 edit(item, { width: next }, revert)
@@ -317,7 +318,9 @@ export const ScheduledLineItems = ({
                             }
                           />
                         ) : (
-                          <span className='font-mono'>{width.toFixed(1)}</span>
+                          <span className='font-mono'>
+                            {width === null ? '—' : width.toFixed(1)}
+                          </span>
                         )}
                       </TableCell>
                     ),
@@ -328,15 +331,17 @@ export const ScheduledLineItems = ({
                             'font-mono',
                             otherDay
                               ? 'text-muted-foreground'
-                              : item.length !== STANDARD_LENGTH && 'text-destructive'
+                              : item.length !== null &&
+                                  item.length !== STANDARD_LENGTH &&
+                                  'text-destructive'
                           )}
                           title={
-                            item.length === STANDARD_LENGTH
+                            item.length === null || item.length === STANDARD_LENGTH
                               ? undefined
                               : `Non-standard length (not ${STANDARD_LENGTH}")`
                           }
                         >
-                          {item.length}&quot;
+                          {item.length === null ? '—' : `${item.length}"`}
                         </span>
                       </TableCell>
                     ),

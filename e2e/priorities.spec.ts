@@ -15,16 +15,14 @@ const PRIORITIES = [
   { id: 12, name: 'Later', color: '#64748b', position: 4, department: null }
 ]
 
-/** Answers every `PATCH /priorities/{id}/` and records the position each one sent. */
-const recordPatches = async (page: Page) => {
-  const patched: { id: string; position: unknown }[] = []
-  await page.route(`${API_URL}/priorities/*/`, route => {
-    const id = new URL(route.request().url()).pathname.split('/').at(-2)!
-    const { position } = route.request().postDataJSON() as { position: unknown }
-    patched.push({ id, position })
+/** Answers every `POST /priorities/reorder/` and records the hierarchy each one sent. */
+const recordReorders = async (page: Page) => {
+  const sent: { department: number | null; ids: number[] }[] = []
+  await page.route(`${API_URL}/priorities/reorder/`, route => {
+    sent.push(route.request().postDataJSON() as { department: number | null; ids: number[] })
     return route.fulfill({ json: {} })
   })
-  return patched
+  return sent
 }
 
 /**
@@ -69,8 +67,15 @@ test('every department’s priorities are listed under All, each naming its own'
   await expect(page.getByRole('row').filter({ hasText: 'Later' })).toContainText('Every department')
   await expect(page.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('row').filter({ hasText: 'Rush' })).toContainText('Rollforming')
-  // A hierarchy orders one department's priorities, so nothing drags across them.
-  await expect(page.getByRole('button', { name: /^Move / })).toHaveCount(0)
+  // All holds the hierarchy of the priorities with no department; a department's own do not move here.
+  await expect(page.getByRole('button', { name: 'Move Later' })).toHaveAttribute(
+    'aria-disabled',
+    'false'
+  )
+  await expect(page.getByRole('button', { name: 'Move Rush' })).toHaveAttribute(
+    'aria-disabled',
+    'true'
+  )
 })
 
 test('a department pill lists its priorities in hierarchy order', async ({ page }) => {
@@ -84,19 +89,13 @@ test('a department pill lists its priorities in hierarchy order', async ({ page 
   await expect(rows.nth(3)).toContainText('By 3:00')
 })
 
-test('moving a priority renumbers the ones it passes', async ({ page }) => {
-  const patched = await recordPatches(page)
+test('moving a priority saves its department’s hierarchy in one call', async ({ page }) => {
+  const sent = await recordReorders(page)
   await page.getByRole('button', { name: 'Trim' }).click()
 
   await moveUp(page, 'By 3:00', 2, 4)
 
-  await expect
-    .poll(() => patched.sort((a, b) => a.id.localeCompare(b.id)))
-    .toEqual([
-      { id: '3', position: 2 },
-      { id: '4', position: 3 },
-      { id: '5', position: 1 }
-    ])
+  await expect.poll(() => sent).toEqual([{ department: 1, ids: [5, 3, 4] }])
 })
 
 test('a move the server refuses goes back, and says so', async ({ page }) => {
@@ -116,7 +115,7 @@ test('a move the server refuses goes back, and says so', async ({ page }) => {
 })
 
 test('a row is picked up anywhere along it, not only by the grip', async ({ page }) => {
-  const patched = await recordPatches(page)
+  const sent = await recordReorders(page)
   await page.getByRole('button', { name: 'Trim' }).click()
 
   const from = (await page.getByRole('cell', { name: 'By 3:00', exact: true }).boundingBox())!
@@ -127,7 +126,7 @@ test('a row is picked up anywhere along it, not only by the grip', async ({ page
   await page.mouse.move(from.x + 10, to.y + 2, { steps: 10 })
   await page.mouse.up()
 
-  await expect.poll(() => patched.length).toBe(3)
+  await expect.poll(() => sent).toEqual([{ department: 1, ids: [5, 3, 4] }])
 })
 
 test('a new priority takes a palette colour and goes last in the department on screen', async ({

@@ -1,7 +1,12 @@
 import type { CoilFilter, CoilLot } from '../api'
 
-/** How the floor names a coil: its coil #, or the row id for one EBMS sent without it. */
-export const coilName = (lot: CoilLot) => lot.lot_number ?? String(lot.id)
+/** How the floor names a coil: its coil #, or the EBMS lot autoid for one sent without it. */
+export const coilName = (lot: CoilLot) => lot.lot_number ?? lot.id
+
+const numberFormat = new Intl.NumberFormat('en-US')
+
+/** A coil's figure as the tables print it: grouped, three decimals at most — the server's floats carry noise. */
+export const figure = (value: number | null) => (value === null ? '—' : numberFormat.format(value))
 
 /** A stored figure as a number box holds it — blank for none, never «null». */
 export const fieldText = (value: number | null) => (value === null ? '' : String(value))

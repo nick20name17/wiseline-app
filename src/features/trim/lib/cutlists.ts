@@ -1,4 +1,4 @@
-import type { Cutlist, CutlistRow, CutlistSource, Machine } from '../api'
+import type { Cutlist, CutlistRow, CutlistSource, Machine, ProductFile } from '../api'
 
 /**
  * One line of the table the worker reads: a width and a length, and every row the server holds for
@@ -67,17 +67,38 @@ export const describeGroup = (group: CutlistGroup) => {
   }
 }
 
+// EBMS keeps more than pictures on a product; only these can stand in a table cell.
+const IMAGE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i
+
+/** The product's drawing: its first picture that has a link, or `null` for none. */
+export const drawingOf = (files: ProductFile[]) =>
+  files.find(file => file.url && IMAGE.test(file.name)) ?? null
+
+/**
+ * The drawing a bendlist row shows — the product's, when one product is behind the row. A row cutting
+ * two products of the same size cannot show either; its lines are opened through the Total.
+ */
+export const groupDrawing = (group: CutlistGroup) =>
+  describeGroup(group).productId === null
+    ? null
+    : drawingOf(linesOf(group).flatMap(line => line.product_files))
+
 /** What one machine's column holds on a Slinet line: its pieces, vented ones left out of it. */
 export const machineQuantity = (group: CutlistGroup, machineId: number) =>
   group.rows
     .filter(row => row.machine === machineId && !row.vented)
     .reduce((total, row) => total + row.quantity, 0)
 
-export const groupRows = (rows: CutlistRow[]): CutlistGroup[] => {
+/**
+ * `byProduct` keeps a bendlist's products apart: the server gives each product of a size its own row,
+ * with its own ID, Drawing and Complete p1 (653,304), where the Slinet cuts one size for them all.
+ */
+export const groupRows = (rows: CutlistRow[], { byProduct = false } = {}): CutlistGroup[] => {
   const groups = new Map<string, CutlistGroup>()
 
   for (const row of rows) {
-    const key = `${row.width ?? ''}|${row.length ?? ''}`
+    const product = byProduct ? (row.sources[0]?.product_id ?? '') : ''
+    const key = `${row.width ?? ''}|${row.length ?? ''}|${product}`
     let group = groups.get(key)
     if (!group) {
       group = {
@@ -184,4 +205,32 @@ export const slinetTotals = (cutlists: Cutlist[], day: string) => {
   }
 
   return { pieces, stockPieces }
+}
+
+/**
+ * Why an open row on a list cannot be ticked Complete yet, or `null` when it can.
+ *
+ * Nothing is cut without a coil of the list's colour in the Slinet: once the last one is depleted, the
+ * Worker checks another in before the list can go on p1 (502,469). A bendlist is Not Started until the
+ * Slinet cuts into its release; from then on a row can be signed off before its own piece is cut, and
+ * Bent overrides Cut (p1 (686,329)).
+ */
+export const completeBlocker = ({
+  isSlinet,
+  slinetStarted,
+  color,
+  coilsInSlinet
+}: {
+  isSlinet: boolean
+  slinetStarted: boolean
+  color: string | null
+  /**
+   * `'checking'` while the answer is on its way; `null` when it is not asked — a done list, or a read
+   * that failed, which should not lock the floor out of its work.
+   */
+  coilsInSlinet: number | 'checking' | null
+}) => {
+  if (!isSlinet) return slinetStarted ? null : 'Available once the Slinet starts on this release'
+  if (coilsInSlinet === 'checking') return 'Checking the coils in the Slinet…'
+  return coilsInSlinet === 0 ? `Check a ${color ?? 'matching'} coil into the Slinet first` : null
 }

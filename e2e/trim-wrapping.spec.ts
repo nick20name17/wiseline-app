@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { mockTrimApi, signIn } from './trim-api.ts'
+import { WRAPPING_ROWS, mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -82,18 +82,28 @@ test('a package over the location limit is printed only once the Worker says so'
 
   await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
   await page.getByRole('button', { name: 'Auto fill' }).first().click()
-  // 101 has 380 lb left.
-  await page.getByLabel('Package weight').fill('400')
+  // 36 pieces at 11 lb are 396 lb; 101 has 380 lb left.
+  await expect(page.getByLabel('Package weight')).toHaveText('396')
   await page.getByRole('button', { name: 'Create & print' }).click()
 
   await expect(page.getByText('Location over weight limit')).toBeVisible()
-  await page.getByRole('button', { name: 'Print anyway' }).click()
+  await page.getByRole('button', { name: 'Yes, Create & Print' }).click()
 
   await expect.poll(() => sent[0]?.override_weight).toBe(true)
   await expect(page.getByText('Printed label 01-330608-01 · 36 pcs → 101')).toBeVisible()
 })
 
 test('the last location of an order with packages cannot be taken off', async ({ page }) => {
+  // Something of the order is already wrapped, so its packages stand on 101.
+  await page.route(`${API_URL}/wrapping/?*`, route =>
+    route.fulfill({
+      json: WRAPPING_ROWS.map(row =>
+        row.origin_item === '901' ? { ...row, wrapped: 10, left_to_wrap: 30 } : row
+      )
+    })
+  )
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
   await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
   await page.getByRole('button', { name: 'Take 101 off this order' }).click()
 
@@ -117,7 +127,10 @@ test('a damaged piece is sent back to be remade', async ({ page }) => {
   const again = page.getByRole('button', { name: 'Remanufacture 901' })
   await expect(again).toHaveAttribute('title', 'Remanufacture again')
   await again.click()
-  await page.getByLabel('Pieces to remake').fill('3')
+  // The figure is keyed in on the floor's keypad, which opens with the window.
+  const keypad = page.getByRole('dialog', { name: 'Pieces to remake' })
+  await keypad.getByRole('button', { name: '3', exact: true }).click()
+  await keypad.getByRole('button', { name: 'Enter' }).click()
   await page.getByRole('button', { name: 'Request remake' }).click()
 
   await expect.poll(() => asked[0]?.quantity).toBe(3)

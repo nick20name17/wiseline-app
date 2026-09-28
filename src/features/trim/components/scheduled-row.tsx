@@ -8,7 +8,7 @@ import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert }
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
 import { SCHEDULED_TABLE } from '../lib/columns'
-import { splitOf, toMake } from '../lib/parts'
+import { partLines, partState, splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from './note-button'
 import { PriorityCell } from './priority-cell'
@@ -134,16 +134,17 @@ export const ScheduledRow = ({
   onOpenLineNotes
 }: ScheduledRowProps) => {
   const state = departmentStateOf(order, departmentId)
-  const released = state?.release_to_production ?? false
-  const reviewed = state?.reviewed ?? false
+  // Each day of a split order is reviewed and released on its own p1 (316,381), (335,505).
+  const { reviewed, released } = partState(order, day, departmentId)
   const stock = isStockOrder(order)
   const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const { cells } = useColumnCells(SCHEDULED_TABLE)
 
-  // Gate 1: every line that still has to be made carries a machine. Review is recorded per order, so
-  // every part of it has to pass.
-  const machinesAssigned = order.origin_items.every(item => toMake(item) <= 0 || !!item.item?.flow)
+  // Gate 1: every line of this part that still has to be made carries a machine.
+  const machinesAssigned = partLines(order, day).every(
+    item => toMake(item) <= 0 || !!item.item?.flow
+  )
 
   return (
     <Fragment>
@@ -227,6 +228,7 @@ export const ScheduledRow = ({
               ) : (
                 <ReviewedToggle
                   order={order}
+                  day={day}
                   departmentId={departmentId}
                   reviewed={reviewed}
                   released={released}

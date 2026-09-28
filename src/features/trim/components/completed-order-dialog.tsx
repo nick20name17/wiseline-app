@@ -26,7 +26,6 @@ import { MapPin, Printer } from 'lucide-react'
 import { useState } from 'react'
 import {
   completedOrderQuery,
-  manufacturingBatchesQuery,
   orderLocationsQuery,
   remanufacturingsQuery,
   useMoveOrderPackages,
@@ -85,27 +84,7 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
         reman => reman.order === detail.order
       )
     )
-  // A stock order's line is batched at what was wrapped, which can fall short of the ordered qty;
-  // a customer order's manufactured figure is what the shelf did not cover.
-  const { data: batches } = useQuery(manufacturingBatchesQuery(departmentId, isStock))
-  const batched = new Map<string, number>()
-  for (const batch of batches ?? []) {
-    if (batch.order !== detail.order) continue
-    for (const line of batch.lines) {
-      if (line.origin_item)
-        batched.set(line.origin_item, (batched.get(line.origin_item) ?? 0) + line.quantity)
-    }
-  }
-  // Unknown, not 0, until the batches have loaded.
-  const made = (line: CompletedDetail['line_items'][number]) =>
-    isStock
-      ? batches
-        ? (batched.get(line.origin_item ?? '') ?? 0)
-        : null
-      : Math.max(line.qty_ordered - line.from_stock, 0)
-  const total = detail.line_items.every(line => made(line) !== null)
-    ? detail.line_items.reduce((sum, line) => sum + (made(line) ?? 0), 0)
-    : '—'
+  const total = detail.line_items.reduce((sum, line) => sum + line.manufactured, 0)
 
   const columns = useColumnOrder(
     isStock ? withoutStock(COMPLETED_LINES_TABLE) : COMPLETED_LINES_TABLE
@@ -150,7 +129,25 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     mfg: (
                       <TableCell>
-                        <span className='font-mono'>{made(line) ?? '—'}</span>
+                        <span className='font-mono'>{line.manufactured}</span>
+                      </TableCell>
+                    ),
+                    length: (
+                      <TableCell>
+                        <span className='font-mono'>
+                          {line.length === null ? '—' : `${line.length}"`}
+                        </span>
+                      </TableCell>
+                    ),
+                    notes: (
+                      <TableCell>
+                        {/* Read here, not answered: the order is closed. */}
+                        <span
+                          className='line-clamp-2 text-muted-foreground'
+                          title={line.notes.join('\n')}
+                        >
+                          {line.notes.length ? line.notes.join(' · ') : '—'}
+                        </span>
                       </TableCell>
                     ),
                     reman: (

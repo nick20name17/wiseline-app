@@ -117,6 +117,9 @@ const itemSchema = z.object({
   production_date: z._default(z.nullable(z.string()), null),
   department: z._default(z.nullable(z.number()), null),
   over_due: z._default(z.nullable(z.boolean()), false),
+  // Reviewed and Released belong to the line's production day p1 (316,381), not the whole order.
+  reviewed: z._default(z.boolean(), false),
+  is_released: z._default(z.boolean(), false),
   // What the Manager fills in while reviewing the order.
   flow: z._default(z.nullable(machineSchema), null),
   vented: z._default(z.boolean(), false),
@@ -133,8 +136,8 @@ const lineItemSchema = z.object({
   id_inven: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   quantity: z._default(z.number(), 0),
-  width: z._default(z.number(), 0),
-  length: z._default(z.number(), 0),
+  width: z._default(z.nullable(z.number()), null),
+  length: z._default(z.nullable(z.number()), null),
   bends: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
   // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
@@ -270,12 +273,13 @@ const orderPage = async (filters: OrderFilters, offset: number, limit: number) =
  * Returned as pages, so the caller keeps whatever else the first one carries.
  */
 const allPages = async <Page extends { count: number }>(
-  pageAt: (offset: number) => Promise<Page>
+  pageAt: (offset: number) => Promise<Page>,
+  pageSize = PAGE_SIZE
 ) => {
   const first = await pageAt(0)
   const rest = await Promise.all(
-    Array.from({ length: Math.max(0, Math.ceil(first.count / PAGE_SIZE) - 1) }, (_, index) =>
-      pageAt((index + 1) * PAGE_SIZE)
+    Array.from({ length: Math.max(0, Math.ceil(first.count / pageSize) - 1) }, (_, index) =>
+      pageAt((index + 1) * pageSize)
     )
   )
   return [first, ...rest] as const
@@ -289,7 +293,9 @@ const allOrders = async (filters: OrderFilters) => {
 
 const countsSchema = z.object({
   unscheduled: z._default(z.number(), 0),
-  scheduled: z._default(z.number(), 0)
+  scheduled: z._default(z.number(), 0),
+  // Every coil the department's Coil Filter admits, in Trim or not — what the Coils tab lists.
+  coils: z._default(z.nullable(z.number()), null)
 })
 
 /** The tab strip's figures in one call — the whole board, whatever the search has narrowed. */
@@ -724,12 +730,8 @@ export const useSetLineNoteRead = (originItem: string) =>
 
 /**
  * Every write below is keyed on our own `SalesOrder` id, and an EBMS order that nobody has scheduled,
- * prioritised or annotated has none yet, so one is made on the way.
- *
- * `POST /sales-orders/` is not idempotent — the autoid is unique — so the write that follows must
- * refresh the orders list whether it succeeded or not. Otherwise a failed schedule leaves a row on the
- * server and a cached order that still says there is none, and the retry answers 500 on the
- * constraint instead of repeating the real error. Hence `onSettled` below rather than `onSuccess`.
+ * prioritised or annotated has none yet, so one is made on the way. The server answers an order that
+ * already has one with that row, so a retry after a failed write is safe.
  */
 const ensureSalesOrderId = async (order: TrimOrder) => {
   // A negative id is the stand-in an optimistic update drew, not a row the server has.
@@ -926,15 +928,21 @@ export const useSetReviewed = () =>
     mutationFn: async ({
       order,
       departmentId,
+      day,
       reviewed
     }: {
       order: TrimOrder
       departmentId: number
+      /** The part's production day: each day of a split order is reviewed on its own. */
+      day: string
       reviewed: boolean
     }) => {
       const id = await ensureSalesOrderId(order)
       return authApi
-        .patch(`sales-orders/${id}/departments/${departmentId}/`, { json: { reviewed } })
+        .patch(`sales-orders/${id}/departments/${departmentId}/`, {
+          json: { reviewed },
+          searchParams: { production_date: day }
+        })
         .json()
     },
     onSettled: async (_, __, ___, ____, { client }) => {
@@ -947,27 +955,22 @@ const releaseResultSchema = z.object({
   cutlists: z.catch(z.array(z.number()), [])
 })
 
+/** One production day of one order — what a row of the Scheduled tab releases. */
+export type ReleaseDay = { sales_order_id: number; production_date: string }
+
 /**
- * Release To Production: the ticked orders go to the floor and their cutlists and bendlists are made.
+ * Release To Production: the ticked parts go to the floor and their cutlists and bendlists are made.
+ * A part is one day of an order, so releasing Monday's part of a split order leaves its Wednesday part
+ * to be reviewed and moved on its own p1 (335,505).
  *
- * One call for the batch rather than one per order — orders sharing a production date, gauge/colour
+ * One call for the batch rather than one per part — parts sharing a production date, gauge/colour
  * and priority share a cutlist, and that grouping only happens when they arrive together.
  */
 export const useReleaseOrders = (onSuccess: (released: number, cutlists: number) => void) =>
   useMutation({
-    mutationFn: async ({
-      salesOrderIds,
-      departmentId
-    }: {
-      salesOrderIds: number[]
-      departmentId: number
-    }) =>
+    mutationFn: async ({ days, departmentId }: { days: ReleaseDay[]; departmentId: number }) =>
       releaseResultSchema.parse(
-        await authApi
-          .post(`departments/${departmentId}/release/`, {
-            json: { sales_order_ids: salesOrderIds }
-          })
-          .json()
+        await authApi.post(`departments/${departmentId}/release/`, { json: { days } }).json()
       ),
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: trimKeys.all })
@@ -1240,6 +1243,16 @@ type CutlistKind = 'cutlist' | 'bendlist'
 
 // One line item's share of a row — what a number in the Total column opens up. `quantity` is that
 // share; the rest describes the line itself.
+// A file EBMS holds on a product — its drawing among them. `url` is a signed link that expires, so it
+// is read when the list is, never kept.
+const productFileSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  url: z._default(z.nullable(z.string()), null)
+})
+
+export type ProductFile = z.infer<typeof productFileSchema>
+
 const cutlistSourceSchema = z.object({
   order: z._default(z.nullable(z.string()), null),
   // The printed number — a stock order's own «S» number — and «Stock» for its customer.
@@ -1255,7 +1268,9 @@ const cutlistSourceSchema = z.object({
   qty_ordered: z._default(z.nullable(z.number()), null),
   pull_from_stock: z._default(z.nullable(z.number()), null),
   status: z._default(z.nullable(z.string()), null),
-  is_stock: z._default(z.boolean(), false)
+  is_stock: z._default(z.boolean(), false),
+  // The product's pictures in EBMS; the bendlist's Drawing p1 (660,539).
+  product_files: z._default(z.array(productFileSchema), [])
 })
 
 export type CutlistSource = z.infer<typeof cutlistSourceSchema>
@@ -1371,7 +1386,8 @@ const folderId = z._default(
 )
 
 const coilLotSchema = z.object({
-  id: z.number(),
+  // The EBMS lot autoid, so a coil has one before the floor has entered anything about it.
+  id: z.string(),
   lot_autoid: z._default(z.string(), ''),
   lot_number: z._default(z.nullable(z.string()), null),
   product_id: z._default(z.nullable(z.string()), null),
@@ -1497,6 +1513,11 @@ const completedDetailSchema = z.object({
         description: z._default(z.nullable(z.string()), null),
         qty_ordered: z._default(z.number(), 0),
         from_stock: z._default(z.number(), 0),
+        // What went to EBMS for the line: a stock order's batches, else ordered less stock.
+        manufactured: z._default(z.number(), 0),
+        length: z._default(z.nullable(z.number()), null),
+        // The Line Item Notes, oldest first.
+        notes: z.catch(z.array(z.string()), []),
         packaged: z._default(z.number(), 0),
         status: z._default(z.nullable(z.string()), null)
       })
@@ -1530,16 +1551,32 @@ export const useReprintPackage = (onSuccess?: () => void) =>
     onSuccess
   })
 
-// The lots list answers a bare page with no count, so one page is asked to hold it all.
-const COIL_PAGE_SIZE = 500
+const coilPageSchema = z.object({
+  count: z._default(z.number(), 0),
+  results: z.array(coilLotSchema)
+})
+
+// With `department_id` the server reads and filters every coil for each page it answers, so the
+// list is asked for in pages big enough to come back in one.
+const COIL_PAGE_SIZE = 1000
+
+const allCoils = async (searchParams: Record<string, number>) => {
+  const pages = await allPages(
+    async offset =>
+      coilPageSchema.parse(
+        await authApi
+          .get('coils/lots/', { searchParams: { ...searchParams, limit: COIL_PAGE_SIZE, offset } })
+          .json()
+      ),
+    COIL_PAGE_SIZE
+  )
+  return pages.flatMap(page => page.results)
+}
 
 /** Every coil in the company — All Coils. */
 export const coilLotsQuery = queryOptions({
   queryKey: trimKeys.coilLots(),
-  queryFn: async () =>
-    z
-      .array(coilLotSchema)
-      .parse(await authApi.get('coils/lots/', { searchParams: { limit: COIL_PAGE_SIZE } }).json())
+  queryFn: () => allCoils({})
 })
 
 /** The coils the department's Coil Filter admits, folder filters included — Trim Coils. */
@@ -1547,21 +1584,17 @@ export const departmentCoilLotsQuery = (departmentId: number | undefined) =>
   queryOptions({
     queryKey: trimKeys.departmentCoilLots(departmentId ?? 0),
     enabled: departmentId !== undefined,
-    queryFn: async () =>
-      z.array(coilLotSchema).parse(
-        await authApi
-          .get('coils/lots/', {
-            searchParams: { department_id: departmentId!, limit: COIL_PAGE_SIZE }
-          })
-          .json()
-      )
+    queryFn: () => allCoils({ department_id: departmentId! })
   })
 
+/** How many coils Trim Coils lists, for the tab strip: the page's count, without the coils. */
 /** The Cutlist Coils window reads its coils through the cutlist, so both lists hear of a change. */
 const invalidateCoils = (client: QueryClient) =>
   Promise.all([
     client.invalidateQueries({ queryKey: trimKeys.coils() }),
-    client.invalidateQueries({ queryKey: trimKeys.cutlists() })
+    client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
+    // The tab strip's coil count rides on the order counts.
+    client.invalidateQueries({ queryKey: [...trimKeys.orders(), 'counts'] })
   ])
 
 /** Material Thickness, Core OD and the coil note — everything the floor types onto a coil. */
@@ -1571,7 +1604,7 @@ export const useUpdateCoilLot = () =>
       lotId,
       edit
     }: {
-      lotId: number
+      lotId: string
       edit: { material_thickness?: number; core_od?: number; note?: string }
     }) => authApi.patch(`coils/lots/${lotId}/`, { json: edit }).json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
@@ -1588,7 +1621,7 @@ export const useSetCoilLocation = () =>
       lotId,
       location
     }: {
-      lotId: number
+      lotId: string
       location: { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
     }) => authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
@@ -1615,7 +1648,7 @@ export type CoilApply = z.infer<typeof coilApplySchema>
  */
 export const useApplyCoilAdjustment = () =>
   useMutation({
-    mutationFn: async ({ lotId, values }: { lotId: number; values: CoilAdjustment }) =>
+    mutationFn: async ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
       coilApplySchema.parse(
         await authApi.post(`coils/lots/${lotId}/apply/`, { json: values }).json()
       )
@@ -1624,7 +1657,7 @@ export const useApplyCoilAdjustment = () =>
 /** Confirming an adjustment: EBMS first, and only then the coil here. */
 export const useConfirmCoilAdjustment = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: ({ lotId, values }: { lotId: number; values: CoilAdjustment }) =>
+    mutationFn: ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
       authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json(),
     onSuccess,
     // Its callers word the failure differently — one coil, or a batch of them under one toast.
@@ -1635,7 +1668,7 @@ export const useConfirmCoilAdjustment = (onSuccess?: () => void) =>
 /** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. */
 export const useDepleteCoil = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: (lotId: number) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
+    mutationFn: (lotId: string) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
     onSuccess,
     meta: { skipErrorToast: true },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)

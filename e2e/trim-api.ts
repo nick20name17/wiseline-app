@@ -149,7 +149,11 @@ const READY_ORDER = {
     ]
   },
   origin_items: [
-    scheduledLine('101', 'TRC8250', 'Ridge Cap Dark Red', 8, { id: 101, flow: BENDERS[0] })
+    scheduledLine('101', 'TRC8250', 'Ridge Cap Dark Red', 8, {
+      id: 101,
+      flow: BENDERS[0],
+      reviewed: true
+    })
   ]
 }
 
@@ -230,7 +234,19 @@ const OVERDUE_ORDER = {
       }
     ]
   },
-  origin_items: []
+  // The row is flagged by its lines: a line of the part's day that the server calls overdue.
+  origin_items: [
+    {
+      ...scheduledLine('103', 'TRC8250', 'Ridge Cap Dark Red', 4, {
+        id: 103,
+        flow: BENDERS[0],
+        production_date: '2026-09-18',
+        over_due: true,
+        reviewed: true
+      }),
+      production_date: '2026-09-18'
+    }
+  ]
 }
 
 export const SCHEDULED_ORDERS = [
@@ -239,6 +255,24 @@ export const SCHEDULED_ORDERS = [
   READY_ORDER,
   UNREVIEWED_ORDER
 ]
+
+/** A row's share of line 101, named the way the server sends it. */
+const source = (quantity: number) => ({
+  order: 'ARINV-2',
+  order_number: '330608',
+  customer: 'Jireh Tools',
+  origin_item: '101',
+  quantity,
+  product_id: 'TRC8250',
+  description: 'Ridge Cap Dark Red',
+  qty_ordered: quantity,
+  pull_from_stock: 0,
+  product_files: [
+    { id: 9, name: 'TRC8250_1.png', url: 'https://files.e2e.test/TRC8250_1.png' },
+    // EBMS keeps more than pictures on a product; a PDF is no drawing.
+    { id: 10, name: 'spec.pdf', url: 'https://files.e2e.test/spec.pdf' }
+  ]
+})
 
 const cutlistRow = (
   id: number,
@@ -257,7 +291,7 @@ const cutlistRow = (
   complete: false,
   operator_notes: null,
   is_standard_length: length === 120,
-  sources: [{ order: 'ARINV-2', origin_item: '101', quantity }],
+  sources: [source(quantity)],
   ...extra
 })
 
@@ -320,7 +354,7 @@ const BENDLIST = {
 
 const COILS = [
   {
-    id: 71,
+    id: 'LOT-71',
     lot_number: '37067677',
     product_id: 'CS488306',
     coil_thickness: 4.125,
@@ -367,6 +401,9 @@ const COMPLETED_DETAIL = {
       description: 'Sidewall Flashing',
       qty_ordered: 36,
       from_stock: 0,
+      manufactured: 36,
+      length: 120,
+      notes: ['Bent a hair tight, checked with the customer'],
       packaged: 36,
       status: 'wrapped'
     },
@@ -376,6 +413,9 @@ const COMPLETED_DETAIL = {
       description: 'Rake Trim',
       qty_ordered: 24,
       from_stock: 4,
+      manufactured: 20,
+      length: 144,
+      notes: [],
       packaged: 20,
       status: 'wrapped'
     }
@@ -398,7 +438,7 @@ const coil = (
   lotNumber: string,
   extra: Record<string, unknown> = {}
 ) => ({
-  id,
+  id: `LOT-${id}`,
   lot_autoid: `LOT-${id}`,
   lot_number: lotNumber,
   product_id: productId,
@@ -467,8 +507,9 @@ const wrappingRow = (
   ...extra
 })
 
-const WRAPPING_ROWS = [
-  wrappingRow('901', 'Sidewall Flashing', 40, 0),
+export const WRAPPING_ROWS = [
+  // 11 lb a piece, so a package of the 36 still owed weighs 396 lb.
+  wrappingRow('901', 'Sidewall Flashing', 40, 0, { unit_weight: 11 }),
   // Not made yet, so nothing can be wrapped out of it however much is left.
   wrappingRow('902', 'Drip Edge', 20, 0, {
     status: 'not_started',
@@ -528,8 +569,24 @@ const dayStrip = (start: string, days: number) =>
   })
 
 export const mockTrimApi = async (page: Page) => {
+  // The fixtures sit on fixed days, so the board has to open on the day they were written for —
+  // SCHEDULED_DAY still ahead, 2026-09-18 already past.
+  await page.clock.setFixedTime(new Date('2026-09-22T09:00:00'))
   await page.route(`${API_URL}/departments/all/`, route => route.fulfill({ json: [DEPARTMENT] }))
-  await page.route(`${API_URL}/priorities/`, route => route.fulfill({ json: PRIORITIES }))
+  // The board mounts only once the user's role in the department is known.
+  await page.route(`${API_URL}/departments/users/assignments/*`, route =>
+    route.fulfill({ json: [{ user: user.id, department: DEPARTMENT.id, role: 'manager' }] })
+  )
+  // The server narrows the list to the department asked for.
+  await page.route(`${API_URL}/priorities/?*`, route => {
+    const department = Number(new URL(route.request().url()).searchParams.get('department'))
+    void route.fulfill({ json: PRIORITIES.filter(entry => entry.department === department) })
+  })
+  await page.route(`${API_URL}/departments/${DEPARTMENT.id}/counts/`, route =>
+    route.fulfill({
+      json: { unscheduled: 2, scheduled: SCHEDULED_ORDERS.length, coils: COIL_LOTS.length }
+    })
+  )
   // The tab the request is for is in `is_scheduled`, the same way the board splits the two lists.
   await page.route(`${API_URL}/ebms/orders/*`, route => {
     const scheduled = new URL(route.request().url()).searchParams.get('is_scheduled') === 'true'
@@ -684,11 +741,13 @@ export const mockTrimApi = async (page: Page) => {
   await page.route(`${API_URL}/coils/lots/*/adjust/`, route =>
     route.fulfill({ json: COIL_LOTS[0] })
   )
-  await page.route(`${API_URL}/coils/lots/*`, route => route.fulfill({ json: COIL_LOTS }))
+  await page.route(`${API_URL}/coils/lots/*`, route =>
+    route.fulfill({ json: { count: COIL_LOTS.length, results: COIL_LOTS } })
+  )
   await page.route(`${API_URL}/cutlists/*/coils/`, route => route.fulfill({ json: COILS }))
   await page.route(`${API_URL}/cutlists/*/done/`, route => route.fulfill({ json: DONE_CUTLIST }))
   await page.route(`${API_URL}/cutlists/rows/*/sources/`, route =>
-    route.fulfill({ json: [{ order: 'ARINV-2', origin_item: '101', quantity: 12 }] })
+    route.fulfill({ json: [source(12)] })
   )
   await page.route(`${API_URL}/cutlists/rows/*`, route =>
     route.fulfill({ json: { ...CUTLIST.rows[0], complete: true } })

@@ -28,6 +28,7 @@ import {
 import {
   describeGroup,
   editableLines,
+  groupDrawing,
   groupRows,
   linesOf,
   machineQuantity,
@@ -38,6 +39,7 @@ import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
+import { DrawingCell } from './drawing-cell'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from './note-button'
 import { NoteInput } from './note-input'
@@ -49,13 +51,13 @@ const sizeOf = (group: CutlistGroup) => `${group.width ?? '—'} × ${group.leng
 
 type CompleteCellProps = {
   group: CutlistGroup
-  /** The bendlist is still Not Started. */
-  waiting: boolean
+  /** Why an open row cannot be ticked yet, or `null` when it can. */
+  blocked: string | null
   onComplete: (complete: boolean) => void
 }
 
 /** Ticking is silent; unticking asks first — reopening a row undoes somebody's sign-off. */
-const CompleteCell = ({ group, waiting, onComplete }: CompleteCellProps) => {
+const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
   const [confirming, setConfirming] = useState(false)
 
   return (
@@ -68,15 +70,13 @@ const CompleteCell = ({ group, waiting, onComplete }: CompleteCellProps) => {
         title={
           group.complete
             ? 'Marked complete — uncheck to reopen (asks first)'
-            : waiting
-              ? 'Available once the Slinet starts on this release'
-              : 'Mark this row complete'
+            : (blocked ?? 'Mark this row complete')
         }
       >
         <Checkbox
           aria-label={`Complete ${sizeOf(group)}`}
           checked={group.complete}
-          disabled={waiting && !group.complete}
+          disabled={!!blocked && !group.complete}
           onCheckedChange={() => (group.complete ? setConfirming(true) : onComplete(true))}
         />
         {/* Signed off reads green across the strip; outstanding stays quiet. */}
@@ -298,8 +298,8 @@ type CutlistRowsProps = {
   /** The Slinet reads its list sideways: one line per size, the machines as columns. */
   isSlinet: boolean
   machines: Machine[]
-  /** The bendlist is still Not Started, so nothing on it can be completed yet. */
-  waiting: boolean
+  /** Why nothing open on the list can be completed yet, or `null` when it can. */
+  blocked: string | null
   /**
    * The rows' lines can still be moved to another machine or pulled from stock: only an ordinary
    * bendlist not yet Done moves with its lines — a remake's lists belong to the remake.
@@ -320,7 +320,7 @@ export const CutlistRows = ({
   isSlinet,
   remake,
   machines,
-  waiting,
+  blocked,
   lineEdits,
   lines,
   onOpenTotal,
@@ -331,7 +331,7 @@ export const CutlistRows = ({
   const updateLine = useUpdateLineItem({ released: true })
   const [moving, setMoving] = useState<{ line: EditableLine; machine: Machine } | null>(null)
   const [stocking, setStocking] = useState<EditableLine | null>(null)
-  const groups = groupRows(rows)
+  const groups = groupRows(rows, { byProduct: !isSlinet })
   const [noteItem, setNoteItem] = useState<string | null>(null)
   // Only a bendlist carries the notes column, so only it asks for their state.
   const noteState = useLineNoteState(
@@ -382,6 +382,7 @@ export const CutlistRows = ({
         : [
             { key: 'reman', label: 'Remanufacture' },
             { key: 'status', label: 'Status' },
+            { key: 'drawing', label: 'Drawing' },
             { key: 'notes', label: 'Line Item Notes' }
           ]),
       { key: 'complete', label: 'Complete' }
@@ -549,6 +550,11 @@ export const CutlistRows = ({
                       )}
                     </TableCell>
                   ),
+                  drawing: (
+                    <TableCell>
+                      <DrawingCell drawing={groupDrawing(group)} product={about.productId} />
+                    </TableCell>
+                  ),
                   notes: (
                     <TableCell>
                       {/* A thread belongs to one line item; a row cutting several orders' pieces is
@@ -568,7 +574,7 @@ export const CutlistRows = ({
                     <TableCell>
                       <CompleteCell
                         group={group}
-                        waiting={waiting}
+                        blocked={blocked}
                         onComplete={complete => edit(group, { complete })}
                       />
                     </TableCell>

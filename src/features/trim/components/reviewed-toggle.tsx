@@ -10,10 +10,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useState } from 'react'
+import { formatDate } from '@/lib/days'
 import { useSetReviewed, type TrimOrder } from '../api'
 
 type ReviewedToggleProps = {
   order: TrimOrder
+  /** The part's production day — what the toggle reviews. */
+  day: string
   departmentId: number | undefined
   reviewed: boolean
   released: boolean
@@ -29,6 +32,7 @@ type ReviewedToggleProps = {
  */
 export const ReviewedToggle = ({
   order,
+  day,
   departmentId,
   reviewed,
   released,
@@ -46,7 +50,7 @@ export const ReviewedToggle = ({
     )
 
   const set = (next: boolean) =>
-    departmentId && mutation.mutate({ order, departmentId, reviewed: next })
+    departmentId && mutation.mutate({ order, departmentId, day, reviewed: next })
 
   return (
     <>
@@ -68,7 +72,7 @@ export const ReviewedToggle = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Turn off Reviewed?</AlertDialogTitle>
             <AlertDialogDescription>
-              Order {order.invoice} will no longer be selectable for release.
+              Order {order.invoice} on {formatDate(day)} will no longer be selectable for release.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

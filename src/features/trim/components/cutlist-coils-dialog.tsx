@@ -26,7 +26,7 @@ import {
   type Cutlist
 } from '../api'
 import { CUTLIST_COILS_TABLE } from '../lib/columns'
-import { coilName, figuresAtThickness } from '../lib/coils'
+import { coilName, figure, figuresAtThickness } from '../lib/coils'
 import { ConfirmDialog } from './confirm-dialog'
 import { NoteInput } from './note-input'
 
@@ -48,7 +48,7 @@ type CutlistCoilsDialogProps = {
 export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCoilsDialogProps) => {
   const [cutlist, release] = useRetained(current)
   const { data: coils, isPending } = useQuery(cutlistCoilsQuery(cutlist?.id ?? null))
-  const [thickness, setThickness] = useState<Record<number, string>>({})
+  const [thickness, setThickness] = useState<Record<string, string>>({})
   const columns = useColumnOrder(CUTLIST_COILS_TABLE)
   const [question, setQuestion] = useState<Question | null>(null)
   const [asking, releaseAsking] = useRetained(question)
@@ -72,9 +72,9 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
   const depleting = entered.filter(entry => entry.next === 0)
   const adjusting = entered.filter(entry => entry.next > 0)
 
-  const forget = (ids: Set<number>) =>
+  const forget = (ids: Set<string>) =>
     setThickness(current =>
-      Object.fromEntries(Object.entries(current).filter(([id]) => !ids.has(Number(id))))
+      Object.fromEntries(Object.entries(current).filter(([id]) => !ids.has(id)))
     )
 
   const onConfirm = () => {
@@ -187,14 +187,14 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                           lf: (
                             <TableCell>
                               <span className='font-mono'>
-                                {preview?.feet ?? coil.linear_feet ?? '—'}
+                                {figure(preview?.feet ?? coil.linear_feet)}
                               </span>
                             </TableCell>
                           ),
                           weight: (
                             <TableCell>
                               <span className='font-mono'>
-                                {preview?.weight ?? coil.weight ?? '—'}
+                                {figure(preview?.weight ?? coil.weight)}
                               </span>
                             </TableCell>
                           ),

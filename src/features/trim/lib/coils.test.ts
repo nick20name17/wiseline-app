@@ -5,6 +5,7 @@ import {
   coilName,
   departmentCoilFilter,
   feetFromThickness,
+  figure,
   fieldText,
   figuresAtThickness,
   poundsPerFoot,
@@ -26,7 +27,7 @@ const filter = (patch: Partial<CoilFilter> = {}): CoilFilter => ({
 })
 
 const lot = (patch: Partial<CoilLot> = {}): CoilLot => ({
-  id: 41,
+  id: 'LOT-41',
   lot_autoid: 'LOT-41',
   lot_number: '3782201',
   product_id: 'CB4826R',
@@ -104,11 +105,19 @@ describe('figuresAtThickness', () => {
 describe('the coil as the floor reads it', () => {
   it('is named by its coil #, or its row when EBMS sent none', () => {
     expect(coilName(lot())).toBe('3782201')
-    expect(coilName(lot({ lot_number: null }))).toBe('41')
+    expect(coilName(lot({ lot_number: null }))).toBe('LOT-41')
   })
 
   it('leaves a missing figure blank rather than writing null', () => {
     expect(fieldText(null)).toBe('')
     expect(fieldText(0)).toBe('0')
+  })
+})
+
+describe('figure', () => {
+  it('rounds the float noise off a coil figure and groups it', () => {
+    expect(figure(5909.177880000001)).toBe('5,909.178')
+    expect(figure(262)).toBe('262')
+    expect(figure(null)).toBe('—')
   })
 })

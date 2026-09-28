@@ -1,16 +1,18 @@
 import { today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Check, ChevronRight, Database, Package } from 'lucide-react'
 import { useState } from 'react'
 import {
+  cutlistCoilsQuery,
   useFinishCutlist,
   type Cutlist,
   type Machine,
   type Remanufacturing,
   type WrappingRow
 } from '../api'
-import type { CutlistGroup } from '../lib/cutlists'
+import { completeBlocker, type CutlistGroup } from '../lib/cutlists'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
@@ -60,6 +62,18 @@ export const CutlistCard = ({
   const overdue = !done && !!cutlist.production_date && cutlist.production_date < today()
   const word = isSlinet ? 'cutlist' : 'bendlist'
   const hasStock = cutlist.rows.some(row => row.sources.some(source => source.is_stock))
+  // Asked only while the rows show, which is the only place a missing coil stops anything.
+  const coils = useQuery({
+    ...cutlistCoilsQuery(cutlist.id),
+    enabled: isSlinet && !done && expanded
+  })
+  const blocked = completeBlocker({
+    isSlinet,
+    slinetStarted,
+    color: cutlist.color,
+    // A done list is past cutting: a row reopened on it by mistake can be ticked back.
+    coilsInSlinet: done || coils.isError ? null : coils.isPending ? 'checking' : coils.data.length
+  })
 
   return (
     <div
@@ -162,9 +176,7 @@ export const CutlistCard = ({
             isSlinet={isSlinet}
             remake={remake}
             machines={machines}
-            // A bendlist is Not Started until the Slinet cuts into its release; from then on a row
-            // can be signed off before its own piece is cut, and Bent overrides Cut (p1 (686,329)).
-            waiting={!isSlinet && !slinetStarted}
+            blocked={blocked}
             lineEdits={!isSlinet && !cutlist.is_remanufacture && !done}
             lines={lines}
             onOpenTotal={onOpenTotal}

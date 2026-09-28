@@ -1,7 +1,7 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { countsQuery, cutlistsQuery, departmentCoilLotsQuery } from '../api'
+import { countsQuery, cutlistsQuery } from '../api'
 import { canAccess, defaultView, VIEW_LABELS, type TrimView } from '../lib/views'
 import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
@@ -35,16 +35,13 @@ export const TrimPage = ({
   // The Calendar hands the Scheduled tab a day to open on; going through the strip drops it.
   const [openDay, setOpenDay] = useState<string>()
 
-  // The strip counts the whole board, not what the search has narrowed it to. A Worker has no order
-  // tabs, so the counts stay unasked.
-  const { data: counts } = useQuery({ ...countsQuery(departmentId), enabled: !worker })
-  // Production and Coils count the very lists their tabs open on — the Slinet's active cutlists, and
-  // the coils Trim's filter admits — so a cutlist written or a coil moved shows on the strip at once.
+  // The strip counts the whole board, not what the search has narrowed it to — a Worker too, whose
+  // Coils tab reads its figure from the same call.
+  const { data: counts } = useQuery(countsQuery(departmentId))
+  const coils = counts?.coils ?? undefined
+  // Production counts the list its tab opens on — the Slinet's active cutlists — so a cutlist written
+  // shows on the strip at once.
   const { data: cutlists } = useQuery(cutlistsQuery(departmentId, 'cutlist', null, false))
-  const { data: coils } = useQuery({
-    ...departmentCoilLotsQuery(departmentId),
-    select: lots => lots.length
-  })
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],

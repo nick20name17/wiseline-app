@@ -32,17 +32,13 @@ import {
   type CoilLot
 } from '../api'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
-import { coilFilterActive, coilName, departmentCoilFilter } from '../lib/coils'
+import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
 import { ConfirmDialog } from './confirm-dialog'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
 const NOTE_SAVE_MS = 600
-
-const numberFormat = new Intl.NumberFormat('en-US')
-
-const figure = (value: number | null) => (value === null ? '—' : numberFormat.format(value))
 
 const matches = (lot: CoilLot, term: string) =>
   `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.lot_number ?? ''}`.toLowerCase().includes(term)
@@ -525,7 +521,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   // Coil numbers are what the tab is opened for, so the flat list is the one it lands on.
   const [layout, setLayout] = useState<Layout>('coils')
   const [term, setTerm] = useState('')
-  const [adjusting, setAdjusting] = useState<{ lotId: number; focus: CoilFigure } | null>(null)
+  const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.

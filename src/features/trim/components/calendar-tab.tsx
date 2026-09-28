@@ -15,7 +15,7 @@ import {
   type TrimOrder
 } from '../api'
 import { formatCount } from '../lib/format'
-import { partDays } from '../lib/parts'
+import { partDays, partState } from '../lib/parts'
 import { PriorityPill } from './priority-pill'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -193,6 +193,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
           <ul className='flex flex-col'>
             {onSelectedDay.map(order => {
               const state = departmentStateOf(order, departmentId)
+              const part = partState(order, selected, departmentId)
 
               return (
                 <li key={order.id} className='border-t border-border'>
@@ -208,11 +209,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                     <span className='ml-auto flex items-center gap-2'>
                       {state?.priority ? <PriorityPill priority={state.priority} /> : null}
                       <Badge variant='muted'>
-                        {state?.release_to_production
-                          ? 'Released'
-                          : state?.reviewed
-                            ? 'Reviewed'
-                            : 'Scheduled'}
+                        {part.released ? 'Released' : part.reviewed ? 'Reviewed' : 'Scheduled'}
                       </Badge>
                     </span>
                   </button>

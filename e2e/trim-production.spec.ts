@@ -69,7 +69,6 @@ test('a total opens the orders behind it', async ({ page }) => {
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('Orders using this size')).toBeVisible()
-  // The source names its line only by autoid; the order and the line are read off the board.
   await expect(dialog.getByText('330608')).toBeVisible()
   await expect(dialog.getByText('Jireh Tools')).toBeVisible()
   await expect(dialog.getByText('TRC8250')).toBeVisible()
@@ -101,8 +100,8 @@ test('Done waits until every row is complete', async ({ page }) => {
   await ready.getByRole('button', { name: 'Done' }).click()
   await expect(page.getByText('Mark this cutlist done?')).toBeVisible()
   await expect(page.getByText('coil adjustments')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Confirm' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Yes', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'No', exact: true })).toBeVisible()
 })
 
 test('Cutlist Coils lists the coils this colour can be cut from', async ({ page }) => {
@@ -142,6 +141,14 @@ test('a machine tab holds its own bendlists, with its daily max', async ({ page 
   await expect(page.getByRole('columnheader', { name: 'Remanufacture' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Vented' })).toBeHidden()
   await expect(page.getByRole('columnheader', { name: 'Operator Notes' })).toBeHidden()
+
+  // The product's drawing sits in the row and opens full size p1 (660,539).
+  await page.getByRole('button', { name: 'Drawing of TRC8250' }).first().click()
+  const drawing = page.getByRole('dialog', { name: 'Drawing of TRC8250' })
+  await expect(drawing.getByRole('img', { name: 'Drawing of TRC8250' })).toHaveAttribute(
+    'src',
+    'https://files.e2e.test/TRC8250_1.png'
+  )
 })
 
 test('a machine cannot sign off a row the Slinet has not cut', async ({ page }) => {
@@ -155,7 +162,7 @@ test('a machine cannot sign off a row the Slinet has not cut', async ({ page }) 
 
   // The Charcoal cutlist's 12.5 × 120 row for Press Brake is still outstanding.
   await expect(page.getByRole('checkbox', { name: /Complete 12.5/ })).toBeDisabled()
-  await expect(page.getByTitle('Waiting on Slinet cut')).toBeVisible()
+  await expect(page.getByTitle('Available once the Slinet starts on this release')).toBeVisible()
   await expect(page.getByText('In progress')).toBeHidden()
 })
 
@@ -218,9 +225,14 @@ test('a machine row asks for a remanufacture against its line', async ({ page })
     .click()
   await page.getByRole('button', { name: /Remanufacture 12.5/ }).click()
 
-  const dialog = page.getByRole('dialog')
+  // The keypad opens with it. Nothing on this line is waiting for a remake yet, so the whole order
+  // can be asked for.
+  const keypad = page.getByRole('dialog', { name: 'Pieces to remake' })
+  await expect(keypad.getByText('Now 0 of 8.', { exact: false })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  const dialog = page.getByRole('dialog', { name: 'Remanufacture' })
   await expect(dialog.getByText('Ridge Cap Dark Red on order 330608')).toBeVisible()
-  // Nothing on this line is waiting for a remake yet, so the whole order can be asked for.
   await expect(dialog.getByText('1–8', { exact: true })).toBeVisible()
 })
 

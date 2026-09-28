@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Cutlist, CutlistRow, CutlistSource, Machine } from '../api'
 import {
+  completeBlocker,
   describeGroup,
+  drawingOf,
+  groupDrawing,
   editableLines,
   groupRows,
   hasSlinetStarted,
@@ -34,6 +37,7 @@ const source = (extra: Partial<CutlistSource> = {}): CutlistSource => ({
   pull_from_stock: 0,
   status: 'not_started',
   is_stock: false,
+  product_files: [],
   ...extra
 })
 
@@ -151,6 +155,29 @@ describe('the Slinet gate on a bendlist', () => {
   })
 })
 
+describe('completeBlocker', () => {
+  const at = { isSlinet: true, slinetStarted: false, color: 'Black', coilsInSlinet: 0 }
+
+  it('holds a Slinet list until a coil of its colour is in the Slinet', () => {
+    expect(completeBlocker(at)).toBe('Check a Black coil into the Slinet first')
+    expect(completeBlocker({ ...at, coilsInSlinet: 'checking' })).toBe(
+      'Checking the coils in the Slinet…'
+    )
+    expect(completeBlocker({ ...at, coilsInSlinet: 1 })).toBeNull()
+  })
+
+  it('does not hold a Slinet list whose coils were not asked', () => {
+    expect(completeBlocker({ ...at, coilsInSlinet: null })).toBeNull()
+  })
+
+  it('holds a bendlist until the Slinet starts, whatever the coils', () => {
+    expect(completeBlocker({ ...at, isSlinet: false, coilsInSlinet: 3 })).toBe(
+      'Available once the Slinet starts on this release'
+    )
+    expect(completeBlocker({ ...at, isSlinet: false, slinetStarted: true })).toBeNull()
+  })
+})
+
 describe('slinetTotals', () => {
   it("counts the day's lists, done ones included, and the stock-order share of them", () => {
     const lists = [
@@ -223,5 +250,51 @@ describe('editableLines', () => {
     ])
 
     expect(editableLines(group!).map(line => line.origin_item)).toEqual(['1'])
+  })
+})
+
+describe('drawings', () => {
+  const file = (name: string, url: string | null = `https://r2.test/${name}`) => ({
+    id: 1,
+    name,
+    url
+  })
+
+  it('takes the first picture with a link, not an INI or an unsigned file', () => {
+    expect(drawingOf([file('system.pdf'), file('a.png', null), file('b.JPG')])?.name).toBe('b.JPG')
+    expect(drawingOf([file('notes.pdf')])).toBeNull()
+  })
+
+  it('shows a row the drawing of its one product, and none for a row of two', () => {
+    const one = groupRows([
+      row(1, 1, {
+        sources: [source({ product_files: [file('ridge.png')] }), source({ origin_item: '2' })]
+      })
+    ])[0]!
+    expect(groupDrawing(one)?.name).toBe('ridge.png')
+
+    const two = groupRows([
+      row(1, 1, {
+        sources: [
+          source({ product_files: [file('ridge.png')] }),
+          source({ origin_item: '2', product_id: 'TED8262' })
+        ]
+      })
+    ])[0]!
+    expect(groupDrawing(two)).toBeNull()
+  })
+})
+
+describe('a bendlist row per product', () => {
+  const ridge = row(1, 1, { sources: [source()] })
+  const eave = row(2, 1, { sources: [source({ origin_item: '2', product_id: 'TED8262' })] })
+
+  it('keeps two products of one size apart on a bendlist', () => {
+    const groups = groupRows([ridge, eave], { byProduct: true })
+    expect(groups.map(group => describeGroup(group).productId)).toEqual(['TRC8262', 'TED8262'])
+  })
+
+  it('cuts them as one size on the Slinet', () => {
+    expect(groupRows([ridge, eave])).toHaveLength(1)
   })
 })

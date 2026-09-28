@@ -48,10 +48,10 @@ test('a release is either stock orders or customer orders, never both', async ({
 })
 
 test('releasing sends the ticked orders and reports the cutlists', async ({ page }) => {
-  let released: number[] = []
+  let released: unknown = []
   await page.route(`${API_URL}/departments/1/release/`, async route => {
-    released = JSON.parse(route.request().postData() ?? '{}').sales_order_ids
-    await route.fulfill({ json: { released, department_id: 1, cutlists: [7, 8] } })
+    released = JSON.parse(route.request().postData() ?? '{}').days
+    await route.fulfill({ json: { released: [21], department_id: 1, cutlists: [7, 8] } })
   })
 
   const button = page.getByRole('button', { name: /^Release to production/ })
@@ -61,7 +61,8 @@ test('releasing sends the ticked orders and reports the cutlists', async ({ page
   await expect(button).toBeEnabled()
   await button.click()
 
-  await expect.poll(() => released).toEqual([21])
+  // A part is one day of an order, released on its own p1 (335,505).
+  await expect.poll(() => released).toEqual([{ sales_order_id: 21, production_date: '2026-09-23' }])
   await expect(page.getByText('Released 1 order · 2 cutlists generated')).toBeVisible()
 })
 
@@ -70,8 +71,23 @@ test('turning Reviewed off asks first', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Turn off Reviewed?' })).toBeVisible()
   await expect(
-    page.getByText('Order 330608 will no longer be selectable for release.')
+    page.getByText('Order 330608 on Wed, Sep 23, 2026 will no longer be selectable for release.')
   ).toBeVisible()
+})
+
+test('Reviewed belongs to the part’s own day', async ({ page }) => {
+  let url = ''
+  await page.route(`${API_URL}/sales-orders/21/departments/1/?*`, async route => {
+    url = route.request().url()
+    await route.fulfill({ json: {} })
+  })
+
+  await page.getByLabel('Reviewed 330608').click()
+  await page.getByRole('button', { name: 'Confirm' }).click()
+
+  await expect
+    .poll(() => new URL(url || 'http://x').searchParams.get('production_date'))
+    .toBe('2026-09-23')
 })
 
 test('rescheduling moves only the lines on the part’s own day', async ({ page }) => {

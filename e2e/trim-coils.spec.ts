@@ -3,7 +3,7 @@ import { API_URL, mockAuthApi } from './api.ts'
 import { mockTrimApi, signIn } from './trim-api.ts'
 
 const coil = (id: number, productId: string, lotNumber: string, extra = {}) => ({
-  id,
+  id: `LOT-${id}`,
   lot_autoid: `LOT-${id}`,
   lot_number: lotNumber,
   product_id: productId,
@@ -58,7 +58,13 @@ test.beforeEach(async ({ page }) => {
   await mockTrimApi(page)
   // Registered after the shared mocks, so these answer first.
   await page.route(`${API_URL}/coils/filters/*`, route => route.fulfill({ json: [FILTER] }))
-  await page.route(`${API_URL}/coils/lots/?*`, route => route.fulfill({ json: LOTS }))
+  // `department_id` asks for Trim Coils, which the server narrows by the Coil Filter: 3800001 is
+  // thinner than it lets through.
+  await page.route(`${API_URL}/coils/lots/?*`, route => {
+    const trim = new URL(route.request().url()).searchParams.has('department_id')
+    const lots = trim ? LOTS.filter(lot => lot.lot_number !== '3800001') : LOTS
+    void route.fulfill({ json: { count: lots.length, results: lots } })
+  })
   await page.goto('/trim?view=coils')
   await signIn(page)
   await expect(page).toHaveURL(/view=coils/)
@@ -96,15 +102,19 @@ test('moving a coil from Rollforming to Trim asks first', async ({ page }) => {
   await page.getByRole('checkbox', { name: /Trim holds coil 3800001/ }).click()
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByText('Move coil to Trim?')).toBeVisible()
-  await expect(dialog.getByText(/both locations can NOT be checked at the same time/)).toBeVisible()
+  await expect(
+    dialog.getByText(
+      'Have you checked with the Rollforming department to ensure that it is ok to move this coil to the Trim department?'
+    )
+  ).toBeVisible()
+  await expect(dialog.getByText(/a coil can only be in one department/)).toBeVisible()
   await dialog.getByRole('button', { name: 'No' }).click()
   await expect(dialog).toBeHidden()
 })
 
 test('the search narrows the list to one coil', async ({ page }) => {
   const search = page.getByLabel('Search coils')
-  await expect(search).toHaveAttribute('placeholder', 'Search — product / coil #')
+  await expect(search).toHaveAttribute('placeholder', 'Search — product / colour / coil #')
   await search.fill('3797401')
 
   await expect(page.getByText('3797401')).toBeVisible()
@@ -115,7 +125,7 @@ test('the search narrows the list to one coil', async ({ page }) => {
 })
 
 test('the size grid holds one row per product, opening into its coils', async ({ page }) => {
-  await page.getByRole('tab', { name: 'All folders' }).click()
+  await page.getByRole('tab', { name: 'By size' }).click()
 
   await expect(page.getByText('CB4826R')).toBeVisible()
   await expect(page.getByText('3782201')).toBeHidden()

@@ -47,3 +47,19 @@ export const partLines = (order: TrimOrder, day: string) => {
 }
 
 export const partKey = (orderId: string, day: string) => `${orderId}|${day}`
+
+/**
+ * Where one part stands: Reviewed when every one of its lines is, Released once any is. The lines carry
+ * both for their own day; an order whose lines have no app row yet falls back on the order's.
+ */
+export const partState = (order: TrimOrder, day: string, departmentId: number | undefined) => {
+  const items = partLines(order, day).flatMap(line => (line.item ? [line.item] : []))
+  if (!items.length) {
+    const state = departmentStateOf(order, departmentId)
+    return { reviewed: state?.reviewed ?? false, released: state?.release_to_production ?? false }
+  }
+  return {
+    reviewed: items.every(item => item.reviewed),
+    released: items.some(item => item.is_released)
+  }
+}

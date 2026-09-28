@@ -143,11 +143,13 @@ export const COMPLETED_LINES_TABLE: ColumnTable = {
   columns: [
     { key: 'pid', label: 'Product ID' },
     { key: 'desc', label: 'Description' },
+    { key: 'length', label: 'Length' },
     { key: 'qty', label: 'Qty Ordered' },
     // A stock order took nothing off the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock Pulled' },
     { key: 'mfg', label: 'Manufactured' },
-    { key: 'reman', label: 'Remanufactured' }
+    { key: 'reman', label: 'Remanufactured' },
+    { key: 'notes', label: 'Line Item Notes' }
   ]
 }
 
@@ -198,6 +200,7 @@ export const CUTLIST_TOTAL_TABLE: ColumnTable = {
     { key: 'desc', label: 'Description' },
     { key: 'qtyord', label: 'Qty ord.' },
     { key: 'stock', label: 'Stock' },
-    { key: 'qty', label: 'Qty to mfg' }
+    { key: 'qty', label: 'Qty to mfg' },
+    { key: 'drawing', label: 'Drawing' }
   ]
 }

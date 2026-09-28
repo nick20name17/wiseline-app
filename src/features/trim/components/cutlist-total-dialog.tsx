@@ -18,7 +18,8 @@ import {
 import { useRetained } from '@/lib/use-retained'
 import { Layers } from 'lucide-react'
 import { CUTLIST_TOTAL_TABLE } from '../lib/columns'
-import { linesOf, type CutlistGroup } from '../lib/cutlists'
+import { drawingOf, linesOf, type CutlistGroup } from '../lib/cutlists'
+import { DrawingCell } from './drawing-cell'
 import { Figure } from './figure'
 
 type CutlistTotalDialogProps = {
@@ -31,7 +32,7 @@ type CutlistTotalDialogProps = {
  * together, which is right for cutting and useless for answering «whose is this» — this is that
  * answer, so it names the orders and their lines rather than repeating the size.
  *
- * The board's columns p1 (538,353), less Drawing, which the backend has deferred (TODO.md).
+ * The board's columns p1 (538,353).
  */
 export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTotalDialogProps) => {
   const [group, release] = useRetained(current)
@@ -104,6 +105,14 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                         qty: (
                           <TableCell>
                             <Figure value={entry.quantity} />
+                          </TableCell>
+                        ),
+                        drawing: (
+                          <TableCell>
+                            <DrawingCell
+                              drawing={drawingOf(entry.product_files)}
+                              product={entry.product_id}
+                            />
                           </TableCell>
                         )
                       })}
