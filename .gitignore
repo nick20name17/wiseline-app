@@ -31,3 +31,6 @@ dist-ssr
 # Reference material, not source
 docs
 .claude/settings.local.json
+
+# Playwright MCP snapshots from live checks
+.playwright-mcp
