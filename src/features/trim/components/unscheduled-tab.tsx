@@ -1,3 +1,4 @@
+import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
 import { useWindowRows } from '@/components/table/use-window-rows'
@@ -18,7 +19,6 @@ import {
   type TrimOrder
 } from '../api'
 import { UNSCHEDULED_TABLE } from '../lib/columns'
-import { formatLongDate, today } from '../lib/format'
 import { BypassDialog } from './bypass-dialog'
 import { DayStrip } from './day-strip'
 import { LineNotesDialog } from './line-notes-dialog'

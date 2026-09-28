@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/days'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +13,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Check, Lock, Undo2 } from 'lucide-react'
 import { useSetOrderNoteRead, type OrderNote, type TrimOrder } from '../api'
-import { formatDate } from '../lib/format'
 
 type OrderNoteDialogProps = {
   /** The order the note hangs off; `null` closes the dialog. */

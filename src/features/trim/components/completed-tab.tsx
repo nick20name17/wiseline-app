@@ -1,3 +1,4 @@
+import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -7,7 +8,7 @@ import { History } from 'lucide-react'
 import { useState } from 'react'
 import { completedOrdersQuery, type CompletedOrder } from '../api'
 import { COMPLETED_TABLE } from '../lib/columns'
-import { formatLongDate, formatStamp } from '../lib/format'
+import { formatStamp } from '../lib/format'
 import { CompletedOrderDialog } from './completed-order-dialog'
 
 type CompletedTabProps = {

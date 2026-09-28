@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +23,6 @@ import {
   type WrappingRow
 } from '../api'
 import { WRAP_LINES_TABLE } from '../lib/columns'
-import { formatDate } from '../lib/format'
 import { itemStatus } from '../lib/status'
 import {
   benchLocations,

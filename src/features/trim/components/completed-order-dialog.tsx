@@ -1,3 +1,4 @@
+import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -35,7 +36,7 @@ import {
   type OrderLocation
 } from '../api'
 import { COMPLETED_LINES_TABLE, COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
-import { formatLongDate, formatStamp } from '../lib/format'
+import { formatStamp } from '../lib/format'
 import { packageContents, remanTotal } from '../lib/wrapping'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
 

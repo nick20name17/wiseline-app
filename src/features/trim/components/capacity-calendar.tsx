@@ -1,10 +1,10 @@
+import { toIsoDay, today } from '@/lib/days'
 import { Calendar } from '@/components/ui/calendar'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { getDaysInMonth, startOfMonth } from 'date-fns'
 import type { CSSProperties } from 'react'
 import { dayStripQuery, overdueQuery } from '../api'
-import { toIsoDay, today } from '../lib/format'
 
 type CapacityCalendarProps = {
   departmentId: number | undefined

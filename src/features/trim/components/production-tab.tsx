@@ -1,3 +1,4 @@
+import { formatDate, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -24,7 +25,6 @@ import {
   slinetTotals,
   type CutlistGroup
 } from '../lib/cutlists'
-import { formatDate, today } from '../lib/format'
 import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
 import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'

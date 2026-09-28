@@ -1,3 +1,4 @@
+import { formatDate, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,7 +13,6 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Printer } from 'lucide-react'
 import { machineCapacitiesQuery } from '../api'
-import { formatDate, today } from '../lib/format'
 
 type MachineCapacitiesDialogProps = {
   departmentId: number | undefined

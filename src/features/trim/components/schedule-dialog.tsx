@@ -1,3 +1,4 @@
+import { fromIsoDay, toIsoDay, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +14,6 @@ import { getDaysInMonth, startOfMonth } from 'date-fns'
 import { CalendarX } from 'lucide-react'
 import { useState } from 'react'
 import { dayStripQuery } from '../api'
-import { fromIsoDay, toIsoDay, today } from '../lib/format'
 import { CapacityCalendar } from './capacity-calendar'
 
 type ScheduleDialogProps = {

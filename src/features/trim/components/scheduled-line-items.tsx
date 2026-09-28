@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -31,7 +32,7 @@ import {
 } from '../api'
 import { SCHEDULED_LINES_TABLE, withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
-import { formatDate, STANDARD_LENGTH } from '../lib/format'
+import { STANDARD_LENGTH } from '../lib/format'
 import { lineDay, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'

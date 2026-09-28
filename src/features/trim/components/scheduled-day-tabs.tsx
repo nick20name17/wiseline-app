@@ -1,3 +1,4 @@
+import { formatDate, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -11,7 +12,6 @@ import {
   WORK_WEEK_DAYS,
   workWeekQuery
 } from '../api'
-import { formatDate, today } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
 
 // Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —

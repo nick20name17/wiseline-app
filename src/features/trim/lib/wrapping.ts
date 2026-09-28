@@ -1,5 +1,5 @@
+import { today } from '@/lib/days'
 import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
-import { today } from './format'
 
 /** Every piece the remakes asked for, back or not. */
 export const remanTotal = (remans: Remanufacturing[]) =>

@@ -1,3 +1,4 @@
+import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -21,7 +22,6 @@ import {
   type TrimOrder
 } from '../api'
 import { SCHEDULED_TABLE } from '../lib/columns'
-import { formatDate, formatLongDate, today } from '../lib/format'
 import { partDays, partKey, partLines } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { ConfirmDialog } from './confirm-dialog'

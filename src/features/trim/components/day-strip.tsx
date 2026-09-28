@@ -1,3 +1,4 @@
+import { formatDayLabel, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -5,7 +6,6 @@ import { cn } from 'cn'
 import { CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
 import { dayStripQuery, WORK_WEEK_DAYS, workWeekQuery, type DayStripEntry } from '../api'
-import { formatDayLabel, today } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
 
 // One box for every card in the strip, placeholders included: equal widths are what stop the strip

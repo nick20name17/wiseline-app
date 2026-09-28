@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/days'
 import { useColumnCells } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -7,7 +8,6 @@ import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert }
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
 import { SCHEDULED_TABLE } from '../lib/columns'
-import { formatDate } from '../lib/format'
 import { splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from './note-button'

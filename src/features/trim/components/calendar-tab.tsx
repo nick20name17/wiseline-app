@@ -1,3 +1,4 @@
+import { formatDate, toIsoDay, today } from '@/lib/days'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,7 +14,7 @@ import {
   overdueQuery,
   type TrimOrder
 } from '../api'
-import { formatCount, formatDate, toIsoDay, today } from '../lib/format'
+import { formatCount } from '../lib/format'
 import { partDays } from '../lib/parts'
 import { PriorityPill } from './priority-pill'
 

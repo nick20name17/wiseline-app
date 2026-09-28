@@ -1,3 +1,4 @@
+import { today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { cn } from 'cn'
 import { Check, ChevronRight, Database, Package } from 'lucide-react'
@@ -10,7 +11,6 @@ import {
   type WrappingRow
 } from '../api'
 import type { CutlistGroup } from '../lib/cutlists'
-import { today } from '../lib/format'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'

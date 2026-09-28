@@ -1,7 +1,7 @@
+import { formatDate } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ArrowRight, Database } from 'lucide-react'
-import { formatDate } from '../lib/format'
 
 type ScheduledToolbarProps = {
   total: number
