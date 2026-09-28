@@ -26,6 +26,7 @@ import { Route as AppAuthStockCardsRouteImport } from './routes/_app/_auth/stock
 import { Route as AppAuthTrimRouteImport } from './routes/_app/_auth/trim'
 import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
 import { Route as AppAuthSettingsIndexRouteImport } from './routes/_app/_auth/settings/index'
+import { Route as AppAuthSettingsColorsRouteImport } from './routes/_app/_auth/settings/colors'
 import { Route as AppAuthSettingsLocationTypesRouteImport } from './routes/_app/_auth/settings/location-types'
 import { Route as AppAuthSettingsLocationsRouteImport } from './routes/_app/_auth/settings/locations'
 import { Route as AppAuthSettingsMachinesRouteImport } from './routes/_app/_auth/settings/machines'
@@ -118,6 +119,11 @@ const AppAuthSettingsIndexRoute = AppAuthSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppAuthSettingsRouteRoute,
 } as any)
+const AppAuthSettingsColorsRoute = AppAuthSettingsColorsRouteImport.update({
+  id: '/colors',
+  path: '/colors',
+  getParentRoute: () => AppAuthSettingsRouteRoute,
+} as any)
 const AppAuthSettingsLocationTypesRoute =
   AppAuthSettingsLocationTypesRouteImport.update({
     id: '/location-types',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/settings/colors': typeof AppAuthSettingsColorsRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/settings/colors': typeof AppAuthSettingsColorsRoute
   '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
   '/_app/_auth/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/_app/_auth/settings/colors': typeof AppAuthSettingsColorsRoute
   '/_app/_auth/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
   '/_app/_auth/settings/locations': typeof AppAuthSettingsLocationsRoute
   '/_app/_auth/settings/machines': typeof AppAuthSettingsMachinesRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
+    | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
+    | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/_app/_auth/stock-cards'
     | '/_app/_auth/trim'
     | '/password-reset/$uid64/$token'
+    | '/_app/_auth/settings/colors'
     | '/_app/_auth/settings/location-types'
     | '/_app/_auth/settings/locations'
     | '/_app/_auth/settings/machines'
@@ -447,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthSettingsIndexRouteImport
       parentRoute: typeof AppAuthSettingsRouteRoute
     }
+    '/_app/_auth/settings/colors': {
+      id: '/_app/_auth/settings/colors'
+      path: '/colors'
+      fullPath: '/settings/colors'
+      preLoaderRoute: typeof AppAuthSettingsColorsRouteImport
+      parentRoute: typeof AppAuthSettingsRouteRoute
+    }
     '/_app/_auth/settings/location-types': {
       id: '/_app/_auth/settings/location-types'
       path: '/location-types'
@@ -507,6 +526,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppAuthSettingsRouteRouteChildren {
+  AppAuthSettingsColorsRoute: typeof AppAuthSettingsColorsRoute
   AppAuthSettingsLocationTypesRoute: typeof AppAuthSettingsLocationTypesRoute
   AppAuthSettingsLocationsRoute: typeof AppAuthSettingsLocationsRoute
   AppAuthSettingsMachinesRoute: typeof AppAuthSettingsMachinesRoute
@@ -519,6 +539,7 @@ interface AppAuthSettingsRouteRouteChildren {
 }
 
 const AppAuthSettingsRouteRouteChildren: AppAuthSettingsRouteRouteChildren = {
+  AppAuthSettingsColorsRoute: AppAuthSettingsColorsRoute,
   AppAuthSettingsLocationTypesRoute: AppAuthSettingsLocationTypesRoute,
   AppAuthSettingsLocationsRoute: AppAuthSettingsLocationsRoute,
   AppAuthSettingsMachinesRoute: AppAuthSettingsMachinesRoute,
