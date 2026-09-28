@@ -1,6 +1,7 @@
 import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
@@ -46,7 +47,13 @@ type WrappingTabProps = {
 export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
-  const { data: rows, isPending } = useQuery(wrappingRowsQuery(departmentId, null))
+  const {
+    data: rows,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(wrappingRowsQuery(departmentId, null))
   const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
   const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
@@ -66,6 +73,15 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   }
 
   const days = byDay(rows ?? [])
+
+  if (isError && !rows)
+    return (
+      <QueryError
+        title='The wrapping list did not load'
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    )
 
   if (!isPending && !days.length)
     return (

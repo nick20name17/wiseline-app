@@ -3,6 +3,7 @@ import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
 import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
@@ -41,7 +42,13 @@ type Split = { orderId: string; lineIds: string[] }
 type OpenDialog = 'schedule' | 'split' | 'bypass' | 'cards' | 'stock' | null
 
 export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) => {
-  const { data: page, isPending } = useQuery(unscheduledOrdersQuery(search))
+  const {
+    data: page,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(unscheduledOrdersQuery(search))
   const columns = useColumnOrder(UNSCHEDULED_TABLE)
   const orders = page?.results ?? []
   // Two hundred and more orders is too many rows to keep in the page at once; only those on screen are.
@@ -100,7 +107,13 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
 
       <DayStrip departmentId={departmentId} />
 
-      {!isPending && !orders.length ? (
+      {isError && !page ? (
+        <QueryError
+          title='The unscheduled orders did not load'
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      ) : !isPending && !orders.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>

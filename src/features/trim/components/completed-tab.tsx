@@ -1,6 +1,7 @@
 import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
@@ -22,13 +23,25 @@ type CompletedTabProps = {
 export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const [opened, setOpened] = useState<CompletedOrder | null>(null)
   // The header search is the open orders' business: the history is read by opening a row.
-  const { data: page, isPending } = useQuery(completedOrdersQuery(departmentId))
+  const {
+    data: page,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(completedOrdersQuery(departmentId))
   const orders = page?.results ?? []
   const columns = useColumnOrder(COMPLETED_TABLE)
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-4'>
-      {!isPending && !orders.length ? (
+      {isError && !page ? (
+        <QueryError
+          title='The completed orders did not load'
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      ) : !isPending && !orders.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
