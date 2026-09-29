@@ -171,3 +171,17 @@ test('the Slit Line marks waiting material slit with the coil it used', async ({
     }
   ])
 })
+
+test('Wrapping checks a label, and Completed names Rollforming’s own locations', async ({
+  page
+}) => {
+  await page.goto('/rollforming?view=wrapping')
+  await signIn(page)
+
+  // A label scanned after its package was deleted says so p2 (980,536).
+  await expect(page.getByRole('button', { name: 'Scan package' })).toBeVisible()
+
+  await page.getByRole('button', { name: /Completed orders/ }).click()
+  await expect(page.getByRole('columnheader', { name: 'Rollforming Location' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Trim Location' })).toBeHidden()
+})

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from 'cn'
 import { History } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { VIEW_LABELS } from '../lib/views'
 import type { BoardView } from '../lib/boards'
 
@@ -12,13 +13,15 @@ type DeptBarProps = {
   /** Only the tabs whose list this page has already loaded carry a number. */
   counts: Partial<Record<BoardView, number>>
   onNavigate: (view: BoardView) => void
+  /** What the open tab offers beside the strip. */
+  actions?: ReactNode
 }
 
 /**
  * The department's tab strip. The department is already named in the breadcrumb above it, so the bar
  * carries no title of its own.
  */
-export const DeptBar = ({ views, view, counts, onNavigate }: DeptBarProps) => {
+export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarProps) => {
   // Completed is reached from the button beside the strip, not from the strip itself — the board
   // keeps it out of the working tabs because it is history rather than work.
   const strip = views.filter(tab => tab !== 'completed')
@@ -59,6 +62,8 @@ export const DeptBar = ({ views, view, counts, onNavigate }: DeptBarProps) => {
           </TabsList>
         </div>
       </Tabs>
+
+      {actions}
 
       {/* Hidden, not disabled: a role with no Completed tab has no business being sent to one. */}
       {views.includes('completed') ? (

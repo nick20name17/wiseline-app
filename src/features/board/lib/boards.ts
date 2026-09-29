@@ -1,11 +1,14 @@
 import {
+  ACCESSORIES_COMPLETED_TABLE,
   ACCESSORIES_SCHEDULED_LINES_TABLE,
   ACCESSORIES_SCHEDULED_TABLE,
   ACCESSORIES_UNSCHEDULED_TABLE,
   COMPLETED_LINES_TABLE,
+  COMPLETED_TABLE,
   PACKAGE_LINES_TABLE,
   PACKAGED_LINES_TABLE,
   ROLLFORMING_COMPLETED_LINES_TABLE,
+  ROLLFORMING_COMPLETED_TABLE,
   ROLLFORMING_SCHEDULED_LINES_TABLE,
   ROLLFORMING_SCHEDULED_TABLE,
   ROLLFORMING_UNSCHEDULED_TABLE,
@@ -79,6 +82,7 @@ export type Board = {
     /** The Wrapping list, line by line, of a board that wraps what it made. */
     wrapping: ColumnTable
     packLines: ColumnTable
+    completed: ColumnTable
     completedLines: ColumnTable
   }
 }
@@ -109,6 +113,7 @@ export const BOARDS: Record<BoardCode, Board> = {
       scheduledLines: SCHEDULED_LINES_TABLE,
       wrapping: WRAPPING_TABLE,
       packLines: WRAP_LINES_TABLE,
+      completed: COMPLETED_TABLE,
       completedLines: COMPLETED_LINES_TABLE
     }
   },
@@ -138,6 +143,7 @@ export const BOARDS: Record<BoardCode, Board> = {
       scheduledLines: ROLLFORMING_SCHEDULED_LINES_TABLE,
       wrapping: ROLLFORMING_WRAPPING_TABLE,
       packLines: ROLLFORMING_WRAP_LINES_TABLE,
+      completed: ROLLFORMING_COMPLETED_TABLE,
       completedLines: ROLLFORMING_COMPLETED_LINES_TABLE
     }
   },
@@ -167,6 +173,7 @@ export const BOARDS: Record<BoardCode, Board> = {
       // Accessories packs from its order list, not this one.
       wrapping: WRAPPING_TABLE,
       packLines: PACKAGE_LINES_TABLE,
+      completed: ACCESSORIES_COMPLETED_TABLE,
       completedLines: PACKAGED_LINES_TABLE
     }
   }

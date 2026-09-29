@@ -234,6 +234,17 @@ export const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
   ]
 }
 
+export const ACCESSORIES_COMPLETED_TABLE: ColumnTable = {
+  table: 'accessories-completed',
+  columns: COMPLETED_TABLE.columns.map(column =>
+    column.key === 'prod'
+      ? { ...column, label: 'Prep Date' }
+      : column.key === 'location'
+        ? { ...column, label: 'Accessories Location' }
+        : column
+  )
+}
+
 export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
   table: 'accessories-scheduled-lines',
   columns: [
@@ -322,6 +333,13 @@ export const ROLLFORMING_WRAPPING_TABLE: ColumnTable = {
 export const ROLLFORMING_WRAP_LINES_TABLE: ColumnTable = {
   table: 'rollforming-wrap-lines',
   columns: without(WRAP_LINES_TABLE, ['reman'])
+}
+
+export const ROLLFORMING_COMPLETED_TABLE: ColumnTable = {
+  table: 'rollforming-completed',
+  columns: COMPLETED_TABLE.columns.map(column =>
+    column.key === 'location' ? { ...column, label: 'Rollforming Location' } : column
+  )
 }
 
 export const ROLLFORMING_COMPLETED_LINES_TABLE: ColumnTable = {
