@@ -13,6 +13,7 @@ import { PackagingTab } from './packaging-tab'
 import { ProductionTab } from './production-tab'
 import { ScheduledTab } from './scheduled-tab'
 import { HeaderSearch } from '@/components/header-search'
+import { SlitLineTab } from './slit-line-tab'
 import { UnscheduledTab } from './unscheduled-tab'
 import { WrappingTab } from './wrapping-tab'
 
@@ -98,6 +99,8 @@ export const BoardPage = ({
         <CompletedTab departmentId={departmentId} />
       ) : view === 'packaging' ? (
         <PackagingTab departmentId={departmentId} />
+      ) : view === 'slit' ? (
+        <SlitLineTab departmentId={departmentId} />
       ) : view === 'wrapping' ? (
         // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
         <WrappingTab departmentId={departmentId} />

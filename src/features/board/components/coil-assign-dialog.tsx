@@ -22,14 +22,29 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
 import { formatCount } from '../lib/format'
-import { coilChoicesQuery, coilNumbersQuery, useAssignCoil, type BoardLineItem } from '../api'
+import {
+  coilChoicesQuery,
+  coilNumbersQuery,
+  useAssignCoil,
+  useMarkSlit,
+  type BoardLineItem
+} from '../api'
 
 // The select's own value for «none»; the API takes `null`.
 const UNDEFINED = 'undefined'
 
-type CoilAssignFormProps = { lines: BoardLineItem[]; onDone: () => void }
+/**
+ * The same choice made twice over: the Manager assigning a coil to roll from p2 (563,488), and the Slit
+ * Line recording the coil it slit from p2 (1086,349).
+ */
+type CoilAction = 'assign' | 'slit'
 
-const CoilAssignForm = ({ lines, onDone }: CoilAssignFormProps) => {
+/** A line the coil is for, named the way the dialog prints it. */
+export type CoilLine = Pick<BoardLineItem, 'id' | 'id_inven'>
+
+type CoilAssignFormProps = { lines: CoilLine[]; action: CoilAction; onDone: () => void }
+
+const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
   // The lines are one Product ID p2 (540,467), so any of them names the coils.
   const first = lines[0]?.id ?? null
   const { data: choices, isPending } = useQuery(coilChoicesQuery(first))
@@ -38,13 +53,15 @@ const CoilAssignForm = ({ lines, onDone }: CoilAssignFormProps) => {
   const [coil, setCoil] = useState<string | null>(null)
   const { data: lots, isPending: lotsPending } = useQuery(coilNumbersQuery(coil))
   const assign = useAssignCoil()
+  const markSlit = useMarkSlit()
+  const save = action === 'slit' ? markSlit : assign
 
   return (
     <form
       noValidate
       onSubmit={event => {
         event.preventDefault()
-        assign.mutate(
+        save.mutate(
           {
             originItems: lines.map(line => line.id),
             supplier,
@@ -166,9 +183,9 @@ const CoilAssignForm = ({ lines, onDone }: CoilAssignFormProps) => {
 
       <div className='mt-6 flex justify-end gap-2'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
-        <Button type='submit' disabled={assign.isPending}>
-          {assign.isPending ? <Spinner data-icon='inline-start' /> : null}
-          Assign
+        <Button type='submit' disabled={save.isPending}>
+          {save.isPending ? <Spinner data-icon='inline-start' /> : null}
+          {action === 'slit' ? 'Mark slit' : 'Assign'}
         </Button>
       </div>
     </form>
@@ -176,7 +193,8 @@ const CoilAssignForm = ({ lines, onDone }: CoilAssignFormProps) => {
 }
 
 type CoilAssignDialogProps = {
-  lines: BoardLineItem[]
+  lines: CoilLine[]
+  action: CoilAction
   open: boolean
   onOpenChange: (open: boolean) => void
   onAssigned: () => void
@@ -188,6 +206,7 @@ type CoilAssignDialogProps = {
  */
 export const CoilAssignDialog = ({
   lines,
+  action,
   open,
   onOpenChange,
   onAssigned
@@ -195,7 +214,9 @@ export const CoilAssignDialog = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className='sm:max-w-2xl'>
       <DialogHeader>
-        <DialogTitle>Select Supplier / Coil Number</DialogTitle>
+        <DialogTitle>
+          {action === 'slit' ? 'Mark slit' : 'Select Supplier / Coil Number'}
+        </DialogTitle>
         <DialogDescription>
           {lines.length} line{lines.length === 1 ? '' : 's'} of {lines[0]?.id_inven ?? '—'}
         </DialogDescription>
@@ -203,6 +224,7 @@ export const CoilAssignDialog = ({
       {/* The popup unmounts once closed, so the next opening starts from Undefined. */}
       <CoilAssignForm
         lines={lines}
+        action={action}
         onDone={() => {
           onOpenChange(false)
           onAssigned()

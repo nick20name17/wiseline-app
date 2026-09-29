@@ -2374,8 +2374,10 @@ export const coilNumbersQuery = (productId: string | null) =>
         .parse(await authApi.get(`coil-assignment/coils/${productId}/lots/`).json())
   })
 
-const coilStateSchema = z.object({
+const slitLineSchema = z.object({
   origin_item: z.string(),
+  order: z._default(z.nullable(z.string()), null),
+  production_date: z._default(z.nullable(z.string()), null),
   /** `coil`, `waiting_to_slit` or `slit`. */
   icon: z._default(z.nullable(z.string()), null),
   locked: z._default(z.boolean(), false),
@@ -2383,36 +2385,30 @@ const coilStateSchema = z.object({
   coil_number: z._default(z.nullable(z.string()), null)
 })
 
-export type CoilState = z.infer<typeof coilStateSchema>
+export type SlitLine = z.infer<typeof slitLineSchema>
 
 /**
- * Every line of the department sent to the Slit Line, waiting and done, by line: the icon, and the
- * Supplier and Coil Number the Slit Line filled in or «waiting...» p2 (1051,333), (1086,349).
+ * The Slit Line tab: what waits to be slit, or what has been, by Production Date then Priority
+ * p2 (1204,296). A line carries the Supplier and Coil Number the Slit Line filled in, or «waiting...».
  */
-export const slitStatesQuery = (departmentId: number | undefined) =>
+export const slitLineQuery = (departmentId: number | undefined, slit: boolean) =>
   queryOptions({
-    queryKey: [...boardKeys.all, 'slit-states', departmentId ?? 0] as const,
+    queryKey: [...boardKeys.all, 'slit-line', departmentId ?? 0, slit] as const,
     enabled: departmentId !== undefined,
-    queryFn: async () => {
-      const [waiting, done] = await Promise.all(
-        [false, true].map(async slit =>
-          z
-            .array(coilStateSchema)
-            .parse(
-              await authApi
-                .get('slit-line/', { searchParams: { department_id: departmentId!, slit } })
-                .json()
-            )
+    queryFn: async () =>
+      z
+        .array(slitLineSchema)
+        .parse(
+          await authApi
+            .get('slit-line/', { searchParams: { department_id: departmentId!, slit } })
+            .json()
         )
-      )
-      return new Map([...waiting!, ...done!].map(state => [state.origin_item, state]))
-    }
   })
 
 const invalidateCoilAssignment = (client: QueryClient) =>
   Promise.all([
     client.invalidateQueries({ queryKey: boardKeys.orders() }),
-    client.invalidateQueries({ queryKey: [...boardKeys.all, 'slit-states'] })
+    client.invalidateQueries({ queryKey: [...boardKeys.all, 'slit-line'] })
   ])
 
 /**
@@ -2447,6 +2443,30 @@ export const useSlitRequest = () =>
       authApi
         .post(input.slit ? 'slit-line/request/' : 'slit-line/cancel/', {
           json: { origin_items: input.originItems }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
+  })
+
+/**
+ * The Slit Line marks material slit, with the Supplier and Coil Number it used — both may stay
+ * Undefined. They fill into the line on the board, its scissors turning green p2 (1086,349).
+ */
+export const useMarkSlit = () =>
+  useMutation({
+    meta: { errorTitle: 'The material was not marked slit' },
+    mutationFn: (input: {
+      originItems: string[]
+      supplier: string | null
+      coilNumber: string | null
+    }) =>
+      authApi
+        .post('slit-line/mark-slit/', {
+          json: {
+            origin_items: input.originItems,
+            supplier: input.supplier,
+            coil_number: input.coilNumber
+          }
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)

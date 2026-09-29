@@ -26,6 +26,7 @@ export const BOARD_VIEWS = [
   'production',
   'packaging',
   'wrapping',
+  'slit',
   'coils',
   'calendar',
   'completed'
@@ -117,8 +118,8 @@ export const BOARDS: Record<BoardCode, Board> = {
     dateLabel: 'Production Date',
     dayWord: 'production day',
     // The machine tabs and the Queue wait on the backend's Queue p2 (493,630).
-    managerViews: ['unscheduled', 'scheduled', 'wrapping', 'calendar', 'completed'],
-    workerViews: ['wrapping', 'completed'],
+    managerViews: ['unscheduled', 'scheduled', 'slit', 'wrapping', 'calendar', 'completed'],
+    workerViews: ['slit', 'wrapping', 'completed'],
     makes: true,
     assignsMachines: false,
     standardLength: null,

@@ -6,6 +6,7 @@ export const VIEW_LABELS: Record<BoardView, string> = {
   production: 'Production',
   packaging: 'Packaging',
   wrapping: 'Wrapping',
+  slit: 'Slit Line',
   coils: 'Coils',
   calendar: 'Calendar',
   completed: 'Completed'

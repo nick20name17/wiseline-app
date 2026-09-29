@@ -37,7 +37,12 @@ test.beforeEach(async ({ page }) => {
   await page.route(`${API_URL}/coil-assignment/coils/CS8250/lots/`, route =>
     route.fulfill({ json: [{ coil_number: 'F7601268', on_hand: 4398.06 }] })
   )
-  for (const path of ['coil-assignment/assign/', 'slit-line/request/', 'slit-line/cancel/'])
+  for (const path of [
+    'coil-assignment/assign/',
+    'slit-line/request/',
+    'slit-line/cancel/',
+    'slit-line/mark-slit/'
+  ])
     await page.route(`${API_URL}/${path}`, route => {
       posted.push({ path, body: route.request().postDataJSON() })
       return route.fulfill({ json: [] })
@@ -126,4 +131,43 @@ test('a line waiting for the Slit Line reads waiting and is taken back off it', 
   await expect
     .poll(() => posted)
     .toEqual([{ path: 'slit-line/cancel/', body: { origin_items: ['102'] } }])
+})
+
+test('the Slit Line marks waiting material slit with the coil it used', async ({ page }) => {
+  await page.route(`${API_URL}/slit-line/?*`, route =>
+    route.fulfill({
+      json:
+        new URL(route.request().url()).searchParams.get('slit') === 'true'
+          ? []
+          : [
+              {
+                origin_item: '102',
+                order: 'ARINV-3',
+                production_date: '2026-09-23',
+                icon: 'waiting_to_slit',
+                locked: true,
+                supplier: 'waiting...',
+                coil_number: 'waiting...'
+              }
+            ]
+    })
+  )
+  await page.goto('/rollforming?view=slit')
+  await signIn(page)
+
+  await page.getByRole('checkbox', { name: 'Select TED8250 of 330615' }).click()
+  await page.getByRole('button', { name: 'Mark slit (1)' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Mark slit' })
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'SAMSUNG' }).click()
+  await dialog.getByLabel('Coil Number').fill('J46A211')
+  await dialog.getByRole('button', { name: 'Mark slit' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(posted).toEqual([
+    {
+      path: 'slit-line/mark-slit/',
+      body: { origin_items: ['102'], supplier: 'SAMSUNG', coil_number: 'J46A211' }
+    }
+  ])
 })

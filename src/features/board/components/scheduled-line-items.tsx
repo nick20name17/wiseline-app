@@ -26,17 +26,17 @@ import { useState } from 'react'
 import {
   isStockOrder,
   machinesQuery,
-  slitStatesQuery,
   useSlitRequest,
   wholeOrderQuery,
   useUpdateLineItem,
   type LineItemEdit,
   type BoardLineItem,
   type BoardOrder,
-  type CoilState
+  type SlitLine
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
+import { useSlitStates } from '../lib/slit'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
@@ -78,7 +78,7 @@ const commitNumber = (
 }
 
 /** A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). */
-const coilOf = (item: BoardLineItem, slit: CoilState | undefined) => ({
+const coilOf = (item: BoardLineItem, slit: SlitLine | undefined) => ({
   // A line pulled from stock is rolled off nothing, so it carries no coil.
   icon: slit?.icon ?? (item.item && item.item.status !== 'stock' ? 'coil' : null),
   locked: slit?.locked ?? false,
@@ -119,10 +119,7 @@ export const ScheduledLineItems = ({
   // A trim is assigned to the machine that bends it.
   const stations = machines?.filter(isBender)
   const update = useUpdateLineItem()
-  const { data: slitStates } = useQuery({
-    ...slitStatesQuery(departmentId),
-    enabled: board.coils && departmentId !== undefined
-  })
+  const slitStates = useSlitStates(departmentId, board.coils && departmentId !== undefined)
   const slit = useSlitRequest()
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
@@ -147,7 +144,7 @@ export const ScheduledLineItems = ({
   const pickedLines = rows.filter(item => picked.has(item.id))
   const pickedProduct = pickedLines[0]?.id_inven ?? null
   const pickedWaiting = pickedLines.filter(
-    item => slitStates?.get(item.id)?.icon === 'waiting_to_slit'
+    item => slitStates.get(item.id)?.icon === 'waiting_to_slit'
   )
 
   if (!order.origin_items.length) {
@@ -257,7 +254,7 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(item, slitStates?.get(item.id))
+              const coil = coilOf(item, slitStates.get(item.id))
               const pickable =
                 board.coils &&
                 editable &&
@@ -526,6 +523,7 @@ export const ScheduledLineItems = ({
       {board.coils ? (
         <CoilAssignDialog
           lines={pickedLines}
+          action='assign'
           open={assigning}
           onOpenChange={setAssigning}
           onAssigned={() => setPicked(new Set())}
