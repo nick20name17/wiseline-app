@@ -70,3 +70,20 @@ test('an order on the Packaging list opens its bench in packaging words', async 
   await expect(page.getByRole('columnheader', { name: 'Remanufacture' })).toBeHidden()
   await expect(page.getByLabel('Package from 901')).toBeVisible()
 })
+
+test('Completed reads in Accessories’ words', async ({ page }) => {
+  await page.goto('/accessories?view=completed')
+  await signIn(page)
+
+  await expect(page.getByRole('columnheader', { name: 'Prep Date' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Accessories Location' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Production Date' })).toBeHidden()
+})
+
+test('Packaging checks a label', async ({ page }) => {
+  await page.goto('/accessories?view=packaging')
+  await signIn(page)
+
+  // A label scanned after its package was deleted says so p3 (1216,364).
+  await expect(page.getByRole('button', { name: 'Scan package' })).toBeVisible()
+})

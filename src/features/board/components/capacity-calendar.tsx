@@ -1,4 +1,4 @@
-import { dayLoad } from '../lib/format'
+import { dayLoad, dayLoadHint } from '../lib/format'
 import { useBoard } from '../lib/board-context'
 import { toIsoDay, today } from '@/lib/days'
 import { Calendar } from '@/components/ui/calendar'
@@ -65,9 +65,7 @@ export const CapacityCalendar = ({
         DayButton: ({ day, modifiers, className, children, ...props }) => {
           const iso = toIsoDay(day.date)
           const budget = budgets.get(iso)
-          const load = budget
-            ? `${budget.bends}${budget.capacity === null ? '' : ` of ${budget.capacity}`} bends scheduled${budget.over_capacity ? ' — over the daily capacity' : ''}`
-            : undefined
+          const load = budget ? dayLoadHint(budget, board) : undefined
           const past = !anyDay && iso < today()
           const late = overdueDays.has(iso)
           const hint = [

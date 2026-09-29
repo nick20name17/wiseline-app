@@ -6,6 +6,15 @@ const DEPARTMENTS = [
   { id: 2, name: 'Rollforming', code: 'rollforming', position: 2 }
 ]
 
+/** The signed-in user's role in each department, keyed by department id. */
+const assign = async (page: Page, roles: Record<number, string>) => {
+  await page.route(`${API_URL}/departments/users/assignments/*`, route => {
+    const department = Number(new URL(route.request().url()).searchParams.get('department_id'))
+    const role = roles[department]
+    return route.fulfill({ json: role ? [{ user: user.id, department, role }] : [] })
+  })
+}
+
 const PRIORITIES = [
   { id: 3, name: 'ASAP', color: '#dc2626', position: 1, department: 1 },
   { id: 4, name: 'By 10:00', color: '#b58608', position: 2, department: 1 },
@@ -52,6 +61,7 @@ const moveUp = async (page: Page, name: string, steps: number, of: number) => {
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
+  await assign(page, { 1: 'manager', 2: 'manager' })
   await page.route(`${API_URL}/departments/all/`, route => route.fulfill({ json: DEPARTMENTS }))
   await page.route(`${API_URL}/priorities/`, route => route.fulfill({ json: PRIORITIES }))
   await page.goto('/settings/priorities')
@@ -67,15 +77,15 @@ test('every department’s priorities are listed under All, each naming its own'
   await expect(page.getByRole('row').filter({ hasText: 'Later' })).toContainText('Every department')
   await expect(page.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('row').filter({ hasText: 'Rush' })).toContainText('Rollforming')
-  // All holds the hierarchy of the priorities with no department; a department's own do not move here.
+  // All holds the hierarchy of the priorities with no department. A department's own are changed under
+  // its pill, by its Manager: a Manager at large does not touch them here.
   await expect(page.getByRole('button', { name: 'Move Later' })).toHaveAttribute(
     'aria-disabled',
     'false'
   )
-  await expect(page.getByRole('button', { name: 'Move Rush' })).toHaveAttribute(
-    'aria-disabled',
-    'true'
-  )
+  await expect(page.getByRole('button', { name: 'Move Rush' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete Rush' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete Later' })).toBeVisible()
 })
 
 test('a department pill lists its priorities in hierarchy order', async ({ page }) => {
@@ -157,8 +167,20 @@ test('a new priority takes a palette colour and goes last in the department on s
 })
 
 test('deleting one says what it costs', async ({ page }) => {
+  await page.getByRole('button', { name: 'Trim' }).click()
   await page.getByRole('button', { name: 'Delete ASAP' }).click()
 
   await expect(page.getByText('Delete priority ASAP?')).toBeVisible()
   await expect(page.getByText(/sort as unprioritised/)).toBeVisible()
+})
+
+test('a Worker reads a department’s priorities but cannot change them', async ({ page }) => {
+  await assign(page, { 1: 'worker' })
+  await page.getByRole('button', { name: 'Trim' }).click()
+
+  await expect(page.getByText('4 priorities in Trim')).toBeVisible()
+  await expect(page.getByText('only a Manager changes them')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add priority' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Move ASAP' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete ASAP' })).toBeHidden()
 })

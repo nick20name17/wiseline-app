@@ -20,6 +20,27 @@ export const departmentsQuery = queryOptions({
   queryFn: async () => z.array(departmentSchema).parse(await authApi.get('departments/all/').json())
 })
 
+/**
+ * The user's role inside one department — `manager`, `worker`, or `null` for no assignment. Same key
+ * and shape the boards use, so one copy is cached.
+ */
+export const departmentRoleQuery = (userId: number | undefined, departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: ['departments', 'role', userId ?? 0, departmentId ?? 0] as const,
+    enabled: userId !== undefined && departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(z.object({ user: z.number(), department: z.number(), role: z.string() }))
+        .parse(
+          await authApi
+            .get('departments/users/assignments/', {
+              searchParams: { user_id: userId!, department_id: departmentId! }
+            })
+            .json()
+        )
+        .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
 const prioritySchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),

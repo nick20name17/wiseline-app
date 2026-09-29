@@ -42,7 +42,7 @@ test('the month shows how many orders each production day carries', async ({ pag
   // Three of the scheduled fixtures sit on Wed, Sep 23.
   const today = page.getByRole('button', { name: 'Wed, Sep 23, 2026' })
   await expect(today).toContainText('3 ord')
-  await expect(today.getByText('3 ord')).toHaveAttribute('title', /bends$/)
+  await expect(today.getByText('3 ord')).toHaveAttribute('title', /bends scheduled$/)
   // The split order counts on each of its days.
   await expect(page.getByRole('button', { name: 'Thu, Sep 24, 2026' })).toContainText('1 ord')
   await expect(page.getByRole('button', { name: 'Fri, Sep 25, 2026' })).toContainText('1 ord')

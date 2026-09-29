@@ -349,6 +349,26 @@ export const wholeOrderQuery = (category: string, order: BoardOrder) =>
   })
 
 /**
+ * The app's own row for each of an order's lines, which a line edit is addressed to. The Wrapping rows
+ * name only the EBMS line, so the bench asks the order when it is about to edit one.
+ */
+export const orderItemIdsQuery = (category: string, order: string | null) =>
+  queryOptions({
+    queryKey: [...boardKeys.orders(), category, 'item-ids', order] as const,
+    enabled: !!order,
+    queryFn: async () => {
+      const found = (await orderPage(category, { order: order! }, 0, 1)).results.find(
+        listed => listed.id === order
+      )
+      return new Map(
+        (found?.origin_items ?? []).flatMap(line =>
+          line.item ? [[line.id, line.item.id] as const] : []
+        )
+      )
+    }
+  })
+
+/**
  * The Scheduled tab: orders whose line items in the department carry a day, released or not.
  *
  * Every day at once — the tab picks a day's parts out itself. The server's `production_date=` matches
@@ -767,12 +787,35 @@ type ScheduleOrdersInput = {
 export const useScheduleOrders = (onSuccess: () => void) =>
   useMutation({
     mutationFn: async ({ orders, departmentId, productionDate }: ScheduleOrdersInput) => {
-      const ids = await Promise.all(orders.map(ensureSalesOrderId))
-      return authApi
-        .post('sales-orders/schedule/', {
-          json: { department: departmentId, orders: ids, production_date: productionDate }
-        })
-        .json()
+      // `sales-orders/schedule/` dates every line of an order, the part already split off to its
+      // own day included. A part-scheduled order arrives with only the lines still waiting, so
+      // those go by themselves, the way a split does.
+      const partial = orders.filter(isNarrowed)
+      const whole = await Promise.all(
+        orders.filter(order => !isNarrowed(order)).map(ensureSalesOrderId)
+      )
+      await Promise.all([
+        whole.length
+          ? authApi
+              .post('sales-orders/schedule/', {
+                json: { department: departmentId, orders: whole, production_date: productionDate }
+              })
+              .json()
+          : null,
+        ...partial.map(async order =>
+          authApi
+            .post(
+              `sales-orders/${await ensureSalesOrderId(order)}/departments/${departmentId}/schedule/`,
+              {
+                json: {
+                  production_date: productionDate,
+                  origin_items: order.origin_items.map(item => item.id)
+                }
+              }
+            )
+            .json()
+        )
+      ])
     },
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })

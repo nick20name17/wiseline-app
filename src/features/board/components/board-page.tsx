@@ -11,6 +11,7 @@ import { CompletedTab } from './completed-tab'
 import { DeptBar } from './dept-bar'
 import { PackagingTab } from './packaging-tab'
 import { ProductionTab } from './production-tab'
+import { ScanPackageDialog } from './scan-package-dialog'
 import { ScheduledTab } from './scheduled-tab'
 import { HeaderSearch } from '@/components/header-search'
 import { SlitLineTab } from './slit-line-tab'
@@ -78,6 +79,9 @@ export const BoardPage = ({
           setOpenDay(undefined)
           onViewChange(next)
         }}
+        // The station a label is made at checks one too p2 (980,536), p3 (1216,364); Trim's Wrapping
+        // offers it among its machine tabs.
+        actions={view === 'wrapping' || view === 'packaging' ? <ScanPackageDialog /> : null}
       />
 
       {view === 'unscheduled' ? (

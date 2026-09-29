@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { History } from 'lucide-react'
 import { useState } from 'react'
 import { completedOrdersQuery, type CompletedOrder } from '../api'
-import { COMPLETED_TABLE } from '../lib/columns'
+import { useBoard } from '../lib/board-context'
 import { formatStamp } from '../lib/format'
 import { CompletedOrderDialog } from './completed-order-dialog'
 
@@ -21,6 +21,7 @@ type CompletedTabProps = {
  * is worked on — a row is opened to answer a question about an order that has already gone.
  */
 export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
+  const { tables, pack } = useBoard()
   const [opened, setOpened] = useState<CompletedOrder | null>(null)
   // The header search is the open orders' business: the history is read by opening a row.
   const {
@@ -31,7 +32,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
     refetch
   } = useQuery(completedOrdersQuery(departmentId))
   const orders = page?.results ?? []
-  const columns = useColumnOrder(COMPLETED_TABLE)
+  const columns = useColumnOrder(tables.completed)
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-4'>
@@ -49,7 +50,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
             </EmptyMedia>
             <EmptyTitle>No completed orders</EmptyTitle>
             <EmptyDescription>
-              Orders you finish wrapping and mark complete land here.
+              Orders you finish {pack.station.toLowerCase()} and mark complete land here.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

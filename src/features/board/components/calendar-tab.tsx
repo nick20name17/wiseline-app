@@ -15,7 +15,7 @@ import {
   overdueQuery,
   type BoardOrder
 } from '../api'
-import { formatCount } from '../lib/format'
+import { dayLoadHint } from '../lib/format'
 import { partDays, partState } from '../lib/parts'
 import { PriorityPill } from './priority-pill'
 
@@ -73,12 +73,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const onSelectedDay = byDay.get(selected) ?? []
   const step = (months: number) => setMonth(current => addMonths(current, months))
 
-  const bendsOn = (day: string) => {
+  const loadOn = (day: string) => {
     const entry = load.get(day)
-    if (!entry) return undefined
-    return entry.capacity === null
-      ? `${formatCount(entry.bends)} bends`
-      : `${formatCount(entry.bends)} / ${formatCount(entry.capacity)} bends`
+    return entry ? dayLoadHint(entry, board) : undefined
   }
 
   return (
@@ -149,7 +146,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                 ) : null}
                 {count ? (
                   <span
-                    title={bendsOn(day)}
+                    title={loadOn(day)}
                     className={cn(
                       'mt-1 inline-block rounded-full px-1.5 py-0.5 font-mono text-xs',
                       late.has(day) ? 'bg-destructive text-white' : 'bg-primary/10 text-primary'

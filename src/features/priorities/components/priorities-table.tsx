@@ -37,6 +37,8 @@ type PrioritiesTableProps = {
   /** Set when every department is listed, so each row names its own. */
   departments?: Department[]
   isPending: boolean
+  /** A row the viewer may not change is shown without its grip, Edit or Delete. */
+  canChange: (priority: Priority) => boolean
 }
 
 type SortableRowProps = {
@@ -46,6 +48,7 @@ type SortableRowProps = {
   /** The department's name, shown when every department is listed. */
   department?: string
   disabled: boolean
+  readOnly: boolean
 }
 
 /**
@@ -78,7 +81,7 @@ class RowTouchSensor extends TouchSensor {
   ]
 }
 
-const SortableRow = ({ priority, rank, department, disabled }: SortableRowProps) => {
+const SortableRow = ({ priority, rank, department, disabled, readOnly }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -104,16 +107,18 @@ const SortableRow = ({ priority, rank, department, disabled }: SortableRowProps)
         {/* The keyboard's way in: Space picks the row up, the arrows move it. It is never
               natively disabled while a move saves: that would drop the focus it holds after a
               keyboard drop. */}
-        <button
-          ref={setActivatorNodeRef}
-          type='button'
-          data-grip
-          aria-label={`Move ${priority.name}`}
-          className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
-          {...attributes}
-        >
-          <GripVertical className='size-3.5' />
-        </button>
+        {readOnly ? null : (
+          <button
+            ref={setActivatorNodeRef}
+            type='button'
+            data-grip
+            aria-label={`Move ${priority.name}`}
+            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
+            {...attributes}
+          >
+            <GripVertical className='size-3.5' />
+          </button>
+        )}
       </TableCell>
       <TableCell>
         <span className='font-mono'>{rank}</span>
@@ -135,9 +140,7 @@ const SortableRow = ({ priority, rank, department, disabled }: SortableRowProps)
         <span className='font-medium'>{priority.name}</span>
       </TableCell>
       {department === undefined ? null : <TableCell>{department}</TableCell>}
-      <TableCell>
-        <PriorityActions priority={priority} />
-      </TableCell>
+      <TableCell>{readOnly ? null : <PriorityActions priority={priority} />}</TableCell>
     </TableRow>
   )
 }
@@ -146,7 +149,8 @@ export const PrioritiesTable = ({
   priorities,
   scope,
   departments,
-  isPending
+  isPending,
+  canChange
 }: PrioritiesTableProps) => {
   const sensors = useDragSensors({ mouse: RowMouseSensor, touch: RowTouchSensor })
   const save = useReorderPriorities()
@@ -241,7 +245,10 @@ export const PrioritiesTable = ({
                     rank={ranks.get(priority.id) ?? 0}
                     department={departments ? departmentOf(priority) : undefined}
                     // Only the hierarchy in scope moves: the server renumbers one at a time.
-                    disabled={save.isPending || priority.department !== scope}
+                    disabled={
+                      !canChange(priority) || save.isPending || priority.department !== scope
+                    }
+                    readOnly={!canChange(priority)}
                   />
                 ))}
               </SortableContext>
