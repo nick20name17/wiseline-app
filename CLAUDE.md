@@ -16,7 +16,8 @@ Within the shared layers: `api` → `lib`; `components` → `lib`; `lib` reaches
 
 - `src/app` — router instance and provider tree; `main.tsx` only mounts it.
 - `src/routes` — TanStack Router file routes. Thin: validate search, guard, load, render a feature component.
-- `src/features/<name>` — one domain (`auth`, `trim`): `api.ts`, `components/`, `lib/`.
+- `src/features/<name>` — one domain (`auth`, `board`, `colors`): `api.ts`, `components/`, `lib/`.
+  `board` is a department's board — Trim and Accessories are two configs of it (`lib/boards.ts`).
 - `src/components` — shared UI (`ui/` is shadcn, do not hand-edit styles), `theme/`, `router/` fallbacks.
 - `src/lib` — non-UI infrastructure: pure helpers, session store, query client.
 - `src/api` — HTTP client only; endpoints live in features.

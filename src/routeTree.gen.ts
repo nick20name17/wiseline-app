@@ -14,12 +14,12 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAuthRouteRouteImport } from './routes/_app/_auth/route'
-import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
 import { Route as AppCoilsRouteImport } from './routes/_app/coils'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
+import { Route as AppAuthAccessoriesRouteImport } from './routes/_app/_auth/accessories'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
 import { Route as AppAuthStockCardsRouteImport } from './routes/_app/_auth/stock-cards'
@@ -59,11 +59,6 @@ const AppAuthRouteRoute = AppAuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAccessoriesRoute = AppAccessoriesRouteImport.update({
-  id: '/accessories',
-  path: '/accessories',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppCoilsRoute = AppCoilsRouteImport.update({
   id: '/coils',
   path: '/coils',
@@ -88,6 +83,11 @@ const AppShippingRoute = AppShippingRouteImport.update({
   id: '/shipping',
   path: '/shipping',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAuthAccessoriesRoute = AppAuthAccessoriesRouteImport.update({
+  id: '/accessories',
+  path: '/accessories',
+  getParentRoute: () => AppAuthRouteRoute,
 } as any)
 const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
   id: '/profile',
@@ -173,13 +173,13 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/accessories': typeof AppAccessoriesRoute
   '/coils': typeof AppCoilsRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
+  '/accessories': typeof AppAuthAccessoriesRoute
   '/profile': typeof AppAuthProfileRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
@@ -199,12 +199,12 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
-  '/accessories': typeof AppAccessoriesRoute
   '/coils': typeof AppCoilsRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
+  '/accessories': typeof AppAuthAccessoriesRoute
   '/profile': typeof AppAuthProfileRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
@@ -226,7 +226,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/_app/_auth': typeof AppAuthRouteRouteWithChildren
-  '/_app/accessories': typeof AppAccessoriesRoute
   '/_app/coils': typeof AppCoilsRoute
   '/_app/driver': typeof AppDriverRoute
   '/_app/loading': typeof AppLoadingRoute
@@ -234,6 +233,7 @@ export interface FileRoutesById {
   '/_app/shipping': typeof AppShippingRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
+  '/_app/_auth/accessories': typeof AppAuthAccessoriesRoute
   '/_app/_auth/profile': typeof AppAuthProfileRoute
   '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
   '/_app/_auth/trim': typeof AppAuthTrimRoute
@@ -255,13 +255,13 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/accessories'
     | '/coils'
     | '/driver'
     | '/loading'
     | '/rollforming'
     | '/shipping'
     | '/settings'
+    | '/accessories'
     | '/profile'
     | '/stock-cards'
     | '/trim'
@@ -281,12 +281,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/'
-    | '/accessories'
     | '/coils'
     | '/driver'
     | '/loading'
     | '/rollforming'
     | '/shipping'
+    | '/accessories'
     | '/profile'
     | '/stock-cards'
     | '/trim'
@@ -307,7 +307,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/_app/_auth'
-    | '/_app/accessories'
     | '/_app/coils'
     | '/_app/driver'
     | '/_app/loading'
@@ -315,6 +314,7 @@ export interface FileRouteTypes {
     | '/_app/shipping'
     | '/_app/'
     | '/_app/_auth/settings'
+    | '/_app/_auth/accessories'
     | '/_app/_auth/profile'
     | '/_app/_auth/stock-cards'
     | '/_app/_auth/trim'
@@ -375,13 +375,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/accessories': {
-      id: '/_app/accessories'
-      path: '/accessories'
-      fullPath: '/accessories'
-      preLoaderRoute: typeof AppAccessoriesRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/coils': {
       id: '/_app/coils'
       path: '/coils'
@@ -416,6 +409,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/shipping'
       preLoaderRoute: typeof AppShippingRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/_auth/accessories': {
+      id: '/_app/_auth/accessories'
+      path: '/accessories'
+      fullPath: '/accessories'
+      preLoaderRoute: typeof AppAuthAccessoriesRouteImport
+      parentRoute: typeof AppAuthRouteRoute
     }
     '/_app/_auth/profile': {
       id: '/_app/_auth/profile'
@@ -556,6 +556,7 @@ const AppAuthSettingsRouteRouteWithChildren =
 
 interface AppAuthRouteRouteChildren {
   AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
+  AppAuthAccessoriesRoute: typeof AppAuthAccessoriesRoute
   AppAuthProfileRoute: typeof AppAuthProfileRoute
   AppAuthStockCardsRoute: typeof AppAuthStockCardsRoute
   AppAuthTrimRoute: typeof AppAuthTrimRoute
@@ -563,6 +564,7 @@ interface AppAuthRouteRouteChildren {
 
 const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
   AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
+  AppAuthAccessoriesRoute: AppAuthAccessoriesRoute,
   AppAuthProfileRoute: AppAuthProfileRoute,
   AppAuthStockCardsRoute: AppAuthStockCardsRoute,
   AppAuthTrimRoute: AppAuthTrimRoute,
@@ -574,7 +576,6 @@ const AppAuthRouteRouteWithChildren = AppAuthRouteRoute._addFileChildren(
 
 interface AppRouteRouteChildren {
   AppAuthRouteRoute: typeof AppAuthRouteRouteWithChildren
-  AppAccessoriesRoute: typeof AppAccessoriesRoute
   AppCoilsRoute: typeof AppCoilsRoute
   AppDriverRoute: typeof AppDriverRoute
   AppLoadingRoute: typeof AppLoadingRoute
@@ -585,7 +586,6 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthRouteRoute: AppAuthRouteRouteWithChildren,
-  AppAccessoriesRoute: AppAccessoriesRoute,
   AppCoilsRoute: AppCoilsRoute,
   AppDriverRoute: AppDriverRoute,
   AppLoadingRoute: AppLoadingRoute,
