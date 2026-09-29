@@ -146,3 +146,68 @@ test('Order complete is held until nothing is left to wrap', async ({ page }) =>
     'Waiting on a remanufacture — available once the machine marks it Bent'
   )
 })
+
+test('See packages reprints a lost label', async ({ page }) => {
+  const reprinted: string[] = []
+  await page.route(`${API_URL}/wrapping/orders/*/packages/`, route =>
+    route.fulfill({
+      json: [
+        {
+          package_id: 71,
+          name: '01-330608-01',
+          weight: 110,
+          location: '101',
+          is_loaded: false,
+          contents: [{ origin_item: '901', quantity: 10 }]
+        }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/packages/*/reprint/`, route => {
+    reprinted.push(new URL(route.request().url()).pathname)
+    return route.fulfill({ json: {} })
+  })
+  // Ten of the line are already wrapped, so there is a package to see.
+  await page.route(`${API_URL}/wrapping/?*`, route =>
+    route.fulfill({
+      json: WRAPPING_ROWS.map(row =>
+        row.origin_item === '901' ? { ...row, wrapped: 10, left_to_wrap: 30 } : row
+      )
+    })
+  )
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
+  await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
+  await page.getByRole('button', { name: 'See packages' }).click()
+
+  await page.getByRole('button', { name: 'Reprint label 01-330608-01' }).click()
+
+  await expect.poll(() => reprinted).toEqual(['/packages/71/reprint/'])
+})
+
+test('a damaged piece is replaced from stock at the bench, on the keypad', async ({ page }) => {
+  const edits: unknown[] = []
+  // The bench names only the EBMS line; the order says which of the app's rows it is.
+  await page.route(`${API_URL}/ebms/orders/?*order=ARINV-2*`, route =>
+    route.fulfill({
+      json: {
+        count: 1,
+        results: [
+          { id: 'ARINV-2', invoice: '330608', origin_items: [{ id: '901', item: { id: 9001 } }] }
+        ]
+      }
+    })
+  )
+  await page.route(`${API_URL}/items/9001/`, route => {
+    edits.push(route.request().postDataJSON())
+    return route.fulfill({ json: {} })
+  })
+  await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
+
+  await page.getByRole('button', { name: 'Stock for 901' }).click()
+  const keypad = page.getByRole('dialog', { name: 'Stock for 901' })
+  await keypad.getByRole('button', { name: '5', exact: true }).click()
+  await keypad.getByRole('button', { name: 'Enter' }).click()
+
+  await expect.poll(() => edits).toEqual([{ pull_from_stock: 5 }])
+})

@@ -18,9 +18,9 @@ import {
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
-import { Package as PackageIcon, Trash2 } from 'lucide-react'
+import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { orderPackagesQuery, useDeletePackage, type Package } from '../api'
+import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -35,8 +35,8 @@ type PackagesDialogProps = {
 }
 
 /**
- * See Packages: what has been packed for the order so far, so one packed wrong can be taken apart.
- * Its pieces go back to Left To Wrap and the line drops back from Wrapped (p1 (808,536)); Accessories'
+ * See Packages: what has been packed for the order so far, so one packed wrong can be taken apart
+ * and a lost label printed again (p1 (911,486), p2 (1040,492), p3 (1263,337)). Its pieces go back to Left To Wrap and the line drops back from Wrapped (p1 (808,536)); Accessories'
  * to Left To Package p3 (1199,368).
  */
 export const PackagesDialog = ({
@@ -50,6 +50,7 @@ export const PackagesDialog = ({
   const { data: all, isPending } = useQuery(orderPackagesQuery(order, open))
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
+  const reprint = useReprintPackage()
   const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
   // The order's packages across every department come back; the bench deletes only its own.
   const packages = all?.filter(parcel =>
@@ -63,7 +64,8 @@ export const PackagesDialog = ({
         <DialogHeader>
           <DialogTitle>Packages · Order {number}</DialogTitle>
           <DialogDescription>
-            Delete a package that was packed wrong; its pieces go back to {back}.
+            Reprint a package's label, or delete one that was packed wrong; its pieces go back to{' '}
+            {back}.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,8 +106,26 @@ export const PackagesDialog = ({
                         <span className='font-mono'>{parcel.location ?? '—'}</span>
                       </TableCell>
                       <TableCell>
-                        {/* A package already on a truck has left the bench. */}
-                        <span className='flex justify-end'>
+                        <span className='flex justify-end gap-1'>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            aria-label={`Reprint label ${parcel.name ?? parcel.package_id}`}
+                            title='Reprint label'
+                            disabled={reprint.isPending}
+                            onClick={() =>
+                              reprint.mutate(parcel.package_id, {
+                                onSuccess: () =>
+                                  toast.add({
+                                    type: 'success',
+                                    title: `Reprinted label ${parcel.name ?? parcel.package_id}`
+                                  })
+                              })
+                            }
+                          >
+                            <Printer />
+                          </Button>
+                          {/* A package already on a truck has left the bench. */}
                           <Button
                             variant='ghost'
                             size='icon-sm'

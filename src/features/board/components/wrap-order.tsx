@@ -11,12 +11,14 @@ import { ArrowLeft, Ban, Check, MapPin, PackageSearch, Printer, RefreshCw } from
 import { useState } from 'react'
 import {
   orderCompleteQuery,
+  orderItemIdsQuery,
   orderLocationsQuery,
   remanufacturingsQuery,
   useCompleteOrder,
   useCreatePackage,
   useMoveOrderPackages,
   useBoardDepartment,
+  useUpdateLineItem,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation,
@@ -41,6 +43,7 @@ import {
 } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
+import { KeypadDialog } from './keypad-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
 import { NoteButton } from './note-button'
@@ -182,8 +185,12 @@ const WrapLines = ({
 }: WrapLinesProps) => {
   const [remaking, setRemaking] = useState<WrappingRow | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
+  const [stocking, setStocking] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
+  const { data: itemIds } = useQuery(orderItemIdsQuery(board.name, stocking?.order ?? null))
+  const stockingItem = stocking ? itemIds?.get(stocking.origin_item) : undefined
+  const updateLine = useUpdateLineItem({ released: true })
   const columns = useColumnOrder(board.tables.packLines)
   // Rollforming packs one Product ID at a time: the first line put in sets it p2 (963,410).
   const stagedProduct = board.coils ? rows.find(row => stagedOf(row) > 0)?.product_id : undefined
@@ -239,9 +246,23 @@ const WrapLines = ({
                         <span className='font-mono'>{row.qty_ordered}</span>
                       </TableCell>
                     ),
+                    // A worker who damages a piece at the bench takes a good one off the shelf here
+                    // p1 (905,600), on a keypad p1 (918,616). A stock order puts trims on the shelf,
+                    // so its lines take none off it.
                     stock: (
                       <TableCell>
-                        <Figure value={row.from_stock || null} />
+                        {board.stockCards && !row.is_stock ? (
+                          <Button
+                            variant='link'
+                            aria-label={`Stock for ${lineName(row)}`}
+                            title='Pull from stock'
+                            onClick={() => setStocking(row)}
+                          >
+                            <Figure value={row.from_stock || null} />
+                          </Button>
+                        ) : (
+                          <Figure value={row.from_stock || null} />
+                        )}
                       </TableCell>
                     ),
                     wrapped: (
@@ -308,6 +329,29 @@ const WrapLines = ({
         originItem={noteLine?.origin_item ?? null}
         productId={noteLine?.description ?? ''}
         onOpenChange={open => !open && setNoteLine(null)}
+      />
+
+      {/* The line's whole figure, «anything from zero up to the Qty Ordered» p1 (904,624); the
+          server moves Left To Wrap and what is left to manufacture with it. */}
+      <KeypadDialog
+        target={
+          stocking
+            ? {
+                title: `Stock for ${lineName(stocking)}`,
+                current: stocking.from_stock,
+                max: stocking.qty_ordered
+              }
+            : null
+        }
+        isPending={updateLine.isPending || (!!stocking && stockingItem === undefined)}
+        onOpenChange={open => !open && setStocking(null)}
+        onEnter={value =>
+          stockingItem !== undefined &&
+          updateLine.mutate(
+            { itemId: stockingItem, edit: { pull_from_stock: value } },
+            { onSuccess: () => setStocking(null) }
+          )
+        }
       />
     </>
   )
