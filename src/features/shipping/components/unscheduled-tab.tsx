@@ -2,6 +2,7 @@ import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -12,16 +13,13 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { formatDate, formatLongDate } from '@/lib/days'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { CalendarDays, MapPin, Truck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from '@/components/ui/toast'
-import { unscheduledQuery, type UnscheduledOrder } from '../api'
+import { UNSCHEDULED_PAGE, unscheduledQuery, type UnscheduledOrder } from '../api'
 import { formatLength, formatWeight, mapUrl } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
-
-// Every open delivery in EBMS is a long list; it is read a page at a time.
-const PAGE = 100
 
 type UnscheduledTabProps = {
   search: string | undefined
@@ -33,14 +31,21 @@ type UnscheduledTabProps = {
  * Schedule window; selections survive expanding, searching and the map p3 (560,202).
  */
 export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => {
-  const [limit, setLimit] = useState(PAGE)
-  const { data, isPending, isError, error, refetch } = useQuery(
-    unscheduledQuery(search ?? '', limit)
-  )
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery(unscheduledQuery(search ?? ''))
+  const count = data?.pages[0]?.count ?? 0
   // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
-  const orders = data?.results ?? []
+  const orders = data?.pages.flatMap(page => page.results) ?? []
   const picked = [...selected.values()]
 
   if (isError && !data)
@@ -62,7 +67,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
             </>
           ) : (
             <>
-              <b className='font-semibold text-foreground'>{data?.count ?? 0}</b> orders to ship
+              <b className='font-semibold text-foreground'>{count}</b> orders to ship
             </>
           )}
         </span>
@@ -188,14 +193,27 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
         </div>
       )}
 
-      {data && orders.length < data.count ? (
-        <Button variant='outline' className='self-center' onClick={() => setLimit(limit + PAGE)}>
-          Show {Math.min(PAGE, data.count - orders.length)} more of {data.count - orders.length}
+      {hasNextPage ? (
+        <Button
+          variant='outline'
+          className='self-center'
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        >
+          {isFetchingNextPage ? <Spinner data-icon='inline-start' /> : null}
+          Show {Math.min(UNSCHEDULED_PAGE, count - orders.length)} more of {count - orders.length}
         </Button>
       ) : null}
 
       <ScheduleDialog
-        orders={picked}
+        verb='Schedule'
+        shipment={{
+          orders: picked.map(order => order.order),
+          pickupIds: [],
+          count: picked.length,
+          weight: picked.reduce((total, order) => total + order.weight, 0),
+          longest: picked.reduce((most, order) => Math.max(most, order.longest_length), 0)
+        }}
         open={scheduling}
         onOpenChange={setScheduling}
         onApplied={shipDate => {

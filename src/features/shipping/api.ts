@@ -1,5 +1,6 @@
 import { authApi } from '@/api/client'
 import {
+  infiniteQueryOptions,
   keepPreviousData,
   queryOptions,
   useMutation,
@@ -9,17 +10,20 @@ import * as z from 'zod/mini'
 
 const shippingKeys = {
   all: ['shipping'] as const,
-  unscheduled: (search: string, limit: number) =>
-    [...shippingKeys.all, 'unscheduled', { search, limit }] as const,
-  selection: (orders: string[], shipDate: string | null) =>
-    [...shippingKeys.all, 'selection', { orders, shipDate }] as const,
+  unscheduled: (search: string) => [...shippingKeys.all, 'unscheduled', { search }] as const,
+  selection: (selection: Selection, shipDate: string | null) =>
+    [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
   scheduledDays: () => [...shippingKeys.all, 'scheduled'] as const,
   scheduled: (shipDate: string) => [...shippingKeys.scheduledDays(), shipDate] as const,
   allLoads: () => [...shippingKeys.all, 'loads'] as const,
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
-  packages: (order: string) => [...shippingKeys.all, 'packages', order] as const
+  packages: (order: string) => [...shippingKeys.all, 'packages', order] as const,
+  route: (loadId: number) => [...shippingKeys.all, 'route', loadId] as const
 }
+
+/** What goes onto a truck together: sales orders by autoid, supplier pickups by their id. */
+export type Selection = { orders: string[]; pickupIds: number[] }
 
 const unscheduledOrderSchema = z.object({
   order: z.string(),
@@ -36,6 +40,9 @@ const unscheduledOrderSchema = z.object({
 
 export type UnscheduledOrder = z.infer<typeof unscheduledOrderSchema>
 
+// Every open delivery in EBMS is a long list.
+export const UNSCHEDULED_PAGE = 100
+
 const unscheduledPageSchema = z.object({
   count: z._default(z.number(), 0),
   results: z._default(z.array(unscheduledOrderSchema), [])
@@ -43,20 +50,29 @@ const unscheduledPageSchema = z.object({
 
 /**
  * The delivery orders still waiting for a ship date and a truck p3 (605,182). A long list — every open
- * delivery in EBMS — so it is read a page at a time, the page growing as the Manager asks for more.
+ * delivery in EBMS — so it is read a page at a time, each «Show more» fetching only the next.
  */
-export const unscheduledQuery = (search: string, limit: number) =>
-  queryOptions({
-    queryKey: shippingKeys.unscheduled(search, limit),
+export const unscheduledQuery = (search: string) =>
+  infiniteQueryOptions({
+    queryKey: shippingKeys.unscheduled(search),
     placeholderData: keepPreviousData,
-    queryFn: async () =>
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) =>
       unscheduledPageSchema.parse(
         await authApi
           .get('shipping/unscheduled/', {
-            searchParams: { limit, offset: 0, ...(search ? { search } : {}) }
+            searchParams: {
+              limit: UNSCHEDULED_PAGE,
+              offset: pageParam,
+              ...(search ? { search } : {})
+            }
           })
           .json()
-      )
+      ),
+    getNextPageParam: (last, pages) => {
+      const read = pages.reduce((total, page) => total + page.results.length, 0)
+      return read < last.count && last.results.length ? read : undefined
+    }
   })
 
 const shipmentTotalsSchema = z.object({
@@ -86,15 +102,15 @@ export type TruckPanel = z.infer<typeof truckPanelSchema>
  * with the selection on it — orange over its limit, and nothing more p3 (587,259). A read, sent as a
  * POST because the selection rides in the body.
  */
-export const truckPanelsQuery = (orders: string[], shipDate: string | null) =>
+export const truckPanelsQuery = (selection: Selection, shipDate: string | null) =>
   queryOptions({
-    queryKey: shippingKeys.selection(orders, shipDate),
-    enabled: !!shipDate && orders.length > 0,
+    queryKey: shippingKeys.selection(selection, shipDate),
+    enabled: !!shipDate && selection.orders.length + selection.pickupIds.length > 0,
     queryFn: async () =>
       z.array(truckPanelSchema).parse(
         await authApi
           .post('shipping/truck-panels/', {
-            json: { orders, pickup_ids: [], ship_date: shipDate }
+            json: { orders: selection.orders, pickup_ids: selection.pickupIds, ship_date: shipDate }
           })
           .json()
       )
@@ -118,17 +134,18 @@ const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>
 
 /**
  * Apply: the selection goes on the truck for the day, leaves Unscheduled and shows under that date and
- * truck in Scheduled p3 (566,273). The server pushes the ship date to EBMS.
+ * truck in Scheduled p3 (566,273). The server pushes the ship date to EBMS. Applied again to orders
+ * not on a Load yet, it reschedules them p3 (591,341).
  */
 export const useApplyShipping = (onSuccess: () => void) =>
   useMutation({
     meta: { errorTitle: 'The orders were not scheduled' },
-    mutationFn: (input: { orders: string[]; shipDate: string; truckId: number }) =>
+    mutationFn: (input: Selection & { shipDate: string; truckId: number }) =>
       authApi
         .post('shipping/apply/', {
           json: {
             orders: input.orders,
-            pickup_ids: [],
+            pickup_ids: input.pickupIds,
             ship_date: input.shipDate,
             truck_id: input.truckId
           }
@@ -294,4 +311,98 @@ export const useDelivered = () =>
 export const useCompleteLoad = () =>
   useLoadPost('The Load was not completed', (loadId: number) =>
     authApi.post(`shipping/loads/${loadId}/complete/`).json()
+  )
+
+const stopSchema = z.object({
+  route_id: z.number(),
+  /** The delivery's place in the run; the warehouse the truck leaves from has none. */
+  sequence: z._default(z.nullable(z.number()), null),
+  dispatch_point: z._default(z.boolean(), false),
+  order_number: z._default(z.nullable(z.string()), null),
+  name: z._default(z.nullable(z.string()), null),
+  address: z._default(z.nullable(z.string()), null),
+  city: z._default(z.nullable(z.string()), null),
+  state: z._default(z.nullable(z.string()), null)
+})
+
+export type Stop = z.infer<typeof stopSchema>
+
+/** A Load's stops in delivery order, the warehouse first p3 (617,441). Empty until it is planned. */
+export const routeQuery = (loadId: number) =>
+  queryOptions({
+    queryKey: shippingKeys.route(loadId),
+    queryFn: async () =>
+      z.array(stopSchema).parse(await authApi.get(`shipping/loads/${loadId}/route/`).json())
+  })
+
+/**
+ * Plans the run from the Load's orders. Stops already placed keep their place; `rebuild` starts over,
+ * for a Load whose orders have changed since.
+ */
+export const usePlanRoute = () =>
+  useMutation({
+    meta: { errorTitle: 'The route was not planned' },
+    mutationFn: async (input: { loadId: number; rebuild: boolean }) =>
+      z.array(stopSchema).parse(
+        await authApi
+          .post(`shipping/loads/${input.loadId}/route/`, {
+            searchParams: { rebuild: input.rebuild }
+          })
+          .json()
+      ),
+    onSuccess: (stops, input, _, { client }) =>
+      client.setQueryData(shippingKeys.route(input.loadId), stops)
+  })
+
+/** The deliveries in their new order after a drag; the server wants the whole sequence. */
+export const useReorderRoute = () =>
+  useMutation({
+    meta: { errorTitle: 'The delivery order was not saved' },
+    mutationFn: async (input: { loadId: number; routeIds: number[] }) =>
+      z.array(stopSchema).parse(
+        await authApi
+          .patch(`shipping/loads/${input.loadId}/route/`, {
+            json: { route_ids: input.routeIds }
+          })
+          .json()
+      ),
+    onSettled: (_, __, input, ___, { client }) =>
+      client.invalidateQueries({ queryKey: shippingKeys.route(input.loadId) })
+  })
+
+export const pickupPayloadSchema = z.object({
+  supplier: z
+    .string()
+    .check(
+      z.trim(),
+      z.minLength(1, 'Supplier is required'),
+      z.maxLength(255, 'At most 255 characters')
+    ),
+  description: z.string().check(z.trim(), z.maxLength(255, 'At most 255 characters')),
+  weight: z.nullable(z.number().check(z.nonnegative('Cannot be negative'))),
+  length: z.nullable(z.number().check(z.nonnegative('Cannot be negative')))
+})
+
+export type PickupPayload = z.infer<typeof pickupPayloadSchema>
+
+/**
+ * A supplier pickup — «things that a delivery driver needs to pickup for a supplier», not a customer
+ * pickup p3 (586,248) — straight onto the truck for the day.
+ */
+export const useCreatePickup = () =>
+  useLoadPost(
+    'The pickup was not added',
+    (input: PickupPayload & { shipDate: string; truckId: number }) =>
+      authApi
+        .post('shipping/pickups/', {
+          json: {
+            supplier: input.supplier,
+            description: input.description || null,
+            weight: input.weight,
+            length: input.length,
+            ship_date: input.shipDate,
+            truck_id: input.truckId
+          }
+        })
+        .json()
   )

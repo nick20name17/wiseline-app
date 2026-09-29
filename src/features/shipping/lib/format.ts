@@ -17,3 +17,23 @@ export const mapUrl = (address: string | null, city: string | null) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     [address, city].filter(Boolean).join(', ')
   )}`
+
+type Place = { address: string | null; city: string | null; state?: string | null }
+
+const placeOf = ({ address, city, state }: Place) =>
+  [address, city, state].filter(Boolean).join(', ')
+
+/**
+ * The run on Google Maps, stop by stop from the warehouse — «shows that route on the map» p3 (617,441).
+ * A directions link needs no API key; the map drawn in the page waits on one. `null` under two stops.
+ */
+export const routeUrl = (stops: Place[]) => {
+  const places = stops.map(placeOf).filter(Boolean)
+  if (places.length < 2) return null
+  const url = new URL('https://www.google.com/maps/dir/')
+  url.searchParams.set('api', '1')
+  url.searchParams.set('origin', places[0]!)
+  url.searchParams.set('destination', places[places.length - 1]!)
+  if (places.length > 2) url.searchParams.set('waypoints', places.slice(1, -1).join('|'))
+  return url.toString()
+}

@@ -14,11 +14,21 @@ import { formatDate, fromIsoDay, toIsoDay } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
-import { truckPanelsQuery, useApplyShipping, type UnscheduledOrder } from '../api'
+import { truckPanelsQuery, useApplyShipping, type Selection } from '../api'
 import { formatLength, formatWeight } from '../lib/format'
 
+/** What is being put on a truck, and what it adds up to. */
+export type Shipment = Selection & {
+  count: number
+  weight: number
+  /** Inches; `null` where the list does not know it. */
+  longest: number | null
+}
+
 type ScheduleDialogProps = {
-  orders: UnscheduledOrder[]
+  shipment: Shipment
+  /** «Schedule» from Unscheduled; «Reschedule» for orders already on a truck p3 (591,341). */
+  verb: 'Schedule' | 'Reschedule'
   open: boolean
   onOpenChange: (open: boolean) => void
   onApplied: (shipDate: string) => void
@@ -29,11 +39,17 @@ type ScheduleDialogProps = {
  * set p3 (562,244); picking one fills in what it would carry, and only then can the Manager apply
  * p3 (562,263). Over a truck's limit is orange and nothing more p3 (587,259).
  */
-export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: ScheduleDialogProps) => {
+export const ScheduleDialog = ({
+  shipment,
+  verb,
+  open,
+  onOpenChange,
+  onApplied
+}: ScheduleDialogProps) => {
   const [shipDate, setShipDate] = useState<string | null>(null)
   const [truckId, setTruckId] = useState<number | null>(null)
-  const ids = orders.map(order => order.order)
-  const { data: panels, isPending } = useQuery(truckPanelsQuery(ids, open ? shipDate : null))
+  const selection = { orders: shipment.orders, pickupIds: shipment.pickupIds }
+  const { data: panels, isPending } = useQuery(truckPanelsQuery(selection, open ? shipDate : null))
   const close = () => {
     onOpenChange(false)
     setShipDate(null)
@@ -44,18 +60,16 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
     if (shipDate) onApplied(shipDate)
   })
 
-  const weight = orders.reduce((total, order) => total + order.weight, 0)
-  const longest = orders.reduce((most, order) => Math.max(most, order.longest_length), 0)
-
   return (
     <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>
-            Schedule {orders.length} order{orders.length === 1 ? '' : 's'}
+            {verb} {shipment.count} order{shipment.count === 1 ? '' : 's'}
           </DialogTitle>
           <DialogDescription>
-            Delivery orders: {formatWeight(weight)} · longest {formatLength(longest)}
+            {formatWeight(shipment.weight)}
+            {shipment.longest === null ? '' : ` · longest ${formatLength(shipment.longest)}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -128,7 +142,7 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
           <Button
             disabled={!shipDate || truckId === null || apply.isPending}
             onClick={() =>
-              shipDate && truckId !== null && apply.mutate({ orders: ids, shipDate, truckId })
+              shipDate && truckId !== null && apply.mutate({ ...selection, shipDate, truckId })
             }
           >
             {apply.isPending ? <Spinner data-icon='inline-start' /> : null}

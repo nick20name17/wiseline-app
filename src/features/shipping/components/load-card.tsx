@@ -15,9 +15,15 @@ type OrderLineProps = {
 export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
   <li className='flex items-center gap-3 border-t border-border px-3 py-2 text-sm'>
     {lead}
-    <span className='w-28 font-mono font-medium'>{order.order_number ?? '—'}</span>
+    {/* A supplier pickup has no order number; the server puts the supplier in both fields. */}
+    <span className='w-28 font-mono font-medium'>
+      {order.kind === 'pickup' ? (
+        <Badge variant='muted'>Pickup</Badge>
+      ) : (
+        (order.order_number ?? '—')
+      )}
+    </span>
     <span className='min-w-0 flex-1 truncate'>{order.customer ?? '—'}</span>
-    {order.kind === 'pickup' ? <Badge variant='muted'>Pickup</Badge> : null}
     <span className='w-28 text-right font-mono text-muted-foreground'>
       {formatWeight(order.weight)}
     </span>
