@@ -787,12 +787,35 @@ type ScheduleOrdersInput = {
 export const useScheduleOrders = (onSuccess: () => void) =>
   useMutation({
     mutationFn: async ({ orders, departmentId, productionDate }: ScheduleOrdersInput) => {
-      const ids = await Promise.all(orders.map(ensureSalesOrderId))
-      return authApi
-        .post('sales-orders/schedule/', {
-          json: { department: departmentId, orders: ids, production_date: productionDate }
-        })
-        .json()
+      // `sales-orders/schedule/` dates every line of an order, the part already split off to its
+      // own day included. A part-scheduled order arrives with only the lines still waiting, so
+      // those go by themselves, the way a split does.
+      const partial = orders.filter(isNarrowed)
+      const whole = await Promise.all(
+        orders.filter(order => !isNarrowed(order)).map(ensureSalesOrderId)
+      )
+      await Promise.all([
+        whole.length
+          ? authApi
+              .post('sales-orders/schedule/', {
+                json: { department: departmentId, orders: whole, production_date: productionDate }
+              })
+              .json()
+          : null,
+        ...partial.map(async order =>
+          authApi
+            .post(
+              `sales-orders/${await ensureSalesOrderId(order)}/departments/${departmentId}/schedule/`,
+              {
+                json: {
+                  production_date: productionDate,
+                  origin_items: order.origin_items.map(item => item.id)
+                }
+              }
+            )
+            .json()
+        )
+      ])
     },
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })

@@ -111,3 +111,66 @@ test('an unread order note opens and can be acknowledged', async ({ page }) => {
   await page.getByRole('button', { name: 'Mark dealt with' }).click()
   await expect.poll(() => marked).toBe(true)
 })
+
+test('scheduling what is left of a split order leaves the part already on its day', async ({
+  page
+}) => {
+  // 330700 had one of its two lines split off to Sep 23; Unscheduled hands over the one left.
+  const partial = {
+    id: 'ARINV-9',
+    invoice: '330700',
+    customer: 'Jireh Tools',
+    crea_date: '2024-05-06',
+    ship_date: '2024-05-09',
+    count_items: 2,
+    total_weight: 40,
+    sales_order: {
+      id: 31,
+      order: 'ARINV-9',
+      is_stock: false,
+      department_states: [{ id: 41, department: 1, production_date: '2026-09-23' }]
+    },
+    origin_items: [
+      {
+        id: 'DET-9',
+        category: 'Trim',
+        id_inven: 'TGD8250',
+        description: 'Gable Drip Dark Red',
+        quantity: 4,
+        width: 6,
+        length: 120,
+        bends: 2,
+        weight: 20,
+        production_date: null,
+        item: null
+      }
+    ]
+  }
+  await page.route(`${API_URL}/ebms/orders/*`, route => {
+    const scheduled = new URL(route.request().url()).searchParams.get('is_scheduled') === 'true'
+    return route.fulfill({
+      json: scheduled ? { count: 0, results: [] } : { count: 1, results: [partial] }
+    })
+  })
+  const whole: unknown[] = []
+  const split: unknown[] = []
+  await page.route(`${API_URL}/sales-orders/schedule/`, route => {
+    whole.push(route.request().postDataJSON())
+    return route.fulfill({ json: {} })
+  })
+  await page.route(`${API_URL}/sales-orders/31/departments/1/schedule/`, route => {
+    split.push(route.request().postDataJSON())
+    return route.fulfill({ json: {} })
+  })
+  await page.reload()
+
+  await page.getByLabel('Select order 330700').click()
+  await page.getByRole('button', { name: /^Schedule/ }).click()
+  await page.getByRole('button', { name: /September 24th, 2026/ }).click()
+  await page.getByRole('button', { name: 'Set date' }).click()
+
+  await expect
+    .poll(() => split)
+    .toEqual([{ production_date: '2026-09-24', origin_items: ['DET-9'] }])
+  expect(whole).toEqual([])
+})
