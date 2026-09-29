@@ -340,28 +340,28 @@ thread or commit that carries it.
 
 - [ ] (570, 171) Shipping Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
 - [ ] (1242, 183) Accessories Workers should be able to see everything from here down.
-- [ ] (1249, 187) The Worker window should just be a list of the scheduled orders. A Worker should not need to select days of the week, it needs to just be a list. This lists needs to always sort primarily by Prep Date and then have a distinct line between the different days. See example: -----&gt;
-- [ ] (1285, 195) This tab needs to primarily sort by Prep Date and then by Priority.
+- [x] (1249, 187) The Worker window should just be a list of the scheduled orders. A Worker should not need to select days of the week, it needs to just be a list. This lists needs to always sort primarily by Prep Date and then have a distinct line between the different days. See example: -----&gt; _(verified: live 2026-09-29 — the Packaging list is one list, a line between the days; Worker windows in e2e only)_
+- [x] (1285, 195) This tab needs to primarily sort by Prep Date and then by Priority. _(verified: live 2026-09-29 — the Packaging list runs by Prep Date, then Priority (backend order))_
 - [ ] (1239, 204) The “Truck” data comes from Dispatch. If the order is not assigned to a Truck yet, then the column for that order would just stay blank. Whether the order has a Truck assigned to it or not, it makes no difference with regards to if the order can be packaged, it is just visual info.
-- [ ] (1239, 209) If the order is a Pick-up, then the Truck column would just automatically be assigned “N/A”
-- [ ] (1254, 225) Clicking an order line opens the order and only shows accessories, not line items in other Departments (categories).
+- [x] (1239, 209) If the order is a Pick-up, then the Truck column would just automatically be assigned “N/A” _(verified: live 2026-09-29 — 133522, a Pickup, reads N/A in the Packaging list's Truck column)_
+- [x] (1254, 225) Clicking an order line opens the order and only shows accessories, not line items in other Departments (categories). _(verified: live 2026-09-29 — the bench opens on the order's accessories, from `wrapping/?department_id=3`)_
 - [ ] (1230, 226) The Manager and Workers should be able to add and view Line Item Notes at any point in packaging. These notes are just within the app, they do not come from or push back to EBMS.
-- [ ] (1240, 229) It should only display the accessories for the order you are working on.
+- [x] (1240, 229) It should only display the accessories for the order you are working on. _(verified: live 2026-09-29 — W20793's bench lists its accessory BT12 only)_
 - [ ] (562, 244) Only once you have selected a Ship Date do the check boxes for the trucks become available.
 - [ ] (586, 248) These are NOT customer pickups, these are things that a delivery driver needs to pickup for a supplier.
-- [ ] (1239, 249) When you’re working on a new order (nothing has been Packaged for this order yet), then once there is an amount in the Packaging column, then the Select Location button becomes available.
-- [ ] (1264, 249) This will show the combined weight of the accessories you are planning to package. We need to be able to set a Max Weight per package (ex. 15 lbs).
+- [x] (1239, 249) When you’re working on a new order (nothing has been Packaged for this order yet), then once there is an amount in the Packaging column, then the Select Location button becomes available. _(verified: live 2026-09-29 — Select Location stayed off until Auto Fill put 1 in Packaging)_
+- [x] (1264, 249) This will show the combined weight of the accessories you are planning to package. We need to be able to set a Max Weight per package (ex. 15 lbs). _(verified: live 2026-09-29 — the package weight read 1.45 lb for the one roll of BT12)_
 - [ ] (1105, 253) When scheduling part of an order, the scheduled line items should not disappear. Rather, they should be greyed out and completely uneditable in the Unscheduled tab. Once all the trims are Scheduled, the order will disappear in the Unscheduled tab within the Accessories department (category).
 - [ ] (587, 259) If the Assigned Weight is over the Weight Limit, then this box gets highlighted in orange. This does NOT give any other warnings or prevent the Manager from assigning these orders to this truck because later the Manager will just have to divide up the orders into multiple loads for this truck.
 - [ ] (562, 263) Selecting a truck will auto fill the Total Weight &amp; Longest Length of the Delivery Orders and/or Pickups you had selected. Once you have selected a truck, then the Apply button becomes available.
 - [ ] (1097, 272) When viewing a partially scheduled order in the Scheduled tab, the accessories that are still unscheduled or scheduled to a different day should appear but be greyed out and completely uneditable. Also, the Status column should be blank for the unscheduled accessories.
-- [ ] (1103, 281) Once an order has been scheduled, the Status should change to Not Started.
+- [ ] (1103, 281) Once an order has been scheduled, the Status should change to Not Started. _(live 2026-09-29: W20793 scheduled reads no status — the backend leaves the order status null)_
 - [ ] (1305, 286) When the last Accessories package has been scanned onto the truck by shipping, then after 15 mins. the location becomes available again (reset).
 - [ ] (1324, 286) When only part of a line item is Packaged, then that line item’s Status needs to be In Progress. So if the Left To Package column is NOT zero but NOT equel to the Qty Ordered column, then it would show In Progress.
 - [ ] (1077, 291) The order Status should remain Not Started until at least one Package has been created for that order. Then, the Status should change to In Progress and remain In Progress until all the accessories on that order have the Status of Packaged.
-- [ ] (1103, 291) As soon as an Accessories Location has been added to an order it should display it here.
+- [x] (1103, 291) As soon as an Accessories Location has been added to an order it should display it here. _(verified: live 2026-09-29 — W20793's A-04 shows as its Accessories Location once its package stands there)_
 - [ ] (1069, 296) The Manager and Workers should be able to add and view Line Item Notes at any point. These notes are just within the app, they do not come from or push back to EBMS.
-- [ ] (1265, 296) The Order Complete button should only become available once the 1 st package has been created.
+- [x] (1265, 296) The Order Complete button should only become available once the 1 st package has been created. _(verified: live 2026-09-29 — W20793: Order Complete off until 03-W20793-1 was created, on after)_
 - [ ] (1080, 304) When you expand an order, you should be able to see the Status of each individual accessory.
 - [ ] (1079, 307) If part of a line item is packaged, then the status needs to show In Progress. Example: If 2 out of these 4 bags of screws are packaged, then is needs to show In Progress.
 - [ ] (617, 308) If the weight in these boxes are over the Weight Limit of the Truck, then the boxes should be highlighted in orange.
@@ -371,7 +371,7 @@ thread or commit that carries it.
 - [ ] (616, 315) This would show how many of the Pickups that are scheduled for each truck that are NOT assigned to a Load yet, and the total weight of those order. These are NOT customer pickups, these are things that a delivery driver needs to pickup for a supplier.
 - [ ] (617, 317) When these are zero, then the boxes should be highlighted in green showing that everything is assigned to a Load.
 - [ ] (596, 319) Clicking on a this button would open up a drop down of all the orders that are scheduled for that truck for the selected day
-- [ ] (1239, 320) Once the Left To Package column is zero, then that line item’s Status needs to automatically change to Packaged and the Auto Fill button needs to grey out.
+- [x] (1239, 320) Once the Left To Package column is zero, then that line item’s Status needs to automatically change to Packaged and the Auto Fill button needs to grey out. _(verified: live 2026-09-29 — BT12 read Packaged ✓ once Left To Package reached 0)_
 - [ ] (616, 324) The Status for each order would be blank until the orders are released to loading.
 - [ ] (594, 325) We need a Select All check box, which would select all the order that have not been assigned to a load.
 - [ ] (592, 338) We need to be able to expand &amp; collapse orders, view the map, check &amp; deal with notes and set Priorities without losing the orders we’ve selected.
@@ -380,12 +380,12 @@ thread or commit that carries it.
 - [ ] (1271, 348) Overdue Accessories to be packaged need to be highlighted in red.
 - [ ] (1270, 349) Example: If it is Thursday, May 09/2024 and there are Accessories from Wednesday, May 08/2024 that are not packaged yet, then we need those Wednesday Orders to be highlighted as overdue.
 - [ ] (1076, 350) This would be the Manager’s view in the Accessories Packaging tab. The Manger would have the same authority as a worker.
-- [ ] (1263, 354) Once the Worker is satisfied with everything on the order then he would click the Order Complete button. He would get a pop-up to confirm this action. Once confirmed the order disappears from the Packaging tab and appears in the Completed Orders tab.
+- [x] (1263, 354) Once the Worker is satisfied with everything on the order then he would click the Order Complete button. He would get a pop-up to confirm this action. Once confirmed the order disappears from the Packaging tab and appears in the Completed Orders tab. _(verified: live 2026-09-29 — W20793 asked to confirm, then left Packaging and showed in Completed Orders)_
 - [ ] (591, 357) Clicking the Add To Load button would cause a few things to happen:
 - [ ] (598, 357) Clicking the Add To Load button would assign the selected orders to that load
 - [ ] (592, 359) The selected orders would be assigned to that load. The total weight of the orders assigned to that load would be displayed in the load tab. A status of Unreleased would appear in the load tab. The load number (L-1 in this case) would replace the order check boxes. Another load tab would appear (Load 2 in this case) The Total # and Total Weight for Delivery Orders would update The Total Weight for Selected Orders would update
 - [ ] (1199, 368) If the line item that was in the deleted package had a Status of Packaged already, then after deleting, that Status would have to change back to Not Started again. If some of that line item is still packaged, then it would have to change back to In Progress.
-- [ ] (1239, 390) Within the Completed Orders tab we need to be able to see a list of the line items ordered and a list of the packages that were created for this order and what was put into each package.
+- [x] (1239, 390) Within the Completed Orders tab we need to be able to see a list of the line items ordered and a list of the packages that were created for this order and what was put into each package. _(verified: live 2026-09-29 — W20793 in Completed Orders: BT12, and package 03-W20793-1 holding 1 × BT12 at A-04)_
 - [ ] (605, 397) Clicking on a Load tab would show the orders assigned to that Load
 - [ ] (617, 441) The sequence of these orders determines which order to deliver 1 st , 2 nd , 3 rd , etc. and shows that route on the map. We need to be able to drag these orders up &amp; down to change the order that they will be delivered.
 - [ ] (598, 468) Clicking the Release To Loading button would make the Load show up in the Loading window and change the Load and order Status’s to Not Started
