@@ -134,12 +134,11 @@ export const useApplyShipping = (onSuccess: () => void) =>
           }
         })
         .json(),
-    onSuccess: async (_, __, ___, { client }) => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] }),
-        client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
-      ])
+    // Closed first: the refetch takes the scheduled orders out of the open window's selection.
+    onSuccess: (_, __, ___, { client }) => {
       onSuccess()
+      void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+      void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
     }
   })
 

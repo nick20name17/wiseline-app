@@ -12,6 +12,10 @@ import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { OrderLine } from './load-card'
 
+// Orders go only on a Load not yet released to Loading; the server refuses the rest.
+const takesOrders = (load: { status: string | null }) =>
+  (load.status ?? 'unreleased') === 'unreleased'
+
 type TruckLoadsProps = {
   card: TruckCard
   shipDate: string
@@ -30,7 +34,8 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
   const release = useReleaseLoad()
 
   const waiting = card.orders.filter(order => order.load_id === null)
-  const current = loads?.find(load => load.load_id === tab) ?? loads?.[0] ?? null
+  const current =
+    loads?.find(load => load.load_id === tab) ?? loads?.find(takesOrders) ?? loads?.[0] ?? null
   const all = waiting.length > 0 && waiting.every(order => picked.has(order.assignment_id))
   const selectedWeight = waiting
     .filter(order => picked.has(order.assignment_id))
@@ -57,7 +62,7 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
             </span>
             <Button
               className='ml-auto'
-              disabled={!picked.size || !current || add.isPending}
+              disabled={!picked.size || !current || !takesOrders(current) || add.isPending}
               onClick={() =>
                 current &&
                 add.mutate(
@@ -130,7 +135,7 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
                   Tick orders above and add them to {current.name}.
                 </p>
               )}
-              {current.orders.length && (current.status ?? 'unreleased') === 'unreleased' ? (
+              {current.orders.length && takesOrders(current) ? (
                 <div className='flex justify-end gap-2 border-t border-border px-3 py-2'>
                   <Button
                     variant='outline'

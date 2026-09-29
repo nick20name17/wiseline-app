@@ -47,7 +47,7 @@ export const BoardPage = ({
   // shows on the strip at once.
   const { data: cutlists } = useQuery({
     ...cutlistsQuery(departmentId, 'cutlist', null, false),
-    enabled: board.makes && departmentId !== undefined
+    enabled: board.makes
   })
 
   usePageHeader({

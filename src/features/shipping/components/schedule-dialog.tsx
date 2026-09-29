@@ -34,8 +34,13 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
   const [truckId, setTruckId] = useState<number | null>(null)
   const ids = orders.map(order => order.order)
   const { data: panels, isPending } = useQuery(truckPanelsQuery(ids, open ? shipDate : null))
-  const apply = useApplyShipping(() => {
+  const close = () => {
     onOpenChange(false)
+    setShipDate(null)
+    setTruckId(null)
+  }
+  const apply = useApplyShipping(() => {
+    close()
     if (shipDate) onApplied(shipDate)
   })
 
@@ -43,16 +48,7 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
   const longest = orders.reduce((most, order) => Math.max(most, order.longest_length), 0)
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        onOpenChange(next)
-        if (!next) {
-          setShipDate(null)
-          setTruckId(null)
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>

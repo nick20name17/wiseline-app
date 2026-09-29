@@ -1,4 +1,5 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
+import { QueryError } from '@/components/query-error'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,16 +11,16 @@ import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { useDayLoads } from '../lib/day-loads'
 import { DayPicker } from './day-picker'
-import { LoadCard } from './load-card'
+import { LoadCard, OrderLine } from './load-card'
 
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
 const ON_THE_DOCK = new Set(['not_started', 'loading', 'loaded'])
 
-type OrderPackagesProps = { load: LoadTab; order: Assignment }
+type OrderPackagesProps = { load: LoadTab; order: Assignment & { order: string } }
 
 /** One order's packages, ticked onto the truck one by one. */
 const OrderPackages = ({ load, order }: OrderPackagesProps) => {
-  const { data: packages, isPending } = useQuery(orderPackagesQuery(order.order ?? ''))
+  const { data: packages, isPending } = useQuery(orderPackagesQuery(order.order))
   const mark = useMarkLoaded()
 
   return (
@@ -43,7 +44,7 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
                   onCheckedChange={checked =>
                     mark.mutate({
                       loadId: load.load_id,
-                      order: order.order ?? '',
+                      order: order.order,
                       packageIds: [pack.package_id],
                       loaded: checked === true
                     })
@@ -75,13 +76,15 @@ type LoadingPageProps = {
  */
 export const LoadingPage = ({ day, onDayChange }: LoadingPageProps) => {
   usePageHeader({ trail: [formatLongDate(day)] })
-  const { loads: released, isPending } = useDayLoads(day, ON_THE_DOCK)
+  const { loads: released, isPending, error, refetch } = useDayLoads(day, ON_THE_DOCK)
 
   return (
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
       <DayPicker day={day} onDayChange={onDayChange} />
 
-      {isPending ? (
+      {error ? (
+        <QueryError title='The Loads to load did not load' error={error} onRetry={refetch} />
+      ) : isPending ? (
         <Skeleton className='h-40' />
       ) : !released.length ? (
         <Empty>
@@ -98,9 +101,18 @@ export const LoadingPage = ({ day, onDayChange }: LoadingPageProps) => {
       ) : (
         released.map(({ card, load }) => (
           <LoadCard key={load.load_id} card={card} load={load}>
-            {load.orders.map(order => (
-              <OrderPackages key={order.assignment_id} load={load} order={order} />
-            ))}
+            {load.orders.map(order =>
+              // A supplier pickup carries no sales order, so nothing of ours to tick onto the truck.
+              order.order === null ? (
+                <OrderLine key={order.assignment_id} order={order} />
+              ) : (
+                <OrderPackages
+                  key={order.assignment_id}
+                  load={load}
+                  order={{ ...order, order: order.order }}
+                />
+              )
+            )}
           </LoadCard>
         ))
       )}

@@ -137,8 +137,10 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
                       aria-label={`Package ${order.order_number ?? order.order}`}
                       title={released ? 'Open the packaging bench' : 'Not on the bench yet'}
                       data-overdue={isOverdue(order) || undefined}
-                      className='cursor-pointer'
-                      onClick={() => setOpened(order.order)}
+                      // An order not on the bench has nothing to open; arming it would jump into the
+                      // bench on its own once the order arrives.
+                      className={released ? 'cursor-pointer' : undefined}
+                      onClick={released ? () => setOpened(order.order) : undefined}
                     >
                       <TableCell>{formatDate(order.prep_date)}</TableCell>
                       <TableCell>

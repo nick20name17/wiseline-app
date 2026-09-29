@@ -1,4 +1,5 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
+import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,7 +25,7 @@ type DriverPageProps = {
  */
 export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
   usePageHeader({ trail: [formatLongDate(day)] })
-  const { loads, isPending } = useDayLoads(day, DRIVER_LOADS)
+  const { loads, isPending, error, refetch } = useDayLoads(day, DRIVER_LOADS)
   const leave = useLeftWarehouse()
   const deliver = useDelivered()
   const complete = useCompleteLoad()
@@ -33,7 +34,9 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
       <DayPicker day={day} onDayChange={onDayChange} />
 
-      {isPending ? (
+      {error ? (
+        <QueryError title='The Loads to drive did not load' error={error} onRetry={refetch} />
+      ) : isPending ? (
         <Skeleton className='h-40' />
       ) : !loads.length ? (
         <Empty>
@@ -53,12 +56,20 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
             load={load}
             action={
               load.status === 'loaded' ? (
-                <Button disabled={leave.isPending} onClick={() => leave.mutate(load.load_id)}>
-                  {leave.isPending ? <Spinner data-icon='inline-start' /> : null}
+                <Button
+                  disabled={leave.isPending && leave.variables === load.load_id}
+                  onClick={() => leave.mutate(load.load_id)}
+                >
+                  {leave.isPending && leave.variables === load.load_id ? (
+                    <Spinner data-icon='inline-start' />
+                  ) : null}
                   Left the warehouse
                 </Button>
               ) : load.status === 'delivered' ? (
-                <Button disabled={complete.isPending} onClick={() => complete.mutate(load.load_id)}>
+                <Button
+                  disabled={complete.isPending && complete.variables === load.load_id}
+                  onClick={() => complete.mutate(load.load_id)}
+                >
                   <Check data-icon='inline-start' />
                   Complete {load.name}
                 </Button>
@@ -74,7 +85,7 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
                   load.status === 'en_route' && order.status !== 'delivered' ? (
                     <Button
                       variant='outline'
-                      disabled={deliver.isPending}
+                      disabled={deliver.isPending && deliver.variables?.[0] === order.assignment_id}
                       onClick={() => deliver.mutate([order.assignment_id])}
                     >
                       Delivered

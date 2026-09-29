@@ -12,12 +12,11 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { formatDate, formatLongDate } from '@/lib/days'
-import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarDays, MapPin, Truck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from '@/components/ui/toast'
-import { unscheduledQuery } from '../api'
+import { unscheduledQuery, type UnscheduledOrder } from '../api'
 import { formatLength, formatWeight, mapUrl } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
 
@@ -38,10 +37,11 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
   const { data, isPending, isError, error, refetch } = useQuery(
     unscheduledQuery(search ?? '', limit)
   )
-  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
+  const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
   const orders = data?.results ?? []
-  const picked = orders.filter(order => selected.has(order.order))
+  const picked = [...selected.values()]
 
   if (isError && !data)
     return (
@@ -119,7 +119,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={10} />
+                <TableSkeletonRows columns={11} />
               ) : (
                 orders.map(order => (
                   <TableRow
@@ -131,7 +131,11 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                         aria-label={`Select order ${order.order_number ?? order.order}`}
                         checked={selected.has(order.order)}
                         onCheckedChange={() =>
-                          setSelected(current => toggled(current, order.order))
+                          setSelected(current => {
+                            const next = new Map(current)
+                            if (!next.delete(order.order)) next.set(order.order, order)
+                            return next
+                          })
                         }
                       />
                     </TableCell>
@@ -195,7 +199,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
         open={scheduling}
         onOpenChange={setScheduling}
         onApplied={shipDate => {
-          setSelected(new Set())
+          setSelected(new Map())
           toast.add({ type: 'success', title: `Scheduled to ship ${formatLongDate(shipDate)}` })
           onScheduled(shipDate)
         }}
