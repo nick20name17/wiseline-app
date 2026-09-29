@@ -17,18 +17,7 @@ import {
   type TruckCard
 } from '../api'
 import { formatWeight } from '../lib/format'
-
-const STATUS_LABEL: Record<string, string> = {
-  unreleased: 'Unreleased',
-  not_started: 'Not Started',
-  loading: 'Loading',
-  loaded: 'Loaded',
-  en_route: 'En Route',
-  delivered: 'Delivered',
-  completed: 'Completed'
-}
-
-const statusLabel = (status: string | null) => (status ? (STATUS_LABEL[status] ?? status) : null)
+import { statusLabel } from '../lib/status'
 
 const OrderLine = ({ order, children }: { order: Assignment; children?: React.ReactNode }) => (
   <li className='flex items-center gap-3 border-t border-border px-3 py-2 text-sm'>

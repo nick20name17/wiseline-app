@@ -10,3 +10,8 @@ export const shippingSearchSchema = z.object({
   search: z.catch(z.optional(z.string()), undefined),
   day: z.catch(z.optional(z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))), undefined)
 })
+
+/** The Loading and Driver windows work one day at a time. */
+export const daySearchSchema = z.object({
+  day: z.catch(z.optional(z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))), undefined)
+})

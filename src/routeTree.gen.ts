@@ -15,10 +15,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAuthRouteRouteImport } from './routes/_app/_auth/route'
 import { Route as AppCoilsRouteImport } from './routes/_app/coils'
-import { Route as AppDriverRouteImport } from './routes/_app/driver'
-import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppAuthAccessoriesRouteImport } from './routes/_app/_auth/accessories'
+import { Route as AppAuthDriverRouteImport } from './routes/_app/_auth/driver'
+import { Route as AppAuthLoadingRouteImport } from './routes/_app/_auth/loading'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
 import { Route as AppAuthShippingRouteImport } from './routes/_app/_auth/shipping'
@@ -64,16 +64,6 @@ const AppCoilsRoute = AppCoilsRouteImport.update({
   path: '/coils',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppDriverRoute = AppDriverRouteImport.update({
-  id: '/driver',
-  path: '/driver',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppLoadingRoute = AppLoadingRouteImport.update({
-  id: '/loading',
-  path: '/loading',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppRollformingRoute = AppRollformingRouteImport.update({
   id: '/rollforming',
   path: '/rollforming',
@@ -82,6 +72,16 @@ const AppRollformingRoute = AppRollformingRouteImport.update({
 const AppAuthAccessoriesRoute = AppAuthAccessoriesRouteImport.update({
   id: '/accessories',
   path: '/accessories',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthDriverRoute = AppAuthDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthLoadingRoute = AppAuthLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
   getParentRoute: () => AppAuthRouteRoute,
 } as any)
 const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
@@ -174,11 +174,11 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/coils': typeof AppCoilsRoute
-  '/driver': typeof AppDriverRoute
-  '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/accessories': typeof AppAuthAccessoriesRoute
+  '/driver': typeof AppAuthDriverRoute
+  '/loading': typeof AppAuthLoadingRoute
   '/profile': typeof AppAuthProfileRoute
   '/shipping': typeof AppAuthShippingRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
@@ -200,10 +200,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
   '/coils': typeof AppCoilsRoute
-  '/driver': typeof AppDriverRoute
-  '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
   '/accessories': typeof AppAuthAccessoriesRoute
+  '/driver': typeof AppAuthDriverRoute
+  '/loading': typeof AppAuthLoadingRoute
   '/profile': typeof AppAuthProfileRoute
   '/shipping': typeof AppAuthShippingRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
@@ -227,12 +227,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/_auth': typeof AppAuthRouteRouteWithChildren
   '/_app/coils': typeof AppCoilsRoute
-  '/_app/driver': typeof AppDriverRoute
-  '/_app/loading': typeof AppLoadingRoute
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/_app/_auth/accessories': typeof AppAuthAccessoriesRoute
+  '/_app/_auth/driver': typeof AppAuthDriverRoute
+  '/_app/_auth/loading': typeof AppAuthLoadingRoute
   '/_app/_auth/profile': typeof AppAuthProfileRoute
   '/_app/_auth/shipping': typeof AppAuthShippingRoute
   '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
@@ -256,11 +256,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/coils'
-    | '/driver'
-    | '/loading'
     | '/rollforming'
     | '/settings'
     | '/accessories'
+    | '/driver'
+    | '/loading'
     | '/profile'
     | '/shipping'
     | '/stock-cards'
@@ -282,10 +282,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/'
     | '/coils'
-    | '/driver'
-    | '/loading'
     | '/rollforming'
     | '/accessories'
+    | '/driver'
+    | '/loading'
     | '/profile'
     | '/shipping'
     | '/stock-cards'
@@ -308,12 +308,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/_auth'
     | '/_app/coils'
-    | '/_app/driver'
-    | '/_app/loading'
     | '/_app/rollforming'
     | '/_app/'
     | '/_app/_auth/settings'
     | '/_app/_auth/accessories'
+    | '/_app/_auth/driver'
+    | '/_app/_auth/loading'
     | '/_app/_auth/profile'
     | '/_app/_auth/shipping'
     | '/_app/_auth/stock-cards'
@@ -382,20 +382,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCoilsRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/driver': {
-      id: '/_app/driver'
-      path: '/driver'
-      fullPath: '/driver'
-      preLoaderRoute: typeof AppDriverRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/loading': {
-      id: '/_app/loading'
-      path: '/loading'
-      fullPath: '/loading'
-      preLoaderRoute: typeof AppLoadingRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/rollforming': {
       id: '/_app/rollforming'
       path: '/rollforming'
@@ -408,6 +394,20 @@ declare module '@tanstack/react-router' {
       path: '/accessories'
       fullPath: '/accessories'
       preLoaderRoute: typeof AppAuthAccessoriesRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/_app/_auth/driver': {
+      id: '/_app/_auth/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AppAuthDriverRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/_app/_auth/loading': {
+      id: '/_app/_auth/loading'
+      path: '/loading'
+      fullPath: '/loading'
+      preLoaderRoute: typeof AppAuthLoadingRouteImport
       parentRoute: typeof AppAuthRouteRoute
     }
     '/_app/_auth/profile': {
@@ -557,6 +557,8 @@ const AppAuthSettingsRouteRouteWithChildren =
 interface AppAuthRouteRouteChildren {
   AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
   AppAuthAccessoriesRoute: typeof AppAuthAccessoriesRoute
+  AppAuthDriverRoute: typeof AppAuthDriverRoute
+  AppAuthLoadingRoute: typeof AppAuthLoadingRoute
   AppAuthProfileRoute: typeof AppAuthProfileRoute
   AppAuthShippingRoute: typeof AppAuthShippingRoute
   AppAuthStockCardsRoute: typeof AppAuthStockCardsRoute
@@ -566,6 +568,8 @@ interface AppAuthRouteRouteChildren {
 const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
   AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
   AppAuthAccessoriesRoute: AppAuthAccessoriesRoute,
+  AppAuthDriverRoute: AppAuthDriverRoute,
+  AppAuthLoadingRoute: AppAuthLoadingRoute,
   AppAuthProfileRoute: AppAuthProfileRoute,
   AppAuthShippingRoute: AppAuthShippingRoute,
   AppAuthStockCardsRoute: AppAuthStockCardsRoute,
@@ -579,8 +583,6 @@ const AppAuthRouteRouteWithChildren = AppAuthRouteRoute._addFileChildren(
 interface AppRouteRouteChildren {
   AppAuthRouteRoute: typeof AppAuthRouteRouteWithChildren
   AppCoilsRoute: typeof AppCoilsRoute
-  AppDriverRoute: typeof AppDriverRoute
-  AppLoadingRoute: typeof AppLoadingRoute
   AppRollformingRoute: typeof AppRollformingRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -588,8 +590,6 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthRouteRoute: AppAuthRouteRouteWithChildren,
   AppCoilsRoute: AppCoilsRoute,
-  AppDriverRoute: AppDriverRoute,
-  AppLoadingRoute: AppLoadingRoute,
   AppRollformingRoute: AppRollformingRoute,
   AppIndexRoute: AppIndexRoute,
 }

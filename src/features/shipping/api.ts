@@ -16,7 +16,8 @@ export const shippingKeys = {
   scheduled: (shipDate: string) => [...shippingKeys.all, 'scheduled', shipDate] as const,
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.all, 'loads', truckId, shipDate] as const,
-  trucks: () => [...shippingKeys.all, 'trucks'] as const
+  trucks: () => [...shippingKeys.all, 'trucks'] as const,
+  packages: (order: string) => [...shippingKeys.all, 'packages', order] as const
 }
 
 const unscheduledOrderSchema = z.object({
@@ -235,5 +236,64 @@ export const useReleaseLoad = () =>
   useMutation({
     meta: { errorTitle: 'The Load was not released' },
     mutationFn: (loadId: number) => authApi.post(`shipping/loads/${loadId}/release/`).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })
+
+const packageSchema = z.object({
+  package_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.nullable(z.number()), null),
+  location: z._default(z.nullable(z.string()), null),
+  is_loaded: z._default(z.boolean(), false)
+})
+
+export type ShippingPackage = z.infer<typeof packageSchema>
+
+/** An order's packages, each saying whether it is on the truck yet. */
+export const orderPackagesQuery = (order: string) =>
+  queryOptions({
+    queryKey: shippingKeys.packages(order),
+    queryFn: async () =>
+      z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
+  })
+
+/**
+ * Packages scanned onto the truck, or taken back off. The statuses follow on the server: the first
+ * package Loading, all of an order's Loaded, all of the Load's Loaded p3 (592,489)-(592,523).
+ */
+export const useMarkLoaded = () =>
+  useMutation({
+    meta: { errorTitle: 'The package was not marked' },
+    mutationFn: (input: { loadId: number; packageIds: number[]; loaded: boolean }) =>
+      authApi
+        .post(`shipping/loads/${input.loadId}/packages-loaded/`, {
+          json: { package_ids: input.packageIds, loaded: input.loaded }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })
+
+/** The Driver has left: the Load and its orders go En Route, and lock p3 (592,540), (592,543). */
+export const useLeftWarehouse = () =>
+  useMutation({
+    meta: { errorTitle: 'The Load did not leave' },
+    mutationFn: (loadId: number) => authApi.post(`shipping/loads/${loadId}/left-warehouse/`).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })
+
+/** An order delivered; the Load follows once every one is p3 (592,558), (592,574). */
+export const useDelivered = () =>
+  useMutation({
+    meta: { errorTitle: 'The order was not marked delivered' },
+    mutationFn: (assignmentIds: number[]) =>
+      authApi.post('shipping/delivered/', { json: { assignment_ids: assignmentIds } }).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })
+
+/** The finished Load closes, its locations free once the last package left p3 (598,538). */
+export const useCompleteLoad = () =>
+  useMutation({
+    meta: { errorTitle: 'The Load was not completed' },
+    mutationFn: (loadId: number) => authApi.post(`shipping/loads/${loadId}/complete/`).json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
   })
