@@ -1,0 +1,239 @@
+import { authApi } from '@/api/client'
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  type QueryClient
+} from '@tanstack/react-query'
+import * as z from 'zod/mini'
+
+export const shippingKeys = {
+  all: ['shipping'] as const,
+  unscheduled: (search: string, limit: number) =>
+    [...shippingKeys.all, 'unscheduled', { search, limit }] as const,
+  selection: (orders: string[], shipDate: string | null) =>
+    [...shippingKeys.all, 'selection', { orders, shipDate }] as const,
+  scheduled: (shipDate: string) => [...shippingKeys.all, 'scheduled', shipDate] as const,
+  loads: (truckId: number, shipDate: string) =>
+    [...shippingKeys.all, 'loads', truckId, shipDate] as const,
+  trucks: () => [...shippingKeys.all, 'trucks'] as const
+}
+
+const unscheduledOrderSchema = z.object({
+  order: z.string(),
+  order_number: z._default(z.nullable(z.string()), null),
+  customer: z._default(z.nullable(z.string()), null),
+  address: z._default(z.nullable(z.string()), null),
+  city: z._default(z.nullable(z.string()), null),
+  entry_date: z._default(z.nullable(z.string()), null),
+  ship_date: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.number(), 0),
+  longest_length: z._default(z.number(), 0),
+  ship_via: z._default(z.nullable(z.string()), null)
+})
+
+export type UnscheduledOrder = z.infer<typeof unscheduledOrderSchema>
+
+const unscheduledPageSchema = z.object({
+  count: z._default(z.number(), 0),
+  results: z._default(z.array(unscheduledOrderSchema), [])
+})
+
+/**
+ * The delivery orders still waiting for a ship date and a truck p3 (605,182). A long list — every open
+ * delivery in EBMS — so it is read a page at a time, the page growing as the Manager asks for more.
+ */
+export const unscheduledQuery = (search: string, limit: number) =>
+  queryOptions({
+    queryKey: shippingKeys.unscheduled(search, limit),
+    placeholderData: keepPreviousData,
+    queryFn: async () =>
+      unscheduledPageSchema.parse(
+        await authApi
+          .get('shipping/unscheduled/', {
+            searchParams: { limit, offset: 0, ...(search ? { search } : {}) }
+          })
+          .json()
+      )
+  })
+
+const shipmentTotalsSchema = z.object({
+  count: z._default(z.number(), 0),
+  total_weight: z._default(z.number(), 0),
+  longest_length: z._default(z.nullable(z.number()), null)
+})
+
+const truckPanelSchema = z.object({
+  truck_id: z.number(),
+  name: z._default(z.string(), ''),
+  weight_limit: z._default(z.nullable(z.number()), null),
+  max_length: z._default(z.nullable(z.number()), null),
+  already_assigned_weight: z._default(z.number(), 0),
+  selected_delivery: z._default(shipmentTotalsSchema, {
+    count: 0,
+    total_weight: 0,
+    longest_length: null
+  }),
+  selected_pickup: z._default(shipmentTotalsSchema, {
+    count: 0,
+    total_weight: 0,
+    longest_length: null
+  }),
+  assigned_weight: z._default(z.number(), 0),
+  over_weight_limit: z._default(z.boolean(), false)
+})
+
+export type TruckPanel = z.infer<typeof truckPanelSchema>
+
+/**
+ * The Schedule window's truck cards for a day: what each already carries, and what it would carry
+ * with the selection on it — orange over its limit, and nothing more p3 (587,259). A read, sent as a
+ * POST because the selection rides in the body.
+ */
+export const truckPanelsQuery = (orders: string[], shipDate: string | null) =>
+  queryOptions({
+    queryKey: shippingKeys.selection(orders, shipDate),
+    enabled: !!shipDate && orders.length > 0,
+    queryFn: async () =>
+      z.array(truckPanelSchema).parse(
+        await authApi
+          .post('shipping/truck-panels/', {
+            json: { orders, pickup_ids: [], ship_date: shipDate }
+          })
+          .json()
+      )
+  })
+
+const invalidateShipping = (client: QueryClient) =>
+  client.invalidateQueries({ queryKey: shippingKeys.all })
+
+/**
+ * Apply: the selection goes on the truck for the day, leaves Unscheduled and shows under that date and
+ * truck in Scheduled p3 (566,273). The server pushes the ship date to EBMS.
+ */
+export const useApplyShipping = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The orders were not scheduled' },
+    mutationFn: (input: { orders: string[]; shipDate: string; truckId: number }) =>
+      authApi
+        .post('shipping/apply/', {
+          json: {
+            orders: input.orders,
+            pickup_ids: [],
+            ship_date: input.shipDate,
+            truck_id: input.truckId
+          }
+        })
+        .json(),
+    onSuccess: async (_, __, ___, { client }) => {
+      await invalidateShipping(client)
+      onSuccess()
+    }
+  })
+
+const kindTotalsSchema = z.object({
+  count: z._default(z.number(), 0),
+  total_weight: z._default(z.number(), 0),
+  unassigned_count: z._default(z.number(), 0),
+  unassigned_weight: z._default(z.number(), 0),
+  all_assigned: z._default(z.boolean(), true),
+  over_weight_limit: z._default(z.boolean(), false)
+})
+
+const assignmentSchema = z.object({
+  assignment_id: z.number(),
+  order: z._default(z.nullable(z.string()), null),
+  order_number: z._default(z.nullable(z.string()), null),
+  customer: z._default(z.nullable(z.string()), null),
+  kind: z._default(z.string(), 'delivery'),
+  weight: z._default(z.number(), 0),
+  load_id: z._default(z.nullable(z.number()), null),
+  status: z._default(z.nullable(z.string()), null)
+})
+
+export type Assignment = z.infer<typeof assignmentSchema>
+
+const truckCardSchema = z.object({
+  truck_id: z.number(),
+  name: z._default(z.string(), ''),
+  weight_limit: z._default(z.nullable(z.number()), null),
+  delivery: kindTotalsSchema,
+  pickup: kindTotalsSchema,
+  orders: z._default(z.array(assignmentSchema), [])
+})
+
+export type TruckCard = z.infer<typeof truckCardSchema>
+
+/** A tab for each truck on the day, with what it carries and what is not on a Load yet p3 (594,308). */
+export const scheduledQuery = (shipDate: string) =>
+  queryOptions({
+    queryKey: shippingKeys.scheduled(shipDate),
+    queryFn: async () =>
+      z
+        .array(truckCardSchema)
+        .parse(
+          await authApi.get('shipping/scheduled/', { searchParams: { ship_date: shipDate } }).json()
+        )
+  })
+
+const loadTabSchema = z.object({
+  load_id: z.number(),
+  name: z._default(z.string(), ''),
+  marker: z._default(z.string(), ''),
+  position: z._default(z.number(), 0),
+  status: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.number(), 0),
+  orders: z._default(z.array(assignmentSchema), []),
+  is_empty: z._default(z.boolean(), false)
+})
+
+export type LoadTab = z.infer<typeof loadTabSchema>
+
+/** A truck's Loads for the day, the empty one to fill next among them p3 (592,359). */
+export const loadsQuery = (truckId: number, shipDate: string) =>
+  queryOptions({
+    queryKey: shippingKeys.loads(truckId, shipDate),
+    queryFn: async () =>
+      z
+        .array(loadTabSchema)
+        .parse(
+          await authApi
+            .get(`shipping/trucks/${truckId}/loads/`, { searchParams: { ship_date: shipDate } })
+            .json()
+        )
+  })
+
+/** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled. */
+export const useAddToLoad = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The orders were not added to the Load' },
+    mutationFn: (input: { assignmentIds: number[]; loadId: number | null }) =>
+      authApi
+        .post('shipping/loads/add/', {
+          json: { assignment_ids: input.assignmentIds, load_id: input.loadId }
+        })
+        .json(),
+    onSuccess: async (_, __, ___, { client }) => {
+      await invalidateShipping(client)
+      onSuccess()
+    }
+  })
+
+export const useRemoveFromLoad = () =>
+  useMutation({
+    meta: { errorTitle: 'The order stayed on the Load' },
+    mutationFn: (assignmentIds: number[]) =>
+      authApi.post('shipping/loads/remove/', { json: { assignment_ids: assignmentIds } }).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })
+
+/**
+ * Release To Loading: the Load shows up in the Loading window, and it and its orders go Not Started
+ * p3 (598,468).
+ */
+export const useReleaseLoad = () =>
+  useMutation({
+    meta: { errorTitle: 'The Load was not released' },
+    mutationFn: (loadId: number) => authApi.post(`shipping/loads/${loadId}/release/`).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateShipping(client)
+  })

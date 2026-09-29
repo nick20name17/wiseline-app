@@ -4,19 +4,26 @@ import { useRef, useState } from 'react'
 
 const DEBOUNCE_MS = 250
 
-type BoardSearchProps = {
+type HeaderSearchProps = {
   initial: string | undefined
+  label?: string
+  placeholder?: string
   onSearchChange: (search: string | undefined) => void
 }
 
 /**
- * The board's search box, which lives in the app header beside the breadcrumb.
+ * A page's search box, which lives in the app header beside the breadcrumb.
  *
  * It owns the term while typing and the URL catches up once the typing stops, so the address bar
  * changes once per pause instead of once per keystroke. Holding that state here also means the header
  * can take this whole box as one node and never re-read it.
  */
-export const BoardSearch = ({ initial, onSearchChange }: BoardSearchProps) => {
+export const HeaderSearch = ({
+  initial,
+  label = 'Search orders',
+  placeholder = 'Search orders, customers, product IDs…',
+  onSearchChange
+}: HeaderSearchProps) => {
   const [term, setTerm] = useState(initial ?? '')
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -27,8 +34,8 @@ export const BoardSearch = ({ initial, onSearchChange }: BoardSearchProps) => {
       </InputGroupAddon>
       <InputGroupInput
         type='search'
-        aria-label='Search orders'
-        placeholder='Search orders, customers, product IDs…'
+        aria-label={label}
+        placeholder={placeholder}
         value={term}
         onChange={event => {
           setTerm(event.target.value)

@@ -11,7 +11,7 @@ import { DeptBar } from './dept-bar'
 import { PackagingTab } from './packaging-tab'
 import { ProductionTab } from './production-tab'
 import { ScheduledTab } from './scheduled-tab'
-import { BoardSearch } from './board-search'
+import { HeaderSearch } from '@/components/header-search'
 import { UnscheduledTab } from './unscheduled-tab'
 
 type BoardPageProps = {
@@ -48,7 +48,7 @@ export const BoardPage = ({
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
-    search: <BoardSearch initial={search} onSearchChange={onSearchChange} />
+    search: <HeaderSearch initial={search} onSearchChange={onSearchChange} />
   })
 
   // A role that cannot see the tab in the URL is moved to the first one it can.

@@ -18,10 +18,10 @@ import { Route as AppCoilsRouteImport } from './routes/_app/coils'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
-import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppAuthAccessoriesRouteImport } from './routes/_app/_auth/accessories'
 import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
 import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
+import { Route as AppAuthShippingRouteImport } from './routes/_app/_auth/shipping'
 import { Route as AppAuthStockCardsRouteImport } from './routes/_app/_auth/stock-cards'
 import { Route as AppAuthTrimRouteImport } from './routes/_app/_auth/trim'
 import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
@@ -79,11 +79,6 @@ const AppRollformingRoute = AppRollformingRouteImport.update({
   path: '/rollforming',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppShippingRoute = AppShippingRouteImport.update({
-  id: '/shipping',
-  path: '/shipping',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppAuthAccessoriesRoute = AppAuthAccessoriesRouteImport.update({
   id: '/accessories',
   path: '/accessories',
@@ -97,6 +92,11 @@ const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
 const AppAuthSettingsRouteRoute = AppAuthSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthShippingRoute = AppAuthShippingRouteImport.update({
+  id: '/shipping',
+  path: '/shipping',
   getParentRoute: () => AppAuthRouteRoute,
 } as any)
 const AppAuthStockCardsRoute = AppAuthStockCardsRouteImport.update({
@@ -177,10 +177,10 @@ export interface FileRoutesByFullPath {
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
-  '/shipping': typeof AppShippingRoute
   '/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/accessories': typeof AppAuthAccessoriesRoute
   '/profile': typeof AppAuthProfileRoute
+  '/shipping': typeof AppAuthShippingRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
@@ -203,9 +203,9 @@ export interface FileRoutesByTo {
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
   '/rollforming': typeof AppRollformingRoute
-  '/shipping': typeof AppShippingRoute
   '/accessories': typeof AppAuthAccessoriesRoute
   '/profile': typeof AppAuthProfileRoute
+  '/shipping': typeof AppAuthShippingRoute
   '/stock-cards': typeof AppAuthStockCardsRoute
   '/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
@@ -230,11 +230,11 @@ export interface FileRoutesById {
   '/_app/driver': typeof AppDriverRoute
   '/_app/loading': typeof AppLoadingRoute
   '/_app/rollforming': typeof AppRollformingRoute
-  '/_app/shipping': typeof AppShippingRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
   '/_app/_auth/accessories': typeof AppAuthAccessoriesRoute
   '/_app/_auth/profile': typeof AppAuthProfileRoute
+  '/_app/_auth/shipping': typeof AppAuthShippingRoute
   '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
   '/_app/_auth/trim': typeof AppAuthTrimRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
@@ -259,10 +259,10 @@ export interface FileRouteTypes {
     | '/driver'
     | '/loading'
     | '/rollforming'
-    | '/shipping'
     | '/settings'
     | '/accessories'
     | '/profile'
+    | '/shipping'
     | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
@@ -285,9 +285,9 @@ export interface FileRouteTypes {
     | '/driver'
     | '/loading'
     | '/rollforming'
-    | '/shipping'
     | '/accessories'
     | '/profile'
+    | '/shipping'
     | '/stock-cards'
     | '/trim'
     | '/password-reset/$uid64/$token'
@@ -311,11 +311,11 @@ export interface FileRouteTypes {
     | '/_app/driver'
     | '/_app/loading'
     | '/_app/rollforming'
-    | '/_app/shipping'
     | '/_app/'
     | '/_app/_auth/settings'
     | '/_app/_auth/accessories'
     | '/_app/_auth/profile'
+    | '/_app/_auth/shipping'
     | '/_app/_auth/stock-cards'
     | '/_app/_auth/trim'
     | '/password-reset/$uid64/$token'
@@ -403,13 +403,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRollformingRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/shipping': {
-      id: '/_app/shipping'
-      path: '/shipping'
-      fullPath: '/shipping'
-      preLoaderRoute: typeof AppShippingRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/_auth/accessories': {
       id: '/_app/_auth/accessories'
       path: '/accessories'
@@ -429,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppAuthSettingsRouteRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/_app/_auth/shipping': {
+      id: '/_app/_auth/shipping'
+      path: '/shipping'
+      fullPath: '/shipping'
+      preLoaderRoute: typeof AppAuthShippingRouteImport
       parentRoute: typeof AppAuthRouteRoute
     }
     '/_app/_auth/stock-cards': {
@@ -558,6 +558,7 @@ interface AppAuthRouteRouteChildren {
   AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
   AppAuthAccessoriesRoute: typeof AppAuthAccessoriesRoute
   AppAuthProfileRoute: typeof AppAuthProfileRoute
+  AppAuthShippingRoute: typeof AppAuthShippingRoute
   AppAuthStockCardsRoute: typeof AppAuthStockCardsRoute
   AppAuthTrimRoute: typeof AppAuthTrimRoute
 }
@@ -566,6 +567,7 @@ const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
   AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
   AppAuthAccessoriesRoute: AppAuthAccessoriesRoute,
   AppAuthProfileRoute: AppAuthProfileRoute,
+  AppAuthShippingRoute: AppAuthShippingRoute,
   AppAuthStockCardsRoute: AppAuthStockCardsRoute,
   AppAuthTrimRoute: AppAuthTrimRoute,
 }
@@ -580,7 +582,6 @@ interface AppRouteRouteChildren {
   AppDriverRoute: typeof AppDriverRoute
   AppLoadingRoute: typeof AppLoadingRoute
   AppRollformingRoute: typeof AppRollformingRoute
-  AppShippingRoute: typeof AppShippingRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -590,7 +591,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppDriverRoute: AppDriverRoute,
   AppLoadingRoute: AppLoadingRoute,
   AppRollformingRoute: AppRollformingRoute,
-  AppShippingRoute: AppShippingRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

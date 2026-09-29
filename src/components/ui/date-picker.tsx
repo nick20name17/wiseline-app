@@ -40,6 +40,7 @@ export const DatePicker = ({
       <PopoverContent align='start' className='w-auto'>
         <Calendar
           mode='single'
+          required
           selected={value}
           defaultMonth={value}
           endMonth={endMonth}
