@@ -1,21 +1,13 @@
+<!--
+English only. Plain prose, no headers beyond these, no checklists.
+Do not describe the diff line by line; the reviewer reads the code.
+-->
+
 ## Summary
 
-<!-- what changed + why. link issue if any: closes #123 -->
+<!-- 1–3 sentences: what changed and why. -->
 
-## Changes
+## Reviewer notes
 
--
-
-## Test plan
-
-<!-- how reviewer verifies. concrete steps, not "tested locally" -->
-
-- [ ]
-
-## Screenshots / video
-
-<!-- UI changes only. before/after if visual -->
-
-## Notes for reviewer
-
-<!-- gotchas, follow-ups, intentional debt, anything non-obvious -->
+<!-- Only what is not obvious from the diff: trade-offs, risks,
+     what to look at first, how it was verified. Delete if nothing. -->
