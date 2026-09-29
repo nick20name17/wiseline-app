@@ -34,10 +34,10 @@ type ScheduledRowProps = {
   onOpenLineNotes: (item: BoardLineItem, readOnly: boolean) => void
 }
 
-const SPLIT_LABEL = {
-  partial: 'Partially scheduled — some line items are still on the Unscheduled tab',
-  split: 'Split across production days — see the lock icons for lines on another day'
-} as const
+const splitLabel = (split: 'partial' | 'split', dayWord: string) =>
+  split === 'partial'
+    ? 'Partially scheduled — some line items are still on the Unscheduled tab'
+    : `Split across ${dayWord}s — see the lock icons for lines on another day`
 
 /**
  * The release checkbox appears only once the order is Reviewed. Before that it is a dash with the
@@ -208,10 +208,10 @@ export const ScheduledRow = ({
                 {order.invoice}
               </span>
               {split ? (
-                <span title={SPLIT_LABEL[split]}>
+                <span title={splitLabel(split, board.dayWord)}>
                   <Split
                     className='ml-1.5 inline size-3.5 text-primary'
-                    aria-label={SPLIT_LABEL[split]}
+                    aria-label={splitLabel(split, board.dayWord)}
                   />
                 </span>
               ) : null}

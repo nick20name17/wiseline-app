@@ -224,7 +224,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
         title={`Set ${board.dateLabel.toLowerCase()}`}
         description={
           splitting
-            ? `Splitting ${split?.lineIds.length} of ${splitting.origin_items.length} line items from ${splitting.invoice} to a production date.`
+            ? `Splitting ${split?.lineIds.length} of ${splitting.origin_items.length} line items from ${splitting.invoice} to a ${board.dateLabel.toLowerCase()}.`
             : ''
         }
         actionLabel='Set date'

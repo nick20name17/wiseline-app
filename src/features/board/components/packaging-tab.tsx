@@ -159,9 +159,9 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
                         <span className='truncate'>{order.customer ?? '—'}</span>
                       </TableCell>
                       <TableCell>
-                        <span className='font-mono text-muted-foreground'>
-                          {order.truck ?? '—'}
-                        </span>
+                        {/* «If the order is not assigned to a Truck yet, then the column … would just stay
+                            blank» p3 (1239,204). */}
+                        <span className='font-mono text-muted-foreground'>{order.truck}</span>
                       </TableCell>
                       <TableCell>
                         <span className='text-muted-foreground'>{order.ship_via ?? '—'}</span>

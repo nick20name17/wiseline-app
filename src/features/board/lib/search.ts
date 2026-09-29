@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { searchTerm } from '@/lib/search-term'
 import { BOARD_VIEWS } from './boards'
 
 /**
@@ -10,7 +11,7 @@ import { BOARD_VIEWS } from './boards'
  */
 export const boardSearchSchema = z.object({
   view: z.catch(z.enum(BOARD_VIEWS), 'unscheduled'),
-  search: z.catch(z.optional(z.string()), undefined)
+  search: searchTerm
 })
 
 export type BoardSearch = z.infer<typeof boardSearchSchema>

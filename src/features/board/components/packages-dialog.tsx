@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Package as PackageIcon, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, type Package, type WrappingRow } from '../api'
+import { useBoard } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 
@@ -34,7 +35,8 @@ type PackagesDialogProps = {
 
 /**
  * See Packages: what has been packed for the order so far, so one packed wrong can be taken apart.
- * Its pieces go back to Left To Wrap and the line drops back from Wrapped (p1 (808,536)).
+ * Its pieces go back to Left To Wrap and the line drops back from Wrapped (p1 (808,536)); Accessories'
+ * to Left To Package p3 (1199,368).
  */
 export const PackagesDialog = ({
   order,
@@ -43,10 +45,16 @@ export const PackagesDialog = ({
   open,
   onOpenChange
 }: PackagesDialogProps) => {
-  const { data: packages, isPending } = useQuery(orderPackagesQuery(order, open))
+  const { pack } = useBoard()
+  const { data: all, isPending } = useQuery(orderPackagesQuery(order, open))
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
   const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
+  // The order's packages across every department come back; the bench deletes only its own.
+  const packages = all?.filter(parcel =>
+    parcel.contents.every(line => line.origin_item !== null && names.has(line.origin_item))
+  )
+  const back = `Left To ${pack.verb}`
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,7 +62,7 @@ export const PackagesDialog = ({
         <DialogHeader>
           <DialogTitle>Packages · Order {number}</DialogTitle>
           <DialogDescription>
-            Delete a package that was packed wrong; its pieces go back to Left To Wrap.
+            Delete a package that was packed wrong; its pieces go back to {back}.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,7 +139,7 @@ export const PackagesDialog = ({
           open={!!deleting}
           onOpenChange={next => !next && setDeleting(null)}
           title='Delete this package?'
-          description={`${deleting?.name ?? 'The package'} is taken apart and its pieces go back to Left To Wrap. Scanning its label will say it was deleted.`}
+          description={`${deleting?.name ?? 'The package'} is taken apart and its pieces go back to ${back}. Scanning its label will say it was deleted.`}
           confirmLabel='Yes, Delete Package'
           destructive
           cancelLabel='No'
