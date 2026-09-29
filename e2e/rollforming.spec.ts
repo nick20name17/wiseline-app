@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { mockTrimApi, signIn } from './trim-api.ts'
+import { SCHEDULED_ORDERS, mockTrimApi, signIn } from './trim-api.ts'
 
 // The board's fixtures under the Rollforming department: its tabs, and the coil a line is rolled from.
 let posted: { path: string; body: unknown }[]
@@ -184,4 +184,35 @@ test('Wrapping checks a label, and Completed names Rollforming’s own locations
   await page.getByRole('button', { name: /Completed orders/ }).click()
   await expect(page.getByRole('columnheader', { name: 'Rollforming Location' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Trim Location' })).toBeHidden()
+})
+
+test('a line taken whole from stock has no coil and no box to put it on one', async ({ page }) => {
+  // 330615's TED8250: all 16 pieces pulled from stock.
+  const orders = SCHEDULED_ORDERS.map(order =>
+    order.id === 'ARINV-3'
+      ? {
+          ...order,
+          origin_items: order.origin_items.map(line => ({
+            ...line,
+            item: { ...line.item, pull_from_stock: 16 }
+          }))
+        }
+      : order
+  )
+  await page.route(`${API_URL}/ebms/orders/*`, route =>
+    route.fulfill({ json: { count: orders.length, results: orders } })
+  )
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('button', { name: /^All Scheduled Orders/ }).click()
+  await page
+    .getByRole('row', { name: /330615/ })
+    .getByRole('button')
+    .first()
+    .click()
+
+  const line = page.getByRole('row').filter({ hasText: 'TED8250' })
+  await expect(line.getByText('Stock', { exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: 'Select TED8250' })).toBeHidden()
+  await expect(line.getByLabel('Rolled from a coil')).toBeHidden()
 })

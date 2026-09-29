@@ -67,7 +67,10 @@ export type Board = {
    * look — Trim's 120". A board whose lengths all differ has none.
    */
   standardLength: number | null
-  /** Stock orders, stock cards, Bypass Production and the Allocated Stock report — Trim's shelf. */
+  /**
+   * Stock orders, stock cards, Bypass Production, the Allocated Stock report and pulling from stock at
+   * the packing bench — Trim's shelf.
+   */
   stockCards: boolean
   /** Lines are rolled off a coil the Manager may name — Supplier and Coil Number — or slit first p2. */
   coils: boolean

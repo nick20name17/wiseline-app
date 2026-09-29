@@ -3,7 +3,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { departmentByCode, departmentRole, inBoardOrder } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
 import { Flag } from 'lucide-react'
-import { departmentRoleQuery, departmentsQuery, prioritiesQuery } from '../api'
+import { departmentRoleQuery, departmentsQuery, prioritiesQuery, type Priority } from '../api'
 import { PrioritiesTable } from './priorities-table'
 import { CreatePriorityDialog } from './priority-dialog'
 
@@ -28,12 +28,16 @@ export const PrioritiesPage = ({
   const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
   const ordered = inBoardOrder(departments)
   const active = departmentByCode(ordered, department)
-  // «Only the Manager can set Priorities» p1 (241,403): a department's list by its own Manager, the
+  // «Only the Manager can set Priorities» p1 (241,403): a department's own by its Manager — under All,
+  // where no one department's assignment is asked, only by a role that runs every department — and the
   // ones every department shares by a Manager at all. Anyone else reads.
   const { data: assigned = null } = useQuery(departmentRoleQuery(userId, active?.id))
-  const canEdit = active
-    ? departmentRole(userRole, assigned) === 'manager'
-    : userRole === 'manager' || departmentRole(userRole, null) === 'manager'
+  const runsEvery = departmentRole(userRole, null) === 'manager'
+  const managesShared = runsEvery || userRole === 'manager'
+  const managesOwn = active ? departmentRole(userRole, assigned) === 'manager' : runsEvery
+  const canChange = (priority: Priority) =>
+    priority.department === null ? managesShared : managesOwn
+  const canEdit = active ? managesOwn : managesShared
 
   const { data: found = [], isPending: prioritiesPending } = useQuery(prioritiesQuery(active?.id))
   const isPending = departmentsPending || prioritiesPending
@@ -92,7 +96,7 @@ export const PrioritiesPage = ({
           scope={active?.id ?? null}
           departments={active ? undefined : ordered}
           isPending={isPending}
-          readOnly={!canEdit}
+          canChange={canChange}
         />
       )}
     </section>

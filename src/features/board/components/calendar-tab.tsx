@@ -15,7 +15,7 @@ import {
   overdueQuery,
   type BoardOrder
 } from '../api'
-import { formatCount } from '../lib/format'
+import { dayLoadHint } from '../lib/format'
 import { partDays, partState } from '../lib/parts'
 import { PriorityPill } from './priority-pill'
 
@@ -73,14 +73,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const onSelectedDay = byDay.get(selected) ?? []
   const step = (months: number) => setMonth(current => addMonths(current, months))
 
-  // Only Trim weighs a day in bends against its machines; any other board counts its pieces.
   const loadOn = (day: string) => {
     const entry = load.get(day)
-    if (!entry) return undefined
-    if (!board.assignsMachines) return `${formatCount(entry.pieces)} pcs`
-    return entry.capacity === null
-      ? `${formatCount(entry.bends)} bends`
-      : `${formatCount(entry.bends)} / ${formatCount(entry.capacity)} bends`
+    return entry ? dayLoadHint(entry, board) : undefined
   }
 
   return (

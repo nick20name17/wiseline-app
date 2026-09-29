@@ -29,3 +29,12 @@ export const productFacts = (product: { color: string | null; gauge: string | nu
  */
 export const dayLoad = (entry: DayStripEntry, board: Board) =>
   board.assignsMachines ? `${entry.bends} / ${entry.capacity ?? '—'}` : `${entry.pieces} pcs`
+
+/** What a day's load is counted in on the board, for the words around the figure. */
+export const loadUnit = (board: Board) => (board.assignsMachines ? 'bends' : 'pieces')
+
+/** A day's load in a sentence, for a hint: against the capacity where the board has one. */
+export const dayLoadHint = (entry: DayStripEntry, board: Board) =>
+  board.assignsMachines
+    ? `${formatCount(entry.bends)}${entry.capacity === null ? '' : ` of ${formatCount(entry.capacity)}`} bends scheduled${entry.over_capacity ? ' — over the daily capacity' : ''}`
+    : `${formatCount(entry.pieces)} pcs scheduled`

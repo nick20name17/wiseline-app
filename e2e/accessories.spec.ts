@@ -79,3 +79,11 @@ test('Completed reads in Accessories’ words', async ({ page }) => {
   await expect(page.getByRole('columnheader', { name: 'Accessories Location' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Production Date' })).toBeHidden()
 })
+
+test('Packaging checks a label', async ({ page }) => {
+  await page.goto('/accessories?view=packaging')
+  await signIn(page)
+
+  // A label scanned after its package was deleted says so p3 (1216,364).
+  await expect(page.getByRole('button', { name: 'Scan package' })).toBeVisible()
+})

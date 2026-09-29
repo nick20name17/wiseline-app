@@ -77,6 +77,10 @@ const commitNumber = (
   if (next !== current) write(next, revert)
 }
 
+/** Every piece of the line comes off the shelf: it is Stock, and nothing is rolled for it p1 (292,449). */
+const isAllFromStock = (item: BoardLineItem) =>
+  item.quantity > 0 && (item.item?.pull_from_stock ?? 0) >= item.quantity
+
 /**
  * A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). A line pulled from stock
  * is rolled off nothing, so it carries no coil p2 (542,453) — whether the server says Stock or the
@@ -144,7 +148,8 @@ export const ScheduledLineItems = ({
   }
 
   const rows = board.coils ? [...order.origin_items].sort(byProduct) : order.origin_items
-  const pickedLines = rows.filter(item => picked.has(item.id))
+  // A line ticked before its Stock was raised to the whole quantity has lost its box, and goes too.
+  const pickedLines = rows.filter(item => picked.has(item.id) && !isAllFromStock(item))
   const pickedProduct = pickedLines[0]?.id_inven ?? null
   const pickedWaiting = pickedLines.filter(
     item => slitStates.get(item.id)?.icon === 'waiting_to_slit'
@@ -239,7 +244,7 @@ export const ScheduledLineItems = ({
               const otherDay = !own.has(item.id)
               const editable = !released && !otherDay
               const fromStock = item.item?.pull_from_stock ?? 0
-              const allFromStock = item.quantity > 0 && fromStock >= item.quantity
+              const allFromStock = isAllFromStock(item)
               // A line says nothing about itself until the order is released — except a line pulled
               // whole from stock, which is Stock the moment the figure matches (p1 (292,449)), and an
               // accessory, which is Not Started from the moment it is scheduled p3 (1080,304). A line
@@ -257,7 +262,11 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(item, slitStates.get(item.id), status === 'stock')
+              const coil = coilOf(
+                item,
+                slitStates.get(item.id),
+                status === 'stock' || item.item?.status === 'stock'
+              )
               const pickable =
                 board.coils &&
                 editable &&

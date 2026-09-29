@@ -77,15 +77,15 @@ test('every department’s priorities are listed under All, each naming its own'
   await expect(page.getByRole('row').filter({ hasText: 'Later' })).toContainText('Every department')
   await expect(page.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('row').filter({ hasText: 'Rush' })).toContainText('Rollforming')
-  // All holds the hierarchy of the priorities with no department; a department's own do not move here.
+  // All holds the hierarchy of the priorities with no department. A department's own are changed under
+  // its pill, by its Manager: a Manager at large does not touch them here.
   await expect(page.getByRole('button', { name: 'Move Later' })).toHaveAttribute(
     'aria-disabled',
     'false'
   )
-  await expect(page.getByRole('button', { name: 'Move Rush' })).toHaveAttribute(
-    'aria-disabled',
-    'true'
-  )
+  await expect(page.getByRole('button', { name: 'Move Rush' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete Rush' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete Later' })).toBeVisible()
 })
 
 test('a department pill lists its priorities in hierarchy order', async ({ page }) => {
@@ -167,6 +167,7 @@ test('a new priority takes a palette colour and goes last in the department on s
 })
 
 test('deleting one says what it costs', async ({ page }) => {
+  await page.getByRole('button', { name: 'Trim' }).click()
   await page.getByRole('button', { name: 'Delete ASAP' }).click()
 
   await expect(page.getByText('Delete priority ASAP?')).toBeVisible()

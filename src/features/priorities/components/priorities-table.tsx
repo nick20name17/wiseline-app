@@ -37,8 +37,8 @@ type PrioritiesTableProps = {
   /** Set when every department is listed, so each row names its own. */
   departments?: Department[]
   isPending: boolean
-  /** Shown but not changed: no drag, no Edit or Delete. */
-  readOnly: boolean
+  /** A row the viewer may not change is shown without its grip, Edit or Delete. */
+  canChange: (priority: Priority) => boolean
 }
 
 type SortableRowProps = {
@@ -150,7 +150,7 @@ export const PrioritiesTable = ({
   scope,
   departments,
   isPending,
-  readOnly
+  canChange
 }: PrioritiesTableProps) => {
   const sensors = useDragSensors({ mouse: RowMouseSensor, touch: RowTouchSensor })
   const save = useReorderPriorities()
@@ -245,8 +245,10 @@ export const PrioritiesTable = ({
                     rank={ranks.get(priority.id) ?? 0}
                     department={departments ? departmentOf(priority) : undefined}
                     // Only the hierarchy in scope moves: the server renumbers one at a time.
-                    disabled={readOnly || save.isPending || priority.department !== scope}
-                    readOnly={readOnly}
+                    disabled={
+                      !canChange(priority) || save.isPending || priority.department !== scope
+                    }
+                    readOnly={!canChange(priority)}
                   />
                 ))}
               </SortableContext>

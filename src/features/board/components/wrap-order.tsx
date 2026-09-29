@@ -188,7 +188,9 @@ const WrapLines = ({
   const [stocking, setStocking] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
-  const { data: itemIds } = useQuery(orderItemIdsQuery(board.name, stocking?.order ?? null))
+  const { data: itemIds, isFetching: findingItem } = useQuery(
+    orderItemIdsQuery(board.name, stocking?.order ?? null)
+  )
   const stockingItem = stocking ? itemIds?.get(stocking.origin_item) : undefined
   const updateLine = useUpdateLineItem({ released: true })
   const columns = useColumnOrder(board.tables.packLines)
@@ -343,15 +345,22 @@ const WrapLines = ({
               }
             : null
         }
-        isPending={updateLine.isPending || (!!stocking && stockingItem === undefined)}
+        isPending={updateLine.isPending || findingItem}
         onOpenChange={open => !open && setStocking(null)}
-        onEnter={value =>
-          stockingItem !== undefined &&
+        onEnter={value => {
+          if (stockingItem === undefined) {
+            toast.add({
+              type: 'error',
+              title: 'The Stock was not changed',
+              description: 'The order did not say which of its lines this is. Try again.'
+            })
+            return
+          }
           updateLine.mutate(
             { itemId: stockingItem, edit: { pull_from_stock: value } },
             { onSuccess: () => setStocking(null) }
           )
-        }
+        }}
       />
     </>
   )
