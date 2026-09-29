@@ -91,6 +91,17 @@ test('Loading ticks a package onto the truck and the Load reads Loaded', async (
   expect(posted).toEqual(['loads/126/packages-loaded/'])
 })
 
+test('a Load on the road leaves the Loading window, so none of its orders can be ticked', async ({
+  page
+}) => {
+  await mockLoad(page, 'en_route')
+  await page.goto(`/loading?day=${DAY}`)
+  await signIn(page)
+
+  await expect(page.getByText('Nothing to load')).toBeVisible()
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
+})
+
 test('the Driver leaves, delivers and completes the Load', async ({ page }) => {
   const posted = await mockLoad(page, 'loaded')
   await page.goto(`/driver?day=${DAY}`)
