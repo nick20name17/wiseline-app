@@ -98,10 +98,12 @@ type WrapCellProps = {
   /** What may be wrapped from the line right now. */
   allowed: number
   staged: number
+  /** Another Product ID is going into this package, so Auto Fill here is shut p2 (963,410). */
+  otherProduct: boolean
   onAmount: (amount: string) => void
 }
 
-const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
+const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProps) => {
   const { pack } = useBoard()
   if (row.status === pack.done)
     return <span className='text-xs text-muted-foreground'>{pack.doneLabel} ✓</span>
@@ -125,8 +127,14 @@ const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
         {/* Auto fill copies what may be wrapped, and takes itself back. */}
         <Button
           variant='outline'
-          disabled={!staged && !row.auto_fill_available}
-          title={staged ? 'Clear' : `Auto fill — all ${allowed}`}
+          disabled={!staged && (!row.auto_fill_available || otherProduct)}
+          title={
+            staged
+              ? 'Clear'
+              : otherProduct
+                ? 'Another Product ID is in this package'
+                : `Auto fill — all ${allowed}`
+          }
           onClick={() => onAmount(staged ? '' : String(Math.min(row.auto_fill_amount, allowed)))}
         >
           {staged ? 'Clear' : 'Auto fill'}
@@ -177,6 +185,8 @@ const WrapLines = ({
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
   const columns = useColumnOrder(board.tables.packLines)
+  // Rollforming packs one Product ID at a time: the first line put in sets it p2 (963,410).
+  const stagedProduct = board.coils ? rows.find(row => stagedOf(row) > 0)?.product_id : undefined
 
   return (
     <>
@@ -261,6 +271,9 @@ const WrapLines = ({
                           row={row}
                           allowed={allowed}
                           staged={stagedOf(row)}
+                          otherProduct={
+                            stagedProduct !== undefined && row.product_id !== stagedProduct
+                          }
                           onAmount={amount => onAmount(row.origin_item, amount)}
                         />
                       </TableCell>

@@ -67,6 +67,8 @@ const machineSchema = z.object({
   category: z._default(z.nullable(z.string()), null),
   department: z._default(z.nullable(z.number()), null),
   kind: z._default(z.nullable(z.string()), null),
+  // The EBMS Roll Options profile a rollformer takes its lines by p2 (542,280).
+  ebms_profile_name: z._default(z.nullable(z.string()), null),
   daily_max_pieces: z._default(z.nullable(z.number()), null),
   daily_max_bends: z._default(z.nullable(z.number()), null)
 })
@@ -78,6 +80,7 @@ export const machineFormSchema = z.object({
   category: z.string().check(z.minLength(1, 'Category is required')),
   department: z.number(),
   kind: z.string(),
+  ebms_profile_name: z.nullable(z.string().check(z.maxLength(100, 'At most 100 characters'))),
   daily_max_pieces: z.nullable(z.number()),
   daily_max_bends: z.nullable(z.number())
 })

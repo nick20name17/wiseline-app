@@ -147,6 +147,9 @@ const lineItemSchema = z.object({
   length: z._default(z.nullable(z.number()), null),
   bends: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
+  // The material the line is made of; EBMS sends the gauge as text or a number.
+  color: z._default(z.nullable(z.string()), null),
+  gauge: z._default(z.nullable(z.coerce.string()), null),
   // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
   item: z._default(z.nullable(itemSchema), null)
 })

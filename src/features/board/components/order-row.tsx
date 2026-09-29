@@ -8,7 +8,7 @@ import { ChevronRight, Split } from 'lucide-react'
 import { Fragment } from 'react'
 import { isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard } from '../lib/board-context'
-import { splitOf } from '../lib/parts'
+import { materialsOf, splitOf } from '../lib/parts'
 import { LineItems } from './line-items'
 import { NoteButton, type NoteState } from './note-button'
 import { PriorityCell } from './priority-cell'
@@ -51,7 +51,7 @@ export const OrderRow = ({
 }: OrderRowProps) => {
   const stock = isStockOrder(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
-  const { cells } = useColumnCells(useBoard().tables.unscheduled)
+  const { order: columnOrder, cells } = useColumnCells(useBoard().tables.unscheduled)
 
   return (
     <Fragment>
@@ -122,6 +122,13 @@ export const OrderRow = ({
               <span className='truncate'>{stock ? 'Stock' : (order.customer ?? '—')}</span>
             </TableCell>
           ),
+          material: (
+            <TableCell>
+              <span className='truncate' title={materialsOf(order).join(', ')}>
+                {materialsOf(order).join(', ') || '—'}
+              </span>
+            </TableCell>
+          ),
           shipvia: (
             <TableCell>
               <span className='truncate text-muted-foreground'>{order.ship_via ?? '—'}</span>
@@ -142,7 +149,8 @@ export const OrderRow = ({
 
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={8}>
+          {/* The board's columns, and the checkbox and chevron before them. */}
+          <TableCell colSpan={columnOrder.length + 2}>
             <LineItems
               order={order}
               ready={departmentId !== undefined}

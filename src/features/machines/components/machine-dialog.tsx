@@ -20,7 +20,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   categoriesQuery,
   departmentsQuery,
@@ -49,11 +49,13 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
       category: machine?.category ?? categories?.[0]?.id ?? '',
       department: machine?.department ?? departments?.[0]?.id ?? 0,
       kind: machine?.kind ?? 'bending',
+      ebms_profile_name: machine?.ebms_profile_name ?? null,
       daily_max_pieces: machine?.daily_max_pieces ?? null,
       daily_max_bends: machine?.daily_max_bends ?? null
     }
   })
 
+  const kind = useWatch({ control: form.control, name: 'kind' })
   const mutation = useUpsertMachine(onSuccess)
   const { errors } = form.formState
 
@@ -161,6 +163,26 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
           />
           <FieldError errors={[errors.kind]} />
         </Field>
+
+        {kind === 'rollforming' ? (
+          <Field data-invalid={invalid(errors.ebms_profile_name)}>
+            <FieldLabel htmlFor='machine-profile'>EBMS profile</FieldLabel>
+            {/* «The Name assigned here would have to exactly match the Name given to the Machine»
+                p2 (541,284): the Roll Options profile whose lines this rollformer runs. */}
+            <InputGroup>
+              <InputGroupInput
+                id='machine-profile'
+                placeholder='e.g. Tuff Rib'
+                maxLength={100}
+                aria-invalid={invalid(errors.ebms_profile_name)}
+                {...form.register('ebms_profile_name', {
+                  setValueAs: (value: string | null) => value?.trim() || null
+                })}
+              />
+            </InputGroup>
+            <FieldError errors={[errors.ebms_profile_name]} />
+          </Field>
+        ) : null}
 
         <Field data-invalid={invalid(errors.daily_max_bends)}>
           <FieldLabel htmlFor='machine-bends'>Daily max bends</FieldLabel>

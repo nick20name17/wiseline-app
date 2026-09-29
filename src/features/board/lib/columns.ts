@@ -284,7 +284,11 @@ const without = (table: ColumnTable, keys: string[]) =>
  */
 export const ROLLFORMING_UNSCHEDULED_TABLE: ColumnTable = {
   table: 'rollforming-unscheduled',
-  columns: UNSCHEDULED_TABLE.columns
+  columns: [
+    ...without(UNSCHEDULED_TABLE, ['notes']),
+    { key: 'material', label: 'Gauge / Color', width: 'w-56' },
+    { key: 'notes', label: 'Notes', width: 'w-24' }
+  ]
 }
 
 export const ROLLFORMING_SCHEDULED_TABLE: ColumnTable = {

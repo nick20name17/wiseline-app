@@ -20,7 +20,7 @@ import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { Package as PackageIcon, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { orderPackagesQuery, useDeletePackage, type Package, type WrappingRow } from '../api'
+import { orderPackagesQuery, useDeletePackage, type Package } from '../api'
 import { useBoard } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -28,7 +28,8 @@ import { ConfirmDialog } from './confirm-dialog'
 type PackagesDialogProps = {
   order: string
   number: string
-  rows: WrappingRow[]
+  /** The order's lines on this board, which name a package's contents and say which are its own. */
+  rows: { origin_item: string; product_id: string | null }[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }

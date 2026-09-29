@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { Calendar, ChevronDown, Cylinder, Lock, Scissors } from 'lucide-react'
+import { Calendar, ChevronDown, Cylinder, Lock, PackageSearch, Scissors } from 'lucide-react'
 import { useState } from 'react'
 import {
   isStockOrder,
@@ -41,6 +41,7 @@ import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
 import { CoilAssignDialog } from './coil-assign-dialog'
+import { PackagesDialog } from './packages-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -78,7 +79,8 @@ const commitNumber = (
 
 /** A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). */
 const coilOf = (item: BoardLineItem, slit: CoilState | undefined) => ({
-  icon: slit?.icon ?? (item.item ? 'coil' : null),
+  // A line pulled from stock is rolled off nothing, so it carries no coil.
+  icon: slit?.icon ?? (item.item && item.item.status !== 'stock' ? 'coil' : null),
   locked: slit?.locked ?? false,
   supplier: slit?.supplier ?? item.item?.supplier ?? 'Undefined',
   coilNumber: slit?.coil_number ?? item.item?.coil_number ?? 'Undefined'
@@ -125,6 +127,7 @@ export const ScheduledLineItems = ({
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [assigning, setAssigning] = useState(false)
+  const [seeing, setSeeing] = useState(false)
 
   // A stock order is what puts trims on the shelf, so it has nothing to take from it.
   const stock = isStockOrder(order)
@@ -159,6 +162,16 @@ export const ScheduledLineItems = ({
     <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {/* Before release the Manager can still move the whole part to another day; after it, the two
           actions the board leaves here are gone and the rows are a record. */}
+      {/* Once released the coil buttons give way to the packages the floor makes p2 (541,647). */}
+      {released && board.coils ? (
+        <div className='flex items-center gap-3'>
+          <span className='text-sm font-medium'>Released order</span>
+          <Button variant='outline' className='ml-auto' onClick={() => setSeeing(true)}>
+            <PackageSearch data-icon='inline-start' />
+            See packages
+          </Button>
+        </div>
+      ) : null}
       {released ? null : (
         <div className='flex items-center gap-3'>
           <span className='text-sm font-medium'>
@@ -498,6 +511,18 @@ export const ScheduledLineItems = ({
         </Table>
       </div>
 
+      {board.coils ? (
+        <PackagesDialog
+          order={order.id}
+          number={order.invoice}
+          rows={order.origin_items.map(item => ({
+            origin_item: item.id,
+            product_id: item.id_inven
+          }))}
+          open={seeing}
+          onOpenChange={setSeeing}
+        />
+      ) : null}
       {board.coils ? (
         <CoilAssignDialog
           lines={pickedLines}

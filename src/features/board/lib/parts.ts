@@ -71,3 +71,18 @@ export const byProduct = (a: BoardLineItem, b: BoardLineItem) =>
 /** Where a sorted list needs «a distinct line between the different Product IDs» p2 (544,416). */
 export const newProduct = (rows: BoardLineItem[], index: number) =>
   index > 0 && rows[index - 1]!.id_inven !== rows[index]!.id_inven
+
+/**
+ * Every material on the order, gauge and colour, as the Gauge / Color column lists them p2 (573,283). The
+ * list hands over only the lines its tab holds, so a split order shows only what is left on it
+ * p2 (601,345).
+ */
+export const materialsOf = (order: BoardOrder) => [
+  ...new Set(
+    order.origin_items.flatMap(item => {
+      const color = item.color?.trim()
+      if (!color && !item.gauge) return []
+      return [[item.gauge ? `${item.gauge} Ga` : null, color].filter(Boolean).join(' ')]
+    })
+  )
+]
