@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { isStockOrder, lineNotesSummaryQuery, orderNotesQuery, type TrimOrder } from '../api'
+import { isStockOrder, lineNotesSummaryQuery, orderNotesQuery, type BoardOrder } from '../api'
 import type { NoteState } from './note-button'
 
 /**
@@ -17,12 +17,12 @@ export const useLineNoteState = (originItems: string[]) => {
 }
 
 /** The salesman's Order Notes for a tab's orders. A stock order has no EBMS row to import one from. */
-export const useOrderNotes = (orders: TrimOrder[]) => {
+export const useOrderNotes = (orders: BoardOrder[]) => {
   const { data: notes } = useQuery(
     orderNotesQuery(orders.filter(order => !isStockOrder(order)).map(order => order.id))
   )
 
-  const noteState = (order: TrimOrder): NoteState => {
+  const noteState = (order: BoardOrder): NoteState => {
     const note = notes?.[order.id]
     if (!note?.has_note) return 'none'
     return note.read ? 'read' : 'unread'

@@ -23,7 +23,6 @@ import {
   type Remanufacturing,
   type WrappingRow
 } from '../api'
-import { tablesFor } from '../lib/columns'
 import { itemStatus } from '../lib/status'
 import {
   benchLocations,
@@ -117,8 +116,8 @@ const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
           max={allowed}
           step={1}
           inputMode='numeric'
-          aria-label={`${makes ? 'Wrap' : 'Package'} from ${lineName(row)}`}
-          title={`Qty to ${pack.verb} (1–${allowed})`}
+          aria-label={`${pack.verb} from ${lineName(row)}`}
+          title={`Qty to ${pack.verb.toLowerCase()} (1–${allowed})`}
           placeholder='0'
           value={staged || ''}
           onChange={event => onAmount(event.target.value)}
@@ -177,7 +176,7 @@ const WrapLines = ({
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
-  const columns = useColumnOrder(tablesFor(board).packLines)
+  const columns = useColumnOrder(board.tables.packLines)
 
   return (
     <>

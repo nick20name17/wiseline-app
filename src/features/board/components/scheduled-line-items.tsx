@@ -28,10 +28,10 @@ import {
   wholeOrderQuery,
   useUpdateLineItem,
   type LineItemEdit,
-  type TrimLineItem,
-  type TrimOrder
+  type BoardLineItem,
+  type BoardOrder
 } from '../api'
-import { tablesFor, withoutStock } from '../lib/columns'
+import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
 import { STANDARD_LENGTH } from '../lib/format'
 import { lineDay, partLines, toMake } from '../lib/parts'
@@ -41,7 +41,7 @@ import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 type ScheduledLineItemsProps = {
-  order: TrimOrder
+  order: BoardOrder
   departmentId: number | undefined
   /** The production day this row stands for. A line sitting on another day is read-only here. */
   day: string
@@ -49,7 +49,7 @@ type ScheduledLineItemsProps = {
   /** Bypassed work skips the machines, so there is nothing to vent or assign. */
   bypassed: boolean
   onReschedule: () => void
-  onOpenNotes: (item: TrimLineItem, readOnly: boolean) => void
+  onOpenNotes: (item: BoardLineItem, readOnly: boolean) => void
 }
 
 /**
@@ -88,7 +88,11 @@ export const ScheduledLineItems = ({
   const board = useBoard()
   const { data: order = listed } = useQuery(wholeOrderQuery(board.name, listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
-  const { data: machines } = useQuery(machinesQuery(board.name, departmentId))
+  // Nothing is bent in a department that does not make what it packs.
+  const { data: machines } = useQuery({
+    ...machinesQuery(board.name, departmentId),
+    enabled: board.makes
+  })
   // A trim is assigned to the machine that bends it.
   const stations = machines?.filter(isBender)
   const update = useUpdateLineItem()
@@ -98,11 +102,11 @@ export const ScheduledLineItems = ({
   // On a day tab, a line belonging to another day — or to none — greys out and is left alone: it is
   // being worked from its own row, on its own day.
   const own = new Set(partLines(order, day).map(item => item.id))
-  const lines = tablesFor(board).scheduledLines
+  const lines = board.tables.scheduledLines
   const columns = useColumnOrder(stock ? withoutStock(lines) : lines)
 
   /** A refused write puts the box back to what the server still holds, not what was typed. */
-  const edit = (item: TrimLineItem, patch: LineItemEdit, revert?: () => void) => {
+  const edit = (item: BoardLineItem, patch: LineItemEdit, revert?: () => void) => {
     const itemId = item.item?.id
     if (itemId) update.mutate({ itemId, edit: patch }, { onError: revert })
   }
@@ -154,9 +158,12 @@ export const ScheduledLineItems = ({
               // whole from stock, which is Stock the moment the figure matches (p1 (292,449)), and an
               // accessory, which is Not Started from the moment it is scheduled p3 (1080,304). A line
               // still waiting for a day has no status p3 (1097,272).
-              const status =
-                released || (!board.makes && !otherDay)
-                  ? (item.item?.status ?? (board.makes ? null : 'not_started'))
+              const status = !board.makes
+                ? released || !otherDay
+                  ? (item.item?.status ?? 'not_started')
+                  : null
+                : released
+                  ? (item.item?.status ?? null)
                   : allFromStock && !otherDay
                     ? 'stock'
                     : null

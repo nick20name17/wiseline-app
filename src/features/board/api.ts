@@ -7,10 +7,11 @@ import {
   type QueryClient
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
+import { departmentByCode } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 /**
- * Trim reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
+ * A board reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
  * a string autoid; everything this app decides about an order — its production date, priority, whether
  * it has been released — hangs off a `SalesOrder` row of our own, keyed by an integer id and scoped to
  * one department. An EBMS order that nobody has touched yet has no `sales_order` at all, which is why
@@ -36,7 +37,7 @@ export const departmentsQuery = queryOptions({
 /** The user's role inside one department — `manager`, `worker`, or `null` for no assignment. */
 export const departmentRoleQuery = (userId: number | undefined, departmentId: number | undefined) =>
   queryOptions({
-    // Outside `trimKeys.all`: an assignment changes in Settings, not with every click on the board.
+    // Outside `boardKeys.all`: an assignment changes in Settings, not with every click on the board.
     queryKey: ['departments', 'role', userId ?? 0, departmentId ?? 0] as const,
     enabled: userId !== undefined && departmentId !== undefined,
     queryFn: async () =>
@@ -60,7 +61,7 @@ export const departmentRoleQuery = (userId: number | undefined, departmentId: nu
 export const useBoardDepartment = (code: string) =>
   useQuery({
     ...departmentsQuery,
-    select: departments => departments.find(department => department.code === code)
+    select: departments => departmentByCode(departments, code)
   })
 
 const prioritySchema = z.object({
@@ -146,7 +147,7 @@ const lineItemSchema = z.object({
   item: z._default(z.nullable(itemSchema), null)
 })
 
-export type TrimLineItem = z.infer<typeof lineItemSchema>
+export type BoardLineItem = z.infer<typeof lineItemSchema>
 
 const orderSchema = z.object({
   id: z.string(),
@@ -163,7 +164,7 @@ const orderSchema = z.object({
   origin_items: z.catch(z.array(lineItemSchema), [])
 })
 
-export type TrimOrder = z.infer<typeof orderSchema>
+export type BoardOrder = z.infer<typeof orderSchema>
 
 const orderPageSchema = z.object({
   count: z.number(),
@@ -171,10 +172,10 @@ const orderPageSchema = z.object({
 })
 
 /** The order's row for this department, or nothing if it has never been touched here. */
-export const departmentStateOf = (order: TrimOrder, departmentId: number | undefined) =>
+export const departmentStateOf = (order: BoardOrder, departmentId: number | undefined) =>
   order.sales_order?.department_states.find(state => state.department === departmentId) ?? null
 
-export const isStockOrder = (order: TrimOrder) => order.sales_order?.is_stock ?? false
+export const isStockOrder = (order: BoardOrder) => order.sales_order?.is_stock ?? false
 
 /**
  * The tab lists hand an order over with only the lines that match the tab, so an order scheduled in
@@ -182,7 +183,7 @@ export const isStockOrder = (order: TrimOrder) => order.sales_order?.is_stock ??
  * orders count a line the list never sends (W20109: 5 against 4) — so only an order that has been put
  * on a day at all is read as narrowed.
  */
-export const isNarrowed = (order: TrimOrder) =>
+export const isNarrowed = (order: BoardOrder) =>
   order.origin_items.length > 0 &&
   order.origin_items.length < (order.count_items ?? 0) &&
   !!order.sales_order?.department_states.some(state => state.production_date)
@@ -190,74 +191,75 @@ export const isNarrowed = (order: TrimOrder) =>
 // One page holds the tab. The board's Unscheduled list is a working queue, not an archive.
 const PAGE_SIZE = 100
 
-const trimKeys = {
+const boardKeys = {
   all: ['trim'] as const,
-  orders: () => [...trimKeys.all, 'orders'] as const,
+  orders: () => [...boardKeys.all, 'orders'] as const,
   // A board's orders are its department's: the same EBMS order is listed by each department with only
   // its own lines, so the category is part of every orders key.
   unscheduled: (category: string, search: string | undefined) =>
-    [...trimKeys.orders(), category, 'unscheduled', { search: search ?? '' }] as const,
+    [...boardKeys.orders(), category, 'unscheduled', { search: search ?? '' }] as const,
   scheduled: (category: string, search: string | undefined) =>
-    [...trimKeys.orders(), category, 'scheduled', { search: search ?? '' }] as const,
+    [...boardKeys.orders(), category, 'scheduled', { search: search ?? '' }] as const,
   calendar: (category: string, from: string, to: string) =>
-    [...trimKeys.orders(), category, 'calendar', { from, to }] as const,
+    [...boardKeys.orders(), category, 'calendar', { from, to }] as const,
   // Under `orders()`: every write that moves an order moves the counts with it.
-  counts: (departmentId: number) => [...trimKeys.orders(), 'counts', departmentId] as const,
-  machines: (category: string) => [...trimKeys.all, 'machines', category] as const,
-  overdue: (departmentId: number) => [...trimKeys.all, 'overdue', departmentId] as const,
+  counts: (departmentId: number) => [...boardKeys.orders(), 'counts', departmentId] as const,
+  machines: (category: string) => [...boardKeys.all, 'machines', category] as const,
+  overdue: (departmentId: number) => [...boardKeys.all, 'overdue', departmentId] as const,
   machineCapacities: (departmentId: number, day: string) =>
-    [...trimKeys.all, 'machine-capacities', departmentId, day] as const,
+    [...boardKeys.all, 'machine-capacities', departmentId, day] as const,
   allocatedStock: (departmentId: number, search: string | undefined) =>
-    [...trimKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
+    [...boardKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
-    [...trimKeys.all, 'day-strip', departmentId, start, days] as const,
+    [...boardKeys.all, 'day-strip', departmentId, start, days] as const,
   workWeek: (departmentId: number, start: string) =>
-    [...trimKeys.all, 'day-strip', departmentId, 'work-week', start] as const,
+    [...boardKeys.all, 'day-strip', departmentId, 'work-week', start] as const,
   dayStripDates: (departmentId: number, dates: string[]) =>
-    [...trimKeys.all, 'day-strip', departmentId, 'dates', dates] as const,
-  orderNotes: (orders: string[]) => [...trimKeys.all, 'order-notes', orders] as const,
-  lineNotes: (originItem: string) => [...trimKeys.all, 'line-notes', originItem] as const,
+    [...boardKeys.all, 'day-strip', departmentId, 'dates', dates] as const,
+  orderNotes: (orders: string[]) => [...boardKeys.all, 'order-notes', orders] as const,
+  lineNotes: (originItem: string) => [...boardKeys.all, 'line-notes', originItem] as const,
   // Its own branch, not a child of `lineNotes`: invalidating one thread must reach every table dot,
   // and `lineNotes(<autoid>)` would never match a key sitting under `summary`.
-  lineNotesSummaries: () => [...trimKeys.all, 'line-notes-summary'] as const,
+  lineNotesSummaries: () => [...boardKeys.all, 'line-notes-summary'] as const,
   lineNotesSummary: (originItems: string[]) =>
-    [...trimKeys.lineNotesSummaries(), originItems] as const,
-  stockCards: () => [...trimKeys.all, 'stock-cards'] as const,
-  cutlists: () => [...trimKeys.all, 'cutlists'] as const,
+    [...boardKeys.lineNotesSummaries(), originItems] as const,
+  stockCards: () => [...boardKeys.all, 'stock-cards'] as const,
+  cutlists: () => [...boardKeys.all, 'cutlists'] as const,
   cutlistBoard: (departmentId: number, kind: CutlistKind, machine: number | null, done: boolean) =>
     [
-      ...trimKeys.cutlists(),
+      ...boardKeys.cutlists(),
       departmentId,
       kind,
       machine ?? 'all',
       done ? 'done' : 'active'
     ] as const,
-  cutlistCoils: (cutlistId: number) => [...trimKeys.cutlists(), 'coils', cutlistId] as const,
-  completedOrders: () => [...trimKeys.all, 'completed'] as const,
-  completed: (departmentId: number) => [...trimKeys.completedOrders(), departmentId] as const,
+  cutlistCoils: (cutlistId: number) => [...boardKeys.cutlists(), 'coils', cutlistId] as const,
+  completedOrders: () => [...boardKeys.all, 'completed'] as const,
+  completed: (departmentId: number) => [...boardKeys.completedOrders(), departmentId] as const,
   completedOrder: (departmentId: number, order: string) =>
-    [...trimKeys.completedOrders(), departmentId, order] as const,
-  coils: () => [...trimKeys.all, 'coils'] as const,
-  coilLots: () => [...trimKeys.coils(), 'lots'] as const,
-  departmentCoilLots: (departmentId: number) => [...trimKeys.coilLots(), departmentId] as const,
-  coilFilters: (departmentId: number) => [...trimKeys.coils(), 'filters', departmentId] as const,
-  wrapping: () => [...trimKeys.all, 'wrapping'] as const,
-  packaging: (departmentId: number) => [...trimKeys.wrapping(), 'packaging', departmentId] as const,
+    [...boardKeys.completedOrders(), departmentId, order] as const,
+  coils: () => [...boardKeys.all, 'coils'] as const,
+  coilLots: () => [...boardKeys.coils(), 'lots'] as const,
+  departmentCoilLots: (departmentId: number) => [...boardKeys.coilLots(), departmentId] as const,
+  coilFilters: (departmentId: number) => [...boardKeys.coils(), 'filters', departmentId] as const,
+  wrapping: () => [...boardKeys.all, 'wrapping'] as const,
+  packaging: (departmentId: number) =>
+    [...boardKeys.wrapping(), 'packaging', departmentId] as const,
   wrappingRows: (departmentId: number, day: string | null) =>
-    [...trimKeys.wrapping(), departmentId, day ?? 'all'] as const,
+    [...boardKeys.wrapping(), departmentId, day ?? 'all'] as const,
   wrappingLocations: (departmentId: number) =>
-    [...trimKeys.wrapping(), 'locations', departmentId] as const,
+    [...boardKeys.wrapping(), 'locations', departmentId] as const,
   stockOrderRows: (departmentId: number, order: string) =>
-    [...trimKeys.wrapping(), 'stock-order', departmentId, order] as const,
+    [...boardKeys.wrapping(), 'stock-order', departmentId, order] as const,
   manufacturingBatches: (departmentId: number) =>
-    [...trimKeys.all, 'manufacturing-batches', departmentId] as const,
-  orderPackages: (order: string) => [...trimKeys.wrapping(), 'packages', order] as const,
-  orderLocations: (order: string) => [...trimKeys.wrapping(), 'order-locations', order] as const,
+    [...boardKeys.all, 'manufacturing-batches', departmentId] as const,
+  orderPackages: (order: string) => [...boardKeys.wrapping(), 'packages', order] as const,
+  orderLocations: (order: string) => [...boardKeys.wrapping(), 'order-locations', order] as const,
   orderComplete: (departmentId: number, order: string) =>
-    [...trimKeys.wrapping(), 'complete', departmentId, order] as const,
-  remanufacturings: () => [...trimKeys.all, 'remanufacturings'] as const,
+    [...boardKeys.wrapping(), 'complete', departmentId, order] as const,
+  remanufacturings: () => [...boardKeys.all, 'remanufacturings'] as const,
   departmentRemanufacturings: (departmentId: number) =>
-    [...trimKeys.remanufacturings(), departmentId] as const
+    [...boardKeys.remanufacturings(), departmentId] as const
 }
 
 type OrderFilters = Record<string, string | number | boolean>
@@ -306,7 +308,7 @@ const countsSchema = z.object({
 /** The tab strip's figures in one call — the whole board, whatever the search has narrowed. */
 export const countsQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.counts(departmentId ?? 0),
+    queryKey: boardKeys.counts(departmentId ?? 0),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       countsSchema.parse(await authApi.get(`departments/${departmentId}/counts/`).json())
@@ -314,7 +316,7 @@ export const countsQuery = (departmentId: number | undefined) =>
 
 export const unscheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
-    queryKey: trimKeys.unscheduled(category, search),
+    queryKey: boardKeys.unscheduled(category, search),
     // Each search term is its own cache entry; without this the table falls back to the skeleton on
     // every keystroke pause and resizes itself twice per search.
     placeholderData: keepPreviousData,
@@ -327,9 +329,9 @@ export const unscheduledOrdersQuery = (category: string, search: string | undefi
  * them all, the rest greyed out (p1 (330,354), (316,381)). `order=` sets the tab filters aside and
  * answers that one order whole; a stock order's id is its S number, which it matches too.
  */
-export const wholeOrderQuery = (category: string, order: TrimOrder) =>
+export const wholeOrderQuery = (category: string, order: BoardOrder) =>
   queryOptions({
-    queryKey: [...trimKeys.orders(), category, 'whole', order.id] as const,
+    queryKey: [...boardKeys.orders(), category, 'whole', order.id] as const,
     // An order the list handed over whole needs nothing more.
     enabled: isNarrowed(order),
     placeholderData: order,
@@ -347,7 +349,7 @@ export const wholeOrderQuery = (category: string, order: TrimOrder) =>
  */
 export const scheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
-    queryKey: trimKeys.scheduled(category, search),
+    queryKey: boardKeys.scheduled(category, search),
     placeholderData: keepPreviousData,
     queryFn: () => allOrders(category, { is_scheduled: true, ...(search ? { search } : {}) })
   })
@@ -358,7 +360,7 @@ export const scheduledOrdersQuery = (category: string, search: string | undefine
  */
 export const calendarOrdersQuery = (category: string, from: string, to: string) =>
   queryOptions({
-    queryKey: trimKeys.calendar(category, from, to),
+    queryKey: boardKeys.calendar(category, from, to),
     queryFn: async () =>
       (
         await allOrders(category, {
@@ -375,7 +377,7 @@ export const calendarOrdersQuery = (category: string, from: string, to: string) 
  */
 export const machinesQuery = (category: string, departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.machines(category),
+    queryKey: boardKeys.machines(category),
     queryFn: async () =>
       z
         .array(machineSchema)
@@ -400,7 +402,7 @@ const overdueSchema = z.object({
 /** Which production days carry work that is past due — the board's red cascade, in one call. */
 export const overdueQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.overdue(departmentId ?? 0),
+    queryKey: boardKeys.overdue(departmentId ?? 0),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       overdueSchema.parse(await authApi.get(`departments/${departmentId}/overdue/`).json())
@@ -439,7 +441,7 @@ const machineCapacitySchema = z.object({
 /** One day broken down by machine — what the gear on a day tab opens. */
 export const machineCapacitiesQuery = (departmentId: number | undefined, day: string | null) =>
   queryOptions({
-    queryKey: trimKeys.machineCapacities(departmentId ?? 0, day ?? ''),
+    queryKey: boardKeys.machineCapacities(departmentId ?? 0, day ?? ''),
     enabled: departmentId !== undefined && !!day,
     queryFn: async () =>
       machineCapacitySchema.parse(
@@ -454,7 +456,7 @@ const locationSchema = z.object({
   code: z._default(z.nullable(z.string()), null)
 })
 
-type TrimLocation = z.infer<typeof locationSchema>
+type BoardLocation = z.infer<typeof locationSchema>
 
 /**
  * Where a wrapped order is sitting. Location codes are unique across the whole app, so the label
@@ -466,7 +468,7 @@ export const locationsQuery = queryOptions({
     z
       .object({ count: z.number(), results: z.array(locationSchema) })
       .parse(await authApi.get('locations/', { searchParams: { limit: 500 } }).json()),
-  select: (page: { results: TrimLocation[] }) =>
+  select: (page: { results: BoardLocation[] }) =>
     new Map(page.results.map(location => [location.id, location.code]))
 })
 
@@ -486,7 +488,7 @@ const allocatedStockSchema = z.array(
  */
 export const allocatedStockQuery = (departmentId: number | undefined, search: string | undefined) =>
   queryOptions({
-    queryKey: trimKeys.allocatedStock(departmentId ?? 0, search),
+    queryKey: boardKeys.allocatedStock(departmentId ?? 0, search),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       allocatedStockSchema.parse(
@@ -520,7 +522,7 @@ export type DayStripEntry = z.infer<typeof dayStripSchema>[number]
 /** `used / capacity` for `days` days in a row from `start` — a month, or a single pinned day. */
 export const dayStripQuery = (departmentId: number | undefined, start: string, days: number) =>
   queryOptions({
-    queryKey: trimKeys.dayStrip(departmentId ?? 0, start, days),
+    queryKey: boardKeys.dayStrip(departmentId ?? 0, start, days),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       dayStripSchema.parse(
@@ -539,7 +541,7 @@ export const WORK_WEEK_DAYS = 5
  */
 export const workWeekQuery = (departmentId: number | undefined, start: string) =>
   queryOptions({
-    queryKey: trimKeys.workWeek(departmentId ?? 0, start),
+    queryKey: boardKeys.workWeek(departmentId ?? 0, start),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       dayStripSchema.parse(
@@ -557,7 +559,7 @@ const STRIP_DATES_MAX = 62
 /** Days that are neither in a row nor recent — the overdue ones — in as few calls as the cap allows. */
 export const dayStripDatesQuery = (departmentId: number | undefined, dates: string[]) =>
   queryOptions({
-    queryKey: trimKeys.dayStripDates(departmentId ?? 0, dates),
+    queryKey: boardKeys.dayStripDates(departmentId ?? 0, dates),
     enabled: departmentId !== undefined && dates.length > 0,
     queryFn: async () => {
       const batches = Array.from(
@@ -621,7 +623,7 @@ export type OrderNote = z.infer<typeof orderNoteSchema>
  */
 export const orderNotesQuery = (orders: string[]) =>
   queryOptions({
-    queryKey: trimKeys.orderNotes(orders),
+    queryKey: boardKeys.orderNotes(orders),
     enabled: orders.length > 0,
     queryFn: async () =>
       z
@@ -638,7 +640,7 @@ const lineNoteSummarySchema = z.object({
 /** Whether each line item's dot is red, green or absent, for a whole expanded order at once. */
 export const lineNotesSummaryQuery = (originItems: string[]) =>
   queryOptions({
-    queryKey: trimKeys.lineNotesSummary(originItems),
+    queryKey: boardKeys.lineNotesSummary(originItems),
     enabled: originItems.length > 0,
     queryFn: async () =>
       z
@@ -682,7 +684,7 @@ const EMPTY_THREAD: LineNoteThread = { notes: [], unread: false, count: 0 }
  */
 export const lineNotesQuery = (originItem: string | null) =>
   queryOptions({
-    queryKey: trimKeys.lineNotes(originItem ?? ''),
+    queryKey: boardKeys.lineNotes(originItem ?? ''),
     enabled: !!originItem,
     queryFn: async () => {
       try {
@@ -700,15 +702,15 @@ export const useSetOrderNoteRead = () =>
     mutationFn: ({ order, read }: { order: string; read: boolean }) =>
       authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
     onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     }
   })
 
 /** The thread and the dot that summarises it in the table, which are two different queries. */
 const invalidateLineNotes = (client: QueryClient, originItem: string) =>
   Promise.all([
-    client.invalidateQueries({ queryKey: trimKeys.lineNotes(originItem) }),
-    client.invalidateQueries({ queryKey: trimKeys.lineNotesSummaries() })
+    client.invalidateQueries({ queryKey: boardKeys.lineNotes(originItem) }),
+    client.invalidateQueries({ queryKey: boardKeys.lineNotesSummaries() })
   ])
 
 /**
@@ -739,7 +741,7 @@ export const useSetLineNoteRead = (originItem: string) =>
  * prioritised or annotated has none yet, so one is made on the way. The server answers an order that
  * already has one with that row, so a retry after a failed write is safe.
  */
-const ensureSalesOrderId = async (order: TrimOrder) => {
+const ensureSalesOrderId = async (order: BoardOrder) => {
   // A negative id is the stand-in an optimistic update drew, not a row the server has.
   if (order.sales_order && order.sales_order.id > 0) return order.sales_order.id
   const created = salesOrderSchema.parse(
@@ -749,7 +751,7 @@ const ensureSalesOrderId = async (order: TrimOrder) => {
 }
 
 type ScheduleOrdersInput = {
-  orders: TrimOrder[]
+  orders: BoardOrder[]
   departmentId: number
   productionDate: string
 }
@@ -766,13 +768,13 @@ export const useScheduleOrders = (onSuccess: () => void) =>
         .json()
     },
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     },
     onSuccess: onSuccess
   })
 
 type SplitOrderInput = {
-  order: TrimOrder
+  order: BoardOrder
   departmentId: number
   productionDate: string
   /** The EBMS autoids of the line items being split off. */
@@ -791,7 +793,7 @@ export const useSplitOrder = (onSuccess: () => void) =>
         .json()
     },
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     },
     onSuccess: onSuccess
   })
@@ -802,14 +804,20 @@ export const useSplitOrder = (onSuccess: () => void) =>
  */
 export const useBypassProduction = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: async ({ orders, departmentId }: { orders: TrimOrder[]; departmentId: number }) => {
+    mutationFn: async ({
+      orders,
+      departmentId
+    }: {
+      orders: BoardOrder[]
+      departmentId: number
+    }) => {
       const ids = await Promise.all(orders.map(ensureSalesOrderId))
       return Promise.all(
         ids.map(id => authApi.post(`sales-orders/${id}/departments/${departmentId}/bypass/`).json())
       )
     },
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     },
     onSuccess: onSuccess
   })
@@ -818,19 +826,19 @@ export const useBypassProduction = (onSuccess: () => void) =>
  * Every cached copy of one order under the order lists — a tab's page, a whole order — rewritten by
  * `edit`.
  */
-const isOrderPage = (data: unknown): data is { results: TrimOrder[] } =>
+const isOrderPage = (data: unknown): data is { results: BoardOrder[] } =>
   !!data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)
 
-const isOrder = (data: unknown): data is TrimOrder =>
+const isOrder = (data: unknown): data is BoardOrder =>
   !!data && typeof data === 'object' && 'origin_items' in data
 
 const patchCachedOrder = (
   client: QueryClient,
   orderId: string,
-  edit: (order: TrimOrder) => TrimOrder
+  edit: (order: BoardOrder) => BoardOrder
 ) => {
-  const patch = (order: TrimOrder) => (order.id === orderId ? edit(order) : order)
-  client.setQueriesData({ queryKey: trimKeys.orders() }, (data: unknown) =>
+  const patch = (order: BoardOrder) => (order.id === orderId ? edit(order) : order)
+  client.setQueriesData({ queryKey: boardKeys.orders() }, (data: unknown) =>
     isOrderPage(data)
       ? { ...data, results: data.results.map(patch) }
       : isOrder(data)
@@ -840,9 +848,9 @@ const patchCachedOrder = (
 }
 
 /** The newest cached copy of an order that has a real sales order, or the one given. */
-const freshOrder = (client: QueryClient, order: TrimOrder) =>
+const freshOrder = (client: QueryClient, order: BoardOrder) =>
   client
-    .getQueriesData({ queryKey: trimKeys.orders() })
+    .getQueriesData({ queryKey: boardKeys.orders() })
     .flatMap(([, data]) => (isOrderPage(data) ? data.results : isOrder(data) ? [data] : []))
     .find(cached => cached.id === order.id && (cached.sales_order?.id ?? 0) > 0) ?? order
 
@@ -850,7 +858,7 @@ const freshOrder = (client: QueryClient, order: TrimOrder) =>
  * The order with `priority` on its row for the department, the row made up if it has none yet. A
  * made-up sales order carries id -1, which `ensureSalesOrderId` reads as none.
  */
-const withPriority = (order: TrimOrder, departmentId: number, priority: Priority | null) => {
+const withPriority = (order: BoardOrder, departmentId: number, priority: Priority | null) => {
   const states = order.sales_order?.department_states ?? []
   const has = states.some(state => state.department === departmentId)
   const blank: DepartmentState = {
@@ -893,7 +901,7 @@ export const useSetPriority = (orderId: string) =>
         departmentId,
         priority
       }: {
-        order: TrimOrder
+        order: BoardOrder
         departmentId: number
         priority: Priority | null
       },
@@ -909,7 +917,7 @@ export const useSetPriority = (orderId: string) =>
         .json()
     },
     onMutate: async ({ order, departmentId, priority }, { client }) => {
-      await client.cancelQueries({ queryKey: trimKeys.orders() })
+      await client.cancelQueries({ queryKey: boardKeys.orders() })
       patchCachedOrder(client, order.id, cached => withPriority(cached, departmentId, priority))
     },
     // Only this order goes back: a snapshot of every list would also undo another order's pick that
@@ -919,7 +927,7 @@ export const useSetPriority = (orderId: string) =>
         withPriority(cached, departmentId, departmentStateOf(order, departmentId)?.priority ?? null)
       ),
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     }
   })
 
@@ -937,7 +945,7 @@ export const useSetReviewed = () =>
       day,
       reviewed
     }: {
-      order: TrimOrder
+      order: BoardOrder
       departmentId: number
       /** The part's production day: each day of a split order is reviewed on its own. */
       day: string
@@ -952,7 +960,7 @@ export const useSetReviewed = () =>
         .json()
     },
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     }
   })
 
@@ -979,7 +987,7 @@ export const useReleaseOrders = (onSuccess: (released: number, cutlists: number)
         await authApi.post(`departments/${departmentId}/release/`, { json: { days } }).json()
       ),
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     },
     onSuccess: result => onSuccess(result.released.length, result.cutlists.length)
   })
@@ -1006,7 +1014,7 @@ export const useUnscheduleOrder = (onSuccess: () => void) =>
         })
         .json(),
     onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
     },
     onSuccess
   })
@@ -1033,11 +1041,11 @@ export const useUpdateLineItem = ({ released = false } = {}) =>
     // one still being reviewed has only the order lists to change.
     onSettled: async (_, __, ___, ____, { client }) => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: trimKeys.orders() }),
+        client.invalidateQueries({ queryKey: boardKeys.orders() }),
         ...(released
           ? [
-              client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
-              client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+              client.invalidateQueries({ queryKey: boardKeys.cutlists() }),
+              client.invalidateQueries({ queryKey: boardKeys.wrapping() })
             ]
           : [])
       ])
@@ -1073,7 +1081,7 @@ const stockCardSchema = z.object({
 export type StockCard = z.infer<typeof stockCardSchema>
 
 export const stockCardsQuery = queryOptions({
-  queryKey: trimKeys.stockCards(),
+  queryKey: boardKeys.stockCards(),
   queryFn: async () => z.array(stockCardSchema).parse(await authApi.get('stock-cards/').json())
 })
 
@@ -1099,7 +1107,7 @@ const stockCardProductSchema = z.object({
  */
 export const stockCardProductQuery = (productId: string) =>
   queryOptions({
-    queryKey: [...trimKeys.stockCards(), 'product', productId] as const,
+    queryKey: [...boardKeys.stockCards(), 'product', productId] as const,
     enabled: productId.length > 0,
     retry: false,
     queryFn: async () => {
@@ -1155,14 +1163,14 @@ export const useSaveStockCard = (onSuccess: () => void) =>
         : authApi.post('stock-cards/', { json: { product_id: productId, ...values } }).json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.stockCards() })
+      client.invalidateQueries({ queryKey: boardKeys.stockCards() })
   })
 
 export const useDeleteStockCard = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`stock-cards/${id}/`),
     onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.stockCards() })
+      await client.invalidateQueries({ queryKey: boardKeys.stockCards() })
     }
   })
 
@@ -1220,7 +1228,7 @@ export const useCreateStockOrder = (onSuccess: (order: string) => void) =>
         .object({ order: z.string() })
         .parse(await authApi.post('stock-orders/', { json: { lines } }).json()),
     onSuccess: async (created, _, __, { client }) => {
-      await client.invalidateQueries({ queryKey: trimKeys.all })
+      await client.invalidateQueries({ queryKey: boardKeys.all })
       onSuccess(created.order)
     }
   })
@@ -1331,7 +1339,7 @@ export const cutlistsQuery = (
   done: boolean
 ) =>
   queryOptions({
-    queryKey: trimKeys.cutlistBoard(departmentId ?? 0, kind, machine, done),
+    queryKey: boardKeys.cutlistBoard(departmentId ?? 0, kind, machine, done),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       z.array(cutlistSchema).parse(
@@ -1364,7 +1372,7 @@ export const useUpdateCutlistRow = () =>
     // A completed row moves the line items behind it, and those move their order — so the whole
     // board, not just this list.
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 /**
@@ -1376,8 +1384,8 @@ export const useFinishCutlist = () =>
     mutationFn: (cutlistId: number) => authApi.post(`cutlists/${cutlistId}/done/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
       Promise.all([
-        client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
-        client.invalidateQueries({ queryKey: trimKeys.remanufacturings() })
+        client.invalidateQueries({ queryKey: boardKeys.cutlists() }),
+        client.invalidateQueries({ queryKey: boardKeys.remanufacturings() })
       ])
   })
 
@@ -1428,7 +1436,7 @@ export type CoilLot = z.infer<typeof coilLotSchema>
  */
 export const cutlistCoilsQuery = (cutlistId: number | null) =>
   queryOptions({
-    queryKey: trimKeys.cutlistCoils(cutlistId ?? 0),
+    queryKey: boardKeys.cutlistCoils(cutlistId ?? 0),
     enabled: cutlistId !== null,
     queryFn: async () =>
       z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
@@ -1460,7 +1468,7 @@ const completedPageSchema = z.object({
  */
 export const completedOrdersQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.completed(departmentId ?? 0),
+    queryKey: boardKeys.completed(departmentId ?? 0),
     enabled: departmentId !== undefined,
     placeholderData: keepPreviousData,
     queryFn: async () => {
@@ -1538,7 +1546,7 @@ export type CompletedDetail = z.infer<typeof completedDetailSchema>
 /** One finished order: what was ordered, what came from stock, and what went into each package. */
 export const completedOrderQuery = (departmentId: number | undefined, order: string | null) =>
   queryOptions({
-    queryKey: trimKeys.completedOrder(departmentId ?? 0, order ?? ''),
+    queryKey: boardKeys.completedOrder(departmentId ?? 0, order ?? ''),
     enabled: departmentId !== undefined && !!order,
     queryFn: async () =>
       completedDetailSchema.parse(
@@ -1581,14 +1589,14 @@ const allCoils = async (searchParams: Record<string, number>) => {
 
 /** Every coil in the company — All Coils. */
 export const coilLotsQuery = queryOptions({
-  queryKey: trimKeys.coilLots(),
+  queryKey: boardKeys.coilLots(),
   queryFn: () => allCoils({})
 })
 
 /** The coils the department's Coil Filter admits, folder filters included — Trim Coils. */
 export const departmentCoilLotsQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.departmentCoilLots(departmentId ?? 0),
+    queryKey: boardKeys.departmentCoilLots(departmentId ?? 0),
     enabled: departmentId !== undefined,
     queryFn: () => allCoils({ department_id: departmentId! })
   })
@@ -1597,10 +1605,10 @@ export const departmentCoilLotsQuery = (departmentId: number | undefined) =>
 /** The Cutlist Coils window reads its coils through the cutlist, so both lists hear of a change. */
 const invalidateCoils = (client: QueryClient) =>
   Promise.all([
-    client.invalidateQueries({ queryKey: trimKeys.coils() }),
-    client.invalidateQueries({ queryKey: trimKeys.cutlists() }),
+    client.invalidateQueries({ queryKey: boardKeys.coils() }),
+    client.invalidateQueries({ queryKey: boardKeys.cutlists() }),
     // The tab strip's coil count rides on the order counts.
-    client.invalidateQueries({ queryKey: [...trimKeys.orders(), 'counts'] })
+    client.invalidateQueries({ queryKey: [...boardKeys.orders(), 'counts'] })
   ])
 
 /** Material Thickness, Core OD and the coil note — everything the floor types onto a coil. */
@@ -1727,7 +1735,7 @@ export const useSaveCoilFilter = (onSuccess: () => void) =>
         : authApi.post('coils/filters/', { json: { department: departmentId, ...values } }).json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+      client.invalidateQueries({ queryKey: boardKeys.coils() })
   })
 
 /** Removing the filter admits no coil to the department's Trim Coils until another is set. */
@@ -1737,13 +1745,13 @@ export const useDeleteCoilFilter = (onSuccess: () => void) =>
     mutationFn: (filterId: number) => authApi.delete(`coils/filters/${filterId}/`),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.coils() })
+      client.invalidateQueries({ queryKey: boardKeys.coils() })
   })
 
 /** The folder tabs: only folders holding a coil that passes the department's filter. */
 export const coilFoldersQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: [...trimKeys.coils(), 'folders', departmentId ?? 0] as const,
+    queryKey: [...boardKeys.coils(), 'folders', departmentId ?? 0] as const,
     enabled: departmentId !== undefined,
     queryFn: async () =>
       z
@@ -1767,7 +1775,7 @@ export const coilFoldersQuery = (departmentId: number | undefined) =>
 /** Which coils EBMS is allowed to send this department — the bounds the Manager set. */
 export const coilFiltersQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.coilFilters(departmentId ?? 0),
+    queryKey: boardKeys.coilFilters(departmentId ?? 0),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       z
@@ -1843,7 +1851,7 @@ export type PackagingOrder = z.infer<typeof packagingOrderSchema>
  */
 export const packagingQuery = (departmentId: number) =>
   queryOptions({
-    queryKey: trimKeys.packaging(departmentId),
+    queryKey: boardKeys.packaging(departmentId),
     queryFn: async () =>
       z
         .array(packagingOrderSchema)
@@ -1853,7 +1861,7 @@ export const packagingQuery = (departmentId: number) =>
 /** Every line item released to production, with what is left to wrap on each. */
 export const wrappingRowsQuery = (departmentId: number | undefined, day: string | null) =>
   queryOptions({
-    queryKey: trimKeys.wrappingRows(departmentId ?? 0, day),
+    queryKey: boardKeys.wrappingRows(departmentId ?? 0, day),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       z.array(wrappingRowSchema).parse(
@@ -1896,7 +1904,7 @@ export type LocationSlot = z.infer<typeof locationSlotSchema>
 /** The list behind Select Location, opened on this department's own locations. */
 export const wrappingLocationsQuery = (departmentId: number | undefined, enabled: boolean) =>
   queryOptions({
-    queryKey: trimKeys.wrappingLocations(departmentId ?? 0),
+    queryKey: boardKeys.wrappingLocations(departmentId ?? 0),
     enabled: departmentId !== undefined && enabled,
     queryFn: async () =>
       z
@@ -1924,7 +1932,7 @@ export type OrderLocation = z.infer<typeof orderLocationSchema>
 /** Where this order is standing. Everything but the newest is «put no more packages here». */
 export const orderLocationsQuery = (order: string | null) =>
   queryOptions({
-    queryKey: trimKeys.orderLocations(order ?? ''),
+    queryKey: boardKeys.orderLocations(order ?? ''),
     enabled: !!order,
     queryFn: async () =>
       z
@@ -1957,7 +1965,7 @@ export const useMoveOrderPackages = () =>
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 export const useRemoveOrderLocation = () =>
@@ -1966,13 +1974,13 @@ export const useRemoveOrderLocation = () =>
     mutationFn: ({ order, locationId }: { order: string; locationId: number }) =>
       authApi.delete(`wrapping/orders/${order}/locations/${locationId}/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+      client.invalidateQueries({ queryKey: boardKeys.wrapping() })
   })
 
 /** The packages made for an order still at the bench — See Packages. */
 export const orderPackagesQuery = (order: string | null, enabled: boolean) =>
   queryOptions({
-    queryKey: trimKeys.orderPackages(order ?? ''),
+    queryKey: boardKeys.orderPackages(order ?? ''),
     enabled: enabled && !!order,
     queryFn: async () =>
       z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
@@ -2002,7 +2010,7 @@ export type StockOrderRow = z.infer<typeof stockOrderRowSchema>
 /** A stock order is not packed: the floor enters what it wrapped and sends a batch per row. */
 export const stockOrderRowsQuery = (departmentId: number | undefined, order: string | null) =>
   queryOptions({
-    queryKey: trimKeys.stockOrderRows(departmentId ?? 0, order ?? ''),
+    queryKey: boardKeys.stockOrderRows(departmentId ?? 0, order ?? ''),
     enabled: departmentId !== undefined && !!order,
     queryFn: async () =>
       z.array(stockOrderRowSchema).parse(
@@ -2035,7 +2043,7 @@ export const useSetStockWrapped = () =>
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.wrapping() })
+      client.invalidateQueries({ queryKey: boardKeys.wrapping() })
   })
 
 /**
@@ -2063,7 +2071,7 @@ export const useCreateStockBatch = (onSuccess: (completed: boolean) => void) =>
       ),
     onSuccess: result => onSuccess(result.completed),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 // --- Stock Manufacturing (pieces made against no order) --------------------
@@ -2093,7 +2101,7 @@ type ManufacturingBatch = z.infer<typeof manufacturingBatchSchema>
 /** What has gone to EBMS as manufacturing batches, newest first. */
 export const manufacturingBatchesQuery = (departmentId: number | undefined, enabled: boolean) =>
   queryOptions({
-    queryKey: trimKeys.manufacturingBatches(departmentId ?? 0),
+    queryKey: boardKeys.manufacturingBatches(departmentId ?? 0),
     enabled: enabled && departmentId !== undefined,
     queryFn: async () =>
       z.array(manufacturingBatchSchema).parse(
@@ -2123,7 +2131,7 @@ export const useCreateStockManufacturing = (onSuccess: (batch: ManufacturingBatc
       ),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 /** A package packed wrong comes apart: its pieces go back to Left To Wrap. */
@@ -2132,7 +2140,7 @@ export const useDeletePackage = () =>
     meta: { errorTitle: 'The package stayed' },
     mutationFn: (packageId: number) => authApi.delete(`wrapping/packages/${packageId}/`),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 const packageScanSchema = z.object({
@@ -2179,7 +2187,7 @@ export const useCreatePackage = (onSuccess: () => void) =>
         .parse(await authApi.post('wrapping/packages/', { json: parcel }).json()),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 const orderCompleteSchema = z.object({
@@ -2211,7 +2219,7 @@ const orderCompleteSchema = z.object({
 /** Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent. */
 export const orderCompleteQuery = (departmentId: number | undefined, order: string | null) =>
   queryOptions({
-    queryKey: trimKeys.orderComplete(departmentId ?? 0, order ?? ''),
+    queryKey: boardKeys.orderComplete(departmentId ?? 0, order ?? ''),
     enabled: departmentId !== undefined && !!order,
     queryFn: async () =>
       orderCompleteSchema.parse(
@@ -2239,7 +2247,7 @@ export const useCompleteOrder = (onSuccess: () => void) =>
         .json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 const remanufacturingSchema = z.object({
@@ -2275,7 +2283,7 @@ const REMAN_PAGE_SIZE = 200
 /** The department's remakes, keyed by the line item each came from. */
 export const remanufacturingsQuery = (departmentId: number | undefined) =>
   queryOptions({
-    queryKey: trimKeys.departmentRemanufacturings(departmentId ?? 0),
+    queryKey: boardKeys.departmentRemanufacturings(departmentId ?? 0),
     enabled: departmentId !== undefined,
     queryFn: async () =>
       z.object({ count: z.number(), results: z.array(remanufacturingSchema) }).parse(
@@ -2310,5 +2318,5 @@ export const useRequestRemanufacture = (onSuccess: () => void) =>
     }) => authApi.post('remanufacturings/request/', { json: request }).json(),
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: trimKeys.all })
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })

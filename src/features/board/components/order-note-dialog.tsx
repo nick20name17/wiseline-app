@@ -12,11 +12,11 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Check, Lock, Undo2 } from 'lucide-react'
-import { useSetOrderNoteRead, type OrderNote, type TrimOrder } from '../api'
+import { useSetOrderNoteRead, type OrderNote, type BoardOrder } from '../api'
 
 type OrderNoteDialogProps = {
   /** The order the note hangs off; `null` closes the dialog. */
-  order: TrimOrder | null
+  order: BoardOrder | null
   notes: Record<string, OrderNote> | undefined
   onOpenChange: (open: boolean) => void
 }

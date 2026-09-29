@@ -1,5 +1,4 @@
 import type { ColumnTable } from '@/components/table/column-order'
-import type { Board } from './boards'
 
 /*
  * The board's movable columns, one declaration per table: the key its order is saved under and the
@@ -211,7 +210,7 @@ export const CUTLIST_TOTAL_TABLE: ColumnTable = {
  * Ship Via and Accessories Location a packer works by. Saved under their own keys, so dragging a column
  * on one board leaves the other alone.
  */
-const ACCESSORIES_UNSCHEDULED_TABLE: ColumnTable = {
+export const ACCESSORIES_UNSCHEDULED_TABLE: ColumnTable = {
   table: 'accessories-unscheduled',
   columns: [
     ...UNSCHEDULED_TABLE.columns.filter(column => column.key !== 'notes'),
@@ -220,7 +219,7 @@ const ACCESSORIES_UNSCHEDULED_TABLE: ColumnTable = {
   ]
 }
 
-const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
+export const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
   table: 'accessories-scheduled',
   columns: [
     { key: 'ship', label: 'Ship', width: 'w-40' },
@@ -235,7 +234,7 @@ const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
   ]
 }
 
-const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
+export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
   table: 'accessories-scheduled-lines',
   columns: [
     { key: 'qty', label: 'Qty Ordered', width: 'w-28' },
@@ -249,7 +248,7 @@ const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
 
 // What an accessory order was, and what went into its packages p3 (1239,390): nothing is made, so no
 // batch, no stock taken and no remake.
-const PACKAGED_LINES_TABLE: ColumnTable = {
+export const PACKAGED_LINES_TABLE: ColumnTable = {
   table: 'completed-package-lines',
   columns: [
     { key: 'pid', label: 'Product ID' },
@@ -261,7 +260,7 @@ const PACKAGED_LINES_TABLE: ColumnTable = {
 }
 
 // The packing bench p3 (1211,226): nothing is remade and nothing comes off a shelf.
-const PACKAGE_LINES_TABLE: ColumnTable = {
+export const PACKAGE_LINES_TABLE: ColumnTable = {
   table: 'package-lines',
   columns: [
     { key: 'line', label: 'ID', width: 'w-28' },
@@ -274,21 +273,3 @@ const PACKAGE_LINES_TABLE: ColumnTable = {
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
 }
-
-/** The order tables as a board lays them out. */
-export const tablesFor = (board: Board) =>
-  board.makes
-    ? {
-        unscheduled: UNSCHEDULED_TABLE,
-        scheduled: SCHEDULED_TABLE,
-        scheduledLines: SCHEDULED_LINES_TABLE,
-        packLines: WRAP_LINES_TABLE,
-        completedLines: COMPLETED_LINES_TABLE
-      }
-    : {
-        unscheduled: ACCESSORIES_UNSCHEDULED_TABLE,
-        scheduled: ACCESSORIES_SCHEDULED_TABLE,
-        scheduledLines: ACCESSORIES_SCHEDULED_LINES_TABLE,
-        packLines: PACKAGE_LINES_TABLE,
-        completedLines: PACKAGED_LINES_TABLE
-      }

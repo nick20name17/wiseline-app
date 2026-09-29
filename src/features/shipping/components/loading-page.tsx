@@ -1,5 +1,4 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,6 +10,7 @@ import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { useDayLoads } from '../lib/day-loads'
 import { DayPicker } from './day-picker'
+import { LoadCard } from './load-card'
 
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
 const ON_THE_DOCK = new Set(['not_started', 'loading', 'loaded'])
@@ -43,6 +43,7 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
                   onCheckedChange={checked =>
                     mark.mutate({
                       loadId: load.load_id,
+                      order: order.order ?? '',
                       packageIds: [pack.package_id],
                       loaded: checked === true
                     })
@@ -50,7 +51,7 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
                 />
                 <span className='font-mono'>{pack.name ?? pack.package_id}</span>
                 <span className='text-xs text-muted-foreground'>
-                  {pack.location ?? '—'} · {pack.weight === null ? '—' : formatWeight(pack.weight)}
+                  {pack.location ?? '—'} · {formatWeight(pack.weight)}
                 </span>
               </label>
             </li>
@@ -96,27 +97,11 @@ export const LoadingPage = ({ day, onDayChange }: LoadingPageProps) => {
         </Empty>
       ) : (
         released.map(({ card, load }) => (
-          <section
-            key={load.load_id}
-            className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
-          >
-            <header className='flex items-center gap-3 px-3 py-2.5'>
-              <span className='font-medium'>
-                Truck {card.name} · {load.name}
-              </span>
-              <span className='font-mono text-sm text-muted-foreground'>
-                {formatWeight(load.weight)}
-              </span>
-              <Badge variant='muted' className='ml-auto'>
-                {statusLabel(load.status)}
-              </Badge>
-            </header>
-            <ul>
-              {load.orders.map(order => (
-                <OrderPackages key={order.assignment_id} load={load} order={order} />
-              ))}
-            </ul>
-          </section>
+          <LoadCard key={load.load_id} card={card} load={load}>
+            {load.orders.map(order => (
+              <OrderPackages key={order.assignment_id} load={load} order={order} />
+            ))}
+          </LoadCard>
         ))
       )}
     </section>

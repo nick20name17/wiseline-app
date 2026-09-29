@@ -11,10 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useState } from 'react'
 import { formatDate } from '@/lib/days'
-import { useSetReviewed, type TrimOrder } from '../api'
+import { useSetReviewed, type BoardOrder } from '../api'
 
 type ReviewedToggleProps = {
-  order: TrimOrder
+  order: BoardOrder
   /** The part's production day — what the toggle reviews. */
   day: string
   departmentId: number | undefined

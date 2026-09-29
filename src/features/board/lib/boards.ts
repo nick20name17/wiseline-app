@@ -1,3 +1,17 @@
+import {
+  ACCESSORIES_SCHEDULED_LINES_TABLE,
+  ACCESSORIES_SCHEDULED_TABLE,
+  ACCESSORIES_UNSCHEDULED_TABLE,
+  COMPLETED_LINES_TABLE,
+  PACKAGE_LINES_TABLE,
+  PACKAGED_LINES_TABLE,
+  SCHEDULED_LINES_TABLE,
+  SCHEDULED_TABLE,
+  UNSCHEDULED_TABLE,
+  WRAP_LINES_TABLE
+} from './columns'
+import type { ColumnTable } from '@/components/table/column-order'
+
 /** Every tab a department's board can have; each department shows its own subset. */
 export const BOARD_VIEWS = [
   'unscheduled',
@@ -32,6 +46,14 @@ export type Board = {
   makes: boolean
   /** How the department says packing: Trim wraps its trims, Accessories packages p3 (1077,291). */
   pack: { station: string; verb: string; done: string; doneLabel: string }
+  /** The order tables as the board lays them out. */
+  tables: {
+    unscheduled: ColumnTable
+    scheduled: ColumnTable
+    scheduledLines: ColumnTable
+    packLines: ColumnTable
+    completedLines: ColumnTable
+  }
 }
 
 export const BOARDS: Record<BoardCode, Board> = {
@@ -43,7 +65,14 @@ export const BOARDS: Record<BoardCode, Board> = {
     managerViews: ['unscheduled', 'scheduled', 'production', 'coils', 'calendar', 'completed'],
     workerViews: ['production', 'coils', 'completed'],
     makes: true,
-    pack: { station: 'Wrapping', verb: 'wrap', done: 'wrapped', doneLabel: 'Wrapped' }
+    pack: { station: 'Wrapping', verb: 'Wrap', done: 'wrapped', doneLabel: 'Wrapped' },
+    tables: {
+      unscheduled: UNSCHEDULED_TABLE,
+      scheduled: SCHEDULED_TABLE,
+      scheduledLines: SCHEDULED_LINES_TABLE,
+      packLines: WRAP_LINES_TABLE,
+      completedLines: COMPLETED_LINES_TABLE
+    }
   },
   accessories: {
     code: 'accessories',
@@ -53,6 +82,13 @@ export const BOARDS: Record<BoardCode, Board> = {
     managerViews: ['unscheduled', 'scheduled', 'packaging', 'calendar', 'completed'],
     workerViews: ['packaging', 'completed'],
     makes: false,
-    pack: { station: 'Packaging', verb: 'package', done: 'packaged', doneLabel: 'Packaged' }
+    pack: { station: 'Packaging', verb: 'Package', done: 'packaged', doneLabel: 'Packaged' },
+    tables: {
+      unscheduled: ACCESSORIES_UNSCHEDULED_TABLE,
+      scheduled: ACCESSORIES_SCHEDULED_TABLE,
+      scheduledLines: ACCESSORIES_SCHEDULED_LINES_TABLE,
+      packLines: PACKAGE_LINES_TABLE,
+      completedLines: PACKAGED_LINES_TABLE
+    }
   }
 }

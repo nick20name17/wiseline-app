@@ -13,14 +13,14 @@ import {
 } from '@/components/ui/table'
 import { CalendarDays, Lock, Split } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { wholeOrderQuery, type TrimLineItem, type TrimOrder } from '../api'
+import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { lineDay } from '../lib/parts'
 import { NoteButton } from './note-button'
 import { useLineNoteState } from './use-line-note-state'
 
 type LineItemsProps = {
-  order: TrimOrder
+  order: BoardOrder
   selectedLineIds: string[]
   /** The department id is known, so a split has somewhere to go. */
   ready: boolean
@@ -28,7 +28,7 @@ type LineItemsProps = {
   scheduling: boolean
   onToggleLine: (originItem: string) => void
   onSplit: () => void
-  onOpenNotes: (item: TrimLineItem, readOnly: boolean) => void
+  onOpenNotes: (item: BoardLineItem, readOnly: boolean) => void
 }
 
 export const LineItems = ({

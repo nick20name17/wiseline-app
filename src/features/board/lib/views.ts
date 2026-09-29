@@ -1,6 +1,4 @@
-import { BOARD_VIEWS, type Board, type BoardView } from './boards'
-
-export { BOARD_VIEWS, type BoardView }
+import type { Board, BoardView } from './boards'
 
 export const VIEW_LABELS: Record<BoardView, string> = {
   unscheduled: 'Unscheduled',

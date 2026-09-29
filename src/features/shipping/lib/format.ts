@@ -1,7 +1,8 @@
 const pounds = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
-/** `1,673.49 lbs`, the way the board prints a weight. */
-export const formatWeight = (value: number) => `${pounds.format(value)} lbs`
+/** `1,673.49 lbs`, the way the board prints a weight; `—` when there is none. */
+export const formatWeight = (value: number | null) =>
+  value === null ? '—' : `${pounds.format(value)} lbs`
 
 /** `13'6" (162")`: the board gives a length in feet and inches, and in inches beside it p3 (595,185). */
 export const formatLength = (inches: number | null) => {

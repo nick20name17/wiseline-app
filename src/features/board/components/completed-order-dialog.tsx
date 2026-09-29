@@ -35,7 +35,7 @@ import {
   type CompletedOrder,
   type OrderLocation
 } from '../api'
-import { COMPLETED_PACKAGES_TABLE, tablesFor, withoutStock } from '../lib/columns'
+import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
 import { packageContents, remanTotal } from '../lib/wrapping'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
@@ -90,7 +90,7 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
   const total = detail.line_items.reduce((sum, line) => sum + line.manufactured, 0)
 
   const columns = useColumnOrder(
-    isStock ? withoutStock(tablesFor(board).completedLines) : tablesFor(board).completedLines
+    isStock ? withoutStock(board.tables.completedLines) : board.tables.completedLines
   )
 
   return (

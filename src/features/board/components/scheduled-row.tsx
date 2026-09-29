@@ -6,9 +6,8 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
 import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
-import { departmentStateOf, isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
+import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard } from '../lib/board-context'
-import { tablesFor } from '../lib/columns'
 import { partLines, partState, splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from './note-button'
@@ -18,7 +17,7 @@ import { ScheduledLineItems } from './scheduled-line-items'
 import { StatusPill } from './status-pill'
 
 type ScheduledRowProps = {
-  order: TrimOrder
+  order: BoardOrder
   /** The production day this row stands for: a split order is one row per day it has work on. */
   day: string
   departmentId: number | undefined
@@ -32,7 +31,7 @@ type ScheduledRowProps = {
   onToggleSelected: () => void
   onReschedule: () => void
   onOpenOrderNotes: () => void
-  onOpenLineNotes: (item: TrimLineItem, readOnly: boolean) => void
+  onOpenLineNotes: (item: BoardLineItem, readOnly: boolean) => void
 }
 
 const SPLIT_LABEL = {
@@ -88,38 +87,39 @@ const ProductionDateCell = ({
   overdue,
   stock,
   fixed,
-  dayWord,
   onReschedule
 }: {
   day: string
   overdue: boolean
   stock: boolean
   fixed: boolean
-  dayWord: string
   onReschedule: () => void
-}) => (
-  // The marks follow the date so every row's date starts at the same edge, and never shrink: the cell
-  // runs out of room before they do.
-  <span className='flex items-center gap-1.5'>
-    {fixed ? (
-      <span className={cn(overdue ? 'text-destructive' : 'text-muted-foreground')}>
-        {formatDate(day)}
-      </span>
-    ) : (
-      <Button variant='outline' title={`Change ${dayWord} (pre-release)`} onClick={onReschedule}>
-        <Calendar data-icon='inline-start' />
-        {formatDate(day)}
-      </Button>
-    )}
-    {/* A stock order is marked where its production date is — the one column every row shares. */}
-    {stock ? (
-      <Package className='size-3.5 shrink-0 text-muted-foreground' aria-label='Stock order' />
-    ) : null}
-    {overdue ? (
-      <TriangleAlert className='size-3.5 shrink-0 text-destructive' aria-label='Past due' />
-    ) : null}
-  </span>
-)
+}) => {
+  const { dayWord } = useBoard()
+  return (
+    // The marks follow the date so every row's date starts at the same edge, and never shrink: the cell
+    // runs out of room before they do.
+    <span className='flex items-center gap-1.5'>
+      {fixed ? (
+        <span className={cn(overdue ? 'text-destructive' : 'text-muted-foreground')}>
+          {formatDate(day)}
+        </span>
+      ) : (
+        <Button variant='outline' title={`Change ${dayWord} (pre-release)`} onClick={onReschedule}>
+          <Calendar data-icon='inline-start' />
+          {formatDate(day)}
+        </Button>
+      )}
+      {/* A stock order is marked where its production date is — the one column every row shares. */}
+      {stock ? (
+        <Package className='size-3.5 shrink-0 text-muted-foreground' aria-label='Stock order' />
+      ) : null}
+      {overdue ? (
+        <TriangleAlert className='size-3.5 shrink-0 text-destructive' aria-label='Past due' />
+      ) : null}
+    </span>
+  )
+}
 
 export const ScheduledRow = ({
   order,
@@ -143,7 +143,7 @@ export const ScheduledRow = ({
   const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const board = useBoard()
-  const { cells } = useColumnCells(tablesFor(board).scheduled)
+  const { cells } = useColumnCells(board.tables.scheduled)
 
   // Gate 1: every line of this part that still has to be made carries a machine.
   const machinesAssigned = partLines(order, day).every(
@@ -198,7 +198,6 @@ export const ScheduledRow = ({
                 overdue={overdue}
                 stock={stock}
                 fixed={released}
-                dayWord={board.dayWord}
                 onReschedule={onReschedule}
               />
             </TableCell>

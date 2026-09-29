@@ -9,12 +9,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import type { TrimOrder } from '../api'
+import type { BoardOrder } from '../api'
 
 type BypassDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  orders: TrimOrder[]
+  orders: BoardOrder[]
   isPending: boolean
   onConfirm: () => void
 }

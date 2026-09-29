@@ -13,7 +13,7 @@ import {
   dayStripQuery,
   departmentStateOf,
   overdueQuery,
-  type TrimOrder
+  type BoardOrder
 } from '../api'
 import { formatCount } from '../lib/format'
 import { partDays, partState } from '../lib/parts'
@@ -62,7 +62,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
   const holidayOn = (day: string) => load.get(day)?.holiday ?? null
 
   // A split order sits on each of its days.
-  const byDay = new Map<string, TrimOrder[]>()
+  const byDay = new Map<string, BoardOrder[]>()
   for (const order of orders)
     for (const day of partDays(order, departmentId)) {
       const list = byDay.get(day)

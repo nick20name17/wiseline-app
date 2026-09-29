@@ -3,13 +3,13 @@ import { Select as SelectPrimitive } from '@base-ui/react/select'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
-import { departmentStateOf, prioritiesQuery, useSetPriority, type TrimOrder } from '../api'
+import { departmentStateOf, prioritiesQuery, useSetPriority, type BoardOrder } from '../api'
 import { PriorityPill } from './priority-pill'
 
 const NO_PRIORITY = 'none'
 
 type PriorityCellProps = {
-  order: TrimOrder
+  order: BoardOrder
   departmentId: number | undefined
 }
 

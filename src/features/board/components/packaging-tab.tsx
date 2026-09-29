@@ -1,4 +1,4 @@
-import { formatDate, formatLongDate, today } from '@/lib/days'
+import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -20,18 +20,6 @@ import { StatusPill } from './status-pill'
 import { WrapOrder } from './wrap-order'
 
 const COLUMNS = 7
-
-/** The orders arrive by Prep Date, so the days fall out of the sequence. */
-const byDay = (orders: PackagingOrder[]) => {
-  const days: { date: string; orders: PackagingOrder[] }[] = []
-  for (const order of orders) {
-    if (!order.prep_date) continue
-    const last = days[days.length - 1]
-    if (last?.date === order.prep_date) last.orders.push(order)
-    else days.push({ date: order.prep_date, orders: [order] })
-  }
-  return days
-}
 
 /** «Overdue Accessories to be packaged need to be highlighted in red» p3 (1271,348). */
 const isOverdue = (order: PackagingOrder) =>
@@ -65,7 +53,16 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
   }
 
   // A completed order has left for Completed Orders p3 (1263,354).
-  const days = byDay((orders ?? []).filter(order => order.status !== 'completed'))
+  // An order without a Prep Date is not scheduled, whatever the list says.
+  const days = byDay(
+    (orders ?? []).filter(
+      (order): order is PackagingOrder & { prep_date: string } =>
+        !!order.prep_date && order.status !== 'completed'
+    ),
+    order => order.prep_date
+  )
+  const onBench = new Set(rows?.map(row => row.order))
+  const priorityOf = new Map(priorities?.map(entry => [entry.name, entry]))
 
   if (isError && !orders)
     return (
@@ -126,13 +123,13 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
                       {day.date === today() ? ' · today' : ''}
                     </span>
                     <span className='ml-2 text-xs text-muted-foreground'>
-                      {day.orders.length} order{day.orders.length === 1 ? '' : 's'}
+                      {day.items.length} order{day.items.length === 1 ? '' : 's'}
                     </span>
                   </TableCell>
                 </TableRow>
-                {day.orders.map(order => {
-                  const priority = priorities?.find(entry => entry.name === order.priority)
-                  const released = (rows ?? []).some(row => row.order === order.order)
+                {day.items.map(order => {
+                  const priority = order.priority ? priorityOf.get(order.priority) : undefined
+                  const released = onBench.has(order.order)
 
                   return (
                     <TableRow

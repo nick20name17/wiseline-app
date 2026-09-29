@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,31 +7,10 @@ import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, X } from 'lucide-react'
 import { useState } from 'react'
-import {
-  loadsQuery,
-  useAddToLoad,
-  useReleaseLoad,
-  useRemoveFromLoad,
-  type Assignment,
-  type TruckCard
-} from '../api'
+import { loadsQuery, useAddToLoad, useReleaseLoad, useRemoveFromLoad, type TruckCard } from '../api'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
-
-const OrderLine = ({ order, children }: { order: Assignment; children?: React.ReactNode }) => (
-  <li className='flex items-center gap-3 border-t border-border px-3 py-2 text-sm'>
-    {children}
-    <span className='w-28 font-mono font-medium'>{order.order_number ?? '—'}</span>
-    <span className='min-w-0 flex-1 truncate'>{order.customer ?? '—'}</span>
-    {order.kind === 'pickup' ? <Badge variant='muted'>Pickup</Badge> : null}
-    <span className='w-28 text-right font-mono text-muted-foreground'>
-      {formatWeight(order.weight)}
-    </span>
-    <span className='w-24 text-right text-xs text-muted-foreground'>
-      {statusLabel(order.status) ?? ''}
-    </span>
-  </li>
-)
+import { OrderLine } from './load-card'
 
 type TruckLoadsProps = {
   card: TruckCard
@@ -47,7 +25,7 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
   const { data: loads, isPending } = useQuery(loadsQuery(card.truck_id, shipDate))
   const [tab, setTab] = useState<number | null>(null)
   const [picked, setPicked] = useState<Set<number>>(() => new Set())
-  const add = useAddToLoad(() => setPicked(new Set()))
+  const add = useAddToLoad()
   const remove = useRemoveFromLoad()
   const release = useReleaseLoad()
 
@@ -81,7 +59,11 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
               className='ml-auto'
               disabled={!picked.size || !current || add.isPending}
               onClick={() =>
-                current && add.mutate({ assignmentIds: [...picked], loadId: current.load_id })
+                current &&
+                add.mutate(
+                  { assignmentIds: [...picked], loadId: current.load_id },
+                  { onSuccess: () => setPicked(new Set()) }
+                )
               }
             >
               {add.isPending ? <Spinner data-icon='inline-start' /> : null}
@@ -90,13 +72,17 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
           </div>
           <ul>
             {waiting.map(order => (
-              <OrderLine key={order.assignment_id} order={order}>
-                <Checkbox
-                  aria-label={`Select order ${order.order_number ?? order.assignment_id}`}
-                  checked={picked.has(order.assignment_id)}
-                  onCheckedChange={() => setPicked(set => toggled(set, order.assignment_id))}
-                />
-              </OrderLine>
+              <OrderLine
+                key={order.assignment_id}
+                order={order}
+                lead={
+                  <Checkbox
+                    aria-label={`Select order ${order.order_number ?? order.assignment_id}`}
+                    checked={picked.has(order.assignment_id)}
+                    onCheckedChange={() => setPicked(set => toggled(set, order.assignment_id))}
+                  />
+                }
+              />
             ))}
           </ul>
         </section>
@@ -128,11 +114,15 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
               {current.orders.length ? (
                 <ul>
                   {current.orders.map(order => (
-                    <OrderLine key={order.assignment_id} order={order}>
-                      <span className='w-10 font-mono text-xs text-muted-foreground'>
-                        {current.marker}
-                      </span>
-                    </OrderLine>
+                    <OrderLine
+                      key={order.assignment_id}
+                      order={order}
+                      lead={
+                        <span className='w-10 font-mono text-xs text-muted-foreground'>
+                          {current.marker}
+                        </span>
+                      }
+                    />
                   ))}
                 </ul>
               ) : (

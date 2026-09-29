@@ -33,10 +33,7 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
   const [shipDate, setShipDate] = useState<string | null>(null)
   const [truckId, setTruckId] = useState<number | null>(null)
   const ids = orders.map(order => order.order)
-  const { data: panels, isPending } = useQuery({
-    ...truckPanelsQuery(ids, shipDate),
-    enabled: open && !!shipDate && ids.length > 0
-  })
+  const { data: panels, isPending } = useQuery(truckPanelsQuery(ids, open ? shipDate : null))
   const apply = useApplyShipping(() => {
     onOpenChange(false)
     if (shipDate) onApplied(shipDate)
@@ -106,7 +103,7 @@ export const ScheduleDialog = ({ orders, open, onOpenChange, onApplied }: Schedu
                     />
                     <span className='font-medium'>Truck {panel.name}</span>
                     <span className='block text-muted-foreground'>
-                      Limit {panel.weight_limit === null ? '—' : formatWeight(panel.weight_limit)}
+                      Limit {formatWeight(panel.weight_limit)}
                       {panel.max_length ? ` · ${formatLength(panel.max_length)}` : ''}
                     </span>
                     <span

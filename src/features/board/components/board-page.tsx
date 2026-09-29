@@ -2,7 +2,8 @@ import { usePageHeader } from '@/components/layout/page-header-context'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { countsQuery, cutlistsQuery } from '../api'
-import { canAccess, defaultView, VIEW_LABELS, viewsFor, type BoardView } from '../lib/views'
+import { canAccess, defaultView, VIEW_LABELS, viewsFor } from '../lib/views'
+import type { BoardView } from '../lib/boards'
 import { useBoard } from '../lib/board-context'
 import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
@@ -44,7 +45,10 @@ export const BoardPage = ({
   const coils = counts?.coils ?? undefined
   // Production counts the list its tab opens on — the Slinet's active cutlists — so a cutlist written
   // shows on the strip at once.
-  const { data: cutlists } = useQuery(cutlistsQuery(departmentId, 'cutlist', null, false))
+  const { data: cutlists } = useQuery({
+    ...cutlistsQuery(departmentId, 'cutlist', null, false),
+    enabled: board.makes && departmentId !== undefined
+  })
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],

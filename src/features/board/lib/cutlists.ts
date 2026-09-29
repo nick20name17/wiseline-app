@@ -129,22 +129,6 @@ export const groupRows = (rows: CutlistRow[], { byProduct = false } = {}): Cutli
 }
 
 /**
- * The lists arrive in the board's order — production date, then priority, then gauge/colour — so the
- * days fall out of the sequence and need only be cut where the date changes.
- */
-export const byDay = (cutlists: Cutlist[]) => {
-  const days: { date: string | null; cutlists: Cutlist[] }[] = []
-
-  for (const cutlist of cutlists) {
-    const last = days[days.length - 1]
-    if (last && last.date === cutlist.production_date) last.cutlists.push(cutlist)
-    else days.push({ date: cutlist.production_date, cutlists: [cutlist] })
-  }
-
-  return days
-}
-
-/**
  * The Slinet's list each bendlist was cut from. One release makes one Slinet list per gauge/colour and
  * one bendlist per machine under it, so the release time alone would tie a bendlist to every colour
  * released with it. Where a list appears twice the first copy wins, so the caller puts first the one

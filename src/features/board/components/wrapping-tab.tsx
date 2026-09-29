@@ -1,4 +1,4 @@
-import { formatLongDate, today } from '@/lib/days'
+import { byDay, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
@@ -20,17 +20,6 @@ import { StatusPill } from './status-pill'
 import { StockWrap } from './stock-wrap'
 import { useLineNoteState } from './use-line-note-state'
 import { WrapOrder } from './wrap-order'
-
-/** The rows arrive in the board's order — production date, then priority — so the days fall out. */
-const byDay = (rows: WrappingRow[]) => {
-  const days: { date: string | null; rows: WrappingRow[] }[] = []
-  for (const row of rows) {
-    const last = days[days.length - 1]
-    if (last && last.date === row.production_date) last.rows.push(row)
-    else days.push({ date: row.production_date, rows: [row] })
-  }
-  return days
-}
 
 /** A line whose day has passed and is still not wrapped. */
 const isOverdue = (row: WrappingRow) =>
@@ -72,7 +61,7 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
       )
   }
 
-  const days = byDay(rows ?? [])
+  const days = byDay(rows ?? [], row => row.production_date)
 
   if (isError && !rows)
     return (
@@ -120,12 +109,12 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
                       {day.date === today() ? ' · today' : ''}
                     </span>
                     <span className='ml-2 text-xs text-muted-foreground'>
-                      {day.rows.length} line item{day.rows.length === 1 ? '' : 's'}
+                      {day.items.length} line item{day.items.length === 1 ? '' : 's'}
                     </span>
                   </TableCell>
                 </TableRow>
 
-                {day.rows.map(row => {
+                {day.items.map(row => {
                   const lineRemans = remans?.get(row.origin_item) ?? []
 
                   return (

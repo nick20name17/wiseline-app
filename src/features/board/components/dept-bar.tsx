@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from 'cn'
 import { History } from 'lucide-react'
-import { VIEW_LABELS, type BoardView } from '../lib/views'
+import { VIEW_LABELS } from '../lib/views'
+import type { BoardView } from '../lib/boards'
 
 type DeptBarProps = {
   /** The tabs this department and role have. */

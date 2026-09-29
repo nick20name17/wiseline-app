@@ -17,10 +17,9 @@ import {
   useBypassProduction,
   useScheduleOrders,
   useSplitOrder,
-  type TrimLineItem,
-  type TrimOrder
+  type BoardLineItem,
+  type BoardOrder
 } from '../api'
-import { tablesFor } from '../lib/columns'
 import { BypassDialog } from './bypass-dialog'
 import { DayStrip } from './day-strip'
 import { LineNotesDialog } from './line-notes-dialog'
@@ -51,7 +50,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
     error,
     refetch
   } = useQuery(unscheduledOrdersQuery(board.name, search))
-  const columns = useColumnOrder(tablesFor(board).unscheduled)
+  const columns = useColumnOrder(board.tables.unscheduled)
   const orders = page?.results ?? []
   // Two hundred and more orders is too many rows to keep in the page at once; only those on screen are.
   const { tableRef, items, measure, before, after } = useWindowRows(
@@ -63,8 +62,8 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [split, setSplit] = useState<Split | null>(null)
   const [dialog, setDialog] = useState<OpenDialog>(null)
-  const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
-  const [noteLine, setNoteLine] = useState<{ item: TrimLineItem; readOnly: boolean } | null>(null)
+  const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)
+  const [noteLine, setNoteLine] = useState<{ item: BoardLineItem; readOnly: boolean } | null>(null)
 
   const { notes, noteState } = useOrderNotes(orders)
 
@@ -101,7 +100,6 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
         total={orders.length}
         selectedCount={selected.length}
         ready={departmentId !== undefined}
-        makes={board.makes}
         onStockCards={() => setDialog('cards')}
         onCreateStockOrder={() => setDialog('stock')}
         onBypass={() => setDialog('bypass')}

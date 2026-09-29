@@ -6,16 +6,15 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
 import { ChevronRight, Split } from 'lucide-react'
 import { Fragment } from 'react'
-import { isStockOrder, type TrimLineItem, type TrimOrder } from '../api'
+import { isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard } from '../lib/board-context'
-import { tablesFor } from '../lib/columns'
 import { splitOf } from '../lib/parts'
 import { LineItems } from './line-items'
 import { NoteButton, type NoteState } from './note-button'
 import { PriorityCell } from './priority-cell'
 
 type OrderRowProps = {
-  order: TrimOrder
+  order: BoardOrder
   departmentId: number | undefined
   expanded: boolean
   selected: boolean
@@ -31,7 +30,7 @@ type OrderRowProps = {
   onToggleLine: (lineId: string) => void
   onSplit: () => void
   onOpenOrderNotes: () => void
-  onOpenLineNotes: (item: TrimLineItem, readOnly: boolean) => void
+  onOpenLineNotes: (item: BoardLineItem, readOnly: boolean) => void
 }
 
 export const OrderRow = ({
@@ -52,7 +51,7 @@ export const OrderRow = ({
 }: OrderRowProps) => {
   const stock = isStockOrder(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
-  const { cells } = useColumnCells(tablesFor(useBoard()).unscheduled)
+  const { cells } = useColumnCells(useBoard().tables.unscheduled)
 
   return (
     <Fragment>

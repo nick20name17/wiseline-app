@@ -1,16 +1,14 @@
 import { QueryError } from '@/components/query-error'
-import { Button } from '@/components/ui/button'
-import { DatePicker } from '@/components/ui/date-picker'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatLongDate, fromIsoDay, toIsoDay } from '@/lib/days'
+import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { addDays } from 'date-fns'
-import { ChevronDown, ChevronLeft, ChevronRight, Truck } from 'lucide-react'
+import { ChevronDown, Truck } from 'lucide-react'
 import { useState } from 'react'
 import { scheduledQuery, type TruckCard } from '../api'
 import { formatWeight } from '../lib/format'
+import { DayPicker } from './day-picker'
 import { TruckLoads } from './truck-loads'
 
 type Tile = { label: string; count: number; weight: number; tone: 'plain' | 'over' | 'done' }
@@ -68,24 +66,11 @@ type ScheduledTabProps = {
 export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
   const { data: cards, isPending, isError, error, refetch } = useQuery(scheduledQuery(day))
   const [open, setOpen] = useState<number | null>(null)
-  const step = (days: number) => onDayChange(toIsoDay(addDays(fromIsoDay(day), days)))
   const used = (cards ?? []).filter(card => card.orders.length)
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
-      <div className='flex items-center gap-2'>
-        <Button variant='outline' size='icon' aria-label='Previous day' onClick={() => step(-1)}>
-          <ChevronLeft />
-        </Button>
-        <DatePicker
-          value={fromIsoDay(day)}
-          onChange={date => onDayChange(toIsoDay(date))}
-          format={date => formatLongDate(toIsoDay(date))}
-        />
-        <Button variant='outline' size='icon' aria-label='Next day' onClick={() => step(1)}>
-          <ChevronRight />
-        </Button>
-      </div>
+      <DayPicker day={day} onDayChange={onDayChange} />
 
       {isError && !cards ? (
         <QueryError title='The trucks did not load' error={error} onRetry={() => void refetch()} />
@@ -124,7 +109,7 @@ export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
               />
               <span className='font-medium'>Truck {card.name}</span>
               <span className='text-sm text-muted-foreground'>
-                Limit {card.weight_limit === null ? '—' : formatWeight(card.weight_limit)}
+                Limit {formatWeight(card.weight_limit)}
               </span>
               <span className='ml-auto flex flex-wrap gap-2'>
                 {tilesOf(card).map(tile => (

@@ -20,10 +20,9 @@ import {
   useSplitOrder,
   useUnscheduleOrder,
   workWeekQuery,
-  type TrimLineItem,
-  type TrimOrder
+  type BoardLineItem,
+  type BoardOrder
 } from '../api'
-import { tablesFor } from '../lib/columns'
 import { partDays, partKey, partLines, partState } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { ConfirmDialog } from './confirm-dialog'
@@ -44,7 +43,7 @@ type ScheduledTabProps = {
 }
 
 /** One production day of one order — what a row stands for. */
-type Part = { order: TrimOrder; day: string }
+type Part = { order: BoardOrder; day: string }
 
 type ReschedulePartDialogProps = {
   part: Part | null
@@ -166,8 +165,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<Part | null>(null)
-  const [noteOrder, setNoteOrder] = useState<TrimOrder | null>(null)
-  const [noteLine, setNoteLine] = useState<{ item: TrimLineItem; readOnly: boolean } | null>(null)
+  const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)
+  const [noteLine, setNoteLine] = useState<{ item: BoardLineItem; readOnly: boolean } | null>(null)
 
   // The board opens on the first day of the window the tabs show, which the day strip decides — a day
   // the shop is shut is not one it lists.
@@ -186,7 +185,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
     error,
     refetch
   } = useQuery(scheduledOrdersQuery(board.name, search))
-  const columns = useColumnOrder(tablesFor(board).scheduled)
+  const columns = useColumnOrder(board.tables.scheduled)
   const orders = page?.results ?? []
   // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
   const { data: counts } = useQuery(countsQuery(departmentId))
@@ -201,7 +200,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
       title: `Released ${released} order${released === 1 ? '' : 's'} · ${cutlists} cutlist${cutlists === 1 ? '' : 's'} generated`
     })
   })
-  const rank = (order: TrimOrder) =>
+  const rank = (order: BoardOrder) =>
     departmentStateOf(order, departmentId)?.priority?.position ?? Number.MAX_SAFE_INTEGER
 
   /**
@@ -273,7 +272,6 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
       />
 
       <ScheduledToolbar
-        makes={board.makes}
         total={parts.length}
         day={day}
         selectedCount={selected.length}

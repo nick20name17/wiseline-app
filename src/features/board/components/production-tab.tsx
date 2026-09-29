@@ -1,5 +1,5 @@
 import { useBoard } from '../lib/board-context'
-import { formatDate, today } from '@/lib/days'
+import { byDay, formatDate, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -19,7 +19,6 @@ import {
   type WrappingRow
 } from '../api'
 import {
-  byDay,
   hasSlinetStarted,
   isBender,
   slinetListsFor,
@@ -185,7 +184,8 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
   })
 
   const word = isSlinet ? 'cutlists' : 'bendlists'
-  const days = byDay(lists.data ?? [])
+  // Production date, then priority, then gauge/colour.
+  const days = byDay(lists.data ?? [], cutlist => cutlist.production_date)
   // Every release starts on the Slinet, so no Slinet list at all means nothing was ever released.
   const nothingReleased = slinetLoaded && !slinetLists.length
 
@@ -242,12 +242,12 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
             {day.date === today() ? ' · today' : ''}
           </span>
           <span className='text-xs text-muted-foreground'>
-            {day.cutlists.length} {day.cutlists.length === 1 ? word.slice(0, -1) : word}
+            {day.items.length} {day.items.length === 1 ? word.slice(0, -1) : word}
           </span>
           <span className='h-px flex-1 bg-border' />
         </div>
 
-        {day.cutlists.map(cutlist => {
+        {day.items.map(cutlist => {
           const slinetList = isSlinet ? undefined : slinetListFor(cutlist)
           return (
             <CutlistCard

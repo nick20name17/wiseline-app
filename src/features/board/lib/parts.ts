@@ -1,4 +1,4 @@
-import { departmentStateOf, isNarrowed, type TrimLineItem, type TrimOrder } from '../api'
+import { departmentStateOf, isNarrowed, type BoardLineItem, type BoardOrder } from '../api'
 
 /**
  * A part is one production day of one order — the row the Scheduled tab shows. A split order is one
@@ -10,17 +10,17 @@ import { departmentStateOf, isNarrowed, type TrimLineItem, type TrimOrder } from
  * order's earliest day in the department, not the line's — on a split order it dates the lines still
  * waiting too — so it is never read as the line's own.
  */
-export const lineDay = (item: TrimLineItem) => item.item?.production_date ?? null
+export const lineDay = (item: BoardLineItem) => item.item?.production_date ?? null
 
 /** What still has to be made: the ordered quantity less whatever is being pulled from stock. */
-export const toMake = (item: TrimLineItem) => item.quantity - (item.item?.pull_from_stock ?? 0)
+export const toMake = (item: BoardLineItem) => item.quantity - (item.item?.pull_from_stock ?? 0)
 
 /**
  * How an order's lines are spread over production days: some on a day and some still on none
  * (`partial`), on more than one day (`split`), or all together (`null`). Which of the two it is
  * decides where the rest of the order is to be found.
  */
-export const splitOf = (order: TrimOrder) => {
+export const splitOf = (order: BoardOrder) => {
   if (isNarrowed(order)) return 'partial'
   const days = order.origin_items.map(lineDay)
   if (days.some(day => !day) && days.some(day => day)) return 'partial'
@@ -31,7 +31,7 @@ export const splitOf = (order: TrimOrder) => {
  * Every day the order has lines on, earliest first. An order whose lines carry no day of their own
  * sits wholly on the department's production date.
  */
-export const partDays = (order: TrimOrder, departmentId: number | undefined): string[] => {
+export const partDays = (order: BoardOrder, departmentId: number | undefined): string[] => {
   const days = new Set(order.origin_items.map(lineDay).filter((day): day is string => !!day))
   if (!days.size) {
     const whole = departmentStateOf(order, departmentId)?.production_date
@@ -41,7 +41,7 @@ export const partDays = (order: TrimOrder, departmentId: number | undefined): st
 }
 
 /** The lines one part moves with; an order with no per-line days moves whole. */
-export const partLines = (order: TrimOrder, day: string) => {
+export const partLines = (order: BoardOrder, day: string) => {
   const dated = order.origin_items.some(item => lineDay(item))
   return dated ? order.origin_items.filter(item => lineDay(item) === day) : order.origin_items
 }
@@ -52,7 +52,7 @@ export const partKey = (orderId: string, day: string) => `${orderId}|${day}`
  * Where one part stands: Reviewed when every one of its lines is, Released once any is. The lines carry
  * both for their own day; an order whose lines have no app row yet falls back on the order's.
  */
-export const partState = (order: TrimOrder, day: string, departmentId: number | undefined) => {
+export const partState = (order: BoardOrder, day: string, departmentId: number | undefined) => {
   const items = partLines(order, day).flatMap(line => (line.item ? [line.item] : []))
   if (!items.length) {
     const state = departmentStateOf(order, departmentId)

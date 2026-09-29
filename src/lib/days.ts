@@ -32,3 +32,18 @@ export const fromIsoDay = (iso: string) => {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
   return new Date(year, month - 1, day)
 }
+
+/**
+ * Items that arrive sorted by day, cut into a run per day. The lists come in the board's order, so a
+ * day ends where the date changes.
+ */
+export const byDay = <T, D extends string | null>(items: readonly T[], dateOf: (item: T) => D) => {
+  const days: { date: D; items: T[] }[] = []
+  for (const item of items) {
+    const last = days[days.length - 1]
+    const date = dateOf(item)
+    if (last && last.date === date) last.items.push(item)
+    else days.push({ date, items: [item] })
+  }
+  return days
+}
