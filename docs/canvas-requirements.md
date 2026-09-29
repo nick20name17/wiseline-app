@@ -237,7 +237,7 @@ thread or commit that carries it.
 
 ## Page 2 — Rollforming (98 requirements)
 
-- [ ] (508, 258) Rollforming Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
+- [x] (508, 258) Rollforming Managers should be able to see and edit everything from here down. Including what the Worker can see and do. _(verified: live 2026-09-29 — a Manager's Rollforming strip holds every tab, the Worker's Slit Line and Wrapping among them, and works both)_
 - [ ] (1034, 272) Rollforming Workers should be able to see everything from here down.
 - [ ] (542, 280) Each Machine tab only shows the line items that are assigned to that Machine via inputs through the “Roll Options” tab in EBMS
 - [x] (573, 283) The Gauge / Color column would show all the materials that are on the order. _(verified: live 2026-09-29 — 145864 reads «29 Ga Black, 29 Ga Burnished Slate, 29 Ga Charcoal»)_
@@ -338,7 +338,7 @@ thread or commit that carries it.
 
 ## Page 3 — Shipping (62 requirements)
 
-- [ ] (570, 171) Shipping Managers should be able to see and edit everything from here down. Including what the Worker can see and do.
+- [x] (570, 171) Shipping Managers should be able to see and edit everything from here down. Including what the Worker can see and do. _(verified: live 2026-09-29 — a Manager works Shipping, Loading and Driver alike, the Worker's windows included)_
 - [ ] (1242, 183) Accessories Workers should be able to see everything from here down.
 - [x] (1249, 187) The Worker window should just be a list of the scheduled orders. A Worker should not need to select days of the week, it needs to just be a list. This lists needs to always sort primarily by Prep Date and then have a distinct line between the different days. See example: -----&gt; _(verified: live 2026-09-29 — the Packaging list is one list, a line between the days; Worker windows in e2e only)_
 - [x] (1285, 195) This tab needs to primarily sort by Prep Date and then by Priority. _(verified: live 2026-09-29 — the Packaging list runs by Prep Date, then Priority (backend order))_
