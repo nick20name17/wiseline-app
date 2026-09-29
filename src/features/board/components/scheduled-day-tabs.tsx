@@ -148,20 +148,25 @@ export const ScheduledDayTabs = ({
                     title={
                       entry.over_capacity
                         ? 'Over capacity — soft warning'
-                        : 'Assigned bends / total plant daily bend capacity'
+                        : board.assignsMachines
+                          ? 'Assigned bends / total plant daily bend capacity'
+                          : 'Pieces assigned to the day'
                     }
                   >
                     ({dayLoad(entry, board)}){entry.over_capacity ? ' · over' : ''}
                   </span>
-                  <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
-                    <span
-                      className={cn(
-                        'block h-full w-(--used)',
-                        warn ? 'bg-destructive' : 'bg-primary'
-                      )}
-                      style={{ '--used': `${used}%` } as CSSProperties}
-                    />
-                  </span>
+                  {/* A share of the day's bend capacity, which only Trim's machines have. */}
+                  {board.assignsMachines ? (
+                    <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
+                      <span
+                        className={cn(
+                          'block h-full w-(--used)',
+                          warn ? 'bg-destructive' : 'bg-primary'
+                        )}
+                        style={{ '--used': `${used}%` } as CSSProperties}
+                      />
+                    </span>
+                  ) : null}
                 </button>
                 {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
                     a keyboard reaching it shows it too. A board with no machines has no report. */}

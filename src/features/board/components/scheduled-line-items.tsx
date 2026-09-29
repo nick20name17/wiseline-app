@@ -77,10 +77,13 @@ const commitNumber = (
   if (next !== current) write(next, revert)
 }
 
-/** A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). */
-const coilOf = (item: BoardLineItem, slit: SlitLine | undefined) => ({
-  // A line pulled from stock is rolled off nothing, so it carries no coil.
-  icon: slit?.icon ?? (item.item && item.item.status !== 'stock' ? 'coil' : null),
+/**
+ * A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). A line pulled from stock
+ * is rolled off nothing, so it carries no coil p2 (542,453) — whether the server says Stock or the
+ * figure already does.
+ */
+const coilOf = (item: BoardLineItem, slit: SlitLine | undefined, stock: boolean) => ({
+  icon: slit?.icon ?? (item.item && !stock ? 'coil' : null),
   locked: slit?.locked ?? false,
   supplier: slit?.supplier ?? item.item?.supplier ?? 'Undefined',
   coilNumber: slit?.coil_number ?? item.item?.coil_number ?? 'Undefined'
@@ -254,7 +257,7 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(item, slitStates.get(item.id))
+              const coil = coilOf(item, slitStates.get(item.id), status === 'stock')
               const pickable =
                 board.coils &&
                 editable &&
@@ -271,7 +274,8 @@ export const ScheduledLineItems = ({
                   data-divider={(board.coils && newProduct(rows, index)) || undefined}
                 >
                   <TableCell>
-                    {board.coils && editable ? (
+                    {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
+                    {board.coils && editable && status !== 'stock' ? (
                       <Checkbox
                         aria-label={`Select ${item.id_inven ?? item.id}`}
                         checked={picked.has(item.id)}
