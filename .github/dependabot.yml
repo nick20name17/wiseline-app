@@ -2,6 +2,8 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    # Work lands on dev; main only takes dev when it is released.
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
@@ -10,6 +12,7 @@ updates:
 
   - package-ecosystem: bun
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
