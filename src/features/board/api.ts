@@ -790,9 +790,11 @@ export const useScheduleOrders = (onSuccess: () => void) =>
       // `sales-orders/schedule/` dates every line of an order, the part already split off to its
       // own day included. A part-scheduled order arrives with only the lines still waiting, so
       // those go by themselves, the way a split does.
-      const partial = orders.filter(isNarrowed)
+      const isPart = (order: BoardOrder) =>
+        isNarrowed(order) && !!departmentStateOf(order, departmentId)?.production_date
+      const partial = orders.filter(isPart)
       const whole = await Promise.all(
-        orders.filter(order => !isNarrowed(order)).map(ensureSalesOrderId)
+        orders.filter(order => !isPart(order)).map(ensureSalesOrderId)
       )
       await Promise.all([
         whole.length

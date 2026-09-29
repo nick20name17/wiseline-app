@@ -148,7 +148,7 @@ export const ScheduledLineItems = ({
   }
 
   const rows = board.coils ? [...order.origin_items].sort(byProduct) : order.origin_items
-  // A line ticked before its Stock was raised to the whole quantity has lost its box, and goes too.
+  // The server's Stock can also reach the whole quantity under a tick; such a line has no box either.
   const pickedLines = rows.filter(item => picked.has(item.id) && !isAllFromStock(item))
   const pickedProduct = pickedLines[0]?.id_inven ?? null
   const pickedWaiting = pickedLines.filter(
@@ -401,7 +401,17 @@ export const ScheduledLineItems = ({
                                 event.currentTarget,
                                 fromStock,
                                 { min: 0, max: item.quantity },
-                                (next, revert) => edit(item, { pull_from_stock: next }, revert)
+                                (next, revert) => {
+                                  // Taken whole off the shelf, it loses its box — and its tick, so
+                                  // lowering the Stock again does not bring it back picked.
+                                  if (next >= item.quantity)
+                                    setPicked(current => {
+                                      const kept = new Set(current)
+                                      kept.delete(item.id)
+                                      return kept
+                                    })
+                                  edit(item, { pull_from_stock: next }, revert)
+                                }
                               )
                             }
                           />

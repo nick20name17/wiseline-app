@@ -237,20 +237,21 @@ export const PrioritiesTable = ({
                 items={rows.map(priority => priority.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {rows.map(priority => (
-                  // A second drag while the first saves would renumber from a list about to change.
-                  <SortableRow
-                    key={priority.id}
-                    priority={priority}
-                    rank={ranks.get(priority.id) ?? 0}
-                    department={departments ? departmentOf(priority) : undefined}
-                    // Only the hierarchy in scope moves: the server renumbers one at a time.
-                    disabled={
-                      !canChange(priority) || save.isPending || priority.department !== scope
-                    }
-                    readOnly={!canChange(priority)}
-                  />
-                ))}
+                {rows.map(priority => {
+                  const changeable = canChange(priority)
+                  return (
+                    // A second drag while the first saves would renumber from a list about to change.
+                    <SortableRow
+                      key={priority.id}
+                      priority={priority}
+                      rank={ranks.get(priority.id) ?? 0}
+                      department={departments ? departmentOf(priority) : undefined}
+                      // Only the hierarchy in scope moves: the server renumbers one at a time.
+                      disabled={!changeable || save.isPending || priority.department !== scope}
+                      readOnly={!changeable}
+                    />
+                  )
+                })}
               </SortableContext>
             )}
           </TableBody>
