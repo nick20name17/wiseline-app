@@ -27,8 +27,8 @@ export const ScheduledToolbar = ({
   onAllocatedStock,
   onRelease
 }: ScheduledToolbarProps) => {
-  // Allocated Stock and Release To Production are a making department's; Accessories has neither.
-  const { makes } = useBoard()
+  // Release To Production is a making department's; Allocated Stock is Trim's shelf alone.
+  const { makes, stockCards } = useBoard()
   return (
     <div className='flex flex-wrap items-center gap-2.5'>
       <span className='text-sm text-muted-foreground'>
@@ -56,10 +56,12 @@ export const ScheduledToolbar = ({
             </span>
           ) : null}
 
-          <Button variant='outline' onClick={onAllocatedStock}>
-            <Database data-icon='inline-start' />
-            Allocated Stock
-          </Button>
+          {stockCards ? (
+            <Button variant='outline' onClick={onAllocatedStock}>
+              <Database data-icon='inline-start' />
+              Allocated Stock
+            </Button>
+          ) : null}
           <Button
             disabled={!canRelease || isReleasing}
             title={

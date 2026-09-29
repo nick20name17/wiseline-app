@@ -273,3 +273,54 @@ export const PACKAGE_LINES_TABLE: ColumnTable = {
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
 }
+
+const without = (table: ColumnTable, keys: string[]) =>
+  table.columns.filter(column => !keys.includes(column.key))
+
+/*
+ * Rollforming's tables p2 (540,467), (1040,313): nothing is vented or put on a machine by hand — the
+ * machine comes from the profile in EBMS p2 (542,280) — and every line carries the Supplier and Coil
+ * Number it is rolled from. Saved under their own keys, so each board keeps its own column order.
+ */
+export const ROLLFORMING_UNSCHEDULED_TABLE: ColumnTable = {
+  table: 'rollforming-unscheduled',
+  columns: UNSCHEDULED_TABLE.columns
+}
+
+export const ROLLFORMING_SCHEDULED_TABLE: ColumnTable = {
+  table: 'rollforming-scheduled',
+  columns: SCHEDULED_TABLE.columns.map(column =>
+    column.key === 'trimloc' ? { ...column, label: 'Rollforming Location', width: 'w-44' } : column
+  )
+}
+
+export const ROLLFORMING_SCHEDULED_LINES_TABLE: ColumnTable = {
+  table: 'rollforming-scheduled-lines',
+  columns: [
+    { key: 'qty', label: 'Qty', width: 'w-16' },
+    { key: 'stock', label: 'Stock', width: 'w-20' },
+    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'pid', label: 'Product ID', width: 'w-32' },
+    { key: 'desc', label: 'Description' },
+    { key: 'l', label: 'L"', width: 'w-24' },
+    { key: 'supplier', label: 'Supplier', width: 'w-40' },
+    { key: 'coil', label: 'Coil Number', width: 'w-44' },
+    { key: 'notes', label: 'Notes', width: 'w-20' }
+  ]
+}
+
+export const ROLLFORMING_WRAPPING_TABLE: ColumnTable = {
+  table: 'rollforming-wrapping',
+  columns: without(WRAPPING_TABLE, ['remfg'])
+}
+
+// The bench p2 (1144,315): nothing is remade in Rollforming.
+export const ROLLFORMING_WRAP_LINES_TABLE: ColumnTable = {
+  table: 'rollforming-wrap-lines',
+  columns: without(WRAP_LINES_TABLE, ['reman'])
+}
+
+export const ROLLFORMING_COMPLETED_LINES_TABLE: ColumnTable = {
+  table: 'rollforming-completed-lines',
+  columns: without(COMPLETED_LINES_TABLE, ['reman'])
+}

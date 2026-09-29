@@ -63,3 +63,11 @@ export const partState = (order: BoardOrder, day: string, departmentId: number |
     released: items.some(item => item.is_released)
   }
 }
+
+/** Rollforming's line order: «sorted by Product ID and then by Length» p2 (573,411), (571,303). */
+export const byProduct = (a: BoardLineItem, b: BoardLineItem) =>
+  (a.id_inven ?? '').localeCompare(b.id_inven ?? '') || (a.length ?? 0) - (b.length ?? 0)
+
+/** Where a sorted list needs «a distinct line between the different Product IDs» p2 (544,416). */
+export const newProduct = (rows: BoardLineItem[], index: number) =>
+  index > 0 && rows[index - 1]!.id_inven !== rows[index]!.id_inven

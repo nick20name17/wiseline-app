@@ -128,7 +128,11 @@ const itemSchema = z.object({
   // Width and description are editable here and deliberately never pushed back to EBMS, so a set
   // value shadows the mirror's.
   width: z._default(z.nullable(z.number()), null),
-  description: z._default(z.nullable(z.string()), null)
+  description: z._default(z.nullable(z.string()), null),
+  // Rollforming's coil p2 (541,431): `null` is Undefined, any coil from any supplier. The listing does
+  // not carry them yet (backend-blockers R6); the Slit Line's lists do, for what went there.
+  supplier: z._default(z.nullable(z.string()), null),
+  coil_number: z._default(z.nullable(z.string()), null)
 })
 
 const lineItemSchema = z.object({
@@ -192,7 +196,7 @@ export const isNarrowed = (order: BoardOrder) =>
 const PAGE_SIZE = 100
 
 const boardKeys = {
-  all: ['trim'] as const,
+  all: ['board'] as const,
   orders: () => [...boardKeys.all, 'orders'] as const,
   // A board's orders are its department's: the same EBMS order is listed by each department with only
   // its own lines, so the category is part of every orders key.
@@ -2319,4 +2323,128 @@ export const useRequestRemanufacture = (onSuccess: () => void) =>
     onSuccess,
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
+// --- Rollforming coils: Supplier, Coil Number, the Slit Line --------------------
+
+const coilOptionSchema = z.object({
+  product_id: z.string(),
+  description: z._default(z.nullable(z.string()), null),
+  width: z._default(z.number(), 0),
+  linear_feet: z._default(z.number(), 0)
+})
+
+export type CoilOption = z.infer<typeof coilOptionSchema>
+
+/**
+ * What a line can be rolled from: the coils of its colour and gauge with a Production Type of Coil
+ * p2 (597,543), and the suppliers of those coils p2 (678,460).
+ */
+export const coilChoicesQuery = (originItem: string | null) =>
+  queryOptions({
+    queryKey: [...boardKeys.all, 'coil-choices', originItem ?? ''] as const,
+    enabled: !!originItem,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [coils, suppliers] = await Promise.all([
+        authApi.get(`coil-assignment/${originItem}/coils/`).json(),
+        authApi.get(`coil-assignment/${originItem}/suppliers/`).json()
+      ])
+      return {
+        coils: z.array(coilOptionSchema).parse(coils),
+        suppliers: z
+          .array(z.object({ supplier: z.string() }))
+          .parse(suppliers)
+          .map(({ supplier }) => supplier)
+      }
+    }
+  })
+
+/** A coil's Lot Numbers with something left on them; picking one fills the Coil Number p2 (690,509). */
+export const coilNumbersQuery = (productId: string | null) =>
+  queryOptions({
+    queryKey: [...boardKeys.all, 'coil-lots', productId ?? ''] as const,
+    enabled: !!productId,
+    queryFn: async () =>
+      z
+        .array(z.object({ coil_number: z.string(), on_hand: z._default(z.number(), 0) }))
+        .parse(await authApi.get(`coil-assignment/coils/${productId}/lots/`).json())
+  })
+
+const coilStateSchema = z.object({
+  origin_item: z.string(),
+  /** `coil`, `waiting_to_slit` or `slit`. */
+  icon: z._default(z.nullable(z.string()), null),
+  locked: z._default(z.boolean(), false),
+  supplier: z._default(z.nullable(z.string()), null),
+  coil_number: z._default(z.nullable(z.string()), null)
+})
+
+export type CoilState = z.infer<typeof coilStateSchema>
+
+/**
+ * Every line of the department sent to the Slit Line, waiting and done, by line: the icon, and the
+ * Supplier and Coil Number the Slit Line filled in or «waiting...» p2 (1051,333), (1086,349).
+ */
+export const slitStatesQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: [...boardKeys.all, 'slit-states', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () => {
+      const [waiting, done] = await Promise.all(
+        [false, true].map(async slit =>
+          z
+            .array(coilStateSchema)
+            .parse(
+              await authApi
+                .get('slit-line/', { searchParams: { department_id: departmentId!, slit } })
+                .json()
+            )
+        )
+      )
+      return new Map([...waiting!, ...done!].map(state => [state.origin_item, state]))
+    }
+  })
+
+const invalidateCoilAssignment = (client: QueryClient) =>
+  Promise.all([
+    client.invalidateQueries({ queryKey: boardKeys.orders() }),
+    client.invalidateQueries({ queryKey: [...boardKeys.all, 'slit-states'] })
+  ])
+
+/**
+ * The Supplier, and a Coil Number under it, onto lines of one Product ID p2 (540,467). Both left out is
+ * Undefined — any coil will do; a Coil Number needs a Supplier p2 (709,459).
+ */
+export const useAssignCoil = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil was not assigned' },
+    mutationFn: (input: {
+      originItems: string[]
+      supplier: string | null
+      coilNumber: string | null
+    }) =>
+      authApi
+        .post('coil-assignment/assign/', {
+          json: {
+            origin_items: input.originItems,
+            supplier: input.supplier,
+            coil_number: input.coilNumber
+          }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
+  })
+
+/** Lines sent to the Slit Line, or taken back before they are slit p2 (566,565). */
+export const useSlitRequest = () =>
+  useMutation({
+    meta: { errorTitle: 'The Slit Line was not changed' },
+    mutationFn: (input: { originItems: string[]; slit: boolean }) =>
+      authApi
+        .post(input.slit ? 'slit-line/request/' : 'slit-line/cancel/', {
+          json: { origin_items: input.originItems }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
   })

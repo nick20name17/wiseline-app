@@ -21,22 +21,26 @@ import {
 } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { Calendar, ChevronDown, Lock } from 'lucide-react'
+import { Calendar, ChevronDown, Cylinder, Lock, Scissors } from 'lucide-react'
+import { useState } from 'react'
 import {
   isStockOrder,
   machinesQuery,
+  slitStatesQuery,
+  useSlitRequest,
   wholeOrderQuery,
   useUpdateLineItem,
   type LineItemEdit,
   type BoardLineItem,
-  type BoardOrder
+  type BoardOrder,
+  type CoilState
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
-import { STANDARD_LENGTH } from '../lib/format'
-import { lineDay, partLines, toMake } from '../lib/parts'
+import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
+import { CoilAssignDialog } from './coil-assign-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -72,6 +76,23 @@ const commitNumber = (
   if (next !== current) write(next, revert)
 }
 
+/** A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). */
+const coilOf = (item: BoardLineItem, slit: CoilState | undefined) => ({
+  icon: slit?.icon ?? (item.item ? 'coil' : null),
+  locked: slit?.locked ?? false,
+  supplier: slit?.supplier ?? item.item?.supplier ?? 'Undefined',
+  coilNumber: slit?.coil_number ?? item.item?.coil_number ?? 'Undefined'
+})
+
+const CoilIcon = ({ icon }: { icon: string | null }) =>
+  icon === 'waiting_to_slit' ? (
+    <Scissors className='size-3.5 shrink-0 text-warning' aria-label='Waiting for the Slit Line' />
+  ) : icon === 'slit' ? (
+    <Scissors className='size-3.5 shrink-0 text-success' aria-label='Slit' />
+  ) : icon === 'coil' ? (
+    <Cylinder className='size-3.5 shrink-0 text-muted-foreground' aria-label='Rolled from a coil' />
+  ) : null
+
 /**
  * The line items under an expanded scheduled order: everything a Manager sets while reviewing it, and
  * everything the floor reports back once it is released.
@@ -88,14 +109,22 @@ export const ScheduledLineItems = ({
   const board = useBoard()
   const { data: order = listed } = useQuery(wholeOrderQuery(board.name, listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
-  // Nothing is bent in a department that does not make what it packs.
+  // Only a board that puts lines on machines by hand needs the machines.
   const { data: machines } = useQuery({
     ...machinesQuery(board.name, departmentId),
-    enabled: board.makes
+    enabled: board.assignsMachines
   })
   // A trim is assigned to the machine that bends it.
   const stations = machines?.filter(isBender)
   const update = useUpdateLineItem()
+  const { data: slitStates } = useQuery({
+    ...slitStatesQuery(departmentId),
+    enabled: board.coils && departmentId !== undefined
+  })
+  const slit = useSlitRequest()
+  // The lines ticked for a coil, all of one Product ID p2 (540,467).
+  const [picked, setPicked] = useState<Set<string>>(() => new Set())
+  const [assigning, setAssigning] = useState(false)
 
   // A stock order is what puts trims on the shelf, so it has nothing to take from it.
   const stock = isStockOrder(order)
@@ -110,6 +139,13 @@ export const ScheduledLineItems = ({
     const itemId = item.item?.id
     if (itemId) update.mutate({ itemId, edit: patch }, { onError: revert })
   }
+
+  const rows = board.coils ? [...order.origin_items].sort(byProduct) : order.origin_items
+  const pickedLines = rows.filter(item => picked.has(item.id))
+  const pickedProduct = pickedLines[0]?.id_inven ?? null
+  const pickedWaiting = pickedLines.filter(
+    item => slitStates?.get(item.id)?.icon === 'waiting_to_slit'
+  )
 
   if (!order.origin_items.length) {
     return (
@@ -128,7 +164,44 @@ export const ScheduledLineItems = ({
           <span className='text-sm font-medium'>
             {board.makes ? 'Reviewing order' : 'Scheduled order'}
           </span>
-          <Button variant='outline' className='ml-auto' onClick={onReschedule}>
+          {/* Gone once released p2 (541,647). */}
+          {board.coils ? (
+            <>
+              <Button
+                variant='outline'
+                className='ml-auto'
+                disabled={!pickedLines.length}
+                onClick={() => setAssigning(true)}
+              >
+                <Cylinder data-icon='inline-start' />
+                Select Supplier / Coil Number{pickedLines.length ? ` (${pickedLines.length})` : ''}
+              </Button>
+              <Button
+                variant='outline'
+                disabled={!pickedLines.length || slit.isPending}
+                onClick={() =>
+                  slit.mutate(
+                    {
+                      originItems: pickedLines.map(item => item.id),
+                      // All of them already waiting takes them back; anything else sends them.
+                      slit: pickedWaiting.length !== pickedLines.length
+                    },
+                    { onSuccess: () => setPicked(new Set()) }
+                  )
+                }
+              >
+                <Scissors data-icon='inline-start' />
+                {pickedLines.length && pickedWaiting.length === pickedLines.length
+                  ? 'Take off the Slit Line'
+                  : 'Send to the Slit Line'}
+              </Button>
+            </>
+          ) : null}
+          <Button
+            variant='outline'
+            className={cn(!board.coils && 'ml-auto')}
+            onClick={onReschedule}
+          >
             <Calendar data-icon='inline-start' />
             Reschedule
           </Button>
@@ -148,7 +221,7 @@ export const ScheduledLineItems = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {order.origin_items.map(item => {
+            {rows.map((item, index) => {
               const itemDay = lineDay(item)
               const otherDay = !own.has(item.id)
               const editable = !released && !otherDay
@@ -167,14 +240,41 @@ export const ScheduledLineItems = ({
                   : allFromStock && !otherDay
                     ? 'stock'
                     : null
+              const offLength =
+                board.standardLength !== null &&
+                item.length !== null &&
+                item.length !== board.standardLength
+              const coil = coilOf(item, slitStates?.get(item.id))
+              const pickable =
+                board.coils &&
+                editable &&
+                !!item.item &&
+                (pickedProduct === null || pickedProduct === item.id_inven)
               const machine = item.item?.flow ?? null
               const width = item.item?.width ?? item.width
               const description = item.item?.description ?? item.description
 
               return (
-                <TableRow key={item.id} data-locked={otherDay || undefined}>
+                <TableRow
+                  key={item.id}
+                  data-locked={otherDay || undefined}
+                  data-divider={(board.coils && newProduct(rows, index)) || undefined}
+                >
                   <TableCell>
-                    {otherDay ? (
+                    {board.coils && editable ? (
+                      <Checkbox
+                        aria-label={`Select ${item.id_inven ?? item.id}`}
+                        checked={picked.has(item.id)}
+                        disabled={!pickable}
+                        onCheckedChange={() =>
+                          setPicked(current => {
+                            const next = new Set(current)
+                            if (!next.delete(item.id)) next.add(item.id)
+                            return next
+                          })
+                        }
+                      />
+                    ) : otherDay ? (
                       <Lock
                         className='size-3.5 text-muted-foreground'
                         aria-label={
@@ -347,19 +447,37 @@ export const ScheduledLineItems = ({
                         <span
                           className={cn(
                             'font-mono',
-                            otherDay
-                              ? 'text-muted-foreground'
-                              : item.length !== null &&
-                                  item.length !== STANDARD_LENGTH &&
-                                  'text-destructive'
+                            otherDay ? 'text-muted-foreground' : offLength && 'text-destructive'
                           )}
                           title={
-                            item.length === null || item.length === STANDARD_LENGTH
-                              ? undefined
-                              : `Non-standard length (not ${STANDARD_LENGTH}")`
+                            offLength
+                              ? `Non-standard length (not ${board.standardLength}")`
+                              : undefined
                           }
                         >
                           {item.length === null ? '—' : `${item.length}"`}
+                        </span>
+                      </TableCell>
+                    ),
+                    supplier: (
+                      <TableCell>
+                        <span className={cn('truncate', coil.locked && 'text-muted-foreground')}>
+                          {coil.supplier}
+                        </span>
+                      </TableCell>
+                    ),
+                    coil: (
+                      <TableCell>
+                        <span className='flex items-center gap-1.5'>
+                          <CoilIcon icon={coil.icon} />
+                          <span
+                            className={cn(
+                              'truncate font-mono',
+                              coil.locked && 'text-muted-foreground'
+                            )}
+                          >
+                            {coil.coilNumber}
+                          </span>
                         </span>
                       </TableCell>
                     ),
@@ -379,6 +497,15 @@ export const ScheduledLineItems = ({
           </TableBody>
         </Table>
       </div>
+
+      {board.coils ? (
+        <CoilAssignDialog
+          lines={pickedLines}
+          open={assigning}
+          onOpenChange={setAssigning}
+          onAssigned={() => setPicked(new Set())}
+        />
+      ) : null}
     </div>
   )
 }

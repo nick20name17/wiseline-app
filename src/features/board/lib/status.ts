@@ -30,6 +30,8 @@ const ITEM_STATUS: Record<string, { label: string; tint: string }> = {
   // Cut and bent are both the floor working the trim, so the board gives them one colour.
   cut: { label: 'Cut', tint: BLUE },
   bent: { label: 'Bent', tint: BLUE },
+  // Rollforming's made line p2 (1009,464), the floor's colour like Trim's Bent.
+  rolled: { label: 'Rolled', tint: BLUE },
   in_progress: { label: 'In Progress', tint: AMBER },
   wrapped: { label: 'Wrapped', tint: GREEN },
   packaged: { label: 'Packaged', tint: GREEN },

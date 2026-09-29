@@ -145,10 +145,11 @@ export const ScheduledRow = ({
   const board = useBoard()
   const { cells } = useColumnCells(board.tables.scheduled)
 
-  // Gate 1: every line of this part that still has to be made carries a machine.
-  const machinesAssigned = partLines(order, day).every(
-    item => toMake(item) <= 0 || !!item.item?.flow
-  )
+  // Gate 1: every line of this part that still has to be made carries a machine — on a board that
+  // puts lines on machines here; Rollforming's come from the profile in EBMS p2 (542,280).
+  const machinesAssigned =
+    !board.assignsMachines ||
+    partLines(order, day).every(item => toMake(item) <= 0 || !!item.item?.flow)
 
   return (
     <Fragment>

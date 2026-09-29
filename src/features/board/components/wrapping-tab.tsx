@@ -1,3 +1,4 @@
+import { useBoard } from '../lib/board-context'
 import { byDay, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
@@ -8,7 +9,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Package, PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { prioritiesQuery, remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
-import { WRAPPING_TABLE } from '../lib/columns'
 import { itemStatus } from '../lib/status'
 import { remanState } from '../lib/wrapping'
 import { Figure } from './figure'
@@ -47,7 +47,8 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
   const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
-  const columns = useColumnOrder(WRAPPING_TABLE)
+  const board = useBoard()
+  const columns = useColumnOrder(board.tables.wrapping)
 
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
@@ -97,13 +98,13 @@ export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={WRAPPING_TABLE.columns.length} />
+            <TableSkeletonRows columns={board.tables.wrapping.columns.length} />
           ) : (
             days.map(day => (
               <Fragment key={day.date ?? 'undated'}>
                 {/* The date is said once, over the lines that share it. */}
                 <TableRow>
-                  <TableCell colSpan={WRAPPING_TABLE.columns.length}>
+                  <TableCell colSpan={board.tables.wrapping.columns.length}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
                       {day.date ? formatLongDate(day.date) : '—'}
                       {day.date === today() ? ' · today' : ''}

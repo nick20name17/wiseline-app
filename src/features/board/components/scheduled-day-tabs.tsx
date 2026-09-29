@@ -165,7 +165,7 @@ export const ScheduledDayTabs = ({
                 </button>
                 {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
                     a keyboard reaching it shows it too. A board with no machines has no report. */}
-                {board.makes ? (
+                {board.assignsMachines ? (
                   <span className='absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 focus-within:opacity-100'>
                     <Button
                       variant='outline'

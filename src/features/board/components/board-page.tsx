@@ -14,6 +14,7 @@ import { ProductionTab } from './production-tab'
 import { ScheduledTab } from './scheduled-tab'
 import { HeaderSearch } from '@/components/header-search'
 import { UnscheduledTab } from './unscheduled-tab'
+import { WrappingTab } from './wrapping-tab'
 
 type BoardPageProps = {
   view: BoardView
@@ -47,7 +48,7 @@ export const BoardPage = ({
   // shows on the strip at once.
   const { data: cutlists } = useQuery({
     ...cutlistsQuery(departmentId, 'cutlist', null, false),
-    enabled: board.makes
+    enabled: board.managerViews.includes('production')
   })
 
   usePageHeader({
@@ -97,6 +98,9 @@ export const BoardPage = ({
         <CompletedTab departmentId={departmentId} />
       ) : view === 'packaging' ? (
         <PackagingTab departmentId={departmentId} />
+      ) : view === 'wrapping' ? (
+        // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
+        <WrappingTab departmentId={departmentId} />
       ) : (
         <ProductionTab departmentId={departmentId} onOpenCoils={() => onViewChange('coils')} />
       )}

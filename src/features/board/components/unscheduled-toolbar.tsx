@@ -24,7 +24,7 @@ export const UnscheduledToolbar = ({
   onSchedule
 }: UnscheduledToolbarProps) => {
   // Stock orders, stock cards and Bypass Production belong to a department that makes what it packs.
-  const { makes } = useBoard()
+  const { stockCards } = useBoard()
   return (
     <div className='flex flex-wrap items-center gap-2.5'>
       <span className='text-sm text-muted-foreground'>
@@ -41,7 +41,7 @@ export const UnscheduledToolbar = ({
       </span>
 
       <div className='ml-auto flex flex-wrap items-center gap-2'>
-        {makes ? (
+        {stockCards ? (
           <>
             <Button variant='outline' onClick={onStockCards}>
               <QrCode data-icon='inline-start' />

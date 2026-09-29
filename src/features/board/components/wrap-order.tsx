@@ -51,7 +51,7 @@ import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 // The statuses a line is wrapped from: the floor has finished it, or it came off the shelf.
-const READY = ['bent', 'stock', 'bypassed']
+const READY = ['bent', 'rolled', 'stock', 'bypassed']
 
 type RemanCellProps = {
   row: WrappingRow
@@ -102,7 +102,7 @@ type WrapCellProps = {
 }
 
 const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
-  const { pack, makes } = useBoard()
+  const { pack } = useBoard()
   if (row.status === pack.done)
     return <span className='text-xs text-muted-foreground'>{pack.doneLabel} ✓</span>
 
@@ -143,8 +143,8 @@ const WrapCell = ({ row, allowed, staged, onAmount }: WrapCellProps) => {
       title={
         held
           ? 'Held until the machine marks the remanufacture Bent'
-          : makes
-            ? 'Needs Bent or Stock status'
+          : pack.ready
+            ? `Needs ${pack.ready} or Stock status`
             : 'Cannot be packaged'
       }
     >

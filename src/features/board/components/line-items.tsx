@@ -15,7 +15,7 @@ import { CalendarDays, Lock, Split } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
-import { lineDay } from '../lib/parts'
+import { byProduct, lineDay, newProduct } from '../lib/parts'
 import { NoteButton } from './note-button'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -44,6 +44,7 @@ export const LineItems = ({
   const { data: order = listed } = useQuery(wholeOrderQuery(board.name, listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const picked = new Set(selectedLineIds)
+  const rows = board.coils ? [...order.origin_items].sort(byProduct) : order.origin_items
   const columns = useColumnOrder(UNSCHEDULED_LINES_TABLE)
 
   if (!order.origin_items.length) {
@@ -91,13 +92,17 @@ export const LineItems = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {order.origin_items.map(item => {
+            {rows.map((item, index) => {
               const day = lineDay(item)
               const locked = !!day
 
               return (
                 // A line already on a day is read-only here; the mute says so before the lock does.
-                <TableRow key={item.id} data-locked={locked || undefined}>
+                <TableRow
+                  key={item.id}
+                  data-locked={locked || undefined}
+                  data-divider={(board.coils && newProduct(rows, index)) || undefined}
+                >
                   <TableCell>
                     {locked ? (
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
