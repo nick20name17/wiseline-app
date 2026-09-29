@@ -188,9 +188,11 @@ const WrapLines = ({
   const [stocking, setStocking] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
-  const { data: itemIds, isFetching: findingItem } = useQuery(
-    orderItemIdsQuery(board.name, stocking?.order ?? null)
-  )
+  const {
+    data: itemIds,
+    isFetching: findingItem,
+    isSuccess: foundOrder
+  } = useQuery(orderItemIdsQuery(board.name, stocking?.order ?? null))
   const stockingItem = stocking ? itemIds?.get(stocking.origin_item) : undefined
   const updateLine = useUpdateLineItem({ released: true })
   const columns = useColumnOrder(board.tables.packLines)
@@ -352,7 +354,10 @@ const WrapLines = ({
             toast.add({
               type: 'error',
               title: 'The Stock was not changed',
-              description: 'The order did not say which of its lines this is. Try again.'
+              // A lookup that answered without the line will answer the same again.
+              description: foundOrder
+                ? 'This order is no longer on the order list, so its lines cannot be changed from the bench.'
+                : 'The order did not load. Try again.'
             })
             return
           }
