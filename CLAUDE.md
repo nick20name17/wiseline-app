@@ -29,4 +29,4 @@ Within the shared layers: `api` → `lib`; `components` → `lib`; `lib` reaches
 
 ## Git
 
-Commits and PRs in English. PR body follows `.github/PULL_REQUEST_TEMPLATE.md`, including when passing `--body` to `gh`.
+Commits and PRs in English. PR body follows `.github/pull_request_template.md`, including when passing `--body` to `gh`: its headings, filled in, with the `<!-- -->` hints deleted — the PR body check fails otherwise.
