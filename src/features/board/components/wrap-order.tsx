@@ -218,13 +218,16 @@ const WrapLines = ({
                       </TableCell>
                     ),
                     // Anything but the standard 120" is worth a second look, as on the
-                    // cutlists p1 (465,337).
+                    // cutlists p1 (465,337) — on a board that has a standard length.
                     length: (
                       <TableCell>
                         <span
                           className={cn(
                             'font-mono',
-                            row.length !== null && !row.is_standard_length && 'text-destructive'
+                            board.standardLength !== null &&
+                              row.length !== null &&
+                              !row.is_standard_length &&
+                              'text-destructive'
                           )}
                         >
                           {row.length === null ? '—' : `${row.length}"`}
