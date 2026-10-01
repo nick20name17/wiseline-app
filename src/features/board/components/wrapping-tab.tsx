@@ -8,7 +8,14 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components
 import { useQuery } from '@tanstack/react-query'
 import { Package, PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { prioritiesQuery, remanufacturingsQuery, wrappingRowsQuery, type WrappingRow } from '../api'
+import {
+  prioritiesQuery,
+  releasedOrdersQuery,
+  remanufacturingsQuery,
+  wrappingRowsQuery,
+  type WrappingRow
+} from '../api'
+import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
 import { itemStatus } from '../lib/status'
 import { remanState } from '../lib/wrapping'
 import { Figure } from './figure'
@@ -27,27 +34,39 @@ const isOverdue = (row: WrappingRow) =>
 
 type WrappingTabProps = {
   departmentId: number | undefined
+  /** Rollforming's machine tab; none on a board without them. */
+  machine?: MachineTab
 }
 
 /**
  * The station after every machine: what has been made, and what is left to wrap on it. A line leads
  * into its order, which is where packages are built — a package carries one order, never two.
  */
-export const WrappingTab = ({ departmentId }: WrappingTabProps) => {
+export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
+  const board = useBoard()
   const {
-    data: rows,
-    isPending,
+    data: allRows,
+    isPending: rowsPending,
     isError,
     error,
     refetch
   } = useQuery(wrappingRowsQuery(departmentId, null))
+  // A Wrapping row names no machine; the released order it comes from does p2 (541,730).
+  const { data: released, isPending: releasedPending } = useQuery({
+    ...releasedOrdersQuery(board.name, undefined),
+    enabled: machine !== undefined
+  })
+  const rows =
+    allRows && machine !== undefined
+      ? rowsOnMachine(allRows, machineByLine(released?.results ?? []), machine)
+      : allRows
+  const isPending = rowsPending || (machine !== undefined && releasedPending)
   const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
   const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
-  const board = useBoard()
   const columns = useColumnOrder(board.tables.wrapping)
 
   if (order) {

@@ -78,10 +78,13 @@ test('Rollforming has its own tabs, split by machine, and no stock cards or bypa
   await expect(strip.getByRole('tab', { name: /Wrapping/ })).toBeVisible()
   await expect(strip.getByRole('tab', { name: /Production/ })).toBeVisible()
   await expect(strip.getByRole('tab', { name: /Queue/ })).toBeVisible()
+  // The Slit Line closes the machine row instead p2 (1204,296).
+  await expect(strip.getByRole('tab', { name: /Slit Line/ })).toBeHidden()
   // The second row: a tab per rollformer p2 (542,280), and the lines no machine takes.
   const machines = page.getByRole('tablist').nth(1)
   await expect(machines.getByRole('tab', { name: 'Roll Former' })).toBeVisible()
   await expect(machines.getByRole('tab', { name: 'No machine' })).toBeVisible()
+  await expect(machines.getByRole('tab', { name: 'Slit Line' })).toBeVisible()
   await expect(machines.getByRole('tab', { name: 'Press Brake' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Stock Cards' })).toBeHidden()
   await expect(page.getByRole('button', { name: /Bypass Production/ })).toBeHidden()
@@ -354,6 +357,10 @@ test('a line with no coil yet cannot be packed, and says why', async ({ page }) 
   )
   await page.goto('/rollforming?view=wrapping')
   await signIn(page)
+  // The row's line is on no released order of the fixtures, so it stands under «No machine» and not
+  // on the Roll Former p2 (541,730).
+  await expect(page.getByText('Nothing to wrap')).toBeVisible()
+  await page.getByRole('tab', { name: 'No machine' }).click()
   await page.getByRole('row').filter({ hasText: 'Tuff Rib White White' }).click()
 
   await expect(page.getByText('No coil yet')).toBeVisible()

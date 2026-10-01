@@ -65,13 +65,24 @@ export const BoardPage = ({
   // The cache is shared with the line items' machine picker, so a board without tabs reads none of it.
   const machines = board.machineTabs ? machineTabsOf(allMachines ?? [], departmentId) : []
   const [picked, setPicked] = useState<MachineTab>()
-  const ordersByMachine = view === 'unscheduled' || view === 'scheduled'
+  // The board puts the Slit Line at the end of the machine row p2 (1204,296); the working tab it was
+  // opened from stays lit above it.
+  const [slitFrom, setSlitFrom] = useState<BoardView>('production')
+  // The lists of lines also hold those no machine takes; a machine's own tabs do not.
+  const withNone = view === 'unscheduled' || view === 'scheduled' || view === 'wrapping'
   const firstMachine = machines[0]?.id
   const machine = picked ?? firstMachine
   // A machine's own tabs have no «No machine» of theirs; they fall back to the first machine.
   const machineId = typeof machine === 'number' ? machine : firstMachine
+  const slitInStrip = board.machineTabs && viewsFor(board, role).includes('slit')
+  const offersSlit =
+    slitInStrip &&
+    (['unscheduled', 'scheduled', 'production', 'slit'] as BoardView[]).includes(view)
   const showStrip =
-    board.machineTabs && (ordersByMachine || view === 'production' || view === 'queue')
+    board.machineTabs &&
+    (
+      ['unscheduled', 'scheduled', 'production', 'queue', 'wrapping', 'slit'] as BoardView[]
+    ).includes(view)
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
@@ -87,12 +98,13 @@ export const BoardPage = ({
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
       <DeptBar
-        views={viewsFor(board, role)}
-        view={view}
+        views={viewsFor(board, role).filter(tab => !slitInStrip || tab !== 'slit')}
+        view={view === 'slit' && slitInStrip ? slitFrom : view}
         counts={{
           unscheduled: counts?.unscheduled,
           scheduled: counts?.scheduled,
-          production: cutlists?.length,
+          // Rollforming's Production lists orders, not cutlists, so it carries no figure.
+          production: board.machineTabs ? undefined : cutlists?.length,
           coils
         }}
         onNavigate={next => {
@@ -107,9 +119,18 @@ export const BoardPage = ({
       {showStrip && machines.length ? (
         <MachineStrip
           machines={machines}
-          value={(ordersByMachine ? machine : machineId) ?? 'none'}
-          withNone={ordersByMachine}
-          onChange={setPicked}
+          value={view === 'slit' ? 'slit' : ((withNone ? machine : machineId) ?? 'none')}
+          withNone={withNone}
+          withSlit={offersSlit}
+          onChange={tab => {
+            if (tab === 'slit') {
+              setSlitFrom(view)
+              onViewChange('slit')
+              return
+            }
+            setPicked(tab)
+            if (view === 'slit') onViewChange(slitFrom)
+          }}
         />
       ) : null}
 
@@ -149,7 +170,10 @@ export const BoardPage = ({
         <SlitLineTab departmentId={departmentId} />
       ) : view === 'wrapping' ? (
         // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
-        <WrappingTab departmentId={departmentId} />
+        <WrappingTab
+          departmentId={departmentId}
+          machine={board.machineTabs ? machine : undefined}
+        />
       ) : (
         <ProductionTab departmentId={departmentId} onOpenCoils={() => onViewChange('coils')} />
       )}
