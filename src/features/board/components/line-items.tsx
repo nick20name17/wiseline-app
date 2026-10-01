@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query'
 import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { byProduct, lineDay, newProduct } from '../lib/parts'
-import { NoteButton } from './note-button'
+import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
 type LineItemsProps = {

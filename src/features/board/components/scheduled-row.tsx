@@ -18,7 +18,7 @@ import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } 
 import { useBoard } from '../lib/board-context'
 import { partLines, partState, splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
-import { NoteButton, type NoteState } from './note-button'
+import { NoteButton, type NoteState } from '@/components/note-button'
 import { PriorityCell } from './priority-cell'
 import { ReviewedToggle } from './reviewed-toggle'
 import { ScheduledLineItems } from './scheduled-line-items'

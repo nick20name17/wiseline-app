@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { isStockOrder, lineNotesSummaryQuery, orderNotesQuery, type BoardOrder } from '../api'
-import type { NoteState } from './note-button'
+import type { NoteState } from '@/components/note-button'
 
 /**
  * Whether each line item's note dot is red, green or absent, for a whole table at once — one call

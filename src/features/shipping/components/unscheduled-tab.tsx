@@ -1,3 +1,5 @@
+import { NoteButton, type NoteState } from '@/components/note-button'
+import { OrderNoteDialog } from '@/components/order-note-dialog'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -13,13 +15,43 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { formatDate, formatLongDate } from '@/lib/days'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { CalendarDays, MapPin, Truck } from 'lucide-react'
-import { useState } from 'react'
+import { toggled } from '@/lib/sets'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
+import { CalendarDays, ChevronRight, MapPin, Truck } from 'lucide-react'
+import { Fragment, useState } from 'react'
 import { toast } from '@/components/ui/toast'
-import { UNSCHEDULED_PAGE, unscheduledQuery, type UnscheduledOrder } from '../api'
+import {
+  UNSCHEDULED_PAGE,
+  orderNotesQuery,
+  orderPackagesQuery,
+  unscheduledQuery,
+  useSetOrderNoteRead,
+  type UnscheduledOrder
+} from '../api'
 import { formatLength, formatWeight, mapUrl } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
+
+const COLUMNS = 13
+
+/** What an expanded order holds for Shipping: its packages, where they stand and what they weigh. */
+const OrderPackages = ({ order }: { order: string }) => {
+  const { data: packages, isPending } = useQuery(orderPackagesQuery(order))
+  if (isPending) return <p className='px-3 py-3 text-sm text-muted-foreground'>Loading packages…</p>
+  if (!packages?.length)
+    return <p className='px-3 py-3 text-sm text-muted-foreground'>No packages made yet.</p>
+  return (
+    <ul className='divide-y divide-border border-l-2 border-primary/40 bg-muted/30'>
+      {packages.map(pkg => (
+        <li key={pkg.package_id} className='flex items-center gap-4 px-3 py-2 text-sm'>
+          <span className='w-40 font-mono'>{pkg.name ?? pkg.package_id}</span>
+          <span className='w-32 font-mono text-muted-foreground'>{pkg.location ?? '—'}</span>
+          <span className='font-mono'>{formatWeight(pkg.weight)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 type UnscheduledTabProps = {
   search: string | undefined
@@ -45,8 +77,18 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
   // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
+  const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
   const orders = data?.pages.flatMap(page => page.results) ?? []
   const picked = [...selected.values()]
+  // The salesman's notes, checked off here as on the boards p3 (592,338).
+  const { data: notes } = useQuery(orderNotesQuery(orders.map(order => order.order)))
+  const setRead = useSetOrderNoteRead()
+  const noteState = (order: string): NoteState => {
+    const note = notes?.[order]
+    if (!note?.has_note) return 'none'
+    return note.read ? 'read' : 'unread'
+  }
 
   if (isError && !data)
     return (
@@ -96,6 +138,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
           <Table className='min-w-6xl table-fixed'>
             <colgroup>
               <col className='w-10' />
+              <col className='w-10' />
               <col className='w-36' />
               <col className='w-36' />
               <col className='w-28' />
@@ -106,9 +149,11 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
               <col className='w-28' />
               <col className='w-36' />
               <col className='w-24' />
+              <col className='w-20' />
             </colgroup>
             <TableHeader>
               <TableRow>
+                <TableHead />
                 <TableHead />
                 <TableHead>Entry</TableHead>
                 <TableHead>Ship</TableHead>
@@ -120,73 +165,112 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                 <TableHead>Weight</TableHead>
                 <TableHead>Longest Length</TableHead>
                 <TableHead>Ship Via</TableHead>
+                <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={11} />
+                <TableSkeletonRows columns={COLUMNS} />
               ) : (
-                orders.map(order => (
-                  <TableRow
-                    key={order.order}
-                    data-state={selected.has(order.order) ? 'selected' : undefined}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        aria-label={`Select order ${order.order_number ?? order.order}`}
-                        checked={selected.has(order.order)}
-                        onCheckedChange={() =>
-                          setSelected(current => {
-                            const next = new Map(current)
-                            if (!next.delete(order.order)) next.set(order.order, order)
-                            return next
-                          })
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>{formatDate(order.entry_date)}</TableCell>
-                    <TableCell>{formatDate(order.ship_date)}</TableCell>
-                    <TableCell>
-                      <span className='font-mono font-medium'>
-                        {order.order_number ?? order.order}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate'>{order.customer ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate text-muted-foreground'>{order.address ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate text-muted-foreground'>{order.city ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      {order.address ? (
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          render={
-                            <a
-                              href={mapUrl(order.address, order.city)}
-                              target='_blank'
-                              rel='noreferrer'
-                              aria-label={`Map of ${order.order_number ?? order.order}`}
+                orders.map(order => {
+                  const open = expanded.has(order.order)
+                  const name = order.order_number ?? order.order
+                  return (
+                    <Fragment key={order.order}>
+                      <TableRow data-state={selected.has(order.order) ? 'selected' : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            aria-label={`Select order ${order.order_number ?? order.order}`}
+                            checked={selected.has(order.order)}
+                            onCheckedChange={() =>
+                              setSelected(current => {
+                                const next = new Map(current)
+                                if (!next.delete(order.order)) next.set(order.order, order)
+                                return next
+                              })
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {/* Opening an order leaves the ticks as they are p3 (560,202). */}
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            aria-label={`${open ? 'Collapse' : 'Expand'} order ${name}`}
+                            aria-expanded={open}
+                            onClick={() => setExpanded(current => toggled(current, order.order))}
+                          >
+                            <ChevronRight
+                              className={cn(
+                                'text-muted-foreground transition-transform',
+                                open && 'rotate-90'
+                              )}
                             />
-                          }
-                        >
-                          <MapPin />
-                        </Button>
+                          </Button>
+                        </TableCell>
+                        <TableCell>{formatDate(order.entry_date)}</TableCell>
+                        <TableCell>{formatDate(order.ship_date)}</TableCell>
+                        <TableCell>
+                          <span className='font-mono font-medium'>
+                            {order.order_number ?? order.order}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate'>{order.customer ?? '—'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {order.address ?? '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {order.city ?? '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {order.address ? (
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              render={
+                                <a
+                                  href={mapUrl(order.address, order.city)}
+                                  target='_blank'
+                                  rel='noreferrer'
+                                  aria-label={`Map of ${order.order_number ?? order.order}`}
+                                />
+                              }
+                            >
+                              <MapPin />
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <span className='font-mono'>{formatWeight(order.weight)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='font-mono'>{formatLength(order.longest_length)}</span>
+                        </TableCell>
+                        <TableCell>{order.ship_via ?? '—'}</TableCell>
+                        <TableCell>
+                          <NoteButton
+                            state={noteState(order.order)}
+                            label={`Order notes for ${name}`}
+                            onClick={() => setNoteOrder(order)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {open ? (
+                        <TableRow>
+                          <TableCell colSpan={COLUMNS}>
+                            <OrderPackages order={order.order} />
+                          </TableCell>
+                        </TableRow>
                       ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <span className='font-mono'>{formatWeight(order.weight)}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='font-mono'>{formatLength(order.longest_length)}</span>
-                    </TableCell>
-                    <TableCell>{order.ship_via ?? '—'}</TableCell>
-                  </TableRow>
-                ))
+                    </Fragment>
+                  )
+                })
               )}
             </TableBody>
           </Table>
@@ -204,6 +288,16 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
           Show {Math.min(UNSCHEDULED_PAGE, count - orders.length)} more of {count - orders.length}
         </Button>
       ) : null}
+
+      <OrderNoteDialog
+        order={
+          noteOrder && { id: noteOrder.order, invoice: noteOrder.order_number ?? noteOrder.order }
+        }
+        notes={notes}
+        isPending={setRead.isPending}
+        onSetRead={(id, read, onDone) => setRead.mutate({ order: id, read }, { onSuccess: onDone })}
+        onOpenChange={open => !open && setNoteOrder(null)}
+      />
 
       <ScheduleDialog
         verb='Schedule'
