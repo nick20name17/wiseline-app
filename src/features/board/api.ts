@@ -279,25 +279,18 @@ const boardKeys = {
     [...boardKeys.remanufacturings(), departmentId] as const
 }
 
-type OrderFilter = string | number | boolean
-type OrderFilters = Record<string, OrderFilter | OrderFilter[]>
+type OrderFilters = Record<string, string | number | boolean>
 
 /**
  * `ebms/orders/` filters on the EBMS category — the department's name — rather than on the department
- * id, and narrows each order's line items to it as well. A list filter repeats its key, as FastAPI
- * reads one.
+ * id, and narrows each order's line items to it as well.
  */
-const orderPage = async (
-  category: string,
-  filters: OrderFilters,
-  offset: number,
-  limit: number
-) => {
-  const searchParams = new URLSearchParams()
-  for (const [key, value] of Object.entries({ category, ...filters, limit, offset }))
-    for (const one of [value].flat()) searchParams.append(key, String(one))
-  return orderPageSchema.parse(await authApi.get('ebms/orders/', { searchParams }).json())
-}
+const orderPage = async (category: string, filters: OrderFilters, offset: number, limit: number) =>
+  orderPageSchema.parse(
+    await authApi
+      .get('ebms/orders/', { searchParams: { category, ...filters, limit, offset } })
+      .json()
+  )
 
 /**
  * Every page of a paged list: the first says how many there are, so the rest are asked for at once.
@@ -391,7 +384,8 @@ export const releasedOrdersQuery = (category: string, search: string | undefined
       allOrders(category, {
         is_scheduled: true,
         release_to_production: true,
-        origin_status__in: ['U', 'O', 'X'],
+        // One value, comma-separated: the listing reads only the last of a repeated key.
+        origin_status__in: 'U,O,X',
         ...(search ? { search } : {})
       })
   })

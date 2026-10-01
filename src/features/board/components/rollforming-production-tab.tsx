@@ -13,18 +13,18 @@ import {
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Disc3, Factory, Scissors } from 'lucide-react'
+import { ChevronRight, Disc3, Factory, Lock, Scissors } from 'lucide-react'
 import { cn } from 'cn'
 import { Fragment, useState } from 'react'
 import { departmentStateOf, releasedOrdersQuery, type BoardLineItem } from '../api'
 import { useBoard } from '../lib/board-context'
 import { materialsOf, partKey } from '../lib/parts'
-import { coilNumbersOf, productionParts } from '../lib/rollforming'
+import { coilNumbersOf, productionParts, sourceOf } from '../lib/rollforming'
 import { itemStatus, orderStatus } from '../lib/status'
 import { PriorityPill } from './priority-pill'
 import { StatusPill } from './status-pill'
 
-const COLUMNS = 12
+const COLUMNS = 13
 
 type RollformingProductionTabProps = {
   search: string | undefined
@@ -41,6 +41,23 @@ const Source = ({ icon }: { icon: string | null }) =>
   ) : icon === 'coil' ? (
     <Disc3 className='size-3.5 text-muted-foreground' aria-label='From a coil' />
   ) : null
+
+type CoilProps = { value: string | null; item: BoardLineItem['item']; mono?: boolean }
+
+/**
+ * A line's Supplier or Coil Number: «waiting...» while the Slit Line owes it, locked while it is the
+ * Manager's or the Slit Line's to fill p2 (1051,333).
+ */
+const Coil = ({ value, item, mono = false }: CoilProps) => (
+  <span className='inline-flex items-center gap-1.5'>
+    <span className={cn('truncate', mono && 'font-mono')}>
+      {value ?? (item?.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+    </span>
+    {item?.coil_fields_locked ? (
+      <Lock className='size-3 shrink-0 text-muted-foreground' aria-label='Locked' />
+    ) : null}
+  </span>
+)
 
 const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
   <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
@@ -89,10 +106,10 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
                 <StatusPill status={itemStatus(line.item?.status ?? null)} />
               </TableCell>
               <TableCell>
-                <span className='truncate'>{line.item?.supplier ?? 'Undefined'}</span>
+                <Coil value={line.item?.supplier ?? null} item={line.item} />
               </TableCell>
               <TableCell>
-                <span className='truncate font-mono'>{line.item?.coil_number ?? 'Undefined'}</span>
+                <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
               </TableCell>
               <TableCell>
                 <Source icon={line.item?.coil_icon ?? null} />
@@ -171,6 +188,7 @@ export const RollformingProductionTab = ({
           <col className='w-32' />
           <col className='w-28' />
           <col className='w-32' />
+          <col className='w-20' />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -186,6 +204,7 @@ export const RollformingProductionTab = ({
             <TableHead>Status</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Coil Number</TableHead>
+            <TableHead>Source</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -263,6 +282,9 @@ export const RollformingProductionTab = ({
                           <span className='truncate font-mono'>
                             {coilNumbersOf(lines).join(', ') || '—'}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          <Source icon={sourceOf(lines)} />
                         </TableCell>
                       </TableRow>
                       {open ? (

@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { BoardLineItem, BoardOrder } from '../api'
-import { coilNumbersOf, productionParts } from './rollforming'
+import { coilNumbersOf, productionParts, sourceOf } from './rollforming'
 
 const line = (
   id: string,
   day: string | null,
-  patch: { released?: boolean; status?: string | null; machine?: number; coil?: string } = {}
+  patch: {
+    released?: boolean
+    status?: string | null
+    machine?: number
+    coil?: string
+    icon?: string
+  } = {}
 ) =>
   ({
     id,
@@ -14,7 +20,8 @@ const line = (
       production_date: day,
       is_released: patch.released ?? true,
       status: patch.status ?? null,
-      coil_number: patch.coil ?? null
+      coil_number: patch.coil ?? null,
+      coil_icon: patch.icon ?? null
     }
   }) as BoardLineItem
 
@@ -54,5 +61,24 @@ describe('coilNumbersOf', () => {
         line('d', null)
       ])
     ).toEqual(['F1', 'J2'])
+  })
+})
+
+describe('the coil of a part rolled partly off a coil and partly slit', () => {
+  const lines = [
+    line('a', null, { coil: 'F1', icon: 'coil' }),
+    line('b', null, { icon: 'waiting_to_slit' })
+  ]
+
+  it('reads waiting beside the coil it has', () => {
+    expect(coilNumbersOf(lines)).toEqual(['F1', 'waiting...'])
+  })
+
+  it('shows the Slit Line until all of it is slit', () => {
+    expect(sourceOf(lines)).toBe('waiting_to_slit')
+    expect(sourceOf([line('a', null, { icon: 'slit' }), line('b', null, { icon: 'coil' })])).toBe(
+      'slit'
+    )
+    expect(sourceOf([line('a', null, { icon: 'coil' })])).toBe('coil')
   })
 })
