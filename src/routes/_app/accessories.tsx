@@ -23,7 +23,7 @@ const AccessoriesRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/accessories')({
+export const Route = createFileRoute('/_app/accessories')({
   staticData: { crumb: 'Accessories' },
   validateSearch: boardSearchSchema,
   component: AccessoriesRoute

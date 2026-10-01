@@ -1,6 +1,7 @@
 import { QueryError } from '@/components/query-error'
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -22,13 +23,21 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { GripVertical, Layers, Lock, Scissors } from 'lucide-react'
+import { GripVertical, Layers, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { prioritiesQuery, queueQuery, useReorderQueue, type Priority, type QueueRow } from '../api'
+import {
+  prioritiesQuery,
+  queueQuery,
+  useReorderQueue,
+  useSetCurrentCoil,
+  type Priority,
+  type QueueRow
+} from '../api'
 import { formatCount } from '../lib/format'
+import { CoilLock } from './coil-lock'
 import { PriorityPill } from './priority-pill'
 
-const COLUMNS = 10
+const COLUMNS = 11
 
 type QueueTabProps = {
   departmentId: number | undefined
@@ -37,13 +46,22 @@ type QueueTabProps = {
   worker: boolean
 }
 
-type QueueLineProps = { row: QueueRow; priority: Priority | null; movable: boolean }
+type QueueLineProps = {
+  row: QueueRow
+  priority: Priority | null
+  movable: boolean
+  /** Ticks the row's coil into the machine, or takes it out p2 (902,356). */
+  onInMachine: ((row: QueueRow, inMachine: boolean) => void) | null
+}
+
+/** Only a coil that is named can go in the machine p2 (895,300); the Slit Line's is not yet. */
+const hasCoil = (row: QueueRow) =>
+  !!row.supplier && !!row.coil_number && row.coil_icon !== 'waiting_to_slit'
 
 const Locked = ({ value, locked }: { value: string | null; locked: boolean }) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className='truncate font-mono'>{value ?? 'Undefined'}</span>
-    {/* The Manager's choice, which the floor uses as it is p2 (529,628). */}
-    {locked ? <Lock className='size-3 shrink-0 text-muted-foreground' aria-label='Locked' /> : null}
+    <CoilLock locked={locked} />
   </span>
 )
 
@@ -53,7 +71,7 @@ const rowName = (row: QueueRow) =>
     [...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ') || 'no order'
   }`
 
-const QueueLine = ({ row, priority, movable }: QueueLineProps) => {
+const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
   const {
     attributes,
     listeners,
@@ -120,6 +138,18 @@ const QueueLine = ({ row, priority, movable }: QueueLineProps) => {
         ) : null}
       </TableCell>
       <TableCell>
+        <Checkbox
+          aria-label={`${rowName(row)} is in the machine`}
+          title={hasCoil(row) ? undefined : 'Needs a Supplier and Coil Number first'}
+          checked={row.current}
+          disabled={!onInMachine || !hasCoil(row)}
+          // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
+          onPointerDown={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+          onCheckedChange={checked => onInMachine?.(row, checked)}
+        />
+      </TableCell>
+      <TableCell>
         <span className='truncate text-xs text-muted-foreground'>
           {[...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ')}
         </span>
@@ -136,6 +166,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
   const { data, isPending, isError, error, refetch } = useQuery(queueQuery(departmentId, machineId))
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const reorder = useReorderQueue()
+  const inMachine = useSetCurrentCoil()
   const sensors = useDragSensors()
   // The order a drop left, until the save settles — see the priorities table.
   const [dropped, setDropped] = useState<QueueRow[] | null>(null)
@@ -209,7 +240,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
         accessibility={{ announcements }}
         onDragEnd={handleDragEnd}
       >
-        <Table className='min-w-5xl table-fixed'>
+        <Table className='min-w-320 table-fixed'>
           <colgroup>
             <col className='w-10' />
             <col className='w-48' />
@@ -220,6 +251,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
             <col className='w-36' />
             <col className='w-36' />
             <col className='w-20' />
+            <col className='w-24' />
             <col />
           </colgroup>
           <TableHeader>
@@ -233,6 +265,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
               <TableHead>Supplier</TableHead>
               <TableHead>Coil Number</TableHead>
               <TableHead>Slit Line</TableHead>
+              <TableHead>In Machine</TableHead>
               <TableHead>Orders</TableHead>
             </TableRow>
           </TableHeader>
@@ -260,6 +293,18 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                         row={row}
                         priority={priorities?.find(found => found.id === row.priority?.id) ?? null}
                         movable={movable}
+                        onInMachine={
+                          departmentId === undefined ||
+                          machineId === undefined ||
+                          inMachine.isPending
+                            ? null
+                            : (picked, checked) =>
+                                inMachine.mutate({
+                                  departmentId,
+                                  flowId: machineId,
+                                  key: checked ? picked.key : null
+                                })
+                        }
                       />
                     ))}
                   </SortableContext>

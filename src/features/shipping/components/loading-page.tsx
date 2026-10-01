@@ -6,15 +6,20 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { PackageOpen } from 'lucide-react'
-import { orderPackagesQuery, useMarkLoaded, type Assignment, type Load } from '../api'
+import {
+  dayLoadsQuery,
+  orderPackagesQuery,
+  useMarkLoaded,
+  type Assignment,
+  type Load
+} from '../api'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
-import { useDayLoads } from '../lib/day-loads'
 import { DayPicker } from './day-picker'
 import { LoadCard, OrderLine } from './load-card'
 
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
-const ON_THE_DOCK = new Set(['not_started', 'loading', 'loaded'])
+const ON_THE_DOCK: readonly string[] = ['not_started', 'loading', 'loaded']
 
 type OrderPackagesProps = { load: Load; order: Assignment & { order: string } }
 
@@ -76,7 +81,12 @@ type LoadingPageProps = {
  */
 export const LoadingPage = ({ day, onDayChange }: LoadingPageProps) => {
   usePageHeader({ trail: [formatLongDate(day)] })
-  const { loads: released, isPending, error, refetch } = useDayLoads(day, ON_THE_DOCK)
+  const {
+    data: released = [],
+    isPending,
+    error,
+    refetch
+  } = useQuery(dayLoadsQuery(day, ON_THE_DOCK))
 
   return (
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
@@ -99,8 +109,8 @@ export const LoadingPage = ({ day, onDayChange }: LoadingPageProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        released.map(({ card, load }) => (
-          <LoadCard key={load.load_id} card={card} load={load}>
+        released.map(load => (
+          <LoadCard key={load.load_id} load={load}>
             {load.orders.map(order =>
               // A supplier pickup carries no sales order, so nothing of ours to tick onto the truck.
               order.order === null ? (

@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
-import type { Assignment, LoadTab, TruckCard } from '../api'
+import type { Assignment, DayLoad } from '../api'
 
 type OrderLineProps = {
   order: Assignment
@@ -35,19 +35,19 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
 )
 
 type LoadCardProps = {
-  card: TruckCard
-  load: LoadTab
+  load: DayLoad
   /** The Load's action, at the end of its header. */
   action?: React.ReactNode
   children: React.ReactNode
 }
 
 /** A released Load in the Loading and Driver windows: its truck, weight and status over its orders. */
-export const LoadCard = ({ card, load, action, children }: LoadCardProps) => (
+export const LoadCard = ({ load, action, children }: LoadCardProps) => (
   <section className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
     <header className='flex flex-wrap items-center gap-3 px-3 py-2.5'>
       <span className='font-medium'>
-        Truck {card.name} · {load.name}
+        {load.truck ? `Truck ${load.truck.name} · ` : ''}
+        {load.name}
       </span>
       <span className='font-mono text-sm text-muted-foreground'>{formatWeight(load.weight)}</span>
       <Badge variant='muted'>{statusLabel(load.status)}</Badge>

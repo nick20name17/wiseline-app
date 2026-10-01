@@ -85,7 +85,7 @@ const OptionList = ({ title, hint, options, picked, kept, onToggle }: OptionList
           onChange={event => setTerm(event.target.value)}
         />
       </InputGroup>
-      <ul className='scrollport flex h-64 flex-col overflow-y-auto rounded-lg border border-border'>
+      <ul className='flex h-64 flex-col overflow-y-auto rounded-lg border border-border'>
         {shown.map(option => (
           <li key={option.key} className='border-b border-border last:border-b-0'>
             <label className='flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-muted-foreground'>

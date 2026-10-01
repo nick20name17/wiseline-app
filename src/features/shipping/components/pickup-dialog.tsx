@@ -43,6 +43,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='pickup-supplier'
+              placeholder='e.g. Coloured Steel'
               maxLength={255}
               aria-invalid={invalid(errors.supplier)}
               {...form.register('supplier')}
@@ -56,6 +57,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='pickup-description'
+              placeholder='e.g. 2 bundles of J-channel'
               maxLength={255}
               aria-invalid={invalid(errors.description)}
               {...form.register('description')}
@@ -71,6 +73,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
             <InputGroup>
               <InputGroupInput
                 id='pickup-weight'
+                placeholder='e.g. 450'
                 type='number'
                 min={0}
                 step='any'
@@ -87,6 +90,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
             <InputGroup>
               <InputGroupInput
                 id='pickup-length'
+                placeholder='e.g. 240'
                 type='number'
                 min={0}
                 step='any'

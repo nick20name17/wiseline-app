@@ -258,7 +258,7 @@ test('Export takes Release with it, and both go on one release', async ({ page }
 })
 
 // A Queue row of one run of material; a named coil is the Manager's, and locked.
-const queueRow = (key: string, material: string, supplier: string, coil: string) => ({
+const queueRow = (key: string, material: string, supplier: string | null, coil: string | null) => ({
   key,
   production_date: '2026-09-23',
   material_id: material,
@@ -269,7 +269,7 @@ const queueRow = (key: string, material: string, supplier: string, coil: string)
   supplier,
   coil_number: coil,
   coil_icon: 'coil',
-  coil_fields_locked: supplier !== 'Undefined',
+  coil_fields_locked: supplier !== null,
   is_overdue: false,
   lines: [{ order_number: '330615', quantity: 3, length: 88 }]
 })
@@ -282,7 +282,7 @@ test('the Queue lists a machine’s material by day, and the Manager moves it wi
     flow = new URL(route.request().url()).searchParams.get('flow_id')
     return route.fulfill({
       json: [
-        queueRow('k1', 'CS8317 WHITE WHITE', 'Undefined', 'Undefined'),
+        queueRow('k1', 'CS8317 WHITE WHITE', null, null),
         queueRow('k2', 'CS8262 BLACK', 'COLSTE', 'F7601268')
       ]
     })
@@ -318,6 +318,62 @@ test('the Queue lists a machine’s material by day, and the Manager moves it wi
   await expect
     .poll(() => reordered)
     .toEqual({ department_id: 1, flow_id: 4, production_date: '2026-09-23', keys: ['k2', 'k1'] })
+})
+
+test('the coil ticked in the machine on the Queue shows on Production', async ({ page }) => {
+  const coil = {
+    key: 'k2',
+    supplier: 'COLSTE',
+    coil_number: 'F7601268',
+    gauge: '29',
+    color: 'Black'
+  }
+  let current: typeof coil | null = null
+  await page.route(`${API_URL}/rollforming/queue/?*`, route =>
+    route.fulfill({
+      json: [
+        queueRow('k1', 'CS8317 WHITE WHITE', null, null),
+        { ...queueRow('k2', 'CS8262 BLACK', 'COLSTE', 'F7601268'), current: !!current }
+      ]
+    })
+  )
+  const sent: unknown[] = []
+  await page.route(`${API_URL}/rollforming/machines/4/current-coil/`, route => {
+    const method = route.request().method()
+    if (method === 'POST') {
+      sent.push(route.request().postDataJSON())
+      current = coil
+    }
+    if (method === 'DELETE') {
+      sent.push('DELETE')
+      current = null
+      return route.fulfill({ status: 204 })
+    }
+    return route.fulfill({ json: current })
+  })
+  await page.goto('/rollforming?view=queue')
+  await signIn(page)
+
+  // A row with no coil named has nothing to put in the machine p2 (895,300).
+  await expect(page.getByRole('checkbox', { name: /CS8317 .* is in the machine/ })).toBeDisabled()
+  await page.getByRole('checkbox', { name: /CS8262 .* is in the machine/ }).click()
+  await expect(page.getByRole('checkbox', { name: /CS8262 .* is in the machine/ })).toBeChecked()
+  expect(sent).toEqual([{ key: 'k2' }])
+
+  await page.getByRole('tab', { name: 'Production' }).click()
+  const panel = page.getByRole('region', { name: 'Current coil in the rollformer' })
+  await expect(panel).toContainText('F7601268')
+  await expect(panel).toContainText('29 Ga Black')
+
+  // Taken back out on the Queue, the machine reads empty again.
+  await page.getByRole('tab', { name: 'Queue' }).click()
+  await page.getByRole('checkbox', { name: /CS8262 .* is in the machine/ }).press('Space')
+  await expect(
+    page.getByRole('checkbox', { name: /CS8262 .* is in the machine/ })
+  ).not.toBeChecked()
+  expect(sent).toEqual([{ key: 'k2' }, 'DELETE'])
+  await page.getByRole('tab', { name: 'Production' }).click()
+  await expect(panel).toContainText('None')
 })
 
 test('Production lists the orders released to the machine, a row per day', async ({ page }) => {

@@ -69,16 +69,22 @@ const CardOrderForm = ({ card, onClose }: CardOrderFormProps) => {
       <div className='flex flex-col gap-3'>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='card-order-pid'>Product ID</Label>
-          <Input id='card-order-pid' readOnly value={card.product_id} />
+          <Input id='card-order-pid' readOnly placeholder='No product ID' value={card.product_id} />
         </div>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='card-order-desc'>Description</Label>
-          <Input id='card-order-desc' readOnly value={card.description ?? ''} />
+          <Input
+            id='card-order-desc'
+            readOnly
+            placeholder='No description'
+            value={card.description ?? ''}
+          />
         </div>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='card-order-qty'>Order Qty</Label>
           <Input
             id='card-order-qty'
+            placeholder='e.g. 10'
             type='number'
             min={1}
             inputMode='numeric'

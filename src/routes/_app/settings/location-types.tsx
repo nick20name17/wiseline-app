@@ -19,7 +19,7 @@ const LocationTypesRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/location-types')({
+export const Route = createFileRoute('/_app/settings/location-types')({
   staticData: { crumb: 'Location Types' },
   validateSearch: locationsSearchSchema,
   component: LocationTypesRoute

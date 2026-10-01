@@ -103,8 +103,9 @@ export const BoardPage = ({
         counts={{
           unscheduled: counts?.unscheduled,
           scheduled: counts?.scheduled,
-          // Rollforming's Production lists orders, not cutlists, so it carries no figure.
-          production: board.machineTabs ? undefined : cutlists?.length,
+          // Rollforming's Production lists orders, not cutlists, so it carries no figure — nor the
+          // placeholder the strip keeps for a figure still loading.
+          ...(board.machineTabs ? {} : { production: cutlists?.length }),
           coils
         }}
         onNavigate={next => {

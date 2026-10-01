@@ -3,7 +3,8 @@ import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageHeaderProvider } from '@/components/layout/page-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { UserMenu } from '@/features/auth'
-import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { sessionStore } from '@/lib/session-store'
+import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 const AppLayout = () => (
   <SidebarProvider>
@@ -23,5 +24,11 @@ const AppLayout = () => (
 )
 
 export const Route = createFileRoute('/_app')({
+  // The whole shell is signed-in only: a visitor sees the sign-in page, not an empty app.
+  beforeLoad: ({ location }) => {
+    if (!sessionStore.get()) {
+      throw redirect({ to: '/login', search: { redirect: location.href } })
+    }
+  },
   component: AppLayout
 })

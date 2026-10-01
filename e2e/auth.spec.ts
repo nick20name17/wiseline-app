@@ -30,8 +30,28 @@ test('logging out clears the session', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Log out' }).click()
 
-  await expect(page).toHaveURL('/')
-  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible()
+  await expect(page).toHaveURL(/\/login/)
   await page.goto('/profile')
   await expect(page).toHaveURL(/\/login/)
+})
+
+test('a visitor sees only the sign-in page, not the dashboard', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/login/)
+  await expect(page.getByRole('navigation')).toHaveCount(0)
+  await page.goto('/trim')
+  await expect(page).toHaveURL(/\/login/)
+})
+
+test('a session that ends while a page is open sends it to sign in', async ({ page }) => {
+  await page.goto('/login')
+  await signIn(page)
+  await expect(page).toHaveURL('/profile')
+
+  // As another tab logging out does.
+  await page.evaluate(() => {
+    localStorage.removeItem('session')
+    window.dispatchEvent(new StorageEvent('storage', { key: 'session' }))
+  })
+  await expect(page).toHaveURL(/\/login\?redirect=/)
 })

@@ -55,7 +55,7 @@ export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
   } = useQuery(wrappingRowsQuery(departmentId, null))
   // A Wrapping row names no machine; the released order it comes from does p2 (541,730).
   const { data: released, isPending: releasedPending } = useQuery({
-    ...releasedOrdersQuery(board.name, undefined),
+    ...releasedOrdersQuery(board.name, undefined, false),
     enabled: machine !== undefined
   })
   const rows =

@@ -9,7 +9,7 @@ const SettingsLayout = () => (
   </div>
 )
 
-export const Route = createFileRoute('/_app/_auth/settings')({
+export const Route = createFileRoute('/_app/settings')({
   staticData: { crumb: 'Settings' },
   component: SettingsLayout
 })

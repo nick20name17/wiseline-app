@@ -22,7 +22,7 @@ const ColorsRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/colors')({
+export const Route = createFileRoute('/_app/settings/colors')({
   staticData: { crumb: 'Colors' },
   validateSearch: colorsSearchSchema,
   component: ColorsRoute

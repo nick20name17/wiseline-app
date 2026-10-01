@@ -5,14 +5,14 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { formatLongDate } from '@/lib/days'
+import { useQuery } from '@tanstack/react-query'
 import { Check, Truck } from 'lucide-react'
-import { useCompleteLoad, useDelivered, useLeftWarehouse } from '../api'
-import { useDayLoads } from '../lib/day-loads'
+import { dayLoadsQuery, useCompleteLoad, useDelivered, useLeftWarehouse } from '../api'
 import { DayPicker } from './day-picker'
 import { LoadCard, OrderLine } from './load-card'
 
 // Loaded and waiting to leave, on the road, or delivered and waiting to be closed.
-const DRIVER_LOADS = new Set(['loaded', 'en_route', 'delivered'])
+const DRIVER_LOADS: readonly string[] = ['loaded', 'en_route', 'delivered']
 
 type DriverPageProps = {
   day: string
@@ -25,7 +25,7 @@ type DriverPageProps = {
  */
 export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
   usePageHeader({ trail: [formatLongDate(day)] })
-  const { loads, isPending, error, refetch } = useDayLoads(day, DRIVER_LOADS)
+  const { data: loads = [], isPending, error, refetch } = useQuery(dayLoadsQuery(day, DRIVER_LOADS))
   const leave = useLeftWarehouse()
   const deliver = useDelivered()
   const complete = useCompleteLoad()
@@ -49,10 +49,9 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        loads.map(({ card, load }) => (
+        loads.map(load => (
           <LoadCard
             key={load.load_id}
-            card={card}
             load={load}
             action={
               load.status === 'loaded' ? (

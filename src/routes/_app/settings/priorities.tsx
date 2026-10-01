@@ -18,7 +18,7 @@ const PrioritiesRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/priorities')({
+export const Route = createFileRoute('/_app/settings/priorities')({
   staticData: { crumb: 'Priorities' },
   validateSearch: prioritiesSearchSchema,
   component: PrioritiesRoute

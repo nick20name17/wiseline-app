@@ -13,28 +13,26 @@ import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppAuthRouteRouteImport } from './routes/_app/_auth/route'
-import { Route as AppCoilsRouteImport } from './routes/_app/coils'
-import { Route as AppAuthAccessoriesRouteImport } from './routes/_app/_auth/accessories'
-import { Route as AppAuthDriverRouteImport } from './routes/_app/_auth/driver'
-import { Route as AppAuthLoadingRouteImport } from './routes/_app/_auth/loading'
-import { Route as AppAuthProfileRouteImport } from './routes/_app/_auth/profile'
-import { Route as AppAuthRollformingRouteImport } from './routes/_app/_auth/rollforming'
-import { Route as AppAuthSettingsRouteRouteImport } from './routes/_app/_auth/settings/route'
-import { Route as AppAuthShippingRouteImport } from './routes/_app/_auth/shipping'
-import { Route as AppAuthStockCardsRouteImport } from './routes/_app/_auth/stock-cards'
-import { Route as AppAuthTrimRouteImport } from './routes/_app/_auth/trim'
+import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
+import { Route as AppDriverRouteImport } from './routes/_app/driver'
+import { Route as AppLoadingRouteImport } from './routes/_app/loading'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
+import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
+import { Route as AppShippingRouteImport } from './routes/_app/shipping'
+import { Route as AppStockCardsRouteImport } from './routes/_app/stock-cards'
+import { Route as AppTrimRouteImport } from './routes/_app/trim'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsColorsRouteImport } from './routes/_app/settings/colors'
+import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
+import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
+import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
+import { Route as AppSettingsPrioritiesRouteImport } from './routes/_app/settings/priorities'
+import { Route as AppSettingsTrucksRouteImport } from './routes/_app/settings/trucks'
+import { Route as AppSettingsUsersRouteImport } from './routes/_app/settings/users'
+import { Route as AppSettingsWarehousesRouteImport } from './routes/_app/settings/warehouses'
+import { Route as AppSettingsWorkDaysRouteImport } from './routes/_app/settings/work-days'
 import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
-import { Route as AppAuthSettingsIndexRouteImport } from './routes/_app/_auth/settings/index'
-import { Route as AppAuthSettingsColorsRouteImport } from './routes/_app/_auth/settings/colors'
-import { Route as AppAuthSettingsLocationTypesRouteImport } from './routes/_app/_auth/settings/location-types'
-import { Route as AppAuthSettingsLocationsRouteImport } from './routes/_app/_auth/settings/locations'
-import { Route as AppAuthSettingsMachinesRouteImport } from './routes/_app/_auth/settings/machines'
-import { Route as AppAuthSettingsPrioritiesRouteImport } from './routes/_app/_auth/settings/priorities'
-import { Route as AppAuthSettingsTrucksRouteImport } from './routes/_app/_auth/settings/trucks'
-import { Route as AppAuthSettingsUsersRouteImport } from './routes/_app/_auth/settings/users'
-import { Route as AppAuthSettingsWarehousesRouteImport } from './routes/_app/_auth/settings/warehouses'
-import { Route as AppAuthSettingsWorkDaysRouteImport } from './routes/_app/_auth/settings/work-days'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -55,199 +53,183 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthRouteRoute = AppAuthRouteRouteImport.update({
-  id: '/_auth',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppCoilsRoute = AppCoilsRouteImport.update({
-  id: '/coils',
-  path: '/coils',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppAuthAccessoriesRoute = AppAuthAccessoriesRouteImport.update({
+const AppAccessoriesRoute = AppAccessoriesRouteImport.update({
   id: '/accessories',
   path: '/accessories',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthDriverRoute = AppAuthDriverRouteImport.update({
+const AppDriverRoute = AppDriverRouteImport.update({
   id: '/driver',
   path: '/driver',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthLoadingRoute = AppAuthLoadingRouteImport.update({
+const AppLoadingRoute = AppLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthProfileRoute = AppAuthProfileRouteImport.update({
+const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthRollformingRoute = AppAuthRollformingRouteImport.update({
+const AppRollformingRoute = AppRollformingRouteImport.update({
   id: '/rollforming',
   path: '/rollforming',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthSettingsRouteRoute = AppAuthSettingsRouteRouteImport.update({
+const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthShippingRoute = AppAuthShippingRouteImport.update({
+const AppShippingRoute = AppShippingRouteImport.update({
   id: '/shipping',
   path: '/shipping',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthStockCardsRoute = AppAuthStockCardsRouteImport.update({
+const AppStockCardsRoute = AppStockCardsRouteImport.update({
   id: '/stock-cards',
   path: '/stock-cards',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthTrimRoute = AppAuthTrimRouteImport.update({
+const AppTrimRoute = AppTrimRouteImport.update({
   id: '/trim',
   path: '/trim',
-  getParentRoute: () => AppAuthRouteRoute,
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsColorsRoute = AppSettingsColorsRouteImport.update({
+  id: '/colors',
+  path: '/colors',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsLocationTypesRoute =
+  AppSettingsLocationTypesRouteImport.update({
+    id: '/location-types',
+    path: '/location-types',
+    getParentRoute: () => AppSettingsRouteRoute,
+  } as any)
+const AppSettingsLocationsRoute = AppSettingsLocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsMachinesRoute = AppSettingsMachinesRouteImport.update({
+  id: '/machines',
+  path: '/machines',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsPrioritiesRoute = AppSettingsPrioritiesRouteImport.update({
+  id: '/priorities',
+  path: '/priorities',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsTrucksRoute = AppSettingsTrucksRouteImport.update({
+  id: '/trucks',
+  path: '/trucks',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsWarehousesRoute = AppSettingsWarehousesRouteImport.update({
+  id: '/warehouses',
+  path: '/warehouses',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
+const AppSettingsWorkDaysRoute = AppSettingsWorkDaysRouteImport.update({
+  id: '/work-days',
+  path: '/work-days',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
 const PasswordResetUid64TokenRoute = PasswordResetUid64TokenRouteImport.update({
   id: '/password-reset/$uid64/$token',
   path: '/password-reset/$uid64/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAuthSettingsIndexRoute = AppAuthSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
-const AppAuthSettingsColorsRoute = AppAuthSettingsColorsRouteImport.update({
-  id: '/colors',
-  path: '/colors',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
-const AppAuthSettingsLocationTypesRoute =
-  AppAuthSettingsLocationTypesRouteImport.update({
-    id: '/location-types',
-    path: '/location-types',
-    getParentRoute: () => AppAuthSettingsRouteRoute,
-  } as any)
-const AppAuthSettingsLocationsRoute =
-  AppAuthSettingsLocationsRouteImport.update({
-    id: '/locations',
-    path: '/locations',
-    getParentRoute: () => AppAuthSettingsRouteRoute,
-  } as any)
-const AppAuthSettingsMachinesRoute = AppAuthSettingsMachinesRouteImport.update({
-  id: '/machines',
-  path: '/machines',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
-const AppAuthSettingsPrioritiesRoute =
-  AppAuthSettingsPrioritiesRouteImport.update({
-    id: '/priorities',
-    path: '/priorities',
-    getParentRoute: () => AppAuthSettingsRouteRoute,
-  } as any)
-const AppAuthSettingsTrucksRoute = AppAuthSettingsTrucksRouteImport.update({
-  id: '/trucks',
-  path: '/trucks',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
-const AppAuthSettingsUsersRoute = AppAuthSettingsUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
-const AppAuthSettingsWarehousesRoute =
-  AppAuthSettingsWarehousesRouteImport.update({
-    id: '/warehouses',
-    path: '/warehouses',
-    getParentRoute: () => AppAuthSettingsRouteRoute,
-  } as any)
-const AppAuthSettingsWorkDaysRoute = AppAuthSettingsWorkDaysRouteImport.update({
-  id: '/work-days',
-  path: '/work-days',
-  getParentRoute: () => AppAuthSettingsRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/coils': typeof AppCoilsRoute
-  '/settings': typeof AppAuthSettingsRouteRouteWithChildren
-  '/accessories': typeof AppAuthAccessoriesRoute
-  '/driver': typeof AppAuthDriverRoute
-  '/loading': typeof AppAuthLoadingRoute
-  '/profile': typeof AppAuthProfileRoute
-  '/rollforming': typeof AppAuthRollformingRoute
-  '/shipping': typeof AppAuthShippingRoute
-  '/stock-cards': typeof AppAuthStockCardsRoute
-  '/trim': typeof AppAuthTrimRoute
+  '/settings': typeof AppSettingsRouteRouteWithChildren
+  '/accessories': typeof AppAccessoriesRoute
+  '/driver': typeof AppDriverRoute
+  '/loading': typeof AppLoadingRoute
+  '/profile': typeof AppProfileRoute
+  '/rollforming': typeof AppRollformingRoute
+  '/shipping': typeof AppShippingRoute
+  '/stock-cards': typeof AppStockCardsRoute
+  '/trim': typeof AppTrimRoute
+  '/settings/colors': typeof AppSettingsColorsRoute
+  '/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/settings/locations': typeof AppSettingsLocationsRoute
+  '/settings/machines': typeof AppSettingsMachinesRoute
+  '/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/settings/trucks': typeof AppSettingsTrucksRoute
+  '/settings/users': typeof AppSettingsUsersRoute
+  '/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/settings/work-days': typeof AppSettingsWorkDaysRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
-  '/settings/colors': typeof AppAuthSettingsColorsRoute
-  '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
-  '/settings/locations': typeof AppAuthSettingsLocationsRoute
-  '/settings/machines': typeof AppAuthSettingsMachinesRoute
-  '/settings/priorities': typeof AppAuthSettingsPrioritiesRoute
-  '/settings/trucks': typeof AppAuthSettingsTrucksRoute
-  '/settings/users': typeof AppAuthSettingsUsersRoute
-  '/settings/warehouses': typeof AppAuthSettingsWarehousesRoute
-  '/settings/work-days': typeof AppAuthSettingsWorkDaysRoute
-  '/settings/': typeof AppAuthSettingsIndexRoute
+  '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/accessories': typeof AppAccessoriesRoute
+  '/driver': typeof AppDriverRoute
+  '/loading': typeof AppLoadingRoute
+  '/profile': typeof AppProfileRoute
+  '/rollforming': typeof AppRollformingRoute
+  '/shipping': typeof AppShippingRoute
+  '/stock-cards': typeof AppStockCardsRoute
+  '/trim': typeof AppTrimRoute
   '/': typeof AppIndexRoute
-  '/coils': typeof AppCoilsRoute
-  '/accessories': typeof AppAuthAccessoriesRoute
-  '/driver': typeof AppAuthDriverRoute
-  '/loading': typeof AppAuthLoadingRoute
-  '/profile': typeof AppAuthProfileRoute
-  '/rollforming': typeof AppAuthRollformingRoute
-  '/shipping': typeof AppAuthShippingRoute
-  '/stock-cards': typeof AppAuthStockCardsRoute
-  '/trim': typeof AppAuthTrimRoute
+  '/settings/colors': typeof AppSettingsColorsRoute
+  '/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/settings/locations': typeof AppSettingsLocationsRoute
+  '/settings/machines': typeof AppSettingsMachinesRoute
+  '/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/settings/trucks': typeof AppSettingsTrucksRoute
+  '/settings/users': typeof AppSettingsUsersRoute
+  '/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/settings/work-days': typeof AppSettingsWorkDaysRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
-  '/settings/colors': typeof AppAuthSettingsColorsRoute
-  '/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
-  '/settings/locations': typeof AppAuthSettingsLocationsRoute
-  '/settings/machines': typeof AppAuthSettingsMachinesRoute
-  '/settings/priorities': typeof AppAuthSettingsPrioritiesRoute
-  '/settings/trucks': typeof AppAuthSettingsTrucksRoute
-  '/settings/users': typeof AppAuthSettingsUsersRoute
-  '/settings/warehouses': typeof AppAuthSettingsWarehousesRoute
-  '/settings/work-days': typeof AppAuthSettingsWorkDaysRoute
-  '/settings': typeof AppAuthSettingsIndexRoute
+  '/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/_app/_auth': typeof AppAuthRouteRouteWithChildren
-  '/_app/coils': typeof AppCoilsRoute
+  '/_app/settings': typeof AppSettingsRouteRouteWithChildren
+  '/_app/accessories': typeof AppAccessoriesRoute
+  '/_app/driver': typeof AppDriverRoute
+  '/_app/loading': typeof AppLoadingRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/rollforming': typeof AppRollformingRoute
+  '/_app/shipping': typeof AppShippingRoute
+  '/_app/stock-cards': typeof AppStockCardsRoute
+  '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/_auth/settings': typeof AppAuthSettingsRouteRouteWithChildren
-  '/_app/_auth/accessories': typeof AppAuthAccessoriesRoute
-  '/_app/_auth/driver': typeof AppAuthDriverRoute
-  '/_app/_auth/loading': typeof AppAuthLoadingRoute
-  '/_app/_auth/profile': typeof AppAuthProfileRoute
-  '/_app/_auth/rollforming': typeof AppAuthRollformingRoute
-  '/_app/_auth/shipping': typeof AppAuthShippingRoute
-  '/_app/_auth/stock-cards': typeof AppAuthStockCardsRoute
-  '/_app/_auth/trim': typeof AppAuthTrimRoute
+  '/_app/settings/colors': typeof AppSettingsColorsRoute
+  '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/_app/settings/locations': typeof AppSettingsLocationsRoute
+  '/_app/settings/machines': typeof AppSettingsMachinesRoute
+  '/_app/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/_app/settings/trucks': typeof AppSettingsTrucksRoute
+  '/_app/settings/users': typeof AppSettingsUsersRoute
+  '/_app/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/_app/settings/work-days': typeof AppSettingsWorkDaysRoute
   '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
-  '/_app/_auth/settings/colors': typeof AppAuthSettingsColorsRoute
-  '/_app/_auth/settings/location-types': typeof AppAuthSettingsLocationTypesRoute
-  '/_app/_auth/settings/locations': typeof AppAuthSettingsLocationsRoute
-  '/_app/_auth/settings/machines': typeof AppAuthSettingsMachinesRoute
-  '/_app/_auth/settings/priorities': typeof AppAuthSettingsPrioritiesRoute
-  '/_app/_auth/settings/trucks': typeof AppAuthSettingsTrucksRoute
-  '/_app/_auth/settings/users': typeof AppAuthSettingsUsersRoute
-  '/_app/_auth/settings/warehouses': typeof AppAuthSettingsWarehousesRoute
-  '/_app/_auth/settings/work-days': typeof AppAuthSettingsWorkDaysRoute
-  '/_app/_auth/settings/': typeof AppAuthSettingsIndexRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -255,7 +237,6 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/coils'
     | '/settings'
     | '/accessories'
     | '/driver'
@@ -265,7 +246,6 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/stock-cards'
     | '/trim'
-    | '/password-reset/$uid64/$token'
     | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
@@ -275,13 +255,12 @@ export interface FileRouteTypes {
     | '/settings/users'
     | '/settings/warehouses'
     | '/settings/work-days'
+    | '/password-reset/$uid64/$token'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
     | '/login'
-    | '/'
-    | '/coils'
     | '/accessories'
     | '/driver'
     | '/loading'
@@ -290,7 +269,7 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/stock-cards'
     | '/trim'
-    | '/password-reset/$uid64/$token'
+    | '/'
     | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
@@ -300,35 +279,34 @@ export interface FileRouteTypes {
     | '/settings/users'
     | '/settings/warehouses'
     | '/settings/work-days'
+    | '/password-reset/$uid64/$token'
     | '/settings'
   id:
     | '__root__'
     | '/_app'
     | '/forgot-password'
     | '/login'
-    | '/_app/_auth'
-    | '/_app/coils'
+    | '/_app/settings'
+    | '/_app/accessories'
+    | '/_app/driver'
+    | '/_app/loading'
+    | '/_app/profile'
+    | '/_app/rollforming'
+    | '/_app/shipping'
+    | '/_app/stock-cards'
+    | '/_app/trim'
     | '/_app/'
-    | '/_app/_auth/settings'
-    | '/_app/_auth/accessories'
-    | '/_app/_auth/driver'
-    | '/_app/_auth/loading'
-    | '/_app/_auth/profile'
-    | '/_app/_auth/rollforming'
-    | '/_app/_auth/shipping'
-    | '/_app/_auth/stock-cards'
-    | '/_app/_auth/trim'
+    | '/_app/settings/colors'
+    | '/_app/settings/location-types'
+    | '/_app/settings/locations'
+    | '/_app/settings/machines'
+    | '/_app/settings/priorities'
+    | '/_app/settings/trucks'
+    | '/_app/settings/users'
+    | '/_app/settings/warehouses'
+    | '/_app/settings/work-days'
     | '/password-reset/$uid64/$token'
-    | '/_app/_auth/settings/colors'
-    | '/_app/_auth/settings/location-types'
-    | '/_app/_auth/settings/locations'
-    | '/_app/_auth/settings/machines'
-    | '/_app/_auth/settings/priorities'
-    | '/_app/_auth/settings/trucks'
-    | '/_app/_auth/settings/users'
-    | '/_app/_auth/settings/warehouses'
-    | '/_app/_auth/settings/work-days'
-    | '/_app/_auth/settings/'
+    | '/_app/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -368,82 +346,138 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth': {
-      id: '/_app/_auth'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppAuthRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/coils': {
-      id: '/_app/coils'
-      path: '/coils'
-      fullPath: '/coils'
-      preLoaderRoute: typeof AppCoilsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/_auth/accessories': {
-      id: '/_app/_auth/accessories'
+    '/_app/accessories': {
+      id: '/_app/accessories'
       path: '/accessories'
       fullPath: '/accessories'
-      preLoaderRoute: typeof AppAuthAccessoriesRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppAccessoriesRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/driver': {
-      id: '/_app/_auth/driver'
+    '/_app/driver': {
+      id: '/_app/driver'
       path: '/driver'
       fullPath: '/driver'
-      preLoaderRoute: typeof AppAuthDriverRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppDriverRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/loading': {
-      id: '/_app/_auth/loading'
+    '/_app/loading': {
+      id: '/_app/loading'
       path: '/loading'
       fullPath: '/loading'
-      preLoaderRoute: typeof AppAuthLoadingRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppLoadingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/profile': {
-      id: '/_app/_auth/profile'
+    '/_app/profile': {
+      id: '/_app/profile'
       path: '/profile'
       fullPath: '/profile'
-      preLoaderRoute: typeof AppAuthProfileRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/rollforming': {
-      id: '/_app/_auth/rollforming'
+    '/_app/rollforming': {
+      id: '/_app/rollforming'
       path: '/rollforming'
       fullPath: '/rollforming'
-      preLoaderRoute: typeof AppAuthRollformingRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppRollformingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/settings': {
-      id: '/_app/_auth/settings'
+    '/_app/settings': {
+      id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof AppAuthSettingsRouteRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppSettingsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/shipping': {
-      id: '/_app/_auth/shipping'
+    '/_app/shipping': {
+      id: '/_app/shipping'
       path: '/shipping'
       fullPath: '/shipping'
-      preLoaderRoute: typeof AppAuthShippingRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppShippingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/stock-cards': {
-      id: '/_app/_auth/stock-cards'
+    '/_app/stock-cards': {
+      id: '/_app/stock-cards'
       path: '/stock-cards'
       fullPath: '/stock-cards'
-      preLoaderRoute: typeof AppAuthStockCardsRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppStockCardsRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_app/_auth/trim': {
-      id: '/_app/_auth/trim'
+    '/_app/trim': {
+      id: '/_app/trim'
       path: '/trim'
       fullPath: '/trim'
-      preLoaderRoute: typeof AppAuthTrimRouteImport
-      parentRoute: typeof AppAuthRouteRoute
+      preLoaderRoute: typeof AppTrimRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/colors': {
+      id: '/_app/settings/colors'
+      path: '/colors'
+      fullPath: '/settings/colors'
+      preLoaderRoute: typeof AppSettingsColorsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/location-types': {
+      id: '/_app/settings/location-types'
+      path: '/location-types'
+      fullPath: '/settings/location-types'
+      preLoaderRoute: typeof AppSettingsLocationTypesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/locations': {
+      id: '/_app/settings/locations'
+      path: '/locations'
+      fullPath: '/settings/locations'
+      preLoaderRoute: typeof AppSettingsLocationsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/machines': {
+      id: '/_app/settings/machines'
+      path: '/machines'
+      fullPath: '/settings/machines'
+      preLoaderRoute: typeof AppSettingsMachinesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/priorities': {
+      id: '/_app/settings/priorities'
+      path: '/priorities'
+      fullPath: '/settings/priorities'
+      preLoaderRoute: typeof AppSettingsPrioritiesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/trucks': {
+      id: '/_app/settings/trucks'
+      path: '/trucks'
+      fullPath: '/settings/trucks'
+      preLoaderRoute: typeof AppSettingsTrucksRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/users': {
+      id: '/_app/settings/users'
+      path: '/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof AppSettingsUsersRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/warehouses': {
+      id: '/_app/settings/warehouses'
+      path: '/warehouses'
+      fullPath: '/settings/warehouses'
+      preLoaderRoute: typeof AppSettingsWarehousesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/work-days': {
+      id: '/_app/settings/work-days'
+      path: '/work-days'
+      fullPath: '/settings/work-days'
+      preLoaderRoute: typeof AppSettingsWorkDaysRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
     '/password-reset/$uid64/$token': {
       id: '/password-reset/$uid64/$token'
@@ -452,145 +486,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PasswordResetUid64TokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/_auth/settings/': {
-      id: '/_app/_auth/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof AppAuthSettingsIndexRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/colors': {
-      id: '/_app/_auth/settings/colors'
-      path: '/colors'
-      fullPath: '/settings/colors'
-      preLoaderRoute: typeof AppAuthSettingsColorsRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/location-types': {
-      id: '/_app/_auth/settings/location-types'
-      path: '/location-types'
-      fullPath: '/settings/location-types'
-      preLoaderRoute: typeof AppAuthSettingsLocationTypesRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/locations': {
-      id: '/_app/_auth/settings/locations'
-      path: '/locations'
-      fullPath: '/settings/locations'
-      preLoaderRoute: typeof AppAuthSettingsLocationsRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/machines': {
-      id: '/_app/_auth/settings/machines'
-      path: '/machines'
-      fullPath: '/settings/machines'
-      preLoaderRoute: typeof AppAuthSettingsMachinesRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/priorities': {
-      id: '/_app/_auth/settings/priorities'
-      path: '/priorities'
-      fullPath: '/settings/priorities'
-      preLoaderRoute: typeof AppAuthSettingsPrioritiesRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/trucks': {
-      id: '/_app/_auth/settings/trucks'
-      path: '/trucks'
-      fullPath: '/settings/trucks'
-      preLoaderRoute: typeof AppAuthSettingsTrucksRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/users': {
-      id: '/_app/_auth/settings/users'
-      path: '/users'
-      fullPath: '/settings/users'
-      preLoaderRoute: typeof AppAuthSettingsUsersRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/warehouses': {
-      id: '/_app/_auth/settings/warehouses'
-      path: '/warehouses'
-      fullPath: '/settings/warehouses'
-      preLoaderRoute: typeof AppAuthSettingsWarehousesRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
-    '/_app/_auth/settings/work-days': {
-      id: '/_app/_auth/settings/work-days'
-      path: '/work-days'
-      fullPath: '/settings/work-days'
-      preLoaderRoute: typeof AppAuthSettingsWorkDaysRouteImport
-      parentRoute: typeof AppAuthSettingsRouteRoute
-    }
   }
 }
 
-interface AppAuthSettingsRouteRouteChildren {
-  AppAuthSettingsColorsRoute: typeof AppAuthSettingsColorsRoute
-  AppAuthSettingsLocationTypesRoute: typeof AppAuthSettingsLocationTypesRoute
-  AppAuthSettingsLocationsRoute: typeof AppAuthSettingsLocationsRoute
-  AppAuthSettingsMachinesRoute: typeof AppAuthSettingsMachinesRoute
-  AppAuthSettingsPrioritiesRoute: typeof AppAuthSettingsPrioritiesRoute
-  AppAuthSettingsTrucksRoute: typeof AppAuthSettingsTrucksRoute
-  AppAuthSettingsUsersRoute: typeof AppAuthSettingsUsersRoute
-  AppAuthSettingsWarehousesRoute: typeof AppAuthSettingsWarehousesRoute
-  AppAuthSettingsWorkDaysRoute: typeof AppAuthSettingsWorkDaysRoute
-  AppAuthSettingsIndexRoute: typeof AppAuthSettingsIndexRoute
+interface AppSettingsRouteRouteChildren {
+  AppSettingsColorsRoute: typeof AppSettingsColorsRoute
+  AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
+  AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
+  AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
+  AppSettingsPrioritiesRoute: typeof AppSettingsPrioritiesRoute
+  AppSettingsTrucksRoute: typeof AppSettingsTrucksRoute
+  AppSettingsUsersRoute: typeof AppSettingsUsersRoute
+  AppSettingsWarehousesRoute: typeof AppSettingsWarehousesRoute
+  AppSettingsWorkDaysRoute: typeof AppSettingsWorkDaysRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
-const AppAuthSettingsRouteRouteChildren: AppAuthSettingsRouteRouteChildren = {
-  AppAuthSettingsColorsRoute: AppAuthSettingsColorsRoute,
-  AppAuthSettingsLocationTypesRoute: AppAuthSettingsLocationTypesRoute,
-  AppAuthSettingsLocationsRoute: AppAuthSettingsLocationsRoute,
-  AppAuthSettingsMachinesRoute: AppAuthSettingsMachinesRoute,
-  AppAuthSettingsPrioritiesRoute: AppAuthSettingsPrioritiesRoute,
-  AppAuthSettingsTrucksRoute: AppAuthSettingsTrucksRoute,
-  AppAuthSettingsUsersRoute: AppAuthSettingsUsersRoute,
-  AppAuthSettingsWarehousesRoute: AppAuthSettingsWarehousesRoute,
-  AppAuthSettingsWorkDaysRoute: AppAuthSettingsWorkDaysRoute,
-  AppAuthSettingsIndexRoute: AppAuthSettingsIndexRoute,
+const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsColorsRoute: AppSettingsColorsRoute,
+  AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
+  AppSettingsLocationsRoute: AppSettingsLocationsRoute,
+  AppSettingsMachinesRoute: AppSettingsMachinesRoute,
+  AppSettingsPrioritiesRoute: AppSettingsPrioritiesRoute,
+  AppSettingsTrucksRoute: AppSettingsTrucksRoute,
+  AppSettingsUsersRoute: AppSettingsUsersRoute,
+  AppSettingsWarehousesRoute: AppSettingsWarehousesRoute,
+  AppSettingsWorkDaysRoute: AppSettingsWorkDaysRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
-const AppAuthSettingsRouteRouteWithChildren =
-  AppAuthSettingsRouteRoute._addFileChildren(AppAuthSettingsRouteRouteChildren)
-
-interface AppAuthRouteRouteChildren {
-  AppAuthSettingsRouteRoute: typeof AppAuthSettingsRouteRouteWithChildren
-  AppAuthAccessoriesRoute: typeof AppAuthAccessoriesRoute
-  AppAuthDriverRoute: typeof AppAuthDriverRoute
-  AppAuthLoadingRoute: typeof AppAuthLoadingRoute
-  AppAuthProfileRoute: typeof AppAuthProfileRoute
-  AppAuthRollformingRoute: typeof AppAuthRollformingRoute
-  AppAuthShippingRoute: typeof AppAuthShippingRoute
-  AppAuthStockCardsRoute: typeof AppAuthStockCardsRoute
-  AppAuthTrimRoute: typeof AppAuthTrimRoute
-}
-
-const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
-  AppAuthSettingsRouteRoute: AppAuthSettingsRouteRouteWithChildren,
-  AppAuthAccessoriesRoute: AppAuthAccessoriesRoute,
-  AppAuthDriverRoute: AppAuthDriverRoute,
-  AppAuthLoadingRoute: AppAuthLoadingRoute,
-  AppAuthProfileRoute: AppAuthProfileRoute,
-  AppAuthRollformingRoute: AppAuthRollformingRoute,
-  AppAuthShippingRoute: AppAuthShippingRoute,
-  AppAuthStockCardsRoute: AppAuthStockCardsRoute,
-  AppAuthTrimRoute: AppAuthTrimRoute,
-}
-
-const AppAuthRouteRouteWithChildren = AppAuthRouteRoute._addFileChildren(
-  AppAuthRouteRouteChildren,
-)
+const AppSettingsRouteRouteWithChildren =
+  AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
 
 interface AppRouteRouteChildren {
-  AppAuthRouteRoute: typeof AppAuthRouteRouteWithChildren
-  AppCoilsRoute: typeof AppCoilsRoute
+  AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
+  AppAccessoriesRoute: typeof AppAccessoriesRoute
+  AppDriverRoute: typeof AppDriverRoute
+  AppLoadingRoute: typeof AppLoadingRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppRollformingRoute: typeof AppRollformingRoute
+  AppShippingRoute: typeof AppShippingRoute
+  AppStockCardsRoute: typeof AppStockCardsRoute
+  AppTrimRoute: typeof AppTrimRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppAuthRouteRoute: AppAuthRouteRouteWithChildren,
-  AppCoilsRoute: AppCoilsRoute,
+  AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
+  AppAccessoriesRoute: AppAccessoriesRoute,
+  AppDriverRoute: AppDriverRoute,
+  AppLoadingRoute: AppLoadingRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppRollformingRoute: AppRollformingRoute,
+  AppShippingRoute: AppShippingRoute,
+  AppStockCardsRoute: AppStockCardsRoute,
+  AppTrimRoute: AppTrimRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

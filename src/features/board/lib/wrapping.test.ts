@@ -7,6 +7,7 @@ import {
   defaultWarehouseOf,
   overPackageLimit,
   packageContents,
+  packageTarget,
   packageWeight,
   warehousesOf
 } from './wrapping'
@@ -146,5 +147,15 @@ describe('benchLocations', () => {
   it('marks the location the staged package would overload', () => {
     const { shown } = benchLocations([spot(405, true), spot(406)], null, 405)
     expect(shown.map(location => !!location.over)).toEqual([true, false])
+  })
+})
+
+describe('packageTarget', () => {
+  it('reads the picked cell’s room from the fresh list, not from the moment it was clicked', () => {
+    const clicked = { location_id: 29, name: 'A-02', remaining_weight: 800 } as LocationSlot
+    const fresh = { ...clicked, remaining_weight: 764 }
+    expect(packageTarget(clicked, [], [fresh]).slot?.remaining_weight).toBe(764)
+    // Before the list loads the click is all there is.
+    expect(packageTarget(clicked, [], undefined).slot).toBe(clicked)
   })
 })

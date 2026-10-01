@@ -1,21 +1,21 @@
-import { LoadingPage, daySearchSchema } from '@/features/shipping'
+import { DriverPage, daySearchSchema } from '@/features/shipping'
 import { today } from '@/lib/days'
 import { createFileRoute } from '@tanstack/react-router'
 
-const LoadingRoute = () => {
+const DriverRoute = () => {
   const { day } = Route.useSearch()
   const navigate = Route.useNavigate()
 
   return (
-    <LoadingPage
+    <DriverPage
       day={day ?? today()}
       onDayChange={next => void navigate({ search: { day: next }, replace: true })}
     />
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/loading')({
-  staticData: { crumb: 'Loading' },
+export const Route = createFileRoute('/_app/driver')({
+  staticData: { crumb: 'Driver' },
   validateSearch: daySearchSchema,
-  component: LoadingRoute
+  component: DriverRoute
 })
