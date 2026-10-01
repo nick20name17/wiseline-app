@@ -10,7 +10,7 @@ import { isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard } from '../lib/board-context'
 import { materialsOf, splitOf } from '../lib/parts'
 import { LineItems } from './line-items'
-import { NoteButton, type NoteState } from './note-button'
+import { NoteButton, type NoteState } from '@/components/note-button'
 import { PriorityCell } from './priority-cell'
 
 type OrderRowProps = {

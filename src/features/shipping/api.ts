@@ -20,6 +20,7 @@ const shippingKeys = {
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
   packages: (order: string) => [...shippingKeys.all, 'packages', order] as const,
+  orderNotes: (orders: string[]) => [...shippingKeys.all, 'order-notes', orders] as const,
   route: (loadId: number) => [...shippingKeys.all, 'route', loadId] as const
 }
 
@@ -438,3 +439,32 @@ export const useCreatePickup = () =>
         })
         .json()
   )
+
+const orderNoteSchema = z.object({
+  has_note: z._default(z.boolean(), false),
+  text: z._default(z.nullable(z.string()), null),
+  author: z._default(z.nullable(z.string()), null),
+  created_at: z._default(z.nullable(z.string()), null),
+  read: z._default(z.boolean(), false)
+})
+
+/** The salesman's note on each order on screen, in one call p3 (592,338). */
+export const orderNotesQuery = (orders: string[]) =>
+  queryOptions({
+    queryKey: shippingKeys.orderNotes(orders),
+    enabled: orders.length > 0,
+    queryFn: async () =>
+      z
+        .record(z.string(), orderNoteSchema)
+        .parse(await authApi.post('orders/notes/', { json: { orders } }).json())
+  })
+
+/** Marks an order's note dealt with, or takes that back. */
+export const useSetOrderNoteRead = () =>
+  useMutation({
+    meta: { errorTitle: 'The note was not updated' },
+    mutationFn: ({ order, read }: { order: string; read: boolean }) =>
+      authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: [...shippingKeys.all, 'order-notes'] })
+  })

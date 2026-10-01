@@ -25,3 +25,17 @@ export const onMachine = (orders: BoardOrder[], tab: MachineTab | undefined) =>
           ? [{ ...order, origin_items: lines, count_items: (order.count_items ?? 0) - dropped }]
           : []
       })
+
+/** Each released line's machine, by its EBMS line — what a Wrapping row, which names no machine, is on. */
+export const machineByLine = (orders: BoardOrder[]) =>
+  new Map(
+    orders.flatMap(order => order.origin_items.map(line => [line.id, line.machine_id] as const))
+  )
+
+/** The Wrapping rows one machine tab shows; a line no machine takes is on «No machine». */
+export const rowsOnMachine = <Row extends { origin_item: string }>(
+  rows: Row[],
+  machines: Map<string, number | null>,
+  tab: MachineTab | undefined
+) =>
+  tab === undefined ? rows : rows.filter(row => (machines.get(row.origin_item) ?? 'none') === tab)

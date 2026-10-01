@@ -19,7 +19,7 @@ import { Fragment, useState } from 'react'
 import { slitLineQuery, useSlitRequest } from '../api'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
-import { NoteButton } from './note-button'
+import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
 const COLUMNS = 9

@@ -117,6 +117,49 @@ test('the Driver leaves, delivers and completes the Load', async ({ page }) => {
   expect(posted).toEqual(['loads/126/left-warehouse/', 'delivered/', 'loads/126/complete/'])
 })
 
+test('an unscheduled order opens on its packages, and its note is checked off with the tick kept', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/shipping/unscheduled/?*`, route =>
+    route.fulfill({
+      json: {
+        count: 1,
+        results: [{ order: 'ORD-7', order_number: '116764', customer: 'Kielstra', weight: 40 }]
+      }
+    })
+  )
+  await page.route(`${API_URL}/wrapping/orders/ORD-7/packages/`, route =>
+    route.fulfill({
+      json: [{ package_id: 9, name: '01-116764-1', weight: 40, location: 'A-01', is_loaded: false }]
+    })
+  )
+  let read = false
+  await page.route(`${API_URL}/orders/notes/`, route =>
+    route.fulfill({
+      json: {
+        'ORD-7': { has_note: true, text: 'Trim Location: 30', author: 'JAKE FEHR', read }
+      }
+    })
+  )
+  await page.route(`${API_URL}/orders/ORD-7/note/read/`, route => {
+    read = true
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/shipping?view=unscheduled')
+  await signIn(page)
+
+  await page.getByRole('checkbox', { name: 'Select order 116764' }).click()
+  await page.getByRole('button', { name: 'Expand order 116764' }).click()
+  await expect(page.getByText('01-116764-1')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Order notes for 116764' }).click()
+  await expect(page.getByText('Trim Location: 30')).toBeVisible()
+  await page.getByRole('button', { name: 'Mark dealt with' }).click()
+  await expect.poll(() => read).toBe(true)
+  // Expanding and the notes leave the tick where it was p3 (560,202).
+  await expect(page.getByRole('checkbox', { name: 'Select order 116764' })).toBeChecked()
+})
+
 test.describe('a truck on the Scheduled tab', () => {
   const assignment = (id: number, number: string, loadId: number | null) => ({
     assignment_id: id,

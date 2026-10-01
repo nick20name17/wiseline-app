@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BoardLineItem, BoardOrder, Machine } from '../api'
-import { machineTabsOf, onMachine } from './machines'
+import { machineByLine, machineTabsOf, onMachine, rowsOnMachine } from './machines'
 
 const line = (id: string, machine_id: number | null) => ({ id, machine_id }) as BoardLineItem
 const order = (id: string, lines: BoardLineItem[], count_items = lines.length) =>
@@ -41,5 +41,21 @@ describe('machineTabsOf', () => {
       { id: 90, department: 2, kind: 'cutting' }
     ] as Machine[]
     expect(machineTabsOf(machines, 2).map(machine => machine.id)).toEqual([85])
+  })
+})
+
+describe('rowsOnMachine', () => {
+  const machines = machineByLine([order('A', [line('a1', 85), line('a2', null)])])
+  const rows = [{ origin_item: 'a1' }, { origin_item: 'a2' }, { origin_item: 'z9' }]
+
+  it('keeps the rows of the tab’s machine', () => {
+    expect(rowsOnMachine(rows, machines, 85)).toEqual([{ origin_item: 'a1' }])
+  })
+
+  it('puts a line with no machine, or one not on a released order, on «No machine»', () => {
+    expect(rowsOnMachine(rows, machines, 'none')).toEqual([
+      { origin_item: 'a2' },
+      { origin_item: 'z9' }
+    ])
   })
 })
