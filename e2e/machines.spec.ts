@@ -3,7 +3,8 @@ import { API_URL, mockAuthApi, password, user } from './api.ts'
 
 const DEPARTMENTS = [
   { id: 1, name: 'Trim', code: 'trim', position: 1 },
-  { id: 2, name: 'Rollforming', code: 'rollforming', position: 2 }
+  { id: 2, name: 'Rollforming', code: 'rollforming', position: 2 },
+  { id: 3, name: 'Accessories', code: 'accessories', position: 3 }
 ]
 
 const CATEGORIES = [
@@ -22,6 +23,18 @@ const MACHINES = [
     kind: 'bending',
     daily_max_pieces: null,
     daily_max_bends: 1200
+  },
+  {
+    id: 85,
+    name: 'Tuff Rib & Diamond Rib',
+    description: null,
+    position: 1,
+    category: 'CAT-ROLL',
+    department: 2,
+    kind: 'rollforming',
+    ebms_profile_names: ['Tuff Rib'],
+    daily_max_pieces: null,
+    daily_max_bends: null
   },
   {
     id: 8,
@@ -48,13 +61,13 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('each department is an open card, counted, with its machines’ daily max', async ({ page }) => {
-  await expect(page.getByText('machines across departments')).toContainText('2')
+  await expect(page.getByText('machines across departments')).toContainText('3')
+  // A department with none offers to add one rather than showing an empty card.
+  await expect(page.getByRole('button', { name: 'Add one' })).toBeVisible()
 
   const press = page.getByRole('listitem').filter({ hasText: 'Press Brake' })
   await expect(press).toContainText('1200 bends / day')
   await expect(page.getByRole('listitem').filter({ hasText: 'Slinet' })).toContainText('Gateway')
-  // A department with none offers to add one rather than showing an empty card.
-  await expect(page.getByRole('button', { name: 'Add one' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Collapse Trim' }).click()
   await expect(press).toBeHidden()
@@ -65,4 +78,22 @@ test('deleting a machine says what goes with it', async ({ page }) => {
 
   await expect(page.getByText('Delete machine Press Brake?')).toBeVisible()
   await expect(page.getByText(/left without a machine/)).toBeVisible()
+})
+
+test('a rollformer runs every EBMS profile listed on it, one a line', async ({ page }) => {
+  let saved: unknown
+  await page.route(`${API_URL}/flows/85/`, route => {
+    saved = route.request().postDataJSON()
+    return route.fulfill({ json: {} })
+  })
+  await page.getByRole('button', { name: 'Edit Tuff Rib & Diamond Rib' }).click()
+
+  const profiles = page.getByLabel('EBMS profiles')
+  await expect(profiles).toHaveValue('Tuff Rib')
+  await profiles.fill('Tuff Rib\n  Diamond Rib \n\nREVERSED Diamond Rib')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await expect
+    .poll(() => (saved as { ebms_profile_names?: string[] } | undefined)?.ebms_profile_names)
+    .toEqual(['Tuff Rib', 'Diamond Rib', 'REVERSED Diamond Rib'])
 })

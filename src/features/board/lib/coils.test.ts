@@ -3,6 +3,7 @@ import type { CoilFilter, CoilLot } from '../api'
 import {
   coilFilterActive,
   coilName,
+  coilsByFolder,
   departmentCoilFilter,
   feetFromThickness,
   figure,
@@ -119,5 +120,33 @@ describe('figure', () => {
     expect(figure(5909.177880000001)).toBe('5,909.178')
     expect(figure(262)).toBe('262')
     expect(figure(null)).toBe('—')
+  })
+})
+
+describe('coilsByFolder', () => {
+  it('lists each folder once per coil product, by Product ID', () => {
+    const folders = coilsByFolder([
+      lot({
+        id: '1',
+        folder_id: '300',
+        product_id: 'CS8317',
+        gauge: 29,
+        color: 'White',
+        width: 40
+      }),
+      lot({ id: '2', folder_id: '300', product_id: 'CS8317' }),
+      lot({ id: '3', folder_id: '300', product_id: 'CB8317' }),
+      lot({ id: '4', folder_id: '110', product_id: 'SS2620' })
+    ])
+
+    expect([...folders.keys()]).toEqual(['300', '110'])
+    expect(folders.get('300')).toEqual([
+      { product_id: 'CB8317', detail: '26 ga · Charcoal · 48" wide' },
+      { product_id: 'CS8317', detail: '29 ga · White · 40" wide' }
+    ])
+  })
+
+  it('skips a lot with no folder or no product', () => {
+    expect(coilsByFolder([lot({ folder_id: null }), lot({ product_id: null })]).size).toBe(0)
   })
 })

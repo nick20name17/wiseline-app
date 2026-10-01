@@ -4,7 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
-import { Calendar, ChevronRight, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
+import {
+  Calendar,
+  ChevronRight,
+  FileOutput,
+  Package,
+  SendHorizontal,
+  Split,
+  TriangleAlert
+} from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard } from '../lib/board-context'
@@ -23,12 +31,15 @@ type ScheduledRowProps = {
   departmentId: number | undefined
   expanded: boolean
   selected: boolean
+  /** Ticked to be exported as it is released — Rollforming's p2 (542,607). */
+  exporting: boolean
   /** The type exclusion has locked this row: the batch is already the other kind of order. */
   locked: boolean
   overdue: boolean
   noteState: NoteState
   onToggleExpanded: () => void
   onToggleSelected: () => void
+  onToggleExport: () => void
   onReschedule: () => void
   onOpenOrderNotes: () => void
   onOpenLineNotes: (item: BoardLineItem, readOnly: boolean) => void
@@ -127,18 +138,20 @@ export const ScheduledRow = ({
   departmentId,
   expanded,
   selected,
+  exporting,
   locked,
   overdue,
   noteState,
   onToggleExpanded,
   onToggleSelected,
+  onToggleExport,
   onReschedule,
   onOpenOrderNotes,
   onOpenLineNotes
 }: ScheduledRowProps) => {
   const state = departmentStateOf(order, departmentId)
   // Each day of a split order is reviewed and released on its own p1 (316,381), (335,505).
-  const { reviewed, released } = partState(order, day, departmentId)
+  const { reviewed, released, exported } = partState(order, day, departmentId)
   const stock = isStockOrder(order)
   const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
@@ -241,6 +254,22 @@ export const ScheduledRow = ({
                   reviewed={reviewed}
                   released={released}
                   machinesAssigned={machinesAssigned}
+                />
+              )}
+            </TableCell>
+          ),
+          export: (
+            <TableCell onClick={stopRowClick}>
+              {exported ? (
+                <FileOutput className='size-4 text-primary' aria-label='Exported' />
+              ) : released || !reviewed ? (
+                <span className='text-muted-foreground'>—</span>
+              ) : (
+                <Checkbox
+                  aria-label={`Export order ${order.invoice}`}
+                  checked={exporting}
+                  disabled={locked}
+                  onCheckedChange={onToggleExport}
                 />
               )}
             </TableCell>

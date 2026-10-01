@@ -57,3 +57,36 @@ export const figuresAtThickness = (lot: CoilLot, thickness: number) => {
   const perFoot = poundsPerFoot(lot, lot.material_thickness)
   return { feet, weight: perFoot === null ? null : Math.round(feet * perFoot) }
 }
+
+/** A coil product as a picker lists it: its Product ID and what tells it apart. */
+export type CoilChoice = { product_id: string; detail: string }
+
+/**
+ * The coils in each EBMS folder, by the lots that have coil left on them: a folder with no such lot
+ * has nothing to pick a Lot Number from p2 (616,414), so it has no entry.
+ */
+export const coilsByFolder = (lots: CoilLot[]) => {
+  const folders = new Map<string, Map<string, CoilChoice>>()
+  for (const lot of lots) {
+    if (!lot.folder_id || !lot.product_id) continue
+    const coils = folders.get(lot.folder_id) ?? new Map<string, CoilChoice>()
+    folders.set(lot.folder_id, coils)
+    if (coils.has(lot.product_id)) continue
+    coils.set(lot.product_id, {
+      product_id: lot.product_id,
+      detail: [
+        lot.gauge === null ? null : `${lot.gauge} ga`,
+        lot.color,
+        lot.width === null ? null : `${lot.width}" wide`
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    })
+  }
+  return new Map(
+    [...folders].map(([folder, coils]) => [
+      folder,
+      [...coils.values()].toSorted((a, b) => a.product_id.localeCompare(b.product_id))
+    ])
+  )
+}

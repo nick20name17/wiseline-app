@@ -56,11 +56,16 @@ export const partState = (order: BoardOrder, day: string, departmentId: number |
   const items = partLines(order, day).flatMap(line => (line.item ? [line.item] : []))
   if (!items.length) {
     const state = departmentStateOf(order, departmentId)
-    return { reviewed: state?.reviewed ?? false, released: state?.release_to_production ?? false }
+    return {
+      reviewed: state?.reviewed ?? false,
+      released: state?.release_to_production ?? false,
+      exported: false
+    }
   }
   return {
     reviewed: items.every(item => item.reviewed),
-    released: items.some(item => item.is_released)
+    released: items.some(item => item.is_released),
+    exported: items.some(item => !!item.exported_at)
   }
 }
 

@@ -121,6 +121,8 @@ const itemSchema = z.object({
   // Reviewed and Released belong to the line's production day p1 (316,381), not the whole order.
   reviewed: z._default(z.boolean(), false),
   is_released: z._default(z.boolean(), false),
+  // Rollforming's Export, a release that is also marked exported p2 (544,611).
+  exported_at: z._default(z.nullable(z.string()), null),
   // What the Manager fills in while reviewing the order.
   flow: z._default(z.nullable(machineSchema), null),
   vented: z._default(z.boolean(), false),
@@ -129,10 +131,13 @@ const itemSchema = z.object({
   // value shadows the mirror's.
   width: z._default(z.nullable(z.number()), null),
   description: z._default(z.nullable(z.string()), null),
-  // Rollforming's coil p2 (541,431): `null` is Undefined, any coil from any supplier. The listing does
-  // not carry them yet (backend-blockers R6); the Slit Line's lists do, for what went there.
+  // Rollforming's coil p2 (541,431): `null` is Undefined, any coil from any supplier.
   supplier: z._default(z.nullable(z.string()), null),
-  coil_number: z._default(z.nullable(z.string()), null)
+  coil_number: z._default(z.nullable(z.string()), null),
+  /** `coil`, `waiting_to_slit` or `slit`; none for a line that takes no coil. */
+  coil_icon: z._default(z.nullable(z.string()), null),
+  // Locked while the Slit Line still owes the coil p2 (1086,321).
+  coil_fields_locked: z._default(z.boolean(), false)
 })
 
 const lineItemSchema = z.object({
@@ -150,6 +155,9 @@ const lineItemSchema = z.object({
   // The material the line is made of; EBMS sends the gauge as text or a number.
   color: z._default(z.nullable(z.string()), null),
   gauge: z._default(z.nullable(z.coerce.string()), null),
+  // Rollforming: the machine the line is set on, else the one its EBMS profile runs on p2 (516,277).
+  profile: z._default(z.nullable(z.string()), null),
+  machine_id: z._default(z.nullable(z.number()), null),
   // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
   item: z._default(z.nullable(itemSchema), null)
 })
@@ -165,6 +173,8 @@ const orderSchema = z.object({
   count_items: z._default(z.nullable(z.number()), 0),
   total_weight: z._default(z.nullable(z.number()), 0),
   ship_via: z._default(z.nullable(z.string()), null),
+  po_no: z._default(z.nullable(z.string()), null),
+  salesman: z._default(z.nullable(z.string()), null),
   // The codes the order's packages stand on, oldest first.
   locations: z.catch(z.array(z.string()), []),
   sales_order: z._default(z.nullable(salesOrderSchema), null),
@@ -269,18 +279,25 @@ const boardKeys = {
     [...boardKeys.remanufacturings(), departmentId] as const
 }
 
-type OrderFilters = Record<string, string | number | boolean>
+type OrderFilter = string | number | boolean
+type OrderFilters = Record<string, OrderFilter | OrderFilter[]>
 
 /**
  * `ebms/orders/` filters on the EBMS category — the department's name — rather than on the department
- * id, and narrows each order's line items to it as well.
+ * id, and narrows each order's line items to it as well. A list filter repeats its key, as FastAPI
+ * reads one.
  */
-const orderPage = async (category: string, filters: OrderFilters, offset: number, limit: number) =>
-  orderPageSchema.parse(
-    await authApi
-      .get('ebms/orders/', { searchParams: { category, ...filters, limit, offset } })
-      .json()
-  )
+const orderPage = async (
+  category: string,
+  filters: OrderFilters,
+  offset: number,
+  limit: number
+) => {
+  const searchParams = new URLSearchParams()
+  for (const [key, value] of Object.entries({ category, ...filters, limit, offset }))
+    for (const one of [value].flat()) searchParams.append(key, String(one))
+  return orderPageSchema.parse(await authApi.get('ebms/orders/', { searchParams }).json())
+}
 
 /**
  * Every page of a paged list: the first says how many there are, so the rest are asked for at once.
@@ -349,26 +366,6 @@ export const wholeOrderQuery = (category: string, order: BoardOrder) =>
   })
 
 /**
- * The app's own row for each of an order's lines, which a line edit is addressed to. The Wrapping rows
- * name only the EBMS line, so the bench asks the order when it is about to edit one.
- */
-export const orderItemIdsQuery = (category: string, order: string | null) =>
-  queryOptions({
-    queryKey: [...boardKeys.orders(), category, 'item-ids', order] as const,
-    enabled: !!order,
-    queryFn: async () => {
-      const found = (await orderPage(category, { order: order! }, 0, 1)).results.find(
-        listed => listed.id === order
-      )
-      return new Map(
-        (found?.origin_items ?? []).flatMap(line =>
-          line.item ? [[line.id, line.item.id] as const] : []
-        )
-      )
-    }
-  })
-
-/**
  * The Scheduled tab: orders whose line items in the department carry a day, released or not.
  *
  * Every day at once — the tab picks a day's parts out itself. The server's `production_date=` matches
@@ -379,6 +376,24 @@ export const scheduledOrdersQuery = (category: string, search: string | undefine
     queryKey: boardKeys.scheduled(category, search),
     placeholderData: keepPreviousData,
     queryFn: () => allOrders(category, { is_scheduled: true, ...(search ? { search } : {}) })
+  })
+
+/**
+ * The orders released to the department's floor: what Rollforming's Production tab lists. The listing
+ * answers EBMS-Open orders only by default, and an order released in the app can be invoiced in EBMS
+ * (Outstanding, Paid) long before it is rolled.
+ */
+export const releasedOrdersQuery = (category: string, search: string | undefined) =>
+  queryOptions({
+    queryKey: [...boardKeys.orders(), category, 'released', { search: search ?? '' }] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      allOrders(category, {
+        is_scheduled: true,
+        release_to_production: true,
+        origin_status__in: ['U', 'O', 'X'],
+        ...(search ? { search } : {})
+      })
   })
 
 /**
@@ -786,39 +801,18 @@ type ScheduleOrdersInput = {
 /** Tick several orders, pick one day — the board's main scheduling path. */
 export const useScheduleOrders = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: async ({ orders, departmentId, productionDate }: ScheduleOrdersInput) => {
-      // `sales-orders/schedule/` dates every line of an order, the part already split off to its
-      // own day included. A part-scheduled order arrives with only the lines still waiting, so
-      // those go by themselves, the way a split does.
-      const isPart = (order: BoardOrder) =>
-        isNarrowed(order) && !!departmentStateOf(order, departmentId)?.production_date
-      const partial = orders.filter(isPart)
-      const whole = await Promise.all(
-        orders.filter(order => !isPart(order)).map(ensureSalesOrderId)
-      )
-      await Promise.all([
-        whole.length
-          ? authApi
-              .post('sales-orders/schedule/', {
-                json: { department: departmentId, orders: whole, production_date: productionDate }
-              })
-              .json()
-          : null,
-        ...partial.map(async order =>
-          authApi
-            .post(
-              `sales-orders/${await ensureSalesOrderId(order)}/departments/${departmentId}/schedule/`,
-              {
-                json: {
-                  production_date: productionDate,
-                  origin_items: order.origin_items.map(item => item.id)
-                }
-              }
-            )
-            .json()
-        )
-      ])
-    },
+    // A part-scheduled order keeps its part on its own day: the server dates only the lines with
+    // no day yet.
+    mutationFn: async ({ orders, departmentId, productionDate }: ScheduleOrdersInput) =>
+      authApi
+        .post('sales-orders/schedule/', {
+          json: {
+            department: departmentId,
+            orders: await Promise.all(orders.map(ensureSalesOrderId)),
+            production_date: productionDate
+          }
+        })
+        .json(),
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })
     },
@@ -1018,6 +1012,7 @@ export const useSetReviewed = () =>
 
 const releaseResultSchema = z.object({
   released: z.catch(z.array(z.number()), []),
+  exported: z.catch(z.array(z.number()), []),
   cutlists: z.catch(z.array(z.number()), [])
 })
 
@@ -1032,16 +1027,34 @@ export type ReleaseDay = { sales_order_id: number; production_date: string }
  * One call for the batch rather than one per part — parts sharing a production date, gauge/colour
  * and priority share a cutlist, and that grouping only happens when they arrive together.
  */
-export const useReleaseOrders = (onSuccess: (released: number, cutlists: number) => void) =>
+type ReleaseInput = {
+  days: ReleaseDay[]
+  /** Rollforming's: the parts exported too — released whether or not they are in `days` p2 (542,607). */
+  exportDays?: ReleaseDay[]
+  departmentId: number
+}
+
+export const useReleaseOrders = (
+  onSuccess: (result: { released: number; exported: number; cutlists: number }) => void
+) =>
   useMutation({
-    mutationFn: async ({ days, departmentId }: { days: ReleaseDay[]; departmentId: number }) =>
+    mutationFn: async ({ days, exportDays, departmentId }: ReleaseInput) =>
       releaseResultSchema.parse(
-        await authApi.post(`departments/${departmentId}/release/`, { json: { days } }).json()
+        await authApi
+          .post(`departments/${departmentId}/release/`, {
+            json: exportDays?.length ? { days, export_days: exportDays } : { days }
+          })
+          .json()
       ),
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })
     },
-    onSuccess: result => onSuccess(result.released.length, result.cutlists.length)
+    onSuccess: result =>
+      onSuccess({
+        released: result.released.length,
+        exported: result.exported.length,
+        cutlists: result.cutlists.length
+      })
   })
 
 /**
@@ -1840,6 +1853,8 @@ export const coilFiltersQuery = (departmentId: number | undefined) =>
   })
 
 const wrappingRowSchema = z.object({
+  // The app's own row, which a line edit (Stock) is addressed to.
+  item_id: z._default(z.nullable(z.number()), null),
   origin_item: z._default(z.string(), ''),
   order: z._default(z.string(), ''),
   order_number: z._default(z.nullable(z.string()), null),
@@ -1859,6 +1874,8 @@ const wrappingRowSchema = z.object({
   left_to_wrap: z._default(z.number(), 0),
   // Wrapping is blocked until the trim has actually been made, by whatever «made» means here.
   can_wrap: z._default(z.boolean(), false),
+  // A Rollforming line with no Supplier or Coil Number yet, which shuts `can_wrap` p2 (1011,367).
+  coil_missing: z._default(z.boolean(), false),
   auto_fill_available: z._default(z.boolean(), false),
   auto_fill_amount: z._default(z.number(), 0),
   // Which window the bench opens: a stock order's Stock window, or the package modal.
@@ -2422,6 +2439,11 @@ export const coilNumbersQuery = (productId: string | null) =>
 const slitLineSchema = z.object({
   origin_item: z.string(),
   order: z._default(z.nullable(z.string()), null),
+  // A stock order's own S number, product and quantity.
+  invoice: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  quantity: z._default(z.nullable(z.number()), null),
   production_date: z._default(z.nullable(z.string()), null),
   /** `coil`, `waiting_to_slit` or `slit`. */
   icon: z._default(z.nullable(z.string()), null),
@@ -2515,4 +2537,89 @@ export const useMarkSlit = () =>
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
+  })
+
+// --- Rollforming Queue ------------------------------------------------------------------------
+
+const queueLineSchema = z.object({
+  item_id: z._default(z.nullable(z.number()), null),
+  origin_item: z._default(z.string(), ''),
+  order: z._default(z.nullable(z.string()), null),
+  order_number: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  // What is left of the line to roll.
+  quantity: z._default(z.number(), 0),
+  length: z._default(z.nullable(z.number()), null),
+  status: z._default(z.nullable(z.string()), null)
+})
+
+const queueRowSchema = z.object({
+  // What a reorder names the row by. It changes when what the row combines does, so a reorder is
+  // sent from a fresh read.
+  key: z.string(),
+  production_date: z._default(z.nullable(z.string()), null),
+  material_id: z._default(z.nullable(z.string()), null),
+  material: z._default(z.nullable(z.string()), null),
+  profile: z._default(z.nullable(z.string()), null),
+  linear_feet: z._default(z.number(), 0),
+  weight: z._default(z.number(), 0),
+  priority: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null),
+  supplier: z._default(z.nullable(z.string()), null),
+  coil_number: z._default(z.nullable(z.string()), null),
+  coil_icon: z._default(z.nullable(z.string()), null),
+  coil_fields_locked: z._default(z.boolean(), false),
+  is_overdue: z._default(z.boolean(), false),
+  lines: z._default(z.array(queueLineSchema), [])
+})
+
+export type QueueRow = z.infer<typeof queueRowSchema>
+
+// Under the orders: a coil, a priority or a release that moves an order regroups its material.
+const queueKey = (departmentId: number, flowId: number) =>
+  [...boardKeys.orders(), 'queue', departmentId, flowId] as const
+
+/**
+ * A machine's Queue: the released material still to roll, a row per run of the same day, coil,
+ * profile, priority, supplier, coil number and slit state p2 (493,630) — the same rows for the Manager
+ * and the Worker p2 (935,297).
+ */
+export const queueQuery = (departmentId: number | undefined, flowId: number | undefined) =>
+  queryOptions({
+    queryKey: queueKey(departmentId ?? 0, flowId ?? 0),
+    enabled: departmentId !== undefined && flowId !== undefined,
+    queryFn: async () =>
+      z.array(queueRowSchema).parse(
+        await authApi
+          .get('rollforming/queue/', {
+            searchParams: { department_id: departmentId!, flow_id: flowId! }
+          })
+          .json()
+      )
+  })
+
+type ReorderQueueInput = {
+  departmentId: number
+  flowId: number
+  productionDate: string
+  /** Every row of the day, once, in the new order; a row cannot cross the day line p2 (530,641). */
+  keys: string[]
+}
+
+/** The Manager drags the material within its day p2 (530,641), (498,662). */
+export const useReorderQueue = () =>
+  useMutation({
+    meta: { errorTitle: 'The Queue kept its order' },
+    mutationFn: ({ departmentId, flowId, productionDate, keys }: ReorderQueueInput) =>
+      authApi
+        .post('rollforming/queue/reorder/', {
+          json: {
+            department_id: departmentId,
+            flow_id: flowId,
+            production_date: productionDate,
+            keys
+          }
+        })
+        .json(),
+    onSettled: (_, __, { departmentId, flowId }, ____, { client }) =>
+      client.invalidateQueries({ queryKey: queueKey(departmentId, flowId) })
   })

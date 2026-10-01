@@ -16,9 +16,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
 import { Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { scheduledOrdersQuery, slitLineQuery, useSlitRequest, type BoardLineItem } from '../api'
-import { useBoard } from '../lib/board-context'
+import { slitLineQuery, useSlitRequest } from '../api'
 import { CoilAssignDialog } from './coil-assign-dialog'
+import { LineNotesDialog } from './line-notes-dialog'
+import { NoteButton } from './note-button'
+import { useLineNoteState } from './use-line-note-state'
 
 const COLUMNS = 9
 
@@ -30,7 +32,6 @@ type SlitLineTabProps = { departmentId: number }
  * its scissors turning green p2 (1086,349).
  */
 export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
-  const board = useBoard()
   const [done, setDone] = useState(false)
   const {
     data: queue,
@@ -39,24 +40,17 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
     error,
     refetch
   } = useQuery(slitLineQuery(departmentId, done))
-  // The Slit Line names a line by its autoid; the board's scheduled orders say what it is.
-  const { data: orders } = useQuery(scheduledOrdersQuery(board.name, undefined))
-  const lines = new Map<string, { invoice: string; customer: string | null; line: BoardLineItem }>(
-    (orders?.results ?? []).flatMap(order =>
-      order.origin_items.map(line => [
-        line.id,
-        { invoice: order.invoice, customer: order.customer, line }
-      ])
-    )
-  )
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [marking, setMarking] = useState(false)
+  const [noteItem, setNoteItem] = useState<string | null>(null)
   const cancel = useSlitRequest()
 
   const rows = queue ?? []
+  // Line notes are open «at any point in production» p2 (526,410), the Slit Line included.
+  const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const chosen = rows.filter(row => picked.has(row.origin_item))
   // One coil at a time, so one Product ID at a time p2 (540,467).
-  const chosenProduct = chosen.length ? lines.get(chosen[0]!.origin_item)?.line.id_inven : undefined
+  const chosenProduct = chosen[0]?.product_id
   const days = byDay(rows, row => row.production_date)
 
   return (
@@ -125,24 +119,24 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
               <col className='w-10' />
               <col className='w-36' />
               <col className='w-28' />
-              <col className='w-48' />
               <col className='w-32' />
               <col />
               <col className='w-16' />
               <col className='w-36' />
               <col className='w-40' />
+              <col className='w-16' />
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead />
                 <TableHead>Production Date</TableHead>
                 <TableHead>Order #</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Product ID</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Coil Number</TableHead>
+                <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -160,8 +154,7 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
                       </TableCell>
                     </TableRow>
                     {day.items.map(row => {
-                      const known = lines.get(row.origin_item)
-                      const product = known?.line.id_inven ?? null
+                      const product = row.product_id
                       const pickable = chosenProduct === undefined || chosenProduct === product
                       return (
                         <TableRow
@@ -173,7 +166,7 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
                               <Scissors className='size-3.5 text-success' aria-label='Slit' />
                             ) : (
                               <Checkbox
-                                aria-label={`Select ${product ?? row.origin_item} of ${known?.invoice ?? row.order}`}
+                                aria-label={`Select ${product ?? row.origin_item} of ${row.invoice ?? row.order}`}
                                 checked={picked.has(row.origin_item)}
                                 disabled={!pickable}
                                 onCheckedChange={() =>
@@ -189,22 +182,19 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
                           <TableCell>{formatDate(row.production_date)}</TableCell>
                           <TableCell>
                             <span className='font-mono font-medium'>
-                              {known?.invoice ?? row.order ?? '—'}
+                              {row.invoice ?? row.order ?? '—'}
                             </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className='truncate'>{known?.customer ?? '—'}</span>
                           </TableCell>
                           <TableCell>
                             <span className='font-mono'>{product ?? '—'}</span>
                           </TableCell>
                           <TableCell>
                             <span className='truncate text-muted-foreground'>
-                              {known?.line.item?.description ?? known?.line.description ?? '—'}
+                              {row.description ?? '—'}
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className='font-mono'>{known?.line.quantity ?? '—'}</span>
+                            <span className='font-mono'>{row.quantity ?? '—'}</span>
                           </TableCell>
                           <TableCell>
                             <span className='truncate'>{row.supplier ?? 'Undefined'}</span>
@@ -213,6 +203,13 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
                             <span className='truncate font-mono'>
                               {row.coil_number ?? 'Undefined'}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            <NoteButton
+                              state={noteState(row.origin_item)}
+                              label={`Line notes for ${product ?? row.origin_item}`}
+                              onClick={() => setNoteItem(row.origin_item)}
+                            />
                           </TableCell>
                         </TableRow>
                       )
@@ -227,13 +224,17 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
 
       <CoilAssignDialog
         action='slit'
-        lines={chosen.map(row => ({
-          id: row.origin_item,
-          id_inven: lines.get(row.origin_item)?.line.id_inven ?? null
-        }))}
+        departmentId={departmentId}
+        lines={chosen.map(row => ({ id: row.origin_item, id_inven: row.product_id }))}
         open={marking}
         onOpenChange={setMarking}
         onAssigned={() => setPicked(new Set())}
+      />
+
+      <LineNotesDialog
+        originItem={noteItem}
+        productId={rows.find(row => row.origin_item === noteItem)?.product_id ?? ''}
+        onOpenChange={open => !open && setNoteItem(null)}
       />
     </div>
   )

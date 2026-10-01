@@ -27,6 +27,7 @@ import { OrderNoteDialog } from './order-note-dialog'
 import { OrderRow } from './order-row'
 import { ScheduleDialog } from './schedule-dialog'
 import { StockCardsDialog } from './stock-cards-dialog'
+import { onMachine, type MachineTab } from '../lib/machines'
 import { StockOrderDialog } from './stock-order-dialog'
 import { UnscheduledToolbar } from './unscheduled-toolbar'
 import { useOrderNotes } from './use-line-note-state'
@@ -34,6 +35,8 @@ import { useOrderNotes } from './use-line-note-state'
 type UnscheduledTabProps = {
   search: string | undefined
   departmentId: number | undefined
+  /** Rollforming's machine tab; none on a board without them. */
+  machine?: MachineTab
 }
 
 /** The line items picked off one order, which is the board's Split Order. Only ever one order at a time. */
@@ -41,7 +44,7 @@ type Split = { orderId: string; lineIds: string[] }
 
 type OpenDialog = 'schedule' | 'split' | 'bypass' | 'cards' | 'stock' | null
 
-export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) => {
+export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTabProps) => {
   const board = useBoard()
   const {
     data: page,
@@ -51,7 +54,7 @@ export const UnscheduledTab = ({ search, departmentId }: UnscheduledTabProps) =>
     refetch
   } = useQuery(unscheduledOrdersQuery(board.name, search))
   const columns = useColumnOrder(board.tables.unscheduled)
-  const orders = page?.results ?? []
+  const orders = onMachine(page?.results ?? [], machine)
   // Two hundred and more orders is too many rows to keep in the page at once; only those on screen are.
   const { tableRef, items, measure, before, after } = useWindowRows(
     orders.length,

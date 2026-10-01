@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import {
   Select,
@@ -17,9 +17,11 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { Textarea } from '@/components/ui/textarea'
 import { asNumber, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   categoriesQuery,
@@ -32,6 +34,36 @@ import {
   type MachineForm as MachineFormValues,
   type MachineKind
 } from '../api'
+
+type ProfilesInputProps = {
+  id: string
+  value: string[]
+  invalid?: boolean
+  onChange: (profiles: string[]) => void
+}
+
+/** The profiles as lines of text; the form holds them trimmed, blank lines dropped. */
+const ProfilesInput = ({ id, value, invalid: isInvalid, onChange }: ProfilesInputProps) => {
+  const [text, setText] = useState(() => value.join('\n'))
+  return (
+    <Textarea
+      id={id}
+      rows={3}
+      placeholder={'e.g. Tuff Rib\nDiamond Rib'}
+      aria-invalid={isInvalid}
+      value={text}
+      onChange={event => {
+        setText(event.target.value)
+        onChange(
+          event.target.value
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+        )
+      }}
+    />
+  )
+}
 
 type MachineFormProps = {
   machine?: Machine
@@ -49,7 +81,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
       category: machine?.category ?? categories?.[0]?.id ?? '',
       department: machine?.department ?? departments?.[0]?.id ?? 0,
       kind: machine?.kind ?? 'bending',
-      ebms_profile_name: machine?.ebms_profile_name ?? null,
+      ebms_profile_names: machine?.ebms_profile_names ?? [],
       daily_max_pieces: machine?.daily_max_pieces ?? null,
       daily_max_bends: machine?.daily_max_bends ?? null
     }
@@ -165,22 +197,24 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
         </Field>
 
         {kind === 'rollforming' ? (
-          <Field data-invalid={invalid(errors.ebms_profile_name)}>
-            <FieldLabel htmlFor='machine-profile'>EBMS profile</FieldLabel>
+          <Field data-invalid={invalid(errors.ebms_profile_names)}>
+            <FieldLabel htmlFor='machine-profiles'>EBMS profiles</FieldLabel>
             {/* «The Name assigned here would have to exactly match the Name given to the Machine»
-                p2 (541,284): the Roll Options profile whose lines this rollformer runs. */}
-            <InputGroup>
-              <InputGroupInput
-                id='machine-profile'
-                placeholder='e.g. Tuff Rib'
-                maxLength={100}
-                aria-invalid={invalid(errors.ebms_profile_name)}
-                {...form.register('ebms_profile_name', {
-                  setValueAs: (value: string | null) => value?.trim() || null
-                })}
-              />
-            </InputGroup>
-            <FieldError errors={[errors.ebms_profile_name]} />
+                p2 (541,284): the Roll Options profiles whose lines this rollformer runs. */}
+            <Controller
+              control={form.control}
+              name='ebms_profile_names'
+              render={({ field }) => (
+                <ProfilesInput
+                  id='machine-profiles'
+                  value={field.value}
+                  invalid={invalid(errors.ebms_profile_names)}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <FieldDescription>One per line, spelled as in EBMS.</FieldDescription>
+            <FieldError errors={[errors.ebms_profile_names]} />
           </Field>
         ) : null}
 

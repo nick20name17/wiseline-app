@@ -11,7 +11,6 @@ import { ArrowLeft, Ban, Check, MapPin, PackageSearch, Printer, RefreshCw } from
 import { useState } from 'react'
 import {
   orderCompleteQuery,
-  orderItemIdsQuery,
   orderLocationsQuery,
   remanufacturingsQuery,
   useCompleteOrder,
@@ -145,6 +144,17 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
       </span>
     )
 
+  if (row.coil_missing)
+    return (
+      <span
+        className='inline-flex items-center gap-1 text-xs text-muted-foreground'
+        title='Needs a Supplier and Coil Number before it is packaged'
+      >
+        <Ban className='size-3.5' />
+        No coil yet
+      </span>
+    )
+
   // The pieces left are the ones a remake still owes: they are wrapped once it is Bent.
   const held = READY.includes(row.status ?? '') && allowed < row.left_to_wrap
 
@@ -188,12 +198,6 @@ const WrapLines = ({
   const [stocking, setStocking] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
-  const {
-    data: itemIds,
-    isFetching: findingItem,
-    isSuccess: foundOrder
-  } = useQuery(orderItemIdsQuery(board.name, stocking?.order ?? null))
-  const stockingItem = stocking ? itemIds?.get(stocking.origin_item) : undefined
   const updateLine = useUpdateLineItem({ released: true })
   const columns = useColumnOrder(board.tables.packLines)
   // Rollforming packs one Product ID at a time: the first line put in sets it p2 (963,410).
@@ -255,7 +259,8 @@ const WrapLines = ({
                     // so its lines take none off it.
                     stock: (
                       <TableCell>
-                        {board.stockCards && !row.is_stock ? (
+                        {/* A line with no app row has nothing for the keypad to write to. */}
+                        {board.stockCards && !row.is_stock && row.item_id !== null ? (
                           <Button
                             variant='link'
                             aria-label={`Stock for ${lineName(row)}`}
@@ -347,25 +352,15 @@ const WrapLines = ({
               }
             : null
         }
-        isPending={updateLine.isPending || findingItem}
+        isPending={updateLine.isPending}
         onOpenChange={open => !open && setStocking(null)}
-        onEnter={value => {
-          if (stockingItem === undefined) {
-            toast.add({
-              type: 'error',
-              title: 'The Stock was not changed',
-              // A lookup that answered without the line will answer the same again.
-              description: foundOrder
-                ? 'This order is no longer on the order list, so its lines cannot be changed from the bench.'
-                : 'The order did not load. Try again.'
-            })
-            return
-          }
+        onEnter={value =>
+          stocking?.item_id != null &&
           updateLine.mutate(
-            { itemId: stockingItem, edit: { pull_from_stock: value } },
+            { itemId: stocking.item_id, edit: { pull_from_stock: value } },
             { onSuccess: () => setStocking(null) }
           )
-        }}
+        }
       />
     </>
   )

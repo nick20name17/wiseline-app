@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { PackageOpen } from 'lucide-react'
-import { orderPackagesQuery, useMarkLoaded, type Assignment, type LoadTab } from '../api'
+import { orderPackagesQuery, useMarkLoaded, type Assignment, type Load } from '../api'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { useDayLoads } from '../lib/day-loads'
@@ -16,7 +16,7 @@ import { LoadCard, OrderLine } from './load-card'
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
 const ON_THE_DOCK = new Set(['not_started', 'loading', 'loaded'])
 
-type OrderPackagesProps = { load: LoadTab; order: Assignment & { order: string } }
+type OrderPackagesProps = { load: Load; order: Assignment & { order: string } }
 
 /** One order's packages, ticked onto the truck one by one. */
 const OrderPackages = ({ load, order }: OrderPackagesProps) => {

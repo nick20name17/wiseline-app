@@ -140,6 +140,10 @@ export const applyKeypad = (current: number, typed: string, max: number) => {
   return Math.min(max, Math.max(0, next))
 }
 
+/** A keypad entry for a measure rather than a count: a plain decimal, no +/−; `null` until it is one. */
+export const decimalKeypad = (typed: string) =>
+  /^(\d+\.?\d*|\.\d+)$/.test(typed) ? Number(typed) : null
+
 /**
  * The warehouses a set of locations stands in, the default one first — «the one that opens first when
  * selecting a location» p1 (543,104) — and the rest by name.

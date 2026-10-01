@@ -509,7 +509,7 @@ const wrappingRow = (
 
 export const WRAPPING_ROWS = [
   // 11 lb a piece, so a package of the 36 still owed weighs 396 lb.
-  wrappingRow('901', 'Sidewall Flashing', 40, 0, { unit_weight: 11 }),
+  wrappingRow('901', 'Sidewall Flashing', 40, 0, { item_id: 9001, unit_weight: 11 }),
   // Not made yet, so nothing can be wrapped out of it however much is left.
   wrappingRow('902', 'Drip Edge', 20, 0, {
     status: 'not_started',

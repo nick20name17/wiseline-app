@@ -9,13 +9,13 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { getErrorMessage } from '@/lib/errors'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
 import { Database } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -23,11 +23,13 @@ import {
   useConfirmCoilAdjustment,
   useDepleteCoil,
   useUpdateCoilLot,
+  type CoilLot,
   type Cutlist
 } from '../api'
 import { CUTLIST_COILS_TABLE } from '../lib/columns'
 import { coilName, figure, figuresAtThickness } from '../lib/coils'
 import { ConfirmDialog } from './confirm-dialog'
+import { KeypadDialog } from './keypad-dialog'
 import { NoteInput } from './note-input'
 
 type Question = 'deplete' | 'adjust'
@@ -49,6 +51,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
   const [cutlist, release] = useRetained(current)
   const { data: coils, isPending } = useQuery(cutlistCoilsQuery(cutlist?.id ?? null))
   const [thickness, setThickness] = useState<Record<string, string>>({})
+  const [keying, setKeying] = useState<CoilLot | null>(null)
   const columns = useColumnOrder(CUTLIST_COILS_TABLE)
   const [question, setQuestion] = useState<Question | null>(null)
   const [asking, releaseAsking] = useRetained(question)
@@ -164,24 +167,21 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                           color: <TableCell>{coil.color ?? '—'}</TableCell>,
                           thick: (
                             <TableCell>
-                              <Input
-                                className='w-24'
-                                type='number'
-                                min={0}
-                                step='any'
-                                inputMode='decimal'
+                              <Button
+                                variant='outline'
+                                className='w-24 justify-start'
                                 aria-label={`Thickness in inches, coil ${coilName(coil)}`}
-                                placeholder={
-                                  coil.coil_thickness === null ? '—' : String(coil.coil_thickness)
-                                }
-                                value={thickness[coil.id] ?? ''}
-                                onChange={event =>
-                                  setThickness(current => ({
-                                    ...current,
-                                    [coil.id]: event.target.value
-                                  }))
-                                }
-                              />
+                                onClick={() => setKeying(coil)}
+                              >
+                                <span
+                                  className={cn(
+                                    'font-mono',
+                                    thickness[coil.id] === undefined && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {thickness[coil.id] ?? coil.coil_thickness ?? '—'}
+                                </span>
+                              </Button>
                             </TableCell>
                           ),
                           lf: (
@@ -242,6 +242,25 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
             Apply
           </Button>
         </DialogFooter>
+
+        {/* A bench screen is often touch only; the keypad is how a figure is typed there. */}
+        <KeypadDialog
+          decimal
+          unit='in.'
+          target={
+            keying
+              ? {
+                  title: `Coil Thickness, ${coilName(keying)}`,
+                  current: keying.coil_thickness ?? 0
+                }
+              : null
+          }
+          onOpenChange={open => !open && setKeying(null)}
+          onEnter={value => {
+            if (keying) setThickness(current => ({ ...current, [keying.id]: String(value) }))
+            setKeying(null)
+          }}
+        />
 
         <ConfirmDialog
           open={!!question}

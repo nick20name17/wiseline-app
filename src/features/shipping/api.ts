@@ -11,6 +11,7 @@ import * as z from 'zod/mini'
 const shippingKeys = {
   all: ['shipping'] as const,
   unscheduled: (search: string) => [...shippingKeys.all, 'unscheduled', { search }] as const,
+  totals: (selection: Selection) => [...shippingKeys.all, 'totals', selection] as const,
   selection: (selection: Selection, shipDate: string | null) =>
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
   scheduledDays: () => [...shippingKeys.all, 'scheduled'] as const,
@@ -82,6 +83,32 @@ const shipmentTotalsSchema = z.object({
 })
 
 const NO_TOTALS = { count: 0, total_weight: 0, longest_length: null }
+
+export type ShipmentTotals = z.infer<typeof shipmentTotalsSchema>
+
+const selectionTotalsSchema = z.object({
+  delivery: z._default(shipmentTotalsSchema, NO_TOTALS),
+  pickup: z._default(shipmentTotalsSchema, NO_TOTALS)
+})
+
+/**
+ * The Schedule window's two boxes: the Delivery Orders' weight and longest length p3 (586,243), and
+ * the supplier Pickups' weight p3 (586,246), before any date or truck is picked.
+ */
+export const selectionTotalsQuery = (selection: Selection) =>
+  queryOptions({
+    queryKey: shippingKeys.totals(selection),
+    enabled: selection.orders.length + selection.pickupIds.length > 0,
+    placeholderData: keepPreviousData,
+    queryFn: async () =>
+      selectionTotalsSchema.parse(
+        await authApi
+          .post('shipping/selection-totals/', {
+            json: { orders: selection.orders, pickup_ids: selection.pickupIds }
+          })
+          .json()
+      )
+  })
 
 const truckPanelSchema = z.object({
   truck_id: z.number(),
@@ -205,7 +232,8 @@ export const scheduledQuery = (shipDate: string) =>
   })
 
 const loadTabSchema = z.object({
-  load_id: z.number(),
+  // `null` on a day the truck has no Load yet: the tab is offered, and Add To Load creates it.
+  load_id: z._default(z.nullable(z.number()), null),
   name: z._default(z.string(), ''),
   marker: z._default(z.string(), ''),
   position: z._default(z.number(), 0),
@@ -216,6 +244,10 @@ const loadTabSchema = z.object({
 })
 
 export type LoadTab = z.infer<typeof loadTabSchema>
+/** A Load that exists: everything past Add To Load — the route, release, loading — is addressed to it. */
+export type Load = LoadTab & { load_id: number }
+
+export const isLoad = (tab: LoadTab): tab is Load => tab.load_id !== null
 
 /** A truck's Loads for the day, the empty one to fill next among them p3 (592,359). */
 export const loadsQuery = (truckId: number, shipDate: string) =>
@@ -231,11 +263,11 @@ export const loadsQuery = (truckId: number, shipDate: string) =>
         )
   })
 
-/** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled. */
+/** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled, `null` a new one. */
 export const useAddToLoad = () =>
   useLoadPost(
     'The orders were not added to the Load',
-    (input: { assignmentIds: number[]; loadId: number }) =>
+    (input: { assignmentIds: number[]; loadId: number | null }) =>
       authApi
         .post('shipping/loads/add/', {
           json: { assignment_ids: input.assignmentIds, load_id: input.loadId }

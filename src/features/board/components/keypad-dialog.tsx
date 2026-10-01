@@ -10,12 +10,19 @@ import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Delete, X } from 'lucide-react'
 import { useState } from 'react'
-import { applyKeypad } from '../lib/wrapping'
+import { applyKeypad, decimalKeypad } from '../lib/wrapping'
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '0', '-'] as const
+const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
 
 type KeypadDialogProps = {
-  target: { title: string; current: number; max: number } | null
+  /** `max` caps a count; a measure has none. */
+  target: { title: string; current: number; max?: number } | null
+  /**
+   * A measure rather than a count, like a coil's thickness in inches p1 (486,399): a decimal point
+   * instead of +/−, and no ceiling.
+   */
+  decimal?: boolean
+  unit?: string
   isPending?: boolean
   onOpenChange: (open: boolean) => void
   onEnter: (value: number) => void
@@ -27,17 +34,26 @@ type KeypadDialogProps = {
  */
 export const KeypadDialog = ({
   target: current,
+  decimal = false,
+  unit = 'pcs.',
   isPending,
   onOpenChange,
   onEnter
 }: KeypadDialogProps) => {
   const [target, release] = useRetained(current)
   const [typed, setTyped] = useState('')
-  const next = target ? applyKeypad(target.current, typed, target.max) : null
+  const next = !target
+    ? null
+    : decimal
+      ? decimalKeypad(typed)
+      : applyKeypad(target.current, typed, target.max ?? Infinity)
+  const keys = decimal ? [...DIGITS, '.', '0'] : [...DIGITS, '+', '0', '-']
 
   const press = (key: string) =>
-    // A sign only leads; typing one after digits starts the entry over with it.
-    setTyped(value => (key === '+' || key === '-' ? key : value + key))
+    setTyped(value =>
+      // A sign only leads; typing one after digits starts the entry over with it.
+      key === '+' || key === '-' ? key : key === '.' && value.includes('.') ? value : value + key
+    )
 
   return (
     <Dialog
@@ -52,19 +68,21 @@ export const KeypadDialog = ({
         <DialogHeader>
           <DialogTitle>{target?.title}</DialogTitle>
           <DialogDescription>
-            Now {target?.current ?? 0} of {target?.max ?? 0}. Type a new figure, or +/− to adjust.
+            {decimal
+              ? `Now ${target?.current ?? 0} ${unit} Type the new figure.`
+              : `Now ${target?.current ?? 0} of ${target?.max ?? 0}. Type a new figure, or +/− to adjust.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className='flex items-baseline justify-between rounded-md border border-border px-3 py-2'>
           <span className='font-mono text-2xl'>{typed || '—'}</span>
           <span className='font-mono text-sm text-muted-foreground'>
-            {next === null ? 'pcs.' : `→ ${next} pcs.`}
+            {next === null ? unit : `→ ${next} ${unit}`}
           </span>
         </div>
 
         <div className='grid grid-cols-3 gap-2'>
-          {KEYS.map(key => (
+          {keys.map(key => (
             <Button
               key={key}
               variant='outline'
@@ -93,9 +111,10 @@ export const KeypadDialog = ({
           >
             <X />
           </Button>
+          {/* The measure's pad has no +/−, so its Enter takes the spare cell. */}
           <Button
             size='lg'
-            className='h-12'
+            className={decimal ? 'col-span-2 h-12' : 'h-12'}
             disabled={next === null || isPending}
             onClick={() => next !== null && onEnter(next)}
           >

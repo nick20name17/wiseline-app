@@ -304,8 +304,13 @@ export const ROLLFORMING_UNSCHEDULED_TABLE: ColumnTable = {
 
 export const ROLLFORMING_SCHEDULED_TABLE: ColumnTable = {
   table: 'rollforming-scheduled',
-  columns: SCHEDULED_TABLE.columns.map(column =>
-    column.key === 'trimloc' ? { ...column, label: 'Rollforming Location', width: 'w-44' } : column
+  columns: SCHEDULED_TABLE.columns.flatMap(column =>
+    column.key === 'trimloc'
+      ? [{ ...column, label: 'Rollforming Location', width: 'w-44' }]
+      : // Export beside Reviewed: a reviewed order can be exported as it is released p2 (542,607).
+        column.key === 'reviewed'
+        ? [column, { key: 'export', label: 'Export', width: 'w-24' }]
+        : [column]
   )
 }
 

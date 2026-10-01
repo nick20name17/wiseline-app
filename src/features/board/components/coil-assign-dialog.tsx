@@ -18,13 +18,17 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
+import { coilsByFolder, type CoilChoice } from '../lib/coils'
 import { formatCount } from '../lib/format'
 import {
   coilChoicesQuery,
+  coilFoldersQuery,
   coilNumbersQuery,
+  departmentCoilLotsQuery,
   useAssignCoil,
   useMarkSlit,
   type BoardLineItem
@@ -42,13 +46,35 @@ type CoilAction = 'assign' | 'slit'
 /** A line the coil is for, named the way the dialog prints it. */
 export type CoilLine = Pick<BoardLineItem, 'id' | 'id_inven'>
 
-type CoilAssignFormProps = { lines: CoilLine[]; action: CoilAction; onDone: () => void }
+type CoilAssignFormProps = {
+  lines: CoilLine[]
+  action: CoilAction
+  departmentId: number | undefined
+  onDone: () => void
+}
 
-const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
+const CoilAssignForm = ({ lines, action, departmentId, onDone }: CoilAssignFormProps) => {
   // The lines are one Product ID p2 (540,467), so any of them names the coils.
   const first = lines[0]?.id ?? null
-  const { data: choices, isPending } = useQuery(coilChoicesQuery(first))
+  const { data: choices, isPending: choicesPending } = useQuery(coilChoicesQuery(first))
   const [supplier, setSupplier] = useState<string | null>(null)
+  // The EBMS coil folders p2 (585,406) are a way round the colour-and-gauge match: `null` is the match.
+  const [folder, setFolder] = useState<string | null>(null)
+  const { data: folders } = useQuery(coilFoldersQuery(departmentId))
+  const { data: departmentLots, isPending: folderLotsPending } = useQuery({
+    ...departmentCoilLotsQuery(departmentId),
+    enabled: departmentId !== undefined && !!supplier
+  })
+  const byFolder = coilsByFolder(departmentLots ?? [])
+  const folderTabs = (folders ?? []).filter(entry => byFolder.has(entry.folder_id))
+  const coils: CoilChoice[] =
+    folder === null
+      ? (choices?.coils ?? []).map(option => ({
+          product_id: option.product_id,
+          detail: [option.description, `${option.width}" wide`].filter(Boolean).join(' · ')
+        }))
+      : (byFolder.get(folder) ?? [])
+  const isPending = folder === null ? choicesPending : folderLotsPending
   const [coilNumber, setCoilNumber] = useState('')
   const [coil, setCoil] = useState<string | null>(null)
   const { data: lots, isPending: lotsPending } = useQuery(coilNumbersQuery(coil))
@@ -117,6 +143,30 @@ const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
           <FieldDescription>Type it, or pick a Lot Number from a coil below.</FieldDescription>
         </Field>
 
+        {supplier && folderTabs.length ? (
+          <div className='scrollport overflow-x-auto'>
+            <Tabs
+              value={folder ?? 'match'}
+              onValueChange={value => {
+                setFolder(value === 'match' ? null : String(value))
+                setCoil(null)
+              }}
+            >
+              <TabsList variant='line'>
+                <TabsTrigger value='match'>This colour & gauge</TabsTrigger>
+                {folderTabs.map(entry => (
+                  <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
+                    {entry.name.trim()}
+                    <span className='font-mono text-xs text-muted-foreground'>
+                      {byFolder.get(entry.folder_id)?.length}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        ) : null}
+
         {supplier ? (
           <div className='grid gap-3 sm:grid-cols-2'>
             <section aria-label='Coils' className='rounded-lg border border-border'>
@@ -124,7 +174,7 @@ const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
                 <Skeleton className='h-24' />
               ) : (
                 <ul className='scrollport max-h-56 overflow-y-auto'>
-                  {choices?.coils.map(option => (
+                  {coils.map(option => (
                     <li key={option.product_id}>
                       <button
                         type='button'
@@ -137,9 +187,7 @@ const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
                       >
                         <span className='block font-mono'>{option.product_id}</span>
                         <span className='block truncate text-xs text-muted-foreground'>
-                          {[option.description, `${option.width}" wide`]
-                            .filter(Boolean)
-                            .join(' · ')}
+                          {option.detail}
                         </span>
                       </button>
                     </li>
@@ -195,6 +243,7 @@ const CoilAssignForm = ({ lines, action, onDone }: CoilAssignFormProps) => {
 type CoilAssignDialogProps = {
   lines: CoilLine[]
   action: CoilAction
+  departmentId: number | undefined
   open: boolean
   onOpenChange: (open: boolean) => void
   onAssigned: () => void
@@ -207,6 +256,7 @@ type CoilAssignDialogProps = {
 export const CoilAssignDialog = ({
   lines,
   action,
+  departmentId,
   open,
   onOpenChange,
   onAssigned
@@ -225,6 +275,7 @@ export const CoilAssignDialog = ({
       <CoilAssignForm
         lines={lines}
         action={action}
+        departmentId={departmentId}
         onDone={() => {
           onOpenChange(false)
           onAssigned()

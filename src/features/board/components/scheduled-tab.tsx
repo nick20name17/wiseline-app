@@ -8,6 +8,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { toast } from '@/components/ui/toast'
 import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
+import { cn } from 'cn'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, SearchX } from 'lucide-react'
 import { useState } from 'react'
@@ -34,12 +35,15 @@ import { ScheduledRow } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
 import { useOrderNotes } from './use-line-note-state'
+import { onMachine, type MachineTab } from '../lib/machines'
 
 type ScheduledTabProps = {
   search: string | undefined
   departmentId: number | undefined
   /** The day the Calendar sent the board to; without one the tab lands on the first work day. */
   initialDay?: string
+  /** Rollforming's machine tab; none on a board without them. */
+  machine?: MachineTab
 }
 
 /** One production day of one order — what a row stands for. */
@@ -156,11 +160,13 @@ const ReschedulePartDialog = ({
   )
 }
 
-export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabProps) => {
+export const ScheduledTab = ({ search, departmentId, initialDay, machine }: ScheduledTabProps) => {
   // `undefined` until somebody picks a tab; «All Scheduled Orders» is `null` and is chosen, not
   // landed on.
   const [chosenDay, setChosenDay] = useState<string | null | undefined>(initialDay)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  // Export takes Release with it; Release alone leaves Export be p2 (542,607).
+  const [exportIds, setExportIds] = useState<Set<string>>(() => new Set())
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
@@ -186,18 +192,27 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
     refetch
   } = useQuery(scheduledOrdersQuery(board.name, search))
   const columns = useColumnOrder(board.tables.scheduled)
-  const orders = page?.results ?? []
+  const orders = onMachine(page?.results ?? [], machine)
   // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
   const { data: counts } = useQuery(countsQuery(departmentId))
   const everything = counts?.scheduled
 
   const { notes, noteState } = useOrderNotes(orders)
 
-  const release = useReleaseOrders((released, cutlists) => {
+  const release = useReleaseOrders(({ released, exported, cutlists }) => {
     setSelectedIds(new Set())
+    setExportIds(new Set())
     toast.add({
       type: 'success',
-      title: `Released ${released} order${released === 1 ? '' : 's'} · ${cutlists} cutlist${cutlists === 1 ? '' : 's'} generated`
+      title: [
+        `Released ${released} order${released === 1 ? '' : 's'}`,
+        exported ? `${exported} exported` : null,
+        board.makes && !board.coils
+          ? `${cutlists} cutlist${cutlists === 1 ? '' : 's'} generated`
+          : null
+      ]
+        .filter(Boolean)
+        .join(' · ')
     })
   })
   const rank = (order: BoardOrder) =>
@@ -280,12 +295,15 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
         isReleasing={release.isPending}
         onAllocatedStock={() => setStockOpen(true)}
         onRelease={() => {
-          const days = selected.flatMap(part =>
+          const dayOf = (part: Part) =>
             part.order.sales_order
               ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
               : []
-          )
-          if (departmentId && days.length) release.mutate({ days, departmentId })
+          const days = selected.flatMap(dayOf)
+          const exportDays = selected
+            .filter(part => exportIds.has(partKey(part.order.id, part.day)))
+            .flatMap(dayOf)
+          if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
         }}
       />
 
@@ -307,7 +325,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
-          <Table className='min-w-360 table-fixed'>
+          {/* Rollforming's Export column takes room of its own. */}
+          <Table className={cn('table-fixed', board.coils ? 'min-w-384' : 'min-w-360')}>
             <colgroup>
               <col className='w-12' />
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
@@ -341,11 +360,25 @@ export const ScheduledTab = ({ search, departmentId, initialDay }: ScheduledTabP
                       departmentId={departmentId}
                       expanded={expandedIds.has(key)}
                       selected={selectedIds.has(key)}
+                      exporting={exportIds.has(key)}
                       locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
                       overdue={late}
                       noteState={noteState(order)}
                       onToggleExpanded={() => setExpandedIds(current => toggled(current, key))}
-                      onToggleSelected={() => setSelectedIds(current => toggled(current, key))}
+                      onToggleSelected={() => {
+                        if (selectedIds.has(key))
+                          setExportIds(current => {
+                            const next = new Set(current)
+                            next.delete(key)
+                            return next
+                          })
+                        setSelectedIds(current => toggled(current, key))
+                      }}
+                      onToggleExport={() => {
+                        if (!exportIds.has(key))
+                          setSelectedIds(current => new Set(current).add(key))
+                        setExportIds(current => toggled(current, key))
+                      }}
                       onReschedule={() => setRescheduling(part)}
                       onOpenOrderNotes={() => setNoteOrder(order)}
                       onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}

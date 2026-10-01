@@ -118,7 +118,15 @@ test('Cutlist Coils lists the coils this colour can be cut from', async ({ page 
 
   // Nothing has moved yet, so there is nothing to push.
   await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled()
-  await dialog.getByRole('spinbutton', { name: /Thickness/ }).fill('0')
+  // The thickness is typed on the keypad, decimals included p1 (486,399).
+  await dialog.getByRole('button', { name: 'Thickness in inches, coil 37067677' }).click()
+  const keypad = page.getByRole('dialog', { name: /Coil Thickness/ })
+  for (const key of ['0', '.', '5'])
+    await keypad.getByRole('button', { name: key, exact: true }).click()
+  await expect(keypad.getByText('→ 0.5 in.')).toBeVisible()
+  await keypad.getByRole('button', { name: 'Clear' }).click()
+  await keypad.getByRole('button', { name: '0', exact: true }).click()
+  await keypad.getByRole('button', { name: 'Enter' }).click()
   await dialog.getByRole('button', { name: 'Apply' }).click()
   await expect(page.getByText('Deplete & delete coil?')).toBeVisible()
 })

@@ -3,6 +3,7 @@ import type { LocationSlot, OrderLocation, WrappingRow } from '../api'
 import {
   applyKeypad,
   benchLocations,
+  decimalKeypad,
   defaultWarehouseOf,
   overPackageLimit,
   packageContents,
@@ -26,6 +27,21 @@ describe('applyKeypad', () => {
     expect(applyKeypad(50, '', 150)).toBeNull()
     expect(applyKeypad(50, '+', 150)).toBeNull()
     expect(applyKeypad(50, '1.5', 150)).toBeNull()
+  })
+})
+
+describe('decimalKeypad', () => {
+  it('reads a decimal as it is being typed', () => {
+    expect(decimalKeypad('0.0179')).toBe(0.0179)
+    expect(decimalKeypad('.5')).toBe(0.5)
+    expect(decimalKeypad('12.')).toBe(12)
+    expect(decimalKeypad('0')).toBe(0)
+  })
+
+  it('refuses what is not a figure', () => {
+    expect(decimalKeypad('')).toBeNull()
+    expect(decimalKeypad('.')).toBeNull()
+    expect(decimalKeypad('1.2.3')).toBeNull()
   })
 })
 

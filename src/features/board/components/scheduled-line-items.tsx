@@ -31,12 +31,10 @@ import {
   useUpdateLineItem,
   type LineItemEdit,
   type BoardLineItem,
-  type BoardOrder,
-  type SlitLine
+  type BoardOrder
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
-import { useSlitStates } from '../lib/slit'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from './note-button'
@@ -86,12 +84,15 @@ const isAllFromStock = (item: BoardLineItem) =>
  * is rolled off nothing, so it carries no coil p2 (542,453) — whether the server says Stock or the
  * figure already does.
  */
-const coilOf = (item: BoardLineItem, slit: SlitLine | undefined, stock: boolean) => ({
-  icon: slit?.icon ?? (item.item && !stock ? 'coil' : null),
-  locked: slit?.locked ?? false,
-  supplier: slit?.supplier ?? item.item?.supplier ?? 'Undefined',
-  coilNumber: slit?.coil_number ?? item.item?.coil_number ?? 'Undefined'
-})
+const coilOf = (item: BoardLineItem, stock: boolean) => {
+  const waiting = item.item?.coil_icon === 'waiting_to_slit'
+  return {
+    icon: stock ? null : (item.item?.coil_icon ?? null),
+    locked: item.item?.coil_fields_locked ?? false,
+    supplier: item.item?.supplier ?? (waiting ? 'waiting...' : 'Undefined'),
+    coilNumber: item.item?.coil_number ?? (waiting ? 'waiting...' : 'Undefined')
+  }
+}
 
 const CoilIcon = ({ icon }: { icon: string | null }) =>
   icon === 'waiting_to_slit' ? (
@@ -126,7 +127,6 @@ export const ScheduledLineItems = ({
   // A trim is assigned to the machine that bends it.
   const stations = machines?.filter(isBender)
   const update = useUpdateLineItem()
-  const slitStates = useSlitStates(departmentId, board.coils && departmentId !== undefined)
   const slit = useSlitRequest()
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
@@ -151,9 +151,7 @@ export const ScheduledLineItems = ({
   // The server's Stock can also reach the whole quantity under a tick; such a line has no box either.
   const pickedLines = rows.filter(item => picked.has(item.id) && !isAllFromStock(item))
   const pickedProduct = pickedLines[0]?.id_inven ?? null
-  const pickedWaiting = pickedLines.filter(
-    item => slitStates.get(item.id)?.icon === 'waiting_to_slit'
-  )
+  const pickedWaiting = pickedLines.filter(item => item.item?.coil_icon === 'waiting_to_slit')
 
   if (!order.origin_items.length) {
     return (
@@ -262,11 +260,7 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(
-                item,
-                slitStates.get(item.id),
-                status === 'stock' || item.item?.status === 'stock'
-              )
+              const coil = coilOf(item, status === 'stock' || item.item?.status === 'stock')
               const pickable =
                 board.coils &&
                 editable &&
@@ -547,6 +541,7 @@ export const ScheduledLineItems = ({
         <CoilAssignDialog
           lines={pickedLines}
           action='assign'
+          departmentId={departmentId}
           open={assigning}
           onOpenChange={setAssigning}
           onAssigned={() => setPicked(new Set())}

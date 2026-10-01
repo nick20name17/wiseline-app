@@ -1,7 +1,8 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { countsQuery, cutlistsQuery } from '../api'
+import { countsQuery, cutlistsQuery, machinesQuery } from '../api'
+import { machineTabsOf, type MachineTab } from '../lib/machines'
 import { canAccess, defaultView, VIEW_LABELS, viewsFor } from '../lib/views'
 import type { BoardView } from '../lib/boards'
 import { useBoard } from '../lib/board-context'
@@ -9,7 +10,10 @@ import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
 import { CompletedTab } from './completed-tab'
 import { DeptBar } from './dept-bar'
+import { MachineStrip } from './machine-strip'
 import { PackagingTab } from './packaging-tab'
+import { QueueTab } from './queue-tab'
+import { RollformingProductionTab } from './rollforming-production-tab'
 import { ProductionTab } from './production-tab'
 import { ScanPackageDialog } from './scan-package-dialog'
 import { ScheduledTab } from './scheduled-tab'
@@ -50,8 +54,24 @@ export const BoardPage = ({
   // shows on the strip at once.
   const { data: cutlists } = useQuery({
     ...cutlistsQuery(departmentId, 'cutlist', null, false),
-    enabled: board.managerViews.includes('production')
+    enabled: board.managerViews.includes('production') && !board.machineTabs
   })
+
+  // The machine tab outlives the working tab, as a second row does on the board p2 (542,280).
+  const { data: allMachines } = useQuery({
+    ...machinesQuery(board.name, departmentId),
+    enabled: board.machineTabs
+  })
+  // The cache is shared with the line items' machine picker, so a board without tabs reads none of it.
+  const machines = board.machineTabs ? machineTabsOf(allMachines ?? [], departmentId) : []
+  const [picked, setPicked] = useState<MachineTab>()
+  const ordersByMachine = view === 'unscheduled' || view === 'scheduled'
+  const firstMachine = machines[0]?.id
+  const machine = picked ?? firstMachine
+  // A machine's own tabs have no «No machine» of theirs; they fall back to the first machine.
+  const machineId = typeof machine === 'number' ? machine : firstMachine
+  const showStrip =
+    board.machineTabs && (ordersByMachine || view === 'production' || view === 'queue')
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
@@ -84,10 +104,32 @@ export const BoardPage = ({
         actions={view === 'wrapping' || view === 'packaging' ? <ScanPackageDialog /> : null}
       />
 
+      {showStrip && machines.length ? (
+        <MachineStrip
+          machines={machines}
+          value={(ordersByMachine ? machine : machineId) ?? 'none'}
+          withNone={ordersByMachine}
+          onChange={setPicked}
+        />
+      ) : null}
+
       {view === 'unscheduled' ? (
-        <UnscheduledTab search={search} departmentId={departmentId} />
+        <UnscheduledTab search={search} departmentId={departmentId} machine={machine} />
       ) : view === 'scheduled' ? (
-        <ScheduledTab search={search} departmentId={departmentId} initialDay={openDay} />
+        <ScheduledTab
+          search={search}
+          departmentId={departmentId}
+          initialDay={openDay}
+          machine={machine}
+        />
+      ) : view === 'queue' ? (
+        <QueueTab departmentId={departmentId} machineId={machineId} worker={worker} />
+      ) : view === 'production' && board.machineTabs ? (
+        <RollformingProductionTab
+          search={search}
+          departmentId={departmentId}
+          machineId={machineId}
+        />
       ) : view === 'coils' ? (
         <CoilsTab departmentId={departmentId} worker={worker} />
       ) : view === 'calendar' ? (
