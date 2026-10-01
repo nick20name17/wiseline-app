@@ -67,8 +67,9 @@ const machineSchema = z.object({
   category: z._default(z.nullable(z.string()), null),
   department: z._default(z.nullable(z.number()), null),
   kind: z._default(z.nullable(z.string()), null),
-  // The EBMS Roll Options profile a rollformer takes its lines by p2 (542,280).
-  ebms_profile_name: z._default(z.nullable(z.string()), null),
+  // The EBMS Roll Options profiles a rollformer takes its lines by p2 (542,280); one machine runs
+  // several («Tuff Rib & Diamond Rib»).
+  ebms_profile_names: z._default(z.array(z.string()), []),
   daily_max_pieces: z._default(z.nullable(z.number()), null),
   daily_max_bends: z._default(z.nullable(z.number()), null)
 })
@@ -80,7 +81,7 @@ export const machineFormSchema = z.object({
   category: z.string().check(z.minLength(1, 'Category is required')),
   department: z.number(),
   kind: z.string(),
-  ebms_profile_name: z.nullable(z.string().check(z.maxLength(100, 'At most 100 characters'))),
+  ebms_profile_names: z.array(z.string().check(z.maxLength(100, 'At most 100 characters'))),
   daily_max_pieces: z.nullable(z.number()),
   daily_max_bends: z.nullable(z.number())
 })
@@ -114,6 +115,8 @@ export const categoriesQuery = queryOptions({
 
 export const useUpsertMachine = (onSuccess: () => void) =>
   useMutation({
+    // A profile already on another of the department's machines answers 409, and says which.
+    meta: { errorTitle: 'The machine was not saved' },
     mutationFn: ({ id, values }: { id?: number; values: MachineForm }) =>
       id
         ? authApi.patch(`flows/${id}/`, { json: values }).json()

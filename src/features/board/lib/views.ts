@@ -4,6 +4,7 @@ export const VIEW_LABELS: Record<BoardView, string> = {
   unscheduled: 'Unscheduled',
   scheduled: 'Scheduled',
   production: 'Production',
+  queue: 'Queue',
   packaging: 'Packaging',
   wrapping: 'Wrapping',
   slit: 'Slit Line',

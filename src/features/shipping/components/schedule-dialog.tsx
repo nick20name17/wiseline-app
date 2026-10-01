@@ -14,19 +14,17 @@ import { formatDate, fromIsoDay, toIsoDay } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { useState } from 'react'
-import { truckPanelsQuery, useApplyShipping, type Selection } from '../api'
+import {
+  selectionTotalsQuery,
+  truckPanelsQuery,
+  useApplyShipping,
+  type Selection,
+  type ShipmentTotals
+} from '../api'
 import { formatLength, formatWeight } from '../lib/format'
 
-/** What is being put on a truck, and what it adds up to. */
-export type Shipment = Selection & {
-  count: number
-  weight: number
-  /** Inches; `null` where the list does not know it. */
-  longest: number | null
-}
-
 type ScheduleDialogProps = {
-  shipment: Shipment
+  selection: Selection
   /** «Schedule» from Unscheduled; «Reschedule» for orders already on a truck p3 (591,341). */
   verb: 'Schedule' | 'Reschedule'
   open: boolean
@@ -40,7 +38,7 @@ type ScheduleDialogProps = {
  * p3 (562,263). Over a truck's limit is orange and nothing more p3 (587,259).
  */
 export const ScheduleDialog = ({
-  shipment,
+  selection,
   verb,
   open,
   onOpenChange,
@@ -48,7 +46,11 @@ export const ScheduleDialog = ({
 }: ScheduleDialogProps) => {
   const [shipDate, setShipDate] = useState<string | null>(null)
   const [truckId, setTruckId] = useState<number | null>(null)
-  const selection = { orders: shipment.orders, pickupIds: shipment.pickupIds }
+  const count = selection.orders.length + selection.pickupIds.length
+  const { data: totals } = useQuery({
+    ...selectionTotalsQuery(selection),
+    enabled: open && count > 0
+  })
   const { data: panels, isPending } = useQuery(truckPanelsQuery(selection, open ? shipDate : null))
   const close = () => {
     onOpenChange(false)
@@ -65,13 +67,15 @@ export const ScheduleDialog = ({
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>
-            {verb} {shipment.count} order{shipment.count === 1 ? '' : 's'}
+            {verb} {count} order{count === 1 ? '' : 's'}
           </DialogTitle>
-          <DialogDescription>
-            {formatWeight(shipment.weight)}
-            {shipment.longest === null ? '' : ` · longest ${formatLength(shipment.longest)}`}
-          </DialogDescription>
+          <DialogDescription>A Ship Date, then the truck they go on.</DialogDescription>
         </DialogHeader>
+
+        <div className='grid grid-cols-2 gap-2'>
+          <TotalsBox label='Delivery Orders' totals={totals?.delivery} longest />
+          <TotalsBox label='Pickups' totals={totals?.pickup} />
+        </div>
 
         <div className='flex flex-col gap-4'>
           <div className='flex items-center gap-3'>
@@ -153,3 +157,22 @@ export const ScheduleDialog = ({
     </Dialog>
   )
 }
+
+type TotalsBoxProps = { label: string; totals: ShipmentTotals | undefined; longest?: boolean }
+
+/** One of the window's two boxes; a pickup's length is not the Manager's concern here p3 (586,246). */
+const TotalsBox = ({ label, totals, longest = false }: TotalsBoxProps) => (
+  <div className='rounded-lg border border-border p-3 text-sm'>
+    <span className='text-muted-foreground'>
+      {label} · {totals?.count ?? 0}
+    </span>
+    {totals ? (
+      <span className='block font-mono'>
+        {formatWeight(totals.total_weight)}
+        {longest && totals.count ? ` · longest ${formatLength(totals.longest_length)}` : ''}
+      </span>
+    ) : (
+      <Skeleton className='mt-1 h-5 w-32' />
+    )}
+  </div>
+)

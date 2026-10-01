@@ -9,7 +9,15 @@ import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
-import { loadsQuery, useAddToLoad, useReleaseLoad, useRemoveFromLoad, type TruckCard } from '../api'
+import {
+  isLoad,
+  loadsQuery,
+  useAddToLoad,
+  useReleaseLoad,
+  useRemoveFromLoad,
+  type LoadTab,
+  type TruckCard
+} from '../api'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { OrderLine } from './load-card'
@@ -20,6 +28,9 @@ import { ScheduleDialog } from './schedule-dialog'
 // Orders go only on a Load not yet released to Loading; the server refuses the rest.
 const takesOrders = (load: { status: string | null }) =>
   (load.status ?? 'unreleased') === 'unreleased'
+
+// A day's first tab has no Load behind it until Add To Load makes one.
+const tabKey = (load: LoadTab) => (load.load_id === null ? 'new' : String(load.load_id))
 
 type TruckLoadsProps = {
   card: TruckCard
@@ -32,7 +43,7 @@ type TruckLoadsProps = {
  */
 export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
   const { data: loads, isPending } = useQuery(loadsQuery(card.truck_id, shipDate))
-  const [tab, setTab] = useState<number | null>(null)
+  const [tab, setTab] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<number>>(() => new Set())
   const [rescheduling, setRescheduling] = useState(false)
   const add = useAddToLoad()
@@ -41,7 +52,7 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
 
   const waiting = card.orders.filter(order => order.load_id === null)
   const current =
-    loads?.find(load => load.load_id === tab) ?? loads?.find(takesOrders) ?? loads?.[0] ?? null
+    loads?.find(load => tabKey(load) === tab) ?? loads?.find(takesOrders) ?? loads?.[0] ?? null
   const all = waiting.length > 0 && waiting.every(order => picked.has(order.assignment_id))
   const chosen = waiting.filter(order => picked.has(order.assignment_id))
   const selectedWeight = chosen.reduce((total, order) => total + order.weight, 0)
@@ -120,11 +131,14 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
 
       {loads?.length ? (
         <section className='rounded-lg border border-border bg-card'>
-          <Tabs value={String(current?.load_id)} onValueChange={value => setTab(Number(value))}>
+          <Tabs
+            value={current ? tabKey(current) : null}
+            onValueChange={value => setTab(String(value))}
+          >
             <div className='px-3'>
               <TabsList variant='line'>
                 {loads.map(load => (
-                  <TabsTrigger key={load.load_id} value={String(load.load_id)}>
+                  <TabsTrigger key={tabKey(load)} value={tabKey(load)}>
                     {load.name}
                     <span className='ml-1 font-mono text-xs text-muted-foreground'>
                       {formatWeight(load.weight)}
@@ -160,8 +174,8 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
                   Tick orders above and add them to {current.name}.
                 </p>
               )}
-              {current.orders.length ? <LoadRoute load={current} /> : null}
-              {current.orders.length && takesOrders(current) ? (
+              {isLoad(current) && current.orders.length ? <LoadRoute load={current} /> : null}
+              {isLoad(current) && current.orders.length && takesOrders(current) ? (
                 <div className='flex justify-end gap-2 border-t border-border px-3 py-2'>
                   <Button
                     variant='outline'
@@ -191,16 +205,11 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
 
       <ScheduleDialog
         verb='Reschedule'
-        shipment={{
+        selection={{
           orders: chosen.flatMap(order =>
             order.kind === 'delivery' && order.order ? [order.order] : []
           ),
-          pickupIds: chosen.flatMap(order =>
-            order.kind === 'pickup' ? [order.assignment_id] : []
-          ),
-          count: chosen.length,
-          weight: selectedWeight,
-          longest: null
+          pickupIds: chosen.flatMap(order => (order.kind === 'pickup' ? [order.assignment_id] : []))
         }}
         open={rescheduling}
         onOpenChange={setRescheduling}

@@ -27,6 +27,7 @@ export const BOARD_VIEWS = [
   'unscheduled',
   'scheduled',
   'production',
+  'queue',
   'packaging',
   'wrapping',
   'slit',
@@ -74,6 +75,11 @@ export type Board = {
   stockCards: boolean
   /** Lines are rolled off a coil the Manager may name — Supplier and Coil Number — or slit first p2. */
   coils: boolean
+  /**
+   * The working tabs split by machine, each line on the machine its EBMS profile runs on — Rollforming's
+   * p2 (542,280). Trim's machines are tabs of Production only.
+   */
+  machineTabs: boolean
   /** How the department says packing: Trim wraps its trims, Accessories packages p3 (1077,291). */
   /** `ready` is the status a line is packed from once made, `null` for a department that makes none. */
   pack: { station: string; verb: string; done: string; doneLabel: string; ready: string | null }
@@ -103,6 +109,7 @@ export const BOARDS: Record<BoardCode, Board> = {
     standardLength: 120,
     stockCards: true,
     coils: false,
+    machineTabs: false,
     pack: {
       station: 'Wrapping',
       verb: 'Wrap',
@@ -125,20 +132,30 @@ export const BOARDS: Record<BoardCode, Board> = {
     name: 'Rollforming',
     dateLabel: 'Production Date',
     dayWord: 'production day',
-    // The machine tabs and the Queue wait on the backend's Queue p2 (493,630).
-    managerViews: ['unscheduled', 'scheduled', 'slit', 'wrapping', 'calendar', 'completed'],
-    workerViews: ['slit', 'wrapping', 'completed'],
+    managerViews: [
+      'unscheduled',
+      'scheduled',
+      'production',
+      'queue',
+      'slit',
+      'wrapping',
+      'calendar',
+      'completed'
+    ],
+    workerViews: ['production', 'queue', 'slit', 'wrapping', 'completed'],
     makes: true,
     assignsMachines: false,
     standardLength: null,
     stockCards: false,
     coils: true,
+    machineTabs: true,
     pack: {
       station: 'Wrapping',
       verb: 'Wrap',
       done: 'wrapped',
       doneLabel: 'Wrapped',
-      ready: 'Rolled'
+      // A released line packs from Not Started; the packages move it to In Progress and Rolled.
+      ready: null
     },
     tables: {
       unscheduled: ROLLFORMING_UNSCHEDULED_TABLE,
@@ -162,6 +179,7 @@ export const BOARDS: Record<BoardCode, Board> = {
     standardLength: null,
     stockCards: false,
     coils: false,
+    machineTabs: false,
     pack: {
       station: 'Packaging',
       verb: 'Package',

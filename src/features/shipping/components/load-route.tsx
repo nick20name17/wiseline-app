@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { GripVertical, Map as MapIcon, RefreshCw, Route, Warehouse } from 'lucide-react'
 import { useState } from 'react'
-import { routeQuery, usePlanRoute, useReorderRoute, type LoadTab, type Stop } from '../api'
+import { routeQuery, usePlanRoute, useReorderRoute, type Load, type Stop } from '../api'
 import { routeUrl } from '../lib/format'
 
 // Once the truck has left, the run is the Driver's and the order is history.
@@ -71,7 +71,7 @@ const StopRow = ({ stop, number, locked }: StopRowProps) => {
  * down to change it — «The sequence of these orders determines which order to deliver 1st, 2nd, 3rd»
  * p3 (617,441).
  */
-export const LoadRoute = ({ load }: { load: LoadTab }) => {
+export const LoadRoute = ({ load }: { load: Load }) => {
   const { data: stops, isPending } = useQuery(routeQuery(load.load_id))
   const plan = usePlanRoute()
   const reorder = useReorderRoute()

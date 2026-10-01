@@ -187,17 +187,7 @@ test('See packages reprints a lost label', async ({ page }) => {
 
 test('a damaged piece is replaced from stock at the bench, on the keypad', async ({ page }) => {
   const edits: unknown[] = []
-  // The bench names only the EBMS line; the order says which of the app's rows it is.
-  await page.route(`${API_URL}/ebms/orders/?*order=ARINV-2*`, route =>
-    route.fulfill({
-      json: {
-        count: 1,
-        results: [
-          { id: 'ARINV-2', invoice: '330608', origin_items: [{ id: '901', item: { id: 9001 } }] }
-        ]
-      }
-    })
-  )
+  // The bench row carries the app's own line id, which the edit goes to.
   await page.route(`${API_URL}/items/9001/`, route => {
     edits.push(route.request().postDataJSON())
     return route.fulfill({ json: {} })

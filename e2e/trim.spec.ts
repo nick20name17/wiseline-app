@@ -112,9 +112,7 @@ test('an unread order note opens and can be acknowledged', async ({ page }) => {
   await expect.poll(() => marked).toBe(true)
 })
 
-test('scheduling what is left of a split order leaves the part already on its day', async ({
-  page
-}) => {
+test('what is left of a split order is scheduled like any other order', async ({ page }) => {
   // 330700 had one of its two lines split off to Sep 23; Unscheduled hands over the one left.
   const partial = {
     id: 'ARINV-9',
@@ -152,14 +150,10 @@ test('scheduling what is left of a split order leaves the part already on its da
       json: scheduled ? { count: 0, results: [] } : { count: 1, results: [partial] }
     })
   })
-  const whole: unknown[] = []
-  const split: unknown[] = []
+  // The server dates only the lines with no day yet, so the part on Sep 23 stays there.
+  const scheduled: unknown[] = []
   await page.route(`${API_URL}/sales-orders/schedule/`, route => {
-    whole.push(route.request().postDataJSON())
-    return route.fulfill({ json: {} })
-  })
-  await page.route(`${API_URL}/sales-orders/31/departments/1/schedule/`, route => {
-    split.push(route.request().postDataJSON())
+    scheduled.push(route.request().postDataJSON())
     return route.fulfill({ json: {} })
   })
   await page.reload()
@@ -170,7 +164,6 @@ test('scheduling what is left of a split order leaves the part already on its da
   await page.getByRole('button', { name: 'Set date' }).click()
 
   await expect
-    .poll(() => split)
-    .toEqual([{ production_date: '2026-09-24', origin_items: ['DET-9'] }])
-  expect(whole).toEqual([])
+    .poll(() => scheduled)
+    .toEqual([{ department: 1, orders: [31], production_date: '2026-09-24' }])
 })

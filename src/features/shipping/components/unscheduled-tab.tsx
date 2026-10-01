@@ -207,13 +207,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
 
       <ScheduleDialog
         verb='Schedule'
-        shipment={{
-          orders: picked.map(order => order.order),
-          pickupIds: [],
-          count: picked.length,
-          weight: picked.reduce((total, order) => total + order.weight, 0),
-          longest: picked.reduce((most, order) => Math.max(most, order.longest_length), 0)
-        }}
+        selection={{ orders: picked.map(order => order.order), pickupIds: [] }}
         open={scheduling}
         onOpenChange={setScheduling}
         onApplied={shipDate => {

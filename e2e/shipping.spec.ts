@@ -176,10 +176,19 @@ test.describe('a truck on the Scheduled tab', () => {
     await page.route(`${API_URL}/shipping/truck-panels/`, route =>
       route.fulfill({ json: [{ truck_id: 106, name: '106', weight_limit: 17000 }] })
     )
+    await page.route(`${API_URL}/shipping/selection-totals/`, route =>
+      route.fulfill({
+        json: {
+          delivery: { count: 1, total_weight: 95.5, longest_length: 162 },
+          pickup: { count: 0, total_weight: 0, longest_length: 0 }
+        }
+      })
+    )
     await page.route(`${API_URL}/shipping/**`, route => {
       const request = route.request()
       const path = new URL(request.url()).pathname.replace('/shipping/', '')
-      if (request.method() === 'GET' || path === 'truck-panels/') return route.fallback()
+      if (request.method() === 'GET' || path === 'truck-panels/' || path === 'selection-totals/')
+        return route.fallback()
       posted.push({ path, body: request.postDataJSON() })
       return route.fulfill({ json: path.endsWith('route/') ? [...stops].reverse() : {} })
     })
@@ -189,10 +198,31 @@ test.describe('a truck on the Scheduled tab', () => {
     await page.getByRole('button', { name: 'Truck 105' }).click()
   })
 
+  test('a day with no Load yet offers one, and Add To Load makes it', async ({ page }) => {
+    await page.route(`${API_URL}/shipping/trucks/105/loads/?*`, route =>
+      route.fulfill({
+        json: [
+          { load_id: null, name: 'Load 1', status: null, weight: 0, orders: [], is_empty: true }
+        ]
+      })
+    )
+    await page.reload()
+    await page.getByRole('button', { name: 'Truck 105' }).click()
+
+    await page.getByRole('checkbox', { name: 'Select order W12631' }).click()
+    await page.getByRole('button', { name: 'Add to Load 1' }).click()
+    await expect
+      .poll(() => posted)
+      .toEqual([{ path: 'loads/add/', body: { assignment_ids: [1], load_id: null } }])
+  })
+
   test('reschedules the ticked orders not on a Load', async ({ page }) => {
     await page.getByRole('checkbox', { name: 'Select order W12631' }).click()
     await page.getByRole('button', { name: 'Reschedule' }).click()
     const dialog = page.getByRole('dialog', { name: 'Reschedule 1 order' })
+    // Deliveries and pickups are boxed apart, the longest length read back from the server p3 (586,246).
+    await expect(dialog.getByText(`95.5 lbs · longest 13'6" (162")`)).toBeVisible()
+    await expect(dialog.getByText('Pickups · 0')).toBeVisible()
     await dialog.getByRole('button', { name: 'Select Ship Date…' }).click()
     await page.getByRole('button', { name: /October 1st, 2026/ }).click()
     await dialog.getByText('Truck 106').click()
