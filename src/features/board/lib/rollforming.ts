@@ -1,4 +1,4 @@
-import type { BoardLineItem, BoardOrder } from '../api'
+import type { BoardLineItem, BoardOrder, CurrentCoil } from '../api'
 import { onMachine } from './machines'
 import { partDays, partLines } from './parts'
 
@@ -56,3 +56,16 @@ export const sourceOf = (lines: BoardLineItem[]) =>
       : lines.some(line => line.item?.coil_icon === 'coil')
         ? 'coil'
         : null
+
+/**
+ * A part with a line rolled off the coil in the machine — what the Worker picks next p2 (1040,322).
+ * A line with no coil named can run off any coil, but the Worker chooses those; only a match is shown.
+ */
+export const runsOffCoil = (lines: BoardLineItem[], coil: CurrentCoil | null | undefined) =>
+  !!coil &&
+  lines.some(
+    line =>
+      !waiting(line) &&
+      line.item?.supplier?.trim() === coil.supplier &&
+      line.item?.coil_number?.trim() === coil.coil_number
+  )

@@ -39,6 +39,7 @@ import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { NoteButton } from '@/components/note-button'
 import { CoilAssignDialog } from './coil-assign-dialog'
+import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
@@ -488,8 +489,11 @@ export const ScheduledLineItems = ({
                     ),
                     supplier: (
                       <TableCell>
-                        <span className={cn('truncate', coil.locked && 'text-muted-foreground')}>
-                          {coil.supplier}
+                        <span className='flex items-center gap-1.5'>
+                          <span className={cn('truncate', coil.locked && 'text-muted-foreground')}>
+                            {coil.supplier}
+                          </span>
+                          <CoilLock locked={coil.locked} />
                         </span>
                       </TableCell>
                     ),
@@ -505,6 +509,7 @@ export const ScheduledLineItems = ({
                           >
                             {coil.coilNumber}
                           </span>
+                          <CoilLock locked={coil.locked} />
                         </span>
                       </TableCell>
                     ),

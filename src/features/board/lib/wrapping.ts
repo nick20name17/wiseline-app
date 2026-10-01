@@ -59,8 +59,11 @@ export const packageTarget = (
 ) => {
   const current = locations?.find(spot => spot.current)
   const target: { location_id: number; name: string | null } | null = picked ?? current ?? null
-  const slot = picked ?? slots?.find(candidate => candidate.location_id === current?.location_id)
-  return { target, slot: slot ?? null }
+  // The picked cell is a snapshot from the moment it was clicked; its room is read fresh, so a
+  // package just put there counts against it.
+  const slot =
+    slots?.find(candidate => candidate.location_id === target?.location_id) ?? picked ?? null
+  return { target, slot }
 }
 
 /** An order's location as the bench shows it: `over` when the staged package would overload it. */

@@ -375,10 +375,19 @@ export const scheduledOrdersQuery = (category: string, search: string | undefine
  * The orders released to the department's floor: what Rollforming's Production tab lists. The listing
  * answers EBMS-Open orders only by default, and an order released in the app can be invoiced in EBMS
  * (Outstanding, Paid) long before it is rolled.
+ *
+ * `open` keeps only the orders with a line not yet Wrapped, Packaged or Shipped — Production's list.
+ * Wrapping reads every released order: a fully wrapped order stays on its bench until its last
+ * package has a location p2 (1144,383), and its lines keep their machine there.
  */
-export const releasedOrdersQuery = (category: string, search: string | undefined) =>
+export const releasedOrdersQuery = (category: string, search: string | undefined, open: boolean) =>
   queryOptions({
-    queryKey: [...boardKeys.orders(), category, 'released', { search: search ?? '' }] as const,
+    queryKey: [
+      ...boardKeys.orders(),
+      category,
+      'released',
+      { search: search ?? '', open }
+    ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
       allOrders(category, {
@@ -386,6 +395,7 @@ export const releasedOrdersQuery = (category: string, search: string | undefined
         release_to_production: true,
         // One value, comma-separated: the listing reads only the last of a repeated key.
         origin_status__in: 'U,O,X',
+        ...(open ? { has_open_lines: true } : {}),
         ...(search ? { search } : {})
       })
   })
@@ -2562,6 +2572,10 @@ const queueRowSchema = z.object({
   coil_number: z._default(z.nullable(z.string()), null),
   coil_icon: z._default(z.nullable(z.string()), null),
   coil_fields_locked: z._default(z.boolean(), false),
+  gauge: z._default(z.nullable(z.string()), null),
+  color: z._default(z.nullable(z.string()), null),
+  // Runs off the coil in the machine — every row of that Supplier and Coil Number, whatever the day.
+  current: z._default(z.boolean(), false),
   is_overdue: z._default(z.boolean(), false),
   lines: z._default(z.array(queueLineSchema), [])
 })
@@ -2598,6 +2612,58 @@ type ReorderQueueInput = {
   /** Every row of the day, once, in the new order; a row cannot cross the day line p2 (530,641). */
   keys: string[]
 }
+
+const currentCoilSchema = z.nullable(
+  z.object({
+    key: z._default(z.nullable(z.string()), null),
+    supplier: z.string(),
+    coil_number: z.string(),
+    material_id: z._default(z.nullable(z.string()), null),
+    gauge: z._default(z.nullable(z.string()), null),
+    color: z._default(z.nullable(z.string()), null),
+    set_at: z._default(z.nullable(z.string()), null)
+  })
+)
+
+export type CurrentCoil = NonNullable<z.infer<typeof currentCoilSchema>>
+
+const currentCoilKey = (flowId: number) => [...boardKeys.orders(), 'current-coil', flowId] as const
+
+/** «Current Coil In The Rollformer» p2 (1007,312): what the machine is rolling off, or `null`. */
+export const currentCoilQuery = (flowId: number | undefined) =>
+  queryOptions({
+    queryKey: currentCoilKey(flowId ?? 0),
+    enabled: flowId !== undefined,
+    queryFn: async () =>
+      currentCoilSchema.parse(
+        await authApi.get(`rollforming/machines/${flowId}/current-coil/`).json()
+      )
+  })
+
+type CurrentCoilInput = {
+  departmentId: number
+  flowId: number
+  /** The Queue row whose coil goes in; `null` takes the coil out. */
+  key: string | null
+}
+
+/**
+ * The Worker ticks the coil they put in the machine p2 (902,356); it replaces the one before. A row
+ * with no Supplier or Coil Number is refused.
+ */
+export const useSetCurrentCoil = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil in the machine did not change' },
+    mutationFn: ({ flowId, key }: CurrentCoilInput) =>
+      key === null
+        ? authApi.delete(`rollforming/machines/${flowId}/current-coil/`)
+        : authApi.post(`rollforming/machines/${flowId}/current-coil/`, { json: { key } }),
+    onSettled: (_, __, { departmentId, flowId }, ___, { client }) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: currentCoilKey(flowId) }),
+        client.invalidateQueries({ queryKey: queueKey(departmentId, flowId) })
+      ])
+  })
 
 /** The Manager drags the material within its day p2 (530,641), (498,662). */
 export const useReorderQueue = () =>

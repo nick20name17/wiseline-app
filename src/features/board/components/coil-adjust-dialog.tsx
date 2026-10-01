@@ -35,20 +35,32 @@ const DEPLETE = 'deplete_and_delete'
 
 export type CoilFigure = keyof CoilAdjustment
 
-type Measure<Key> = { key: Key; label: string; unit: string; step: string }
+type Measure<Key> = { key: Key; label: string; unit: string; step: string; placeholder: string }
 
 const MEASURES: Measure<CoilFigure>[] = [
-  { key: 'coil_thickness', label: 'Coil Thickness', unit: 'inches', step: '0.01' },
-  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', step: '1' },
-  { key: 'weight', label: 'Weight', unit: 'lbs', step: '1' }
+  {
+    key: 'coil_thickness',
+    label: 'Coil Thickness',
+    unit: 'inches',
+    step: '0.01',
+    placeholder: 'e.g. 0.02'
+  },
+  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', step: '1', placeholder: 'e.g. 3500' },
+  { key: 'weight', label: 'Weight', unit: 'lbs', step: '1', placeholder: 'e.g. 5000' }
 ]
 
 type BuildField = 'material_thickness' | 'core_od'
 
 // What the three figures are worked out from, typed in below them.
 const BUILD: Measure<BuildField>[] = [
-  { key: 'material_thickness', label: 'Material Thickness', unit: 'inches', step: '0.001' },
-  { key: 'core_od', label: 'Core OD', unit: 'inches', step: '0.1' }
+  {
+    key: 'material_thickness',
+    label: 'Material Thickness',
+    unit: 'inches',
+    step: '0.001',
+    placeholder: 'e.g. 0.018'
+  },
+  { key: 'core_od', label: 'Core OD', unit: 'inches', step: '0.1', placeholder: 'e.g. 20' }
 ]
 
 type Draft = Record<CoilFigure | BuildField, string>
@@ -127,6 +139,7 @@ const MeasureField = ({ measure, value, disabled, inputRef, onChange }: MeasureF
         type='number'
         inputMode='decimal'
         step={measure.step}
+        placeholder={measure.placeholder}
         ref={inputRef}
         disabled={disabled}
         value={value}

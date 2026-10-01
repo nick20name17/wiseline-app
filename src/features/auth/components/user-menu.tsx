@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,22 +10,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsAuthenticated } from '@/lib/session-store'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { logout, meQuery } from '../api'
 
 export const UserMenu = () => {
   const isAuthenticated = useIsAuthenticated()
-  const navigate = useNavigate()
   const { data: user, isPending } = useQuery({ ...meQuery, enabled: isAuthenticated })
 
-  if (!isAuthenticated) {
-    return (
-      <Link to='/login' className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-        Log in
-      </Link>
-    )
-  }
+  // The shell is signed-in only; for the moment between logging out and the redirect there is no menu.
+  if (!isAuthenticated) return null
 
   // The header is the same height either way, so the disc holds its place while /me resolves.
   if (isPending) {
@@ -66,10 +58,8 @@ export const UserMenu = () => {
 
         <DropdownMenuGroup>
           <DropdownMenuItem
-            onClick={() => {
-              logout()
-              void navigate({ to: '/', replace: true })
-            }}
+            // The guard takes the page to sign in once the session is gone, and back here after.
+            onClick={logout}
           >
             <LogOut />
             Log out

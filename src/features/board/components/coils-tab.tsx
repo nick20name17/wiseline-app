@@ -1,4 +1,6 @@
 import { useColumnOrder } from '@/components/table/column-order'
+import { SpacerRows } from '@/components/table/spacer-rows'
+import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -259,40 +261,60 @@ type CellHandlers = Omit<LotCellsProps, 'lot'>
 
 type CoilTableProps = CellHandlers & { coils: CoilLot[]; loading: boolean }
 
-/** One row per coil, with the size it belongs to spelled out in front — the list read for coil #s. */
-const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => (
-  <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-    <Table className='min-w-6xl table-fixed'>
-      <colgroup>
-        <col className='w-36' />
-        <col className='w-36' />
-        <col className='w-28' />
-        <LotColumns />
-      </colgroup>
-      <LotHead lead={['Product ID', 'Color', 'Grade (ksi)']} />
-      <TableBody>
+/**
+ * One row per coil, with the size it belongs to spelled out in front — the list read for coil #s.
+ * The company holds hundreds of coils, so only the rows on screen are in the page.
+ */
+const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => {
+  const { tableRef, items, measure, before, after } = useWindowRows(
+    coils.length,
+    index => coils[index]?.id ?? String(index)
+  )
+
+  return (
+    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+      <Table ref={tableRef} className='min-w-6xl table-fixed'>
+        <colgroup>
+          <col className='w-36' />
+          <col className='w-36' />
+          <col className='w-28' />
+          <LotColumns />
+        </colgroup>
+        <LotHead lead={['Product ID', 'Color', 'Grade (ksi)']} />
         {loading ? (
-          <TableSkeletonRows columns={10} />
+          <TableBody>
+            <TableSkeletonRows columns={10} />
+          </TableBody>
         ) : (
-          coils.map(lot => (
-            <TableRow key={lot.id}>
-              <TableCell>
-                <span className='font-mono'>{lot.product_id ?? '—'}</span>
-              </TableCell>
-              <TableCell>
-                <span className='truncate'>{lot.color ?? '—'}</span>
-              </TableCell>
-              <TableCell>
-                <span className='font-mono'>{figure(lot.grade)}</span>
-              </TableCell>
-              <LotCells lot={lot} {...handlers} />
-            </TableRow>
-          ))
+          <>
+            <SpacerRows height={before} />
+            <TableBody>
+              {items.map(item => {
+                const lot = coils[item.index]
+                if (!lot) return null
+                return (
+                  <TableRow key={item.key} data-index={item.index} ref={measure}>
+                    <TableCell>
+                      <span className='font-mono'>{lot.product_id ?? '—'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className='truncate'>{lot.color ?? '—'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className='font-mono'>{figure(lot.grade)}</span>
+                    </TableCell>
+                    <LotCells lot={lot} {...handlers} />
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+            <SpacerRows height={after} />
+          </>
         )}
-      </TableBody>
-    </Table>
-  </div>
-)
+      </Table>
+    </div>
+  )
+}
 
 /** One row per size with its totals; a row opens into the coils of that size. */
 const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
@@ -621,12 +643,6 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     <div className='flex min-w-0 flex-col gap-4'>
       {scopeTabs}
 
-      <p className='flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground'>
-        <Database aria-hidden className='size-4 shrink-0' />
-        Coils imported from EBMS — one row per size, expand for its lots. Click a lot’s Coil
-        Thickness, Linear Feet or Weight to adjust it and push back to EBMS.
-      </p>
-
       <div className='flex flex-wrap items-center gap-3'>
         <Tabs value={layout} onValueChange={value => setLayout(value as Layout)}>
           <TabsList>
@@ -644,15 +660,19 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
           value={folder ?? 'all'}
           onValueChange={value => setFolder(value === 'all' ? null : String(value))}
         >
-          <TabsList variant='line'>
-            <TabsTrigger value='all'>All folders</TabsTrigger>
-            {folders.map(entry => (
-              <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
-                {entry.name}
-                <span className='font-mono text-xs text-muted-foreground'>{entry.coils}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* A department has dozens of folders; they scroll on their own line rather than widen the
+              page under the sidebar. */}
+          <div className='scrollport overflow-x-auto'>
+            <TabsList variant='line'>
+              <TabsTrigger value='all'>All folders</TabsTrigger>
+              {folders.map(entry => (
+                <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
+                  {entry.name}
+                  <span className='font-mono text-xs text-muted-foreground'>{entry.coils}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </Tabs>
       ) : null}
 

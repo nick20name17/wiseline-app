@@ -3,14 +3,14 @@ import { BoardGate, boardSearchSchema } from '@/features/board'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
-const RollformingRoute = () => {
+const TrimRoute = () => {
   const { view, search } = Route.useSearch()
   const navigate = Route.useNavigate()
   const { data: me } = useQuery(meQuery)
 
   return (
     <BoardGate
-      code='rollforming'
+      code='trim'
       view={view}
       search={search}
       userRole={me?.role ?? ''}
@@ -23,8 +23,8 @@ const RollformingRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/rollforming')({
-  staticData: { crumb: 'Rollforming' },
+export const Route = createFileRoute('/_app/trim')({
+  staticData: { crumb: 'Trim' },
   validateSearch: boardSearchSchema,
-  component: RollformingRoute
+  component: TrimRoute
 })

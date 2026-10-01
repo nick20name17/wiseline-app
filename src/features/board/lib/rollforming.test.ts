@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BoardLineItem, BoardOrder } from '../api'
-import { coilNumbersOf, productionParts, sourceOf } from './rollforming'
+import { coilNumbersOf, productionParts, runsOffCoil, sourceOf } from './rollforming'
 
 const line = (
   id: string,
@@ -10,6 +10,7 @@ const line = (
     status?: string | null
     machine?: number
     coil?: string
+    supplier?: string
     icon?: string
   } = {}
 ) =>
@@ -21,6 +22,7 @@ const line = (
       is_released: patch.released ?? true,
       status: patch.status ?? null,
       coil_number: patch.coil ?? null,
+      supplier: patch.supplier ?? null,
       coil_icon: patch.icon ?? null
     }
   }) as BoardLineItem
@@ -80,5 +82,29 @@ describe('the coil of a part rolled partly off a coil and partly slit', () => {
       'slit'
     )
     expect(sourceOf([line('a', null, { icon: 'coil' })])).toBe('coil')
+  })
+})
+
+describe('runsOffCoil', () => {
+  const coil = { supplier: 'COLSTE', coil_number: 'J46A211' } as Parameters<typeof runsOffCoil>[1]
+
+  it('marks a part with a line on the coil in the machine', () => {
+    const lines = [line('a', null), line('b', null, { supplier: 'COLSTE', coil: 'J46A211' })]
+    expect(runsOffCoil(lines, coil)).toBe(true)
+  })
+
+  it('does not mark another coil, a line still at the Slit Line, or an empty machine', () => {
+    expect(runsOffCoil([line('a', null, { supplier: 'COLSTE', coil: 'F7601268' })], coil)).toBe(
+      false
+    )
+    expect(
+      runsOffCoil(
+        [line('a', null, { supplier: 'COLSTE', coil: 'J46A211', icon: 'waiting_to_slit' })],
+        coil
+      )
+    ).toBe(false)
+    expect(runsOffCoil([line('a', null, { supplier: 'COLSTE', coil: 'J46A211' })], null)).toBe(
+      false
+    )
   })
 })

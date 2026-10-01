@@ -180,7 +180,7 @@ test('the capacities report prints on its own sheet', async ({ page }) => {
   await page.emulateMedia({ media: 'print' })
 
   // The report is all that reaches the paper, and it is no longer a centred panel on it.
-  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeHidden()
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Print' })).toBeHidden()
   await expect(page.getByRole('rowheader', { name: /Press Brake/ })).toBeVisible()
 

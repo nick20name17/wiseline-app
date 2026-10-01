@@ -17,7 +17,7 @@ const ShippingRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/shipping')({
+export const Route = createFileRoute('/_app/shipping')({
   staticData: { crumb: 'Shipping' },
   validateSearch: shippingSearchSchema,
   component: ShippingRoute

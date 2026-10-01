@@ -264,6 +264,35 @@ export const loadsQuery = (truckId: number, shipDate: string) =>
         )
   })
 
+const dayLoadSchema = z.object({
+  ...loadTabSchema.shape,
+  load_id: z.number(),
+  truck: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null)
+})
+
+export type DayLoad = z.infer<typeof dayLoadSchema>
+
+/**
+ * Every truck's Loads of the day in one of `statuses`, sorted by truck then Load: what Loading and the
+ * Driver read. Empty Loads are left out.
+ */
+export const dayLoadsQuery = (shipDate: string, statuses: readonly string[]) =>
+  queryOptions({
+    queryKey: [...shippingKeys.allLoads(), 'day', shipDate, statuses] as const,
+    queryFn: async () =>
+      z.array(dayLoadSchema).parse(
+        await authApi
+          .get('shipping/loads/', {
+            // This one is a FastAPI list: `status` repeated, not comma-joined.
+            searchParams: new URLSearchParams([
+              ['ship_date', shipDate],
+              ...statuses.map(status => ['status', status])
+            ])
+          })
+          .json()
+      )
+  })
+
 /** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled, `null` a new one. */
 export const useAddToLoad = () =>
   useLoadPost(

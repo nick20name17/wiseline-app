@@ -13,7 +13,7 @@ const WarehousesRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/warehouses')({
+export const Route = createFileRoute('/_app/settings/warehouses')({
   staticData: { crumb: 'Warehouses' },
   validateSearch: warehousesSearchSchema,
   component: WarehousesRoute

@@ -135,7 +135,8 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-6xl table-fixed'>
+          {/* The fixed columns take 1320px; the floor leaves the Customer room to read. */}
+          <Table className='min-w-380 table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />

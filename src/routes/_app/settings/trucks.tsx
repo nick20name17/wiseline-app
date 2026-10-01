@@ -1,20 +1,20 @@
-import { UsersPage, usersSearchSchema } from '@/features/users'
+import { TrucksPage, trucksSearchSchema } from '@/features/trucks'
 import { createFileRoute } from '@tanstack/react-router'
 
-const UsersRoute = () => {
+const TrucksRoute = () => {
   const { search } = Route.useSearch()
   const navigate = Route.useNavigate()
 
   return (
-    <UsersPage
+    <TrucksPage
       search={search}
       onSearchChange={next => void navigate({ search: { search: next }, replace: true })}
     />
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/users')({
-  staticData: { crumb: 'Users' },
-  validateSearch: usersSearchSchema,
-  component: UsersRoute
+export const Route = createFileRoute('/_app/settings/trucks')({
+  staticData: { crumb: 'Trucks' },
+  validateSearch: trucksSearchSchema,
+  component: TrucksRoute
 })

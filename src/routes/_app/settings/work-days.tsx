@@ -13,7 +13,7 @@ const WorkDaysRoute = () => {
   )
 }
 
-export const Route = createFileRoute('/_app/_auth/settings/work-days')({
+export const Route = createFileRoute('/_app/settings/work-days')({
   staticData: { crumb: 'Work Days' },
   validateSearch: holidaysSearchSchema,
   component: WorkDaysRoute

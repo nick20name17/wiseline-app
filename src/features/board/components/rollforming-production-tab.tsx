@@ -13,14 +13,21 @@ import {
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Disc3, Factory, Lock, Scissors } from 'lucide-react'
+import { ChevronRight, Disc3, Factory, Scissors } from 'lucide-react'
 import { cn } from 'cn'
 import { Fragment, useState } from 'react'
-import { departmentStateOf, releasedOrdersQuery, type BoardLineItem } from '../api'
+import {
+  currentCoilQuery,
+  departmentStateOf,
+  releasedOrdersQuery,
+  type BoardLineItem
+} from '../api'
 import { useBoard } from '../lib/board-context'
 import { materialsOf, partKey } from '../lib/parts'
-import { coilNumbersOf, productionParts, sourceOf } from '../lib/rollforming'
+import { coilNumbersOf, productionParts, runsOffCoil, sourceOf } from '../lib/rollforming'
 import { itemStatus, orderStatus } from '../lib/status'
+import { CoilLock } from './coil-lock'
+import { CurrentCoil } from './current-coil'
 import { PriorityPill } from './priority-pill'
 import { StatusPill } from './status-pill'
 
@@ -53,9 +60,7 @@ const Coil = ({ value, item, mono = false }: CoilProps) => (
     <span className={cn('truncate', mono && 'font-mono')}>
       {value ?? (item?.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
     </span>
-    {item?.coil_fields_locked ? (
-      <Lock className='size-3 shrink-0 text-muted-foreground' aria-label='Locked' />
-    ) : null}
+    <CoilLock locked={item?.coil_fields_locked ?? false} />
   </span>
 )
 
@@ -128,11 +133,14 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
  * p2 (1045,276), (540,715). The packages are made at Wrapping until the board's machine bench lands
  * (backend R11).
  */
-export const RollformingProductionTab = ({
-  search,
-  departmentId,
-  machineId
-}: RollformingProductionTabProps) => {
+export const RollformingProductionTab = (props: RollformingProductionTabProps) => (
+  <div className='flex flex-col gap-3'>
+    <CurrentCoil machineId={props.machineId} />
+    <ReleasedParts {...props} />
+  </div>
+)
+
+const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductionTabProps) => {
   const board = useBoard()
   const {
     data: page,
@@ -140,7 +148,8 @@ export const RollformingProductionTab = ({
     isError,
     error,
     refetch
-  } = useQuery(releasedOrdersQuery(board.name, search))
+  } = useQuery(releasedOrdersQuery(board.name, search, true))
+  const { data: coil } = useQuery(currentCoilQuery(machineId))
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const parts =
     machineId === undefined ? [] : productionParts(page?.results ?? [], machineId, departmentId)
@@ -226,6 +235,7 @@ export const RollformingProductionTab = ({
                   const open = expanded.has(key)
                   const state = departmentStateOf(order, departmentId)
                   const profiles = [...new Set(lines.map(line => line.profile).filter(Boolean))]
+                  const onCoil = runsOffCoil(lines, coil)
                   return (
                     <Fragment key={key}>
                       <TableRow data-overdue={lines.some(line => line.item?.over_due) || undefined}>
@@ -244,7 +254,15 @@ export const RollformingProductionTab = ({
                         </TableCell>
                         <TableCell>{formatDate(date)}</TableCell>
                         <TableCell>
-                          <span className='font-mono font-medium'>{order.invoice}</span>
+                          <span className='flex items-center gap-1.5'>
+                            <span className='font-mono font-medium'>{order.invoice}</span>
+                            {onCoil ? (
+                              <Disc3
+                                className='size-3.5 shrink-0 text-primary'
+                                aria-label='Runs off the coil in the machine'
+                              />
+                            ) : null}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <span className='truncate'>{order.customer ?? '—'}</span>
@@ -279,8 +297,15 @@ export const RollformingProductionTab = ({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className='truncate font-mono'>
-                            {coilNumbersOf(lines).join(', ') || '—'}
+                          <span className='flex items-center gap-1.5'>
+                            <span
+                              className={cn(
+                                'truncate font-mono',
+                                onCoil && 'font-medium text-primary'
+                              )}
+                            >
+                              {coilNumbersOf(lines).join(', ') || '—'}
+                            </span>
                           </span>
                         </TableCell>
                         <TableCell>

@@ -10,23 +10,9 @@ import {
   SidebarMenuItem
 } from '@/components/ui/sidebar'
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import {
-  Database,
-  Grid2x2,
-  Layers,
-  LayoutDashboard,
-  PackageCheck,
-  QrCode,
-  Settings,
-  Truck,
-  Waypoints
-} from 'lucide-react'
+import { Grid2x2, Layers, PackageCheck, QrCode, Settings, Truck, Waypoints } from 'lucide-react'
 
 const NAV_GROUPS = [
-  {
-    label: 'OVERVIEW',
-    items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }]
-  },
   {
     label: 'DEPARTMENTS',
     items: [
@@ -46,7 +32,6 @@ const NAV_GROUPS = [
   {
     label: 'MANAGE',
     items: [
-      { to: '/coils', label: 'Coils', icon: Database },
       { to: '/stock-cards', label: 'Stock Cards', icon: QrCode },
       { to: '/settings', label: 'Settings', icon: Settings }
     ]
@@ -83,9 +68,8 @@ export const AppSidebar = () => {
                 {group.items.map(item => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
-                      // Every nav target is a leaf here, so a fuzzy match only matters for future
-                      // child routes; the index must stay exact or it lights up everywhere.
-                      isActive={!!matchRoute({ to: item.to, fuzzy: item.to !== '/' })}
+                      // Fuzzy, so Settings stays lit on its sub-pages.
+                      isActive={!!matchRoute({ to: item.to, fuzzy: true })}
                       tooltip={item.label}
                       render={<Link to={item.to} />}
                     >

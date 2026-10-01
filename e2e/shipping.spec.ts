@@ -23,27 +23,24 @@ const mockLoad = async (page: Page, start: string) => {
   })
   const posted: string[] = []
 
-  await page.route(`${API_URL}/shipping/scheduled/?*`, route =>
-    route.fulfill({
-      json: [
-        {
-          truck_id: 105,
-          name: '105',
-          weight_limit: 5000,
-          delivery: {},
-          pickup: {},
-          orders: [order()]
-        }
-      ]
+  // The day's Loads in the asked statuses, as the server filters them.
+  await page.route(`${API_URL}/shipping/loads/?*`, route => {
+    const statuses = new URL(route.request().url()).searchParams.getAll('status')
+    return route.fulfill({
+      json: statuses.includes(load.status)
+        ? [
+            {
+              load_id: 126,
+              name: 'Load 2',
+              status: load.status,
+              weight: 190.34,
+              orders: [order()],
+              truck: { id: 105, name: '105' }
+            }
+          ]
+        : []
     })
-  )
-  await page.route(`${API_URL}/shipping/trucks/105/loads/?*`, route =>
-    route.fulfill({
-      json: [
-        { load_id: 126, name: 'Load 2', status: load.status, weight: 190.34, orders: [order()] }
-      ]
-    })
-  )
+  })
   await page.route(`${API_URL}/wrapping/orders/ORD-2/packages/`, route =>
     route.fulfill({
       json: [
