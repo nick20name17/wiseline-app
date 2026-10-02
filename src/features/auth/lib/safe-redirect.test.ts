@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { DEFAULT_AFTER_LOGIN, safeRedirectPath } from './safe-redirect.ts'
 
-test.each(['/profile', '/a/b?c=1#d'])('keeps in-app path %s', value => {
+test.each(['/trim', '/a/b?c=1#d'])('keeps in-app path %s', value => {
   expect(safeRedirectPath(value)).toBe(value)
 })
 

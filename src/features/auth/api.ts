@@ -25,8 +25,13 @@ const userSchema = z.object({
   first_name: z._default(z.string(), ''),
   last_name: z._default(z.string(), ''),
   role: z.string(),
-  is_active: z._default(z.boolean(), true)
+  is_active: z._default(z.boolean(), true),
+  // Null for roles that have none, which is the same as an empty list here.
+  process_types: z.catch(z.array(z.string()), []),
+  prod_types: z.catch(z.array(z.string()), [])
 })
+
+export type Me = z.infer<typeof userSchema>
 
 export const login = async (credentials: Credentials) => {
   const body = await publicApi.post('token/', { json: credentials }).json()
