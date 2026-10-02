@@ -52,6 +52,7 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@commitlint/types": "^21.2.3",
+    "@mswjs/interceptors": "0.45.6",
     "@playwright/test": "^1.63.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@shadcn/lint": "^0.1.1",
@@ -80,10 +81,5 @@
   "engines": {
     "node": "^20.19.0 || >=22.13.0"
   },
-  "packageManager": "bun@1.4.0",
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
-  }
+  "packageManager": "bun@1.4.0"
 }

@@ -7,6 +7,9 @@ const token = (userId: number) => {
   return `${encode({ alg: 'none' })}.${encode({ user_id: userId })}.mock`
 }
 
+/** The admin, signed in before the review opens. */
+export const reviewSession = { accessToken: token(1), refreshToken: token(1) }
+
 export const authHandlers = [
   // Every address signs in as the admin: a reviewer is looking at screens, not at credentials.
   http.post(api('token/'), () => HttpResponse.json({ access: token(1), refresh: token(1) })),
