@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Link, useMatchRoute } from '@tanstack/react-router'
 import {
+  Database,
   Grid2x2,
   Layers,
   PackageCheck,
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
     label: 'MANAGE',
     items: [
       { to: '/stock-cards', label: 'Stock Cards', icon: QrCode },
+      { to: '/ebms', label: 'EBMS', icon: Database },
       { to: '/settings', label: 'Settings', icon: Settings }
     ]
   }

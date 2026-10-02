@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
+import { Route as AppEbmsRouteImport } from './routes/_app/ebms'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
@@ -62,6 +63,11 @@ const AppAccessoriesRoute = AppAccessoriesRouteImport.update({
 const AppDriverRoute = AppDriverRouteImport.update({
   id: '/driver',
   path: '/driver',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppEbmsRoute = AppEbmsRouteImport.update({
+  id: '/ebms',
+  path: '/ebms',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppLoadingRoute = AppLoadingRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
+  '/ebms': typeof AppEbmsRoute
   '/loading': typeof AppLoadingRoute
   '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
+  '/ebms': typeof AppEbmsRoute
   '/loading': typeof AppLoadingRoute
   '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRouteRouteWithChildren
   '/_app/accessories': typeof AppAccessoriesRoute
   '/_app/driver': typeof AppDriverRoute
+  '/_app/ebms': typeof AppEbmsRoute
   '/_app/loading': typeof AppLoadingRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/rollforming': typeof AppRollformingRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/accessories'
     | '/driver'
+    | '/ebms'
     | '/loading'
     | '/profile'
     | '/rollforming'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/accessories'
     | '/driver'
+    | '/ebms'
     | '/loading'
     | '/profile'
     | '/rollforming'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/accessories'
     | '/_app/driver'
+    | '/_app/ebms'
     | '/_app/loading'
     | '/_app/profile'
     | '/_app/rollforming'
@@ -370,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/driver'
       fullPath: '/driver'
       preLoaderRoute: typeof AppDriverRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/ebms': {
+      id: '/_app/ebms'
+      path: '/ebms'
+      fullPath: '/ebms'
+      preLoaderRoute: typeof AppEbmsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/loading': {
@@ -541,6 +560,7 @@ interface AppRouteRouteChildren {
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppAccessoriesRoute: typeof AppAccessoriesRoute
   AppDriverRoute: typeof AppDriverRoute
+  AppEbmsRoute: typeof AppEbmsRoute
   AppLoadingRoute: typeof AppLoadingRoute
   AppProfileRoute: typeof AppProfileRoute
   AppRollformingRoute: typeof AppRollformingRoute
@@ -555,6 +575,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppAccessoriesRoute: AppAccessoriesRoute,
   AppDriverRoute: AppDriverRoute,
+  AppEbmsRoute: AppEbmsRoute,
   AppLoadingRoute: AppLoadingRoute,
   AppProfileRoute: AppProfileRoute,
   AppRollformingRoute: AppRollformingRoute,

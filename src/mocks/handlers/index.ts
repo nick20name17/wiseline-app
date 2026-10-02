@@ -6,6 +6,7 @@ import { boardProductionHandlers } from './board-production'
 import { boardWrappingHandlers } from './board-wrapping'
 import { colorsHandlers } from './colors'
 import { departmentHandlers } from './departments'
+import { ebmsHandlers } from './ebms'
 import { holidaysHandlers } from './holidays'
 import { locationsHandlers } from './locations'
 import { machinesHandlers } from './machines'
@@ -33,5 +34,6 @@ export const handlers = [
   ...boardWrappingHandlers,
   ...boardCoilsHandlers,
   ...rollformingHandlers,
-  ...shippingHandlers
+  ...shippingHandlers,
+  ...ebmsHandlers
 ]
