@@ -1,15 +1,13 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
 import { QueryError } from '@/components/query-error'
-import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Spinner } from '@/components/ui/spinner'
 import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
-import { Check, Truck } from 'lucide-react'
-import { dayLoadsQuery, useCompleteLoad, useDelivered, useLeftWarehouse } from '../api'
+import { Truck } from 'lucide-react'
+import { dayLoadsQuery } from '../api'
 import { DayPicker } from './day-picker'
-import { LoadCard, OrderLine } from './load-card'
+import { DriverLoad } from './driver-load'
 
 // Loaded and waiting to leave, on the road, or delivered and waiting to be closed.
 const DRIVER_LOADS: readonly string[] = ['loaded', 'en_route', 'delivered']
@@ -26,9 +24,6 @@ type DriverPageProps = {
 export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
   usePageHeader({ trail: [formatLongDate(day)] })
   const { data: loads = [], isPending, error, refetch } = useQuery(dayLoadsQuery(day, DRIVER_LOADS))
-  const leave = useLeftWarehouse()
-  const deliver = useDelivered()
-  const complete = useCompleteLoad()
 
   return (
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
@@ -49,52 +44,7 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        loads.map(load => (
-          <LoadCard
-            key={load.load_id}
-            load={load}
-            action={
-              load.status === 'loaded' ? (
-                <Button
-                  disabled={leave.isPending && leave.variables === load.load_id}
-                  onClick={() => leave.mutate(load.load_id)}
-                >
-                  {leave.isPending && leave.variables === load.load_id ? (
-                    <Spinner data-icon='inline-start' />
-                  ) : null}
-                  Left the warehouse
-                </Button>
-              ) : load.status === 'delivered' ? (
-                <Button
-                  disabled={complete.isPending && complete.variables === load.load_id}
-                  onClick={() => complete.mutate(load.load_id)}
-                >
-                  <Check data-icon='inline-start' />
-                  Complete {load.name}
-                </Button>
-              ) : null
-            }
-          >
-            {load.orders.map(order => (
-              <OrderLine
-                key={order.assignment_id}
-                order={order}
-                trail={
-                  // Only a Load on the road delivers; before that the orders are the dock's.
-                  load.status === 'en_route' && order.status !== 'delivered' ? (
-                    <Button
-                      variant='outline'
-                      disabled={deliver.isPending && deliver.variables?.[0] === order.assignment_id}
-                      onClick={() => deliver.mutate([order.assignment_id])}
-                    >
-                      Delivered
-                    </Button>
-                  ) : null
-                }
-              />
-            ))}
-          </LoadCard>
-        ))
+        loads.map(load => <DriverLoad key={load.load_id} load={load} day={day} />)
       )}
     </section>
   )
