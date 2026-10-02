@@ -18,6 +18,7 @@ import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
+import { Route as AppScannerRouteImport } from './routes/_app/scanner'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppStockCardsRouteImport } from './routes/_app/stock-cards'
@@ -76,6 +77,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
 const AppRollformingRoute = AppRollformingRouteImport.update({
   id: '/rollforming',
   path: '/rollforming',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppScannerRoute = AppScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/loading': typeof AppLoadingRoute
   '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
+  '/scanner': typeof AppScannerRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
   '/trim': typeof AppTrimRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/loading': typeof AppLoadingRoute
   '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
+  '/scanner': typeof AppScannerRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
   '/trim': typeof AppTrimRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_app/loading': typeof AppLoadingRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/rollforming': typeof AppRollformingRoute
+  '/_app/scanner': typeof AppScannerRoute
   '/_app/shipping': typeof AppShippingRoute
   '/_app/stock-cards': typeof AppStockCardsRoute
   '/_app/trim': typeof AppTrimRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/profile'
     | '/rollforming'
+    | '/scanner'
     | '/shipping'
     | '/stock-cards'
     | '/trim'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/profile'
     | '/rollforming'
+    | '/scanner'
     | '/shipping'
     | '/stock-cards'
     | '/trim'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/_app/loading'
     | '/_app/profile'
     | '/_app/rollforming'
+    | '/_app/scanner'
     | '/_app/shipping'
     | '/_app/stock-cards'
     | '/_app/trim'
@@ -379,6 +391,13 @@ declare module '@tanstack/react-router' {
       path: '/rollforming'
       fullPath: '/rollforming'
       preLoaderRoute: typeof AppRollformingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/scanner': {
+      id: '/_app/scanner'
+      path: '/scanner'
+      fullPath: '/scanner'
+      preLoaderRoute: typeof AppScannerRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/settings': {
@@ -525,6 +544,7 @@ interface AppRouteRouteChildren {
   AppLoadingRoute: typeof AppLoadingRoute
   AppProfileRoute: typeof AppProfileRoute
   AppRollformingRoute: typeof AppRollformingRoute
+  AppScannerRoute: typeof AppScannerRoute
   AppShippingRoute: typeof AppShippingRoute
   AppStockCardsRoute: typeof AppStockCardsRoute
   AppTrimRoute: typeof AppTrimRoute
@@ -538,6 +558,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppLoadingRoute: AppLoadingRoute,
   AppProfileRoute: AppProfileRoute,
   AppRollformingRoute: AppRollformingRoute,
+  AppScannerRoute: AppScannerRoute,
   AppShippingRoute: AppShippingRoute,
   AppStockCardsRoute: AppStockCardsRoute,
   AppTrimRoute: AppTrimRoute,

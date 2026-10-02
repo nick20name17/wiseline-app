@@ -10,7 +10,16 @@ import {
   SidebarMenuItem
 } from '@/components/ui/sidebar'
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { Grid2x2, Layers, PackageCheck, QrCode, Settings, Truck, Waypoints } from 'lucide-react'
+import {
+  Grid2x2,
+  Layers,
+  PackageCheck,
+  QrCode,
+  ScanLine,
+  Settings,
+  Truck,
+  Waypoints
+} from 'lucide-react'
 
 const NAV_GROUPS = [
   {
@@ -26,7 +35,8 @@ const NAV_GROUPS = [
     label: 'TOOLS',
     items: [
       { to: '/driver', label: 'Driver', icon: Truck },
-      { to: '/loading', label: 'Loading', icon: PackageCheck }
+      { to: '/loading', label: 'Loading', icon: PackageCheck },
+      { to: '/scanner', label: 'Scanner', icon: ScanLine }
     ]
   },
   {
