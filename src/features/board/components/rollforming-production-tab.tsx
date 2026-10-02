@@ -76,7 +76,7 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
           <col className='w-32' />
           <col className='w-36' />
           <col className='w-36' />
-          <col className='w-16' />
+          <col className='w-24' />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -187,7 +187,8 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
         <colgroup>
           <col className='w-10' />
           <col className='w-36' />
-          <col className='w-24' />
+          {/* The order number and the mark for the coil in the machine. */}
+          <col className='w-32' />
           <col className='w-44' />
           <col className='w-28' />
           <col />
@@ -197,7 +198,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
           <col className='w-32' />
           <col className='w-28' />
           <col className='w-32' />
-          <col className='w-20' />
+          <col className='w-24' />
         </colgroup>
         <TableHeader>
           <TableRow>
