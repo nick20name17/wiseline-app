@@ -15,7 +15,12 @@ const LoginRoute = () => {
 
 export const Route = createFileRoute('/login')({
   validateSearch: loginSearchSchema,
-  beforeLoad: ({ search }) => {
+  beforeLoad: async ({ search }) => {
+    // The hub puts a build's storage back to the state it saved, which drops the session; a review
+    // signs straight back in rather than stopping at the door.
+    if (import.meta.env.VITE_REVIEW && !sessionStore.get()) {
+      ;(await import('@/mocks/start')).signInForReview()
+    }
     if (!sessionStore.get()) return
     const to = safeRedirectPath(search.redirect)
     throw redirect({ to, replace: true })
