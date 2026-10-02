@@ -34,3 +34,4 @@ docs
 
 # Playwright MCP snapshots from live checks
 .playwright-mcp
+!.env.review

@@ -7,6 +7,8 @@
     "prepare": "lefthook install",
     "dev": "vite",
     "build": "bun run typecheck && vite build",
+    "build:review": "bun run typecheck && vite build --mode review",
+    "dev:review": "vite --mode review",
     "preview": "vite preview",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -65,6 +67,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint-plugin-playwright": "^2.12.0",
     "lefthook": "^2.1.14",
+    "msw": "^3.0.1",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
@@ -77,5 +80,10 @@
   "engines": {
     "node": "^20.19.0 || >=22.13.0"
   },
-  "packageManager": "bun@1.4.0"
+  "packageManager": "bun@1.4.0",
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
 }
