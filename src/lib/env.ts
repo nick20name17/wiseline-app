@@ -4,12 +4,12 @@ const envSchema = z.object({
   VITE_API_URL: z.url()
 })
 
-// The hub builds a review with nothing but `VITE_REVIEW` set, and the mock answers any address.
+// A review build talks to the mock and nothing else, whatever address the hub's project settings
+// still carry from earlier builds.
 const REVIEW_API_URL = 'https://api.review.test/'
 
 const parsed = envSchema.safeParse({
-  VITE_API_URL:
-    import.meta.env.VITE_API_URL ?? (import.meta.env.VITE_REVIEW ? REVIEW_API_URL : undefined)
+  VITE_API_URL: import.meta.env.VITE_REVIEW ? REVIEW_API_URL : import.meta.env.VITE_API_URL
 })
 
 if (!parsed.success) {
