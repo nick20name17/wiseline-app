@@ -6,6 +6,15 @@ import { sessionStore } from '@/lib/session-store'
 import { routeTree } from '@/routeTree.gen'
 import { createRouter } from '@tanstack/react-router'
 
+// The hub serves a review under `/a/:versionId/` and takes the prefix off once the page has loaded,
+// which is after this module has read the address: the first page a review opens would be read as
+// `/a/…` and land on Not Found. Taking it off here first is the same rewrite, done in time.
+if (import.meta.env.VITE_REVIEW) {
+  const path = location.pathname.replace(/^\/a\/[^/]+/, '') || '/'
+  if (path !== location.pathname)
+    history.replaceState(history.state, '', path + location.search + location.hash)
+}
+
 export const router = createRouter({
   routeTree,
   context: { queryClient },
