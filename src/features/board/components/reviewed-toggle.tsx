@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { useState } from 'react'
 import { formatDate } from '@/lib/days'
 import { useSetReviewed, type BoardOrder } from '../api'
+import { useViewOnly } from '../lib/board-context'
 
 type ReviewedToggleProps = {
   order: BoardOrder
@@ -40,6 +41,7 @@ export const ReviewedToggle = ({
 }: ReviewedToggleProps) => {
   const [confirming, setConfirming] = useState(false)
   const mutation = useSetReviewed()
+  const viewOnly = useViewOnly()
 
   // Once an order is out on the floor the toggle is a record, not a control, and reads as one.
   if (released)
@@ -58,7 +60,7 @@ export const ReviewedToggle = ({
         <Switch
           aria-label={`Reviewed ${order.invoice}`}
           checked={reviewed}
-          disabled={!machinesAssigned || mutation.isPending}
+          disabled={viewOnly || !machinesAssigned || mutation.isPending}
           onCheckedChange={next => (next ? set(true) : setConfirming(true))}
         />
         {/* The hint says which gate is holding the order rather than leaving a dead control. */}

@@ -10,6 +10,7 @@ import {
   type Remanufacturing,
   type WrappingRow
 } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { completeBlocker, type CutlistGroup } from '../lib/cutlists'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
@@ -58,6 +59,7 @@ export const CutlistCard = ({
   const word = isSlinet ? 'cutlist' : 'bendlist'
   const hasStock = cutlist.rows.some(row => row.sources.some(source => source.is_stock))
   const blocked = completeBlocker({ isSlinet, slinetStarted })
+  const viewOnly = useViewOnly()
 
   return (
     <div
@@ -124,7 +126,7 @@ export const CutlistCard = ({
 
         {/* The list's own actions do not open or close it. */}
         <span data-card-actions className='ml-auto flex cursor-auto items-center gap-3'>
-          {isSlinet && !done ? (
+          {isSlinet && !done && !viewOnly ? (
             <Button variant='outline' onClick={() => onOpenCoils(cutlist)}>
               <Database data-icon='inline-start' />
               Cutlist Coils
@@ -141,7 +143,7 @@ export const CutlistCard = ({
                 {formatStamp(cutlist.completed_at)}
               </span>
             </>
-          ) : (
+          ) : viewOnly ? null : (
             <Button
               disabled={!cutlist.is_complete}
               title={cutlist.is_complete ? undefined : 'Available once every row is Complete'}

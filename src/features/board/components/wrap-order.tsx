@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
@@ -66,6 +66,7 @@ type RemanCellProps = {
  * too, and asked for again.
  */
 const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
+  const viewOnly = useViewOnly()
   if (row.is_bypassed) return <RemanNotApplicable />
 
   const room = remakeRoom(row.qty_ordered, remans)
@@ -75,7 +76,11 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
   return (
     <span className='flex items-center gap-1'>
       {remans.length ? <RemanBadge remans={remans} /> : null}
-      {made ? (
+      {viewOnly ? (
+        remans.length ? null : (
+          <span className='text-muted-foreground'>—</span>
+        )
+      ) : made ? (
         <Button
           variant='ghost'
           size='icon-sm'
@@ -107,8 +112,11 @@ type WrapCellProps = {
 
 const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProps) => {
   const { pack } = useBoard()
+  const viewOnly = useViewOnly()
   if (row.status === pack.done)
     return <span className='text-xs text-muted-foreground'>{pack.doneLabel} ✓</span>
+
+  if (viewOnly) return <span className='text-muted-foreground'>—</span>
 
   if (row.can_wrap && allowed > 0)
     return (
@@ -198,6 +206,7 @@ const WrapLines = ({
   const [stocking, setStocking] = useState<WrappingRow | null>(null)
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
+  const viewOnly = useViewOnly()
   const updateLine = useUpdateLineItem({ released: true })
   const columns = useColumnOrder(board.tables.packLines)
   // Rollforming packs one Product ID at a time: the first line put in sets it p2 (963,410).
@@ -260,7 +269,7 @@ const WrapLines = ({
                     stock: (
                       <TableCell>
                         {/* A line with no app row has nothing for the keypad to write to. */}
-                        {board.stockCards && !row.is_stock && row.item_id !== null ? (
+                        {board.stockCards && !viewOnly && !row.is_stock && row.item_id !== null ? (
                           <Button
                             variant='link'
                             aria-label={`Stock for ${lineName(row)}`}
@@ -681,6 +690,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   // This department's cells, for the weight already standing on the one the package is going to.
   const { data: slots } = useQuery(wrappingLocationsQuery(departmentId, order?.order ?? null, true))
   const move = useMoveOrderPackages()
+  const viewOnly = useViewOnly()
 
   if (!order) return null
 
@@ -734,29 +744,37 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
       />
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
-        <Button variant='outline' disabled={!lines.length} onClick={() => setPicking('package')}>
-          <MapPin data-icon='inline-start' />
-          Select location{target ? ` · ${target.name ?? target.location_id}` : ''}
-        </Button>
+        {viewOnly ? null : (
+          <>
+            <Button
+              variant='outline'
+              disabled={!lines.length}
+              onClick={() => setPicking('package')}
+            >
+              <MapPin data-icon='inline-start' />
+              Select location{target ? ` · ${target.name ?? target.location_id}` : ''}
+            </Button>
 
-        <CreatePrintButton
-          departmentId={departmentId}
-          order={order.order}
-          lines={lines}
-          target={target}
-          weight={weight}
-          overPackage={overPackage}
-          overLocation={overTarget}
-          onPrinted={() => setAmounts({})}
-        />
+            <CreatePrintButton
+              departmentId={departmentId}
+              order={order.order}
+              lines={lines}
+              target={target}
+              weight={weight}
+              overPackage={overPackage}
+              overLocation={overTarget}
+              onPrinted={() => setAmounts({})}
+            />
 
-        <PackageWeight
-          weight={weight}
-          limit={limit}
-          overPackage={overPackage}
-          overLocation={overTarget}
-          slot={targetSlot}
-        />
+            <PackageWeight
+              weight={weight}
+              limit={limit}
+              overPackage={overPackage}
+              overLocation={overTarget}
+              slot={targetSlot}
+            />
+          </>
+        )}
 
         {/* p1 (911,425): there is something to see once the first package exists. */}
         <Button variant='outline' disabled={!hasPackages} onClick={() => setSeeing(true)}>
@@ -764,13 +782,15 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
           See packages
         </Button>
 
-        <CompleteOrderButton
-          departmentId={departmentId}
-          order={order.order}
-          number={number}
-          owesReman={rows.some(row => remanOwed(remansOf(row)) > 0)}
-          onDone={onBack}
-        />
+        {viewOnly ? null : (
+          <CompleteOrderButton
+            departmentId={departmentId}
+            order={order.order}
+            number={number}
+            owesReman={rows.some(row => remanOwed(remansOf(row)) > 0)}
+            onDone={onBack}
+          />
+        )}
       </div>
 
       <LocationDialog

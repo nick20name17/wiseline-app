@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -229,11 +229,25 @@ type LocationChipsProps = {
 
 /** The locations an order stands on, each a chip that asks to take it off. */
 export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
+  const viewOnly = useViewOnly()
   if (!locations.length)
     return <span className='text-xs text-muted-foreground'>No location assigned</span>
 
   return locations.map(spot => {
     const over = !!spot.over || (spot.remaining_weight !== null && spot.remaining_weight < 0)
+
+    if (viewOnly)
+      return (
+        <span
+          key={spot.location_id}
+          className={cn(
+            'rounded-full border px-2.5 py-0.5 font-mono text-xs font-medium',
+            tintOf(over, spot.orange)
+          )}
+        >
+          {spot.name ?? spot.location_id}
+        </span>
+      )
 
     return (
       <button

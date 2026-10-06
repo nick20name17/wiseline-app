@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { slitLineQuery, useSlitRequest } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from '@/components/note-button'
@@ -44,6 +45,7 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
   const [marking, setMarking] = useState(false)
   const [noteItem, setNoteItem] = useState<string | null>(null)
   const cancel = useSlitRequest()
+  const viewOnly = useViewOnly()
 
   const rows = queue ?? []
   // Line notes are open «at any point in production» p2 (526,410), the Slit Line included.
@@ -70,7 +72,7 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
             </TabsList>
           </Tabs>
         </div>
-        {done ? null : (
+        {done || viewOnly ? null : (
           <span className='ml-auto flex gap-2'>
             <Button
               variant='outline'
@@ -168,7 +170,7 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
                               <Checkbox
                                 aria-label={`Select ${product ?? row.origin_item} of ${row.invoice ?? row.order}`}
                                 checked={picked.has(row.origin_item)}
-                                disabled={!pickable}
+                                disabled={viewOnly || !pickable}
                                 onCheckedChange={() =>
                                   setPicked(current => {
                                     const next = new Set(current)

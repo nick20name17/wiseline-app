@@ -21,7 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
 
@@ -51,6 +51,7 @@ export const PackagesDialog = ({
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
   const reprint = useReprintPackage()
+  const viewOnly = useViewOnly()
   const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
   // The order's packages across every department come back; the bench deletes only its own.
   const packages = all?.filter(parcel =>
@@ -106,37 +107,39 @@ export const PackagesDialog = ({
                         <span className='font-mono'>{parcel.location ?? '—'}</span>
                       </TableCell>
                       <TableCell>
-                        <span className='flex justify-end gap-1'>
-                          <Button
-                            variant='ghost'
-                            size='icon-sm'
-                            aria-label={`Reprint label ${parcel.name ?? parcel.package_id}`}
-                            title='Reprint label'
-                            disabled={reprint.isPending}
-                            onClick={() =>
-                              reprint.mutate(parcel.package_id, {
-                                onSuccess: () =>
-                                  toast.add({
-                                    type: 'success',
-                                    title: `Reprinted label ${parcel.name ?? parcel.package_id}`
-                                  })
-                              })
-                            }
-                          >
-                            <Printer />
-                          </Button>
-                          {/* A package already on a truck has left the bench. */}
-                          <Button
-                            variant='ghost'
-                            size='icon-sm'
-                            aria-label={`Delete package ${parcel.name ?? parcel.package_id}`}
-                            title={parcel.is_loaded ? 'Already loaded onto a truck' : 'Delete'}
-                            disabled={parcel.is_loaded}
-                            onClick={() => setDeleting(parcel)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </span>
+                        {viewOnly ? null : (
+                          <span className='flex justify-end gap-1'>
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              aria-label={`Reprint label ${parcel.name ?? parcel.package_id}`}
+                              title='Reprint label'
+                              disabled={reprint.isPending}
+                              onClick={() =>
+                                reprint.mutate(parcel.package_id, {
+                                  onSuccess: () =>
+                                    toast.add({
+                                      type: 'success',
+                                      title: `Reprinted label ${parcel.name ?? parcel.package_id}`
+                                    })
+                                })
+                              }
+                            >
+                              <Printer />
+                            </Button>
+                            {/* A package already on a truck has left the bench. */}
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              aria-label={`Delete package ${parcel.name ?? parcel.package_id}`}
+                              title={parcel.is_loaded ? 'Already loaded onto a truck' : 'Delete'}
+                              disabled={parcel.is_loaded}
+                              onClick={() => setDeleting(parcel)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

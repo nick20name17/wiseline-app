@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ export const LineItems = ({
   onOpenNotes
 }: LineItemsProps) => {
   const board = useBoard()
+  const viewOnly = useViewOnly()
   const { data: order = listed } = useQuery(wholeOrderQuery(board.name, listed))
   const noteState = useLineNoteState(order.origin_items.map(item => item.id))
   const picked = new Set(selectedLineIds)
@@ -57,27 +58,29 @@ export const LineItems = ({
 
   return (
     <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
-      <div className='flex items-center gap-3'>
-        <span className='flex items-center gap-1.5 text-sm font-medium'>
-          <Split className='size-4' />
-          Split order
-        </span>
-        {selectedLineIds.length ? (
-          <span className='text-xs text-muted-foreground'>
-            <b className='font-semibold text-foreground'>{selectedLineIds.length}</b> line item
-            {selectedLineIds.length > 1 ? 's' : ''} picked — schedule them to their own day.
+      {viewOnly ? null : (
+        <div className='flex items-center gap-3'>
+          <span className='flex items-center gap-1.5 text-sm font-medium'>
+            <Split className='size-4' />
+            Split order
           </span>
-        ) : null}
-        <Button
-          variant='outline'
-          className='ml-auto'
-          disabled={!ready || !selectedLineIds.length}
-          onClick={onSplit}
-        >
-          <CalendarDays data-icon='inline-start' />
-          Split &amp; schedule{selectedLineIds.length ? ` (${selectedLineIds.length})` : ''}
-        </Button>
-      </div>
+          {selectedLineIds.length ? (
+            <span className='text-xs text-muted-foreground'>
+              <b className='font-semibold text-foreground'>{selectedLineIds.length}</b> line item
+              {selectedLineIds.length > 1 ? 's' : ''} picked — schedule them to their own day.
+            </span>
+          ) : null}
+          <Button
+            variant='outline'
+            className='ml-auto'
+            disabled={!ready || !selectedLineIds.length}
+            onClick={onSplit}
+          >
+            <CalendarDays data-icon='inline-start' />
+            Split &amp; schedule{selectedLineIds.length ? ` (${selectedLineIds.length})` : ''}
+          </Button>
+        </div>
+      )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
         <Table className='table-fixed'>
@@ -110,7 +113,7 @@ export const LineItems = ({
                       <Checkbox
                         aria-label={`Select line item ${item.id_inven ?? item.id}`}
                         checked={picked.has(item.id)}
-                        disabled={scheduling}
+                        disabled={scheduling || viewOnly}
                         title={
                           scheduling
                             ? 'Orders are ticked to Schedule — clear them first'
