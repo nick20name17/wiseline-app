@@ -353,7 +353,7 @@ export const ScheduledLineItems = ({
                                 />
                               }
                             >
-                              {machine?.name ?? 'Assign'}
+                              <span className='truncate'>{machine?.name ?? 'Assign'}</span>
                               <ChevronDown data-icon='inline-end' />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align='start' className='min-w-40'>

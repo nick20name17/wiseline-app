@@ -67,7 +67,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
   columns: [
     { key: 'qty', label: 'Qty', width: 'w-16' },
     { key: 'vent', label: 'Vented', width: 'w-28' },
-    { key: 'machine', label: 'Machine', width: 'w-32' },
+    { key: 'machine', label: 'Machine', width: 'w-40' },
     // A stock order is what puts trims on the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock', width: 'w-20' },
     { key: 'status', label: 'Status', width: 'w-40' },
@@ -306,7 +306,7 @@ export const ROLLFORMING_SCHEDULED_TABLE: ColumnTable = {
   table: 'rollforming-scheduled',
   columns: SCHEDULED_TABLE.columns.flatMap(column =>
     column.key === 'trimloc'
-      ? [{ ...column, label: 'Rollforming Location', width: 'w-44' }]
+      ? [{ ...column, label: 'Rollforming Location', width: 'w-52' }]
       : // Export beside Reviewed: a reviewed order can be exported as it is released p2 (542,607).
         column.key === 'reviewed'
         ? [column, { key: 'export', label: 'Export', width: 'w-24' }]
@@ -343,7 +343,7 @@ export const ROLLFORMING_WRAP_LINES_TABLE: ColumnTable = {
 export const ROLLFORMING_COMPLETED_TABLE: ColumnTable = {
   table: 'rollforming-completed',
   columns: COMPLETED_TABLE.columns.map(column =>
-    column.key === 'location' ? { ...column, label: 'Rollforming Location' } : column
+    column.key === 'location' ? { ...column, label: 'Rollforming Location', width: 'w-52' } : column
   )
 }
 
