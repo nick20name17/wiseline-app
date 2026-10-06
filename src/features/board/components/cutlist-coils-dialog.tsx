@@ -98,8 +98,11 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
               ? `Depleted & deleted ${batch.length} coil(s) — zeroed out in EBMS`
               : 'Coil adjustment pushed to EBMS (linear feet updated)'
         })
-        forget(new Set(batch.map(({ coil }) => coil.id)))
         setQuestion(null)
+        // Once the cutter has adjusted the coil there is nothing left to do here, so the window goes
+        // rather than waiting to be closed; it stays only for changes the deplete question held back.
+        if (batch.length === entered.length) onOpenChange(false)
+        else forget(new Set(batch.map(({ coil }) => coil.id)))
       },
       // The entries stay, so Apply can be tried again once whatever refused them is fixed.
       (error: unknown) => {

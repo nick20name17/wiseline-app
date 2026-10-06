@@ -5,7 +5,14 @@ import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle
+} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -22,7 +29,7 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFoldersQuery,
   useSetCoilLocation,
@@ -42,8 +49,11 @@ import { ConfirmDialog } from './confirm-dialog'
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
 const NOTE_SAVE_MS = 600
 
+// Gauge too: the floor names a coil by colour and gauge, «black 28».
 const matches = (lot: CoilLot, term: string) =>
-  `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.lot_number ?? ''}`.toLowerCase().includes(term)
+  `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.gauge ?? ''} ${lot.lot_number ?? ''}`
+    .toLowerCase()
+    .includes(term)
 
 // The board reads by colour, then product, then coil #.
 const byColorProductCoil = (a: CoilLot, b: CoilLot) =>
@@ -431,9 +441,9 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
   )
 }
 
-type NoCoilsProps = { title: string; description: string }
+type NoCoilsProps = { title: string; description: string; action?: ReactNode }
 
-const NoCoils = ({ title, description }: NoCoilsProps) => (
+const NoCoils = ({ title, description, action }: NoCoilsProps) => (
   <Empty>
     <EmptyHeader>
       <EmptyMedia variant='icon'>
@@ -442,6 +452,7 @@ const NoCoils = ({ title, description }: NoCoilsProps) => (
       <EmptyTitle>{title}</EmptyTitle>
       <EmptyDescription>{description}</EmptyDescription>
     </EmptyHeader>
+    {action ? <EmptyContent>{action}</EmptyContent> : null}
   </Empty>
 )
 
@@ -590,6 +601,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   }
 
   const shown = searched(inFolder, term)
+  // A folder tab left open hides the coil being searched for, and nothing on screen says so.
+  const elsewhere = folder && term.trim() && !shown.length ? searched(listed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -691,7 +704,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
           <InputGroupInput
             type='search'
             aria-label='Search coils'
-            placeholder='Search — product / colour / coil #'
+            placeholder='Search — product / colour / gauge / coil #'
             value={term}
             onChange={event => setTerm(event.target.value)}
           />
@@ -699,7 +712,21 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       </div>
 
       {!loading && !shown.length ? (
-        <NoCoils title='No coils match' description='Clear the search to see every coil.' />
+        <NoCoils
+          title='No coils match'
+          description={
+            elsewhere
+              ? `None in this folder — ${elsewhere} in other folders.`
+              : 'Clear the search to see every coil.'
+          }
+          action={
+            elsewhere ? (
+              <Button variant='outline' onClick={() => setFolder(null)}>
+                Search all folders
+              </Button>
+            ) : null
+          }
+        />
       ) : layout === 'coils' ? (
         <CoilList coils={shown} loading={loading} {...handlers} />
       ) : (

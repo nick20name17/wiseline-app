@@ -350,6 +350,9 @@ export const ScheduledLineItems = ({
                                   variant='outline'
                                   className='w-full justify-between'
                                   aria-label={`Machine for ${item.id_inven ?? item.id}`}
+                                  // The label follows the refetch; a second pick before it lands
+                                  // would be made against the old machine.
+                                  disabled={update.isPending}
                                 />
                               }
                             >
@@ -361,7 +364,12 @@ export const ScheduledLineItems = ({
                                 value={machine ? String(machine.id) : ''}
                                 onValueChange={value => edit(item, { flow: Number(value) })}
                               >
-                                {stations?.map(option => (
+                                {/* A line already on a machine that is not a bender still shows
+                                    it, ticked, rather than a list with nothing chosen. */}
+                                {(machine && !stations?.some(option => option.id === machine.id)
+                                  ? [machine, ...(stations ?? [])]
+                                  : stations
+                                )?.map(option => (
                                   <DropdownMenuRadioItem key={option.id} value={String(option.id)}>
                                     {option.name ?? `Machine ${option.id}`}
                                   </DropdownMenuRadioItem>

@@ -113,6 +113,8 @@ const Totals = ({ departmentId, machine, slinetLists }: TotalsProps) => {
 }
 
 type ProductionTabProps = {
+  /** The header search; only Wrapping reads it, the cutlists are the day's work as a whole. */
+  search: string | undefined
   departmentId: number | undefined
   onOpenCoils: () => void
 }
@@ -121,7 +123,7 @@ type ProductionTabProps = {
  * The Production tab: one sub-tab per station, each holding the lists that release created for it.
  * The Slinet's cutlists cover every machine at once; a machine's bendlists are its own.
  */
-export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps) => {
+export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionTabProps) => {
   const view = useProductionView()
   const [total, setTotal] = useState<CutlistGroup | null>(null)
   const [manufacturing, setManufacturing] = useState(false)
@@ -313,7 +315,7 @@ export const ProductionTab = ({ departmentId, onOpenCoils }: ProductionTabProps)
       </div>
 
       {isWrapping ? (
-        <WrappingTab departmentId={departmentId} />
+        <WrappingTab search={search} departmentId={departmentId} />
       ) : (
         <>
           {/* Every station carries its own Active / Completed switch, and a completed list renders in

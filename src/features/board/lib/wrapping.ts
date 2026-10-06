@@ -1,6 +1,20 @@
 import { today } from '@/lib/days'
 import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
 
+/**
+ * The header search on Wrapping. Every released day is listed at once, so the search runs over all of
+ * them — a bench looking for an order does not have to know which day it was cut for.
+ */
+export const matchesWrapSearch = (row: WrappingRow, search: string | undefined) => {
+  const term = search?.trim().toLowerCase()
+  return (
+    !term ||
+    [row.order, row.order_number, row.product_id, row.customer, row.po, row.description].some(
+      field => field?.toLowerCase().includes(term)
+    )
+  )
+}
+
 /** Every piece the remakes asked for, back or not. */
 export const remanTotal = (remans: Remanufacturing[]) =>
   remans.reduce((total, reman) => total + (reman.remanufacturing_qty ?? 0), 0)
