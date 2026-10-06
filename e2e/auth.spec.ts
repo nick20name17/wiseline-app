@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mockAuthApi, password, user } from './api.ts'
+import { API_URL, mockAuthApi, password, user } from './api.ts'
 
 const signIn = async (page: Page) => {
   await page.getByLabel('Email').fill(user.email)
@@ -13,25 +13,34 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('guarded page redirects to login and returns after signing in', async ({ page }) => {
-  await page.goto('/profile')
+  await page.goto('/rollforming')
   await expect(page).toHaveURL(/\/login\?redirect=/)
 
   await signIn(page)
 
-  await expect(page).toHaveURL('/profile')
-  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
-  await expect(page.getByText(user.email)).toBeVisible()
+  await expect(page).toHaveURL(/\/rollforming/)
+})
+
+test('signing in lands on the page the role starts on', async ({ page }) => {
+  await page.route(`${API_URL}/users/${user.id}/`, route =>
+    route.fulfill({ json: { ...user, role: 'driver', process_types: ['driver'] } })
+  )
+  await page.goto('/login')
+  await signIn(page)
+
+  await expect(page).toHaveURL(/\/driver/)
 })
 
 test('logging out clears the session', async ({ page }) => {
   await page.goto('/login')
   await signIn(page)
-  await expect(page).toHaveURL('/profile')
+  await expect(page).toHaveURL(/\/trim/)
 
-  await page.getByRole('button', { name: 'Log out' }).click()
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Log out' }).click()
 
   await expect(page).toHaveURL(/\/login/)
-  await page.goto('/profile')
+  await page.goto('/trim')
   await expect(page).toHaveURL(/\/login/)
 })
 
@@ -46,7 +55,7 @@ test('a visitor sees only the sign-in page, not the dashboard', async ({ page })
 test('a session that ends while a page is open sends it to sign in', async ({ page }) => {
   await page.goto('/login')
   await signIn(page)
-  await expect(page).toHaveURL('/profile')
+  await expect(page).toHaveURL(/\/trim/)
 
   // As another tab logging out does.
   await page.evaluate(() => {

@@ -16,7 +16,6 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
-import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
@@ -66,11 +65,6 @@ const AppDriverRoute = AppDriverRouteImport.update({
 const AppLoadingRoute = AppLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppRollformingRoute = AppRollformingRouteImport.update({
@@ -163,7 +157,6 @@ export interface FileRoutesByFullPath {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
-  '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
@@ -186,7 +179,6 @@ export interface FileRoutesByTo {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
-  '/profile': typeof AppProfileRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   '/_app/accessories': typeof AppAccessoriesRoute
   '/_app/driver': typeof AppDriverRoute
   '/_app/loading': typeof AppLoadingRoute
-  '/_app/profile': typeof AppProfileRoute
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/shipping': typeof AppShippingRoute
   '/_app/stock-cards': typeof AppStockCardsRoute
@@ -241,7 +232,6 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
-    | '/profile'
     | '/rollforming'
     | '/shipping'
     | '/stock-cards'
@@ -264,7 +254,6 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
-    | '/profile'
     | '/rollforming'
     | '/shipping'
     | '/stock-cards'
@@ -290,7 +279,6 @@ export interface FileRouteTypes {
     | '/_app/accessories'
     | '/_app/driver'
     | '/_app/loading'
-    | '/_app/profile'
     | '/_app/rollforming'
     | '/_app/shipping'
     | '/_app/stock-cards'
@@ -365,13 +353,6 @@ declare module '@tanstack/react-router' {
       path: '/loading'
       fullPath: '/loading'
       preLoaderRoute: typeof AppLoadingRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/profile': {
-      id: '/_app/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/rollforming': {
@@ -523,7 +504,6 @@ interface AppRouteRouteChildren {
   AppAccessoriesRoute: typeof AppAccessoriesRoute
   AppDriverRoute: typeof AppDriverRoute
   AppLoadingRoute: typeof AppLoadingRoute
-  AppProfileRoute: typeof AppProfileRoute
   AppRollformingRoute: typeof AppRollformingRoute
   AppShippingRoute: typeof AppShippingRoute
   AppStockCardsRoute: typeof AppStockCardsRoute
@@ -536,7 +516,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAccessoriesRoute: AppAccessoriesRoute,
   AppDriverRoute: AppDriverRoute,
   AppLoadingRoute: AppLoadingRoute,
-  AppProfileRoute: AppProfileRoute,
   AppRollformingRoute: AppRollformingRoute,
   AppShippingRoute: AppShippingRoute,
   AppStockCardsRoute: AppStockCardsRoute,
