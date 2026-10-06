@@ -1965,10 +1965,9 @@ export const wrappingRowsQuery = (departmentId: number | undefined, day: string 
 
 // The server sums package weights as floats (69.47999999999999); a pound to the hundredth is all
 // anybody reads.
-const pounds = z.pipe(
-  z.number(),
-  z.transform(weight => Math.round(weight * 100) / 100)
-)
+const hundredths = (weight: number) => Math.round(weight * 100) / 100
+
+const pounds = z.pipe(z.number(), z.transform(hundredths))
 
 const locationSlotSchema = z.pipe(
   z.object({
@@ -1991,9 +1990,7 @@ const locationSlotSchema = z.pipe(
     // Some slots come without it, and read as the full max a used location showed as wholly free.
     remaining_weight:
       slot.remaining_weight ??
-      (slot.max_weight === null
-        ? null
-        : Math.round((slot.max_weight - slot.used_weight) * 100) / 100)
+      (slot.max_weight === null ? null : hundredths(slot.max_weight - slot.used_weight))
   }))
 )
 

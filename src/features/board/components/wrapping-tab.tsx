@@ -217,8 +217,12 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           </TableCell>
                         ),
                         remfg: (
-                          // The badge opens its history; the row behind it opens the order.
-                          <TableCell onClick={event => event.stopPropagation()}>
+                          // A badge opens its history; anywhere else the row opens the order.
+                          <TableCell
+                            onClick={event =>
+                              lineRemans.length && !row.is_bypassed && event.stopPropagation()
+                            }
+                          >
                             {row.is_bypassed ? (
                               <RemanNotApplicable />
                             ) : (

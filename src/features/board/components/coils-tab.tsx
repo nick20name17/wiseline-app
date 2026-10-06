@@ -602,7 +602,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   const shown = searched(inFolder, term)
   // A folder tab left open hides the coil being searched for, and nothing on screen says so.
-  const elsewhere = folder && term.trim() && !shown.length ? searched(listed, term).length : 0
+  const elsewhere = !!folder && !!term.trim() && !shown.length ? searched(listed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 

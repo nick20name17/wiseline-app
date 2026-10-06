@@ -350,8 +350,8 @@ export const ScheduledLineItems = ({
                                   variant='outline'
                                   className='w-full justify-between'
                                   aria-label={`Machine for ${item.id_inven ?? item.id}`}
-                                  // The label follows the refetch; a second pick before it lands
-                                  // would be made against the old machine.
+                                  // One save at a time: a second pick while the first is in flight
+                                  // could land before it and be overwritten.
                                   disabled={update.isPending}
                                 />
                               }
