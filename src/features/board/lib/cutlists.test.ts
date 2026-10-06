@@ -156,25 +156,15 @@ describe('the Slinet gate on a bendlist', () => {
 })
 
 describe('completeBlocker', () => {
-  const at = { isSlinet: true, slinetStarted: false, color: 'Black', coilsInSlinet: 0 }
-
-  it('holds a Slinet list until a coil of its colour is in the Slinet', () => {
-    expect(completeBlocker(at)).toBe('Check a Black coil into the Slinet first')
-    expect(completeBlocker({ ...at, coilsInSlinet: 'checking' })).toBe(
-      'Checking the coils in the Slinet…'
-    )
-    expect(completeBlocker({ ...at, coilsInSlinet: 1 })).toBeNull()
+  it('never holds a Slinet list: a cut can come off the cutoffs', () => {
+    expect(completeBlocker({ isSlinet: true, slinetStarted: false })).toBeNull()
   })
 
-  it('does not hold a Slinet list whose coils were not asked', () => {
-    expect(completeBlocker({ ...at, coilsInSlinet: null })).toBeNull()
-  })
-
-  it('holds a bendlist until the Slinet starts, whatever the coils', () => {
-    expect(completeBlocker({ ...at, isSlinet: false, coilsInSlinet: 3 })).toBe(
+  it('holds a bendlist until the Slinet starts', () => {
+    expect(completeBlocker({ isSlinet: false, slinetStarted: false })).toBe(
       'Available once the Slinet starts on this release'
     )
-    expect(completeBlocker({ ...at, isSlinet: false, slinetStarted: true })).toBeNull()
+    expect(completeBlocker({ isSlinet: false, slinetStarted: true })).toBeNull()
   })
 })
 

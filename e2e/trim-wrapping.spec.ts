@@ -120,7 +120,9 @@ test('a damaged piece is sent back to be remade', async ({ page }) => {
   await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
 
   // 901 already has one outstanding; it carries the badge and can be asked for again.
-  const badge = page.getByRole('button', { name: 'Remanufacture history, 4 pcs. outstanding' })
+  const badge = page.getByRole('button', {
+    name: 'Remanufacture history, latest 4 pcs. outstanding'
+  })
   await expect(badge).toHaveText('4')
   // Each remake is listed behind the badge, with its note.
   await badge.click()

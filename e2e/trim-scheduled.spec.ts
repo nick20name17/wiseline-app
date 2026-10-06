@@ -66,6 +66,35 @@ test('releasing sends the ticked orders and reports the cutlists', async ({ page
   await expect(page.getByText('Released 1 order · 2 cutlists generated')).toBeVisible()
 })
 
+test('a refused release names each order that held the batch back', async ({ page }) => {
+  await page.route(`${API_URL}/departments/1/release/`, route =>
+    route.fulfill({
+      status: 400,
+      json: {
+        detail: {
+          message: 'Nothing was released: 330608: 1 line item(s) cannot be put on a cutlist',
+          failed: [
+            {
+              order: '330608',
+              sales_order_id: 21,
+              production_date: '2026-09-23',
+              reason: '1 line item(s) cannot be put on a cutlist: 901 (no Width)'
+            }
+          ]
+        }
+      }
+    })
+  )
+
+  await page.getByLabel('Select order 330608 for release').click()
+  await page.getByRole('button', { name: /^Release to production/ }).click()
+
+  await expect(page.getByText('Nothing was released')).toBeVisible()
+  await expect(
+    page.getByText('330608: 1 line item(s) cannot be put on a cutlist: 901 (no Width)')
+  ).toBeVisible()
+})
+
 test('turning Reviewed off asks first', async ({ page }) => {
   await page.getByLabel('Reviewed 330608').click()
 

@@ -17,6 +17,10 @@ export const formatDate = (iso: string | null) =>
 export const formatLongDate = (iso: string) =>
   format(iso, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
 
+/** `May 7, 2026, 3:04 PM` — a moment something happened, in the viewer's own zone. */
+export const formatStamp = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''
+
 /** `Tue, May 7` — for the day strip, where every day is obviously this year. */
 export const formatDayLabel = (iso: string) =>
   format(iso, { weekday: 'short', month: 'short', day: 'numeric' })

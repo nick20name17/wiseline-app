@@ -70,3 +70,20 @@ test('401 without a session is not refreshed', async () => {
   await expect(authApi.get('a').json()).rejects.toBeInstanceOf(HTTPError)
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
+
+test("a 422 reads as FastAPI's sentences", async () => {
+  fetchMock.mockImplementation(async () =>
+    json(
+      {
+        detail: [
+          { loc: ['body', 'core_od'], msg: 'Input should be less than or equal to 60', type: 'x' }
+        ]
+      },
+      422
+    )
+  )
+
+  await expect(authApi.post('coils/lots/1/apply/').json()).rejects.toThrow(
+    'Input should be less than or equal to 60'
+  )
+})

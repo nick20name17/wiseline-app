@@ -123,11 +123,19 @@ describe('benchLocations', () => {
     max_weight: 1000,
     packages: 1,
     weight_on_it: 400,
+    used_weight: 400,
+    remaining_weight: 600,
     orange: false,
     current
   })
   const slot = (location_id: number) =>
-    ({ location_id, name: String(location_id), max_weight: 800, used_weight: 100 }) as LocationSlot
+    ({
+      location_id,
+      name: String(location_id),
+      max_weight: 800,
+      used_weight: 100,
+      remaining_weight: 700
+    }) as LocationSlot
 
   it('shows a picked location before any package lands on it, and locks the current one', () => {
     const { shown, pendingId } = benchLocations([spot(405, true)], slot(410), null)
@@ -136,7 +144,13 @@ describe('benchLocations', () => {
       [405, true],
       [410, false]
     ])
-    expect(shown[1]).toMatchObject({ packages: 0, weight_on_it: 100, current: true })
+    expect(shown[1]).toMatchObject({
+      packages: 0,
+      weight_on_it: 0,
+      used_weight: 100,
+      remaining_weight: 700,
+      current: true
+    })
   })
 
   it('adds nothing for a pick the order already stands on', () => {

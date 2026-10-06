@@ -1,11 +1,9 @@
-import { today } from '@/lib/days'
+import { formatStamp, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
-import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Check, ChevronRight, Database, Package } from 'lucide-react'
 import { useState } from 'react'
 import {
-  cutlistCoilsQuery,
   useFinishCutlist,
   type Cutlist,
   type Machine,
@@ -18,9 +16,6 @@ import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
 import { PriorityPill } from './priority-pill'
 import { RemakePill } from './reman-badge'
-
-const stamp = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''
 
 type CutlistCardProps = {
   cutlist: Cutlist
@@ -62,18 +57,7 @@ export const CutlistCard = ({
   const overdue = !done && !!cutlist.production_date && cutlist.production_date < today()
   const word = isSlinet ? 'cutlist' : 'bendlist'
   const hasStock = cutlist.rows.some(row => row.sources.some(source => source.is_stock))
-  // Asked only while the rows show, which is the only place a missing coil stops anything.
-  const coils = useQuery({
-    ...cutlistCoilsQuery(cutlist.id),
-    enabled: isSlinet && !done && expanded
-  })
-  const blocked = completeBlocker({
-    isSlinet,
-    slinetStarted,
-    color: cutlist.color,
-    // A done list is past cutting: a row reopened on it by mistake can be ticked back.
-    coilsInSlinet: done || coils.isError ? null : coils.isPending ? 'checking' : coils.data.length
-  })
+  const blocked = completeBlocker({ isSlinet, slinetStarted })
 
   return (
     <div
@@ -154,7 +138,7 @@ export const CutlistCard = ({
                 Done
               </span>
               <span className='font-mono text-xs text-muted-foreground'>
-                {stamp(cutlist.completed_at)}
+                {formatStamp(cutlist.completed_at)}
               </span>
             </>
           ) : (

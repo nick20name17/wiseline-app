@@ -9,8 +9,7 @@ const SETTINGS_TABS = [
   { to: '/settings/locations', label: 'Locations' },
   { to: '/settings/trucks', label: 'Trucks' },
   { to: '/settings/priorities', label: 'Priorities' },
-  { to: '/settings/work-days', label: 'Work Days' },
-  { to: '/settings/colors', label: 'Colors' }
+  { to: '/settings/work-days', label: 'Work Days' }
 ] as const
 
 export const SettingsTabs = () => {

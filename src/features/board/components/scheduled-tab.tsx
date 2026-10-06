@@ -199,19 +199,9 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
 
   const { notes, noteState } = useOrderNotes(orders)
 
-  const release = useReleaseOrders(({ released, exported, cutlists, missed }) => {
+  const release = useReleaseOrders(({ released, exported, cutlists }) => {
     setSelectedIds(new Set())
     setExportIds(new Set())
-    if (missed.length) {
-      const invoices = missed.map(
-        id => page?.results.find(order => order.sales_order?.id === id)?.invoice ?? `#${id}`
-      )
-      toast.add({
-        type: 'warning',
-        title: `${missed.length} order${missed.length === 1 ? ' was' : 's were'} not released`,
-        description: `${invoices.join(', ')} stayed on Scheduled. Try releasing ${missed.length === 1 ? 'it' : 'them'} again.`
-      })
-    }
     if (!released) return
     toast.add({
       type: 'success',

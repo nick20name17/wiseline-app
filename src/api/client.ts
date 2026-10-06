@@ -16,6 +16,13 @@ const getServerMessage = (data: unknown) => {
     message?: unknown
   }
   if (typeof detail === 'string' && detail) return detail
+  // FastAPI's 422 lists every field it refused, each with its own sentence.
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap(issue =>
+      typeof issue?.msg === 'string' ? [issue.msg as string] : []
+    )
+    if (messages.length) return messages.join(' ')
+  }
   if (typeof detail === 'object' && detail !== null) {
     const fields = Object.values(detail).filter(value => typeof value === 'string')
     if (fields.length) return fields.join(' ')

@@ -40,7 +40,7 @@ export const BoardGate = ({ code, userRole, userId, ...page }: BoardGateProps) =
   const assignment = useQuery(departmentRoleQuery(userId, department?.id))
   const role = departmentRole(userRole, assignment.data ?? null)
 
-  if (department && (role === 'manager' || role === 'worker'))
+  if (department && (role === 'manager' || role === 'worker' || role === 'viewer'))
     return (
       <BoardContext value={board}>
         <BoardPage {...page} departmentId={department.id} role={role} />

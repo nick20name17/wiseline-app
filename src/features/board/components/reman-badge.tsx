@@ -6,6 +6,7 @@ import {
   PopoverTitle,
   PopoverTrigger
 } from '@/components/ui/popover'
+import { formatStamp } from '@/lib/days'
 import { cn } from 'cn'
 import { RefreshCw } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -47,30 +48,31 @@ const remakeStep = (reman: Remanufacturing) =>
  * A remake raised against a line item. Orange until the machine marks it Bent — the Slinet's recut
  * greens only the machine tab's copy, and the floor at Wrapping is still waiting on the pieces.
  *
- * It counts what is owed, or the latest remake once nothing is: a running total of every remake on
- * the line reads as pieces still to come at the bench. The full list opens from the badge.
+ * It counts the latest remake still out, or the latest once none is: a running total of every remake
+ * on the line reads as pieces still to come at the bench. The history opens from the badge.
  */
 export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
   if (!remans.length) return <span className='text-muted-foreground'>—</span>
 
   const owed = remanOwed(remans)
-  // The server numbers records as they are asked for, so the highest id is the latest request.
-  const history = remans.toSorted((a, b) => b.id - a.id)
+  // The server sends a line's remakes newest first.
+  const shown = remans.find(reman => !reman.is_bent) ?? remans[0]
+  const qty = shown?.remanufacturing_qty ?? 0
 
   return (
     <Popover>
       <PopoverTrigger
         render={<Button variant='ghost' size='xs' />}
-        aria-label={`Remanufacture history, ${owed ? `${owed} pcs. outstanding` : 'complete'}`}
+        aria-label={`Remanufacture history, latest ${qty} pcs. ${owed ? 'outstanding' : 'complete'}`}
       >
-        <RemakePill done={!owed}>{owed || (history[0]?.remanufacturing_qty ?? 0)}</RemakePill>
+        <RemakePill done={!owed}>{qty}</RemakePill>
       </PopoverTrigger>
       <PopoverContent align='start' className='w-96'>
         <PopoverHeader>
           <PopoverTitle>Remanufacture history</PopoverTitle>
         </PopoverHeader>
         <ol className='flex flex-col divide-y divide-border'>
-          {history.map(reman => (
+          {remans.map(reman => (
             <li key={reman.id} className='flex flex-col gap-0.5 py-1.5'>
               <span className='flex items-center justify-between gap-2'>
                 <span>
@@ -91,6 +93,13 @@ export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
                 <RemakePill done={reman.is_bent}>{remakeStep(reman)}</RemakePill>
               </span>
               {reman.note ? <span className='text-muted-foreground'>{reman.note}</span> : null}
+              {reman.requested_by || reman.requested_at ? (
+                <span className='text-xs text-muted-foreground'>
+                  {[reman.requested_by, formatStamp(reman.requested_at)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              ) : null}
             </li>
           ))}
         </ol>

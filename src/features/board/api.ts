@@ -264,8 +264,8 @@ const boardKeys = {
     [...boardKeys.wrapping(), 'packaging', departmentId] as const,
   wrappingRows: (departmentId: number, day: string | null) =>
     [...boardKeys.wrapping(), departmentId, day ?? 'all'] as const,
-  wrappingLocations: (departmentId: number) =>
-    [...boardKeys.wrapping(), 'locations', departmentId] as const,
+  wrappingLocations: (departmentId: number, order: string | null) =>
+    [...boardKeys.wrapping(), 'locations', departmentId, order ?? ''] as const,
   stockOrderRows: (departmentId: number, order: string) =>
     [...boardKeys.wrapping(), 'stock-order', departmentId, order] as const,
   manufacturingBatches: (departmentId: number) =>
@@ -1038,40 +1038,46 @@ type ReleaseInput = {
   departmentId: number
 }
 
+// A batch goes out whole or not at all; a refused one names every order that held it back.
+const releaseFailureSchema = z.object({
+  failed: z.array(z.object({ order: z.string(), reason: z.string() }))
+})
+
 export const useReleaseOrders = (
-  onSuccess: (result: {
-    released: number
-    exported: number
-    cutlists: number
-    /** Sales orders sent but not released — the server answers 200 for a batch it only partly took. */
-    missed: number[]
-  }) => void
+  onSuccess: (result: { released: number; exported: number; cutlists: number }) => void
 ) =>
   useMutation({
-    mutationFn: async ({ days, exportDays, departmentId }: ReleaseInput) =>
-      releaseResultSchema.parse(
-        await authApi
-          .post(`departments/${departmentId}/release/`, {
-            json: exportDays?.length ? { days, export_days: exportDays } : { days }
-          })
-          .json()
-      ),
+    meta: { errorTitle: 'Nothing was released' },
+    mutationFn: async ({ days, exportDays, departmentId }: ReleaseInput) => {
+      try {
+        return releaseResultSchema.parse(
+          await authApi
+            .post(`departments/${departmentId}/release/`, {
+              json: exportDays?.length ? { days, export_days: exportDays } : { days }
+            })
+            .json()
+        )
+      } catch (error) {
+        if (error instanceof HTTPError) {
+          const refused = releaseFailureSchema.safeParse(
+            (error.data as { detail?: unknown } | undefined)?.detail
+          )
+          if (refused.success)
+            error.message = refused.data.failed
+              .map(({ order, reason }) => `${order}: ${reason}`)
+              .join('; ')
+        }
+        throw error
+      }
+    },
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })
     },
-    onSuccess: (result, { days, exportDays = [] }) =>
+    onSuccess: result =>
       onSuccess({
         released: result.released.length,
         exported: result.exported.length,
-        cutlists: result.cutlists.length,
-        missed: [
-          ...new Set(
-            [...days, ...exportDays]
-              .map(day => day.sales_order_id)
-              // An exported part is released whether or not it was ticked, so it is not a miss.
-              .filter(id => !result.released.includes(id) && !result.exported.includes(id))
-          )
-        ]
+        cutlists: result.cutlists.length
       })
   })
 
@@ -1514,8 +1520,8 @@ const coilLotSchema = z.object({
 export type CoilLot = z.infer<typeof coilLotSchema>
 
 /**
- * The Cutlist Coils window: the coils checked into the Slinet whose colour matches the list in front
- * of the worker. Gauge and width deliberately do not narrow it.
+ * The Cutlist Coils window: the coils checked into the Slinet of the list's colour and gauge, as EBMS
+ * gives them on the products — a list with no gauge takes any. Width does not narrow it.
  */
 export const cutlistCoilsQuery = (cutlistId: number | null) =>
   queryOptions({
@@ -1725,7 +1731,13 @@ export const useSetCoilLocation = () =>
   })
 
 /** Enter exactly one of the three; the other two follow from the Material Thickness and Core OD. */
-export type CoilAdjustment = { coil_thickness?: number; linear_feet?: number; weight?: number }
+export type CoilFigures = { coil_thickness?: number; linear_feet?: number; weight?: number }
+
+/**
+ * One figure and the build to work it out with. A build left out is the coil's own; sent, Apply
+ * reckons with it and keeps nothing, and the confirming call saves it with the figures.
+ */
+export type CoilAdjustment = CoilFigures & { material_thickness?: number; core_od?: number }
 
 const coilApplySchema = z.object({
   action: z._default(z.string(), 'make_adjustment'),
@@ -1969,46 +1981,46 @@ const hundredths = (weight: number) => Math.round(weight * 100) / 100
 
 const pounds = z.pipe(z.number(), z.transform(hundredths))
 
-const locationSlotSchema = z.pipe(
-  z.object({
-    location_id: z.number(),
-    name: z._default(z.nullable(z.string()), null),
-    warehouse: z._default(z.nullable(z.string()), null),
-    max_weight: z._default(z.nullable(z.number()), null),
-    used_weight: z._default(pounds, 0),
-    orders_on_it: z._default(z.number(), 0),
-    multi_order: z._default(z.boolean(), false),
-    max_orders: z._default(z.nullable(z.number()), null),
-    // Greyed out once full; the board still lets the Worker ask for another department's locations.
-    available: z._default(z.boolean(), true),
-    remaining_weight: z._default(z.nullable(pounds), null),
-    // Select Location opens on the default warehouse p1 (543,104).
-    warehouse_is_default: z._default(z.boolean(), false)
-  }),
-  z.transform(slot => ({
-    ...slot,
-    // Some slots come without it, and read as the full max a used location showed as wholly free.
-    remaining_weight:
-      slot.remaining_weight ??
-      (slot.max_weight === null ? null : hundredths(slot.max_weight - slot.used_weight))
-  }))
-)
+const locationSlotSchema = z.object({
+  location_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  warehouse: z._default(z.nullable(z.string()), null),
+  max_weight: z._default(z.nullable(z.number()), null),
+  used_weight: z._default(pounds, 0),
+  orders_on_it: z._default(z.number(), 0),
+  multi_order: z._default(z.boolean(), false),
+  max_orders: z._default(z.nullable(z.number()), null),
+  // Greyed out once full — but never for the order being packed while it stands there already. The
+  // board still lets the Worker ask for another department's locations.
+  available: z._default(z.boolean(), true),
+  // `null` is no Max Weight.
+  remaining_weight: z._default(z.nullable(pounds), null),
+  // Select Location opens on the default warehouse p1 (543,104).
+  warehouse_is_default: z._default(z.boolean(), false)
+})
 
 export type LocationSlot = z.infer<typeof locationSlotSchema>
 
-/** The list behind Select Location, opened on this department's own locations. */
-export const wrappingLocationsQuery = (departmentId: number | undefined, enabled: boolean) =>
+/**
+ * The list behind Select Location, opened on this department's own locations. `order` is the autoid
+ * being packed: a full cell it already stands on stays open to it.
+ */
+export const wrappingLocationsQuery = (
+  departmentId: number | undefined,
+  order: string | null,
+  enabled: boolean
+) =>
   queryOptions({
-    queryKey: boardKeys.wrappingLocations(departmentId ?? 0),
+    queryKey: boardKeys.wrappingLocations(departmentId ?? 0, order),
     enabled: departmentId !== undefined && enabled,
     queryFn: async () =>
-      z
-        .array(locationSlotSchema)
-        .parse(
-          await authApi
-            .get('wrapping/locations/', { searchParams: { department_id: departmentId! } })
-            .json()
-        )
+      z.array(locationSlotSchema).parse(
+        await authApi
+          .get('wrapping/locations/', {
+            searchParams: { department_id: departmentId!, ...(order ? { order } : {}) }
+          })
+          .json()
+      )
   })
 
 const orderLocationSchema = z.object({
@@ -2016,7 +2028,10 @@ const orderLocationSchema = z.object({
   name: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null),
   packages: z._default(z.number(), 0),
+  // This order's packages; `used_weight` and `remaining_weight` count every order's on the cell.
   weight_on_it: z._default(pounds, 0),
+  used_weight: z._default(pounds, 0),
+  remaining_weight: z._default(z.nullable(pounds), null),
   // Only the newest location still takes packages; the earlier ones are marked, not hidden.
   orange: z._default(z.boolean(), false),
   current: z._default(z.boolean(), false)
@@ -2356,7 +2371,9 @@ const remanufacturingSchema = z.object({
   note: z._default(z.nullable(z.string()), null),
   // The badge is orange until the material moves: cut by the Slinet, bent by the machine.
   is_cut: z._default(z.boolean(), false),
-  is_bent: z._default(z.boolean(), false)
+  is_bent: z._default(z.boolean(), false),
+  requested_by: z._default(z.nullable(z.string()), null),
+  requested_at: z._default(z.nullable(z.string()), null)
 })
 
 export type Remanufacturing = z.infer<typeof remanufacturingSchema>
@@ -2375,7 +2392,7 @@ const byOriginItem = (page: { results: Remanufacturing[] }) => {
 // One page holds a department's: a remanufacture is an exception, not a queue.
 const REMAN_PAGE_SIZE = 200
 
-/** The department's remakes, keyed by the line item each came from. */
+/** The department's remakes, keyed by the line item each came from, newest first. */
 export const remanufacturingsQuery = (departmentId: number | undefined) =>
   queryOptions({
     queryKey: boardKeys.departmentRemanufacturings(departmentId ?? 0),

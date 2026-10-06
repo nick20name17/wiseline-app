@@ -379,6 +379,7 @@ export const CompletedOrderDialog = ({
 
       <LocationDialog
         departmentId={departmentId}
+        order={order?.order ?? null}
         orderNumber={order?.order_number ?? order?.order ?? ''}
         orderLocations={locations ?? []}
         stagedWeight={0}

@@ -40,8 +40,8 @@ type CutlistCoilsDialogProps = {
 }
 
 /**
- * The coils the cutter can reach for: those checked into the Slinet whose colour matches this list.
- * Gauge and width deliberately do not narrow it — the colour is what has to match.
+ * The coils the cutter can reach for: those checked into the Slinet of this list's colour and gauge.
+ * Width does not narrow it.
  *
  * Coil Thickness is the one figure the cutter changes here. Apply stays dark until one has moved,
  * because pushing an unchanged number to EBMS is noise in someone else's inventory; a thickness of
@@ -122,8 +122,8 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>
           <DialogDescription>
-            Coils in the Slinet matching {cutlist?.color ?? 'this colour'}. Gauge and width do not
-            narrow the list. Change a thickness, then Apply to push it to EBMS.
+            Coils in the Slinet matching {cutlist?.gauge_color ?? cutlist?.color ?? 'this list'}.
+            Change a thickness, then Apply to push it to EBMS.
           </DialogDescription>
         </DialogHeader>
 

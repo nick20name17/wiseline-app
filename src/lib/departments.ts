@@ -15,8 +15,9 @@ const EVERYWHERE = new Set(['admin', 'super_manager'])
 
 /**
  * The role a user works a department's board in: Manager for the roles that run every department,
- * otherwise whatever their assignment to it says. No assignment is `null` — each department is
- * separate p1 (1059,206), so a user assigned elsewhere has no business on its board.
+ * Viewer for View only — salespeople read every board and change nothing — otherwise whatever their
+ * assignment to it says. No assignment is `null` — each department is separate p1 (1059,206), so a
+ * user assigned elsewhere has no business on its board.
  */
 export const departmentRole = (globalRole: string, assigned: string | null) =>
-  EVERYWHERE.has(globalRole) ? 'manager' : assigned
+  EVERYWHERE.has(globalRole) ? 'manager' : globalRole === 'client' ? 'viewer' : assigned

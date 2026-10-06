@@ -50,6 +50,8 @@ const tintOf = (over: boolean, locked: boolean) =>
 
 type LocationDialogProps = {
   departmentId: number | undefined
+  /** The order's autoid: a full cell it stands on already stays open to it. */
+  order: string | null
   /** The order the package is for, as the floor reads it. */
   orderNumber: string
   /** Where the order already stands: its own cells are tinted, and clicking one removes it. */
@@ -70,6 +72,7 @@ type LocationDialogProps = {
  */
 export const LocationDialog = ({
   departmentId,
+  order,
   orderNumber,
   orderLocations,
   stagedWeight,
@@ -84,7 +87,7 @@ export const LocationDialog = ({
   const [warehouse, setWarehouse] = useState<string | null>(null)
   const shown = tab ?? departmentId
   const { data: departments } = useQuery(departmentsQuery)
-  const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, open))
+  const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, order, open))
   const defaultName = defaultWarehouseOf(slots ?? [])
   // A department's locations can stand in several warehouses; the default one opens first.
   const warehouses = warehousesOf(slots ?? [], defaultName)
@@ -230,7 +233,7 @@ export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
     return <span className='text-xs text-muted-foreground'>No location assigned</span>
 
   return locations.map(spot => {
-    const over = !!spot.over || (spot.max_weight !== null && spot.weight_on_it > spot.max_weight)
+    const over = !!spot.over || (spot.remaining_weight !== null && spot.remaining_weight < 0)
 
     return (
       <button

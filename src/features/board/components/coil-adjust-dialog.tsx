@@ -17,9 +17,9 @@ import {
   useApplyCoilAdjustment,
   useConfirmCoilAdjustment,
   useDepleteCoil,
-  useUpdateCoilLot,
   type CoilAdjustment,
   type CoilApply,
+  type CoilFigures,
   type CoilLot
 } from '../api'
 import {
@@ -33,7 +33,7 @@ import { ConfirmDialog } from './confirm-dialog'
 
 const DEPLETE = 'deplete_and_delete'
 
-export type CoilFigure = keyof CoilAdjustment
+export type CoilFigure = keyof CoilFigures
 
 type Measure<Key> = { key: Key; label: string; unit: string; step: string; placeholder: string }
 
@@ -67,11 +67,19 @@ type Draft = Record<CoilFigure | BuildField, string>
 
 const num = (value: string) => Number.parseFloat(value)
 
-/** Both present and positive is what makes the annulus solvable — and what unlocks the form. */
+// Inches, as the server bounds them: steel coil runs about 0.014–0.03 thick on a core about 20
+// across, so a figure past these is a typo — 229" of coil on a 20" core came of one.
+const MAX_MATERIAL = 0.25
+const MAX_CORE = 60
+const MAX_COIL = 60
+
+/** Both present and in range is what makes the annulus solvable — and what unlocks the form. */
 const buildOf = (draft: Draft) => {
   const material = num(draft.material_thickness)
   const core = num(draft.core_od)
-  return material > 0 && core > 0 ? { material, core } : null
+  return material > 0 && material < MAX_MATERIAL && core > 0 && core <= MAX_CORE
+    ? { material, core }
+    : null
 }
 
 /**
@@ -173,7 +181,6 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   const [question, setQuestion] = useState<CoilApply | null>(null)
   const [asking, releaseAsking] = useRetained(question)
 
-  const saveBuild = useUpdateCoilLot()
   const apply = useApplyCoilAdjustment()
   const confirm = useConfirmCoilAdjustment(onClose)
   const deplete = useDepleteCoil(onClose)
@@ -181,7 +188,9 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   const build = buildOf(draft)
   // A cleared field would otherwise reach EBMS as 0: a coil reported as spent that nobody depleted.
   const ready =
-    !!build && MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0)
+    !!build &&
+    MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0) &&
+    num(draft.coil_thickness) <= MAX_COIL
   // «The Apply button ONLY becomes available if the Coil Thickness number changes» p1 (464,436) — but
   // thickness is rounded to hundredths, so a small Linear Feet or Weight change, or a corrected build,
   // can leave it where it was. Kevin had a coil he could not adjust a second time that way.
@@ -189,8 +198,12 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
     MEASURES.some(measure => num(draft[measure.key]) !== lot[measure.key]) ||
     build?.material !== lot.material_thickness ||
     build?.core !== lot.core_od
-  // A 0 in any figure is a spent coil, and the server answers it with Deplete p1 (305,644).
-  const values = (): CoilAdjustment => ({ [driver.current]: num(draft[driver.current]) })
+  // A 0 in any figure is a spent coil, and the server answers it with Deplete p1 (305,644). The build
+  // goes with it: the server works the figure out from the window's, not from the one on record.
+  const values = (): CoilAdjustment => ({
+    [driver.current]: num(draft[driver.current]),
+    ...(build && { material_thickness: build.material, core_od: build.core })
+  })
   const name = coilName(lot)
   const depleting = asking?.action === DEPLETE
 
@@ -209,21 +222,9 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
       return solve(lot, next, measured, next[measured])
     })
 
-  // Material Thickness and Core OD are saved first: the server works the figures out from the build
-  // it has on record, not from the one in the window.
-  const onApply = async () => {
-    if (!build) return
-    const edit = {
-      ...(build.material === lot.material_thickness ? {} : { material_thickness: build.material }),
-      ...(build.core === lot.core_od ? {} : { core_od: build.core })
-    }
-    try {
-      if (Object.keys(edit).length) await saveBuild.mutateAsync({ lotId: lot.id, edit })
-      setQuestion(await apply.mutateAsync({ lotId: lot.id, values: values() }))
-    } catch {
-      // The mutation cache has already said what went wrong; the window stays open to try again.
-    }
-  }
+  // The mutation cache says what went wrong; the window stays open to try again.
+  const onApply = () =>
+    apply.mutate({ lotId: lot.id, values: values() }, { onSuccess: setQuestion })
 
   return (
     <>
@@ -251,10 +252,16 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         ))}
       </div>
 
-      {build ? null : (
+      {build ? (
+        num(draft.coil_thickness) > MAX_COIL ? (
+          <p className='text-sm text-warning'>
+            Coil Thickness is over {MAX_COIL}″ — check the Material Thickness.
+          </p>
+        ) : null
+      ) : (
         <p className='text-sm text-warning'>
-          Enter Material Thickness and Core OD to unlock the three fields above and the Apply
-          button.
+          Enter a Material Thickness under {MAX_MATERIAL}″ and a Core OD up to {MAX_CORE}″ to unlock
+          the three fields above and the Apply button.
         </p>
       )}
 
@@ -264,11 +271,8 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         <Button variant='outline' onClick={onClose}>
           Cancel
         </Button>
-        <Button
-          disabled={!ready || !changed || saveBuild.isPending || apply.isPending}
-          onClick={onApply}
-        >
-          {saveBuild.isPending || apply.isPending ? <Spinner data-icon='inline-start' /> : null}
+        <Button disabled={!ready || !changed || apply.isPending} onClick={onApply}>
+          {apply.isPending ? <Spinner data-icon='inline-start' /> : null}
           Apply
         </Button>
       </DialogFooter>

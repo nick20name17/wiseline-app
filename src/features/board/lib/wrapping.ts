@@ -111,7 +111,9 @@ export const benchLocations = (
             name: pending.name,
             max_weight: pending.max_weight,
             packages: 0,
-            weight_on_it: pending.used_weight,
+            weight_on_it: 0,
+            used_weight: pending.used_weight,
+            remaining_weight: pending.remaining_weight,
             orange: false,
             current: true
           }
