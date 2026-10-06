@@ -1,7 +1,8 @@
 // Browsers treat `//host` and `/\host` as protocol-relative, i.e. an open redirect.
 const SAFE_REDIRECT_PATH = /^\/(?![/\\])/
 
-export const DEFAULT_AFTER_LOGIN = '/profile'
+// `/` sends each user on to the page their role starts on.
+export const DEFAULT_AFTER_LOGIN = '/'
 
 export const isSafeRedirectPath = (value: unknown): value is string =>
   typeof value === 'string' && SAFE_REDIRECT_PATH.test(value)

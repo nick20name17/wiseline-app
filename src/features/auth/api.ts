@@ -25,7 +25,10 @@ const userSchema = z.object({
   first_name: z._default(z.string(), ''),
   last_name: z._default(z.string(), ''),
   role: z.string(),
-  is_active: z._default(z.boolean(), true)
+  is_active: z._default(z.boolean(), true),
+  // Null for roles that have none, admin's included.
+  prod_types: z.catch(z.array(z.string()), []),
+  process_types: z.catch(z.array(z.string()), [])
 })
 
 export const login = async (credentials: Credentials) => {
