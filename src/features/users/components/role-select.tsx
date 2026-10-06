@@ -21,7 +21,8 @@ export const RoleSelect = ({ id, value, onChange, invalid }: RoleSelectProps) =>
       <SelectValue>{(role: Role) => roleLabel(role)}</SelectValue>
     </SelectTrigger>
     <SelectContent>
-      {ROLES.map(role => (
+      {/* Super manager is not a role the client runs with; a user who still has it keeps it shown. */}
+      {ROLES.filter(role => role !== 'super_manager' || role === value).map(role => (
         <SelectItem key={role} value={role}>
           {roleLabel(role)}
         </SelectItem>

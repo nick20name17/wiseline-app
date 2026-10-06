@@ -128,7 +128,7 @@ export const LocationsPage = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-4xl table-fixed'>
+          <Table className='min-w-6xl table-fixed'>
             <colgroup>
               <col className='w-40' />
               <col className='w-48' />

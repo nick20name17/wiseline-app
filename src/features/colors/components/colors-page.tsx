@@ -134,7 +134,7 @@ export const ColorsPage = ({ search, show, onSearchChange, onShowChange }: Color
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className='line-clamp-2 text-muted-foreground'>
+                      <span className='line-clamp-2 break-words text-muted-foreground'>
                         {color.coil_colors.length ? color.coil_colors.join(' · ') : '—'}
                       </span>
                     </TableCell>

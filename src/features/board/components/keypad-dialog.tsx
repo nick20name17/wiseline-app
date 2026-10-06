@@ -9,7 +9,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Delete, X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { applyKeypad, decimalKeypad } from '../lib/wrapping'
 
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
@@ -30,7 +30,8 @@ type KeypadDialogProps = {
 
 /**
  * The floor's keypad: a figure is replaced by typing it, or moved by «+10» / «-5» (p1 (750,386)). The
- * keys are big because it is used standing at the bench, often on a touch screen.
+ * keys are big because it is used standing at the bench, often on a touch screen — but the bench screens
+ * have keyboards too, so the same keys can be typed.
  */
 export const KeypadDialog = ({
   target: current,
@@ -47,13 +48,27 @@ export const KeypadDialog = ({
     : decimal
       ? decimalKeypad(typed)
       : applyKeypad(target.current, typed, target.max ?? Infinity)
-  const keys = decimal ? [...DIGITS, '.', '0'] : [...DIGITS, '+', '0', '-']
+  const keys: string[] = decimal ? [...DIGITS, '.', '0'] : [...DIGITS, '+', '0', '-']
 
   const press = (key: string) =>
     setTyped(value =>
       // A sign only leads; typing one after digits starts the entry over with it.
       key === '+' || key === '-' ? key : key === '.' && value.includes('.') ? value : value + key
     )
+
+  const enter = () => next !== null && !isPending && onEnter(next)
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return
+    const key = event.key === ',' ? '.' : event.key
+    if (keys.includes(key)) press(key)
+    else if (key === 'Backspace') setTyped(value => value.slice(0, -1))
+    else if (key === 'Delete') setTyped('')
+    // Enter on a focused key button would press that key as well.
+    else if (key === 'Enter') enter()
+    else return
+    event.preventDefault()
+  }
 
   return (
     <Dialog
@@ -64,7 +79,7 @@ export const KeypadDialog = ({
         release(open)
       }}
     >
-      <DialogContent className='sm:max-w-xs'>
+      <DialogContent className='sm:max-w-xs' onKeyDown={onKeyDown}>
         <DialogHeader>
           <DialogTitle>{target?.title}</DialogTitle>
           <DialogDescription>
@@ -116,7 +131,7 @@ export const KeypadDialog = ({
             size='lg'
             className={decimal ? 'col-span-2 h-12' : 'h-12'}
             disabled={next === null || isPending}
-            onClick={() => next !== null && onEnter(next)}
+            onClick={enter}
           >
             {isPending ? <Spinner /> : 'Enter'}
           </Button>

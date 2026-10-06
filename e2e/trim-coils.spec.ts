@@ -114,7 +114,7 @@ test('moving a coil from Rollforming to Trim asks first', async ({ page }) => {
 
 test('the search narrows the list to one coil', async ({ page }) => {
   const search = page.getByLabel('Search coils')
-  await expect(search).toHaveAttribute('placeholder', 'Search — product / colour / coil #')
+  await expect(search).toHaveAttribute('placeholder', 'Search — product / colour / gauge / coil #')
   await search.fill('3797401')
 
   await expect(page.getByText('3797401')).toBeVisible()
@@ -122,6 +122,32 @@ test('the search narrows the list to one coil', async ({ page }) => {
 
   await search.fill('nothing like it')
   await expect(page.getByText('No coils match')).toBeVisible()
+})
+
+test('a search that misses in one folder points to the others', async ({ page }) => {
+  await page.route(`${API_URL}/coils/folders/?*`, route =>
+    route.fulfill({
+      json: [
+        { folder_id: 'F-1', name: '26 Ga. B&B Coils', coils: 1 },
+        { folder_id: 'F-2', name: '28 Ga. Coils', coils: 1 }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/coils/lots/?*`, route => {
+    const lots = [
+      { ...LOTS[0], folder_id: 'F-1' },
+      { ...LOTS[1], folder_id: 'F-2' }
+    ]
+    return route.fulfill({ json: { count: lots.length, results: lots } })
+  })
+  await page.reload()
+
+  await page.getByRole('tab', { name: /26 Ga\. B&B Coils/ }).click()
+  await page.getByLabel('Search coils').fill('3797401')
+
+  await expect(page.getByText('None in this folder — 1 in other folders.')).toBeVisible()
+  await page.getByRole('button', { name: 'Search all folders' }).click()
+  await expect(page.getByText('3797401')).toBeVisible()
 })
 
 test('the size grid holds one row per product, opening into its coils', async ({ page }) => {

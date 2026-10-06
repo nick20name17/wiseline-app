@@ -172,11 +172,16 @@ export const BoardPage = ({
       ) : view === 'wrapping' ? (
         // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
         <WrappingTab
+          search={search}
           departmentId={departmentId}
           machine={board.machineTabs ? machine : undefined}
         />
       ) : (
-        <ProductionTab departmentId={departmentId} onOpenCoils={() => onViewChange('coils')} />
+        <ProductionTab
+          search={search}
+          departmentId={departmentId}
+          onOpenCoils={() => onViewChange('coils')}
+        />
       )}
     </section>
   )

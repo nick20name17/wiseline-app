@@ -182,9 +182,13 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
   // A cleared field would otherwise reach EBMS as 0: a coil reported as spent that nobody depleted.
   const ready =
     !!build && MEASURES.every(measure => draft[measure.key] !== '' && num(draft[measure.key]) >= 0)
-  // «The Apply button ONLY becomes available if the Coil Thickness number changes» p1 (464,436). A
-  // Linear Feet or Weight typed in moves the thickness with it, so this covers all three figures.
-  const changed = num(draft.coil_thickness) !== lot.coil_thickness
+  // «The Apply button ONLY becomes available if the Coil Thickness number changes» p1 (464,436) — but
+  // thickness is rounded to hundredths, so a small Linear Feet or Weight change, or a corrected build,
+  // can leave it where it was. Kevin had a coil he could not adjust a second time that way.
+  const changed =
+    MEASURES.some(measure => num(draft[measure.key]) !== lot[measure.key]) ||
+    build?.material !== lot.material_thickness ||
+    build?.core !== lot.core_od
   // A 0 in any figure is a spent coil, and the server answers it with Deplete p1 (305,644).
   const values = (): CoilAdjustment => ({ [driver.current]: num(draft[driver.current]) })
   const name = coilName(lot)
@@ -195,14 +199,14 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
     setDraft(current => solve(lot, current, field, raw))
   }
 
+  // A new build reworks the other figures from the one the floor measured — Linear Feet unless a
+  // figure was typed. A coil EBMS has only just pushed in has Linear Feet but no thickness, and gets
+  // one the moment its build is known.
   const setBuild = (field: BuildField, raw: string) =>
     setDraft(current => {
       const next = { ...current, [field]: raw }
-      // A coil EBMS has only just pushed in has Linear Feet but no thickness; the moment the build is
-      // known that thickness can be worked out, so it is filled rather than left blank.
-      return buildOf(next) && next.coil_thickness === '' && num(next.linear_feet) > 0
-        ? solve(lot, next, 'linear_feet', next.linear_feet)
-        : next
+      const measured = next[driver.current] === '' ? 'linear_feet' : driver.current
+      return solve(lot, next, measured, next[measured])
     })
 
   // Material Thickness and Core OD are saved first: the server works the figures out from the build

@@ -17,7 +17,7 @@ import {
 } from '../api'
 import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
 import { itemStatus } from '../lib/status'
-import { remanState } from '../lib/wrapping'
+import { matchesWrapSearch, remanState } from '../lib/wrapping'
 import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from '@/components/note-button'
@@ -33,6 +33,7 @@ const isOverdue = (row: WrappingRow) =>
   !!row.production_date && row.production_date < today() && row.status !== 'wrapped'
 
 type WrappingTabProps = {
+  search: string | undefined
   departmentId: number | undefined
   /** Rollforming's machine tab; none on a board without them. */
   machine?: MachineTab
@@ -42,7 +43,7 @@ type WrappingTabProps = {
  * The station after every machine: what has been made, and what is left to wrap on it. A line leads
  * into its order, which is where packages are built — a package carries one order, never two.
  */
-export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
+export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps) => {
   const [order, setOrder] = useState<string | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const board = useBoard()
@@ -81,7 +82,11 @@ export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
       )
   }
 
-  const days = byDay(rows ?? [], row => row.production_date)
+  // The package modal above takes the whole order; only the list narrows to the search.
+  const days = byDay(
+    (rows ?? []).filter(row => matchesWrapSearch(row, search)),
+    row => row.production_date
+  )
 
   if (isError && !rows)
     return (
@@ -92,6 +97,9 @@ export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
       />
     )
 
+  // Lines there, but none the search names, is a miss rather than an empty bench.
+  const missed = !!rows?.length && !!search?.trim()
+
   if (!isPending && !days.length)
     return (
       <Empty>
@@ -99,9 +107,11 @@ export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
           <EmptyMedia variant='icon'>
             <PackageCheck />
           </EmptyMedia>
-          <EmptyTitle>Nothing to wrap</EmptyTitle>
+          <EmptyTitle>{missed ? 'No line items match' : 'Nothing to wrap'}</EmptyTitle>
           <EmptyDescription>
-            A line item lands here once its order has been released to production.
+            {missed
+              ? `No line item on Wrapping matches «${search?.trim()}».`
+              : 'A line item lands here once its order has been released to production.'}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -207,7 +217,12 @@ export const WrappingTab = ({ departmentId, machine }: WrappingTabProps) => {
                           </TableCell>
                         ),
                         remfg: (
-                          <TableCell>
+                          // A badge opens its history; anywhere else the row opens the order.
+                          <TableCell
+                            onClick={event =>
+                              lineRemans.length && !row.is_bypassed && event.stopPropagation()
+                            }
+                          >
                             {row.is_bypassed ? (
                               <RemanNotApplicable />
                             ) : (

@@ -341,3 +341,23 @@ input[data-slot='input']:-webkit-autofill,
 input[data-slot='input']:autofill {
   box-shadow: inset 0 0 0 1000px color-mix(in oklab, var(--primary) 12%, var(--background));
 }
+
+/* The floor's workstations are touch screens on desktops, so a viewport size says nothing; any
+   coarse pointer gets targets a finger can hit. Unlayered so it wins over each control's size
+   utility, without hand-editing the component library. */
+@media (any-pointer: coarse) {
+  [data-slot='checkbox'] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  [data-slot='checkbox-indicator'] > svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  [data-slot='button'] {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+}

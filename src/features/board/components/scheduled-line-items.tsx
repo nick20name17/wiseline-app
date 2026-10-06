@@ -350,10 +350,13 @@ export const ScheduledLineItems = ({
                                   variant='outline'
                                   className='w-full justify-between'
                                   aria-label={`Machine for ${item.id_inven ?? item.id}`}
+                                  // One save at a time: a second pick while the first is in flight
+                                  // could land before it and be overwritten.
+                                  disabled={update.isPending}
                                 />
                               }
                             >
-                              {machine?.name ?? 'Assign'}
+                              <span className='truncate'>{machine?.name ?? 'Assign'}</span>
                               <ChevronDown data-icon='inline-end' />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align='start' className='min-w-40'>
@@ -361,7 +364,12 @@ export const ScheduledLineItems = ({
                                 value={machine ? String(machine.id) : ''}
                                 onValueChange={value => edit(item, { flow: Number(value) })}
                               >
-                                {stations?.map(option => (
+                                {/* A line already on a machine that is not a bender still shows
+                                    it, ticked, rather than a list with nothing chosen. */}
+                                {(machine && !stations?.some(option => option.id === machine.id)
+                                  ? [machine, ...(stations ?? [])]
+                                  : stations
+                                )?.map(option => (
                                   <DropdownMenuRadioItem key={option.id} value={String(option.id)}>
                                     {option.name ?? `Machine ${option.id}`}
                                   </DropdownMenuRadioItem>

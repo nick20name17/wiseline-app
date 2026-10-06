@@ -5,6 +5,7 @@ import {
   benchLocations,
   decimalKeypad,
   defaultWarehouseOf,
+  matchesWrapSearch,
   overPackageLimit,
   packageContents,
   packageTarget,
@@ -157,5 +158,28 @@ describe('packageTarget', () => {
     expect(packageTarget(clicked, [], [fresh]).slot?.remaining_weight).toBe(764)
     // Before the list loads the click is all there is.
     expect(packageTarget(clicked, [], undefined).slot).toBe(clicked)
+  })
+})
+
+describe('matchesWrapSearch', () => {
+  const row = {
+    order: '330608',
+    order_number: null,
+    product_id: 'RC8262',
+    customer: 'Jones Roofing',
+    po: null,
+    description: 'Ridge cap'
+  } as WrappingRow
+
+  it('finds a line by its order, product or customer, whatever the case', () => {
+    expect(matchesWrapSearch(row, '3306')).toBe(true)
+    expect(matchesWrapSearch(row, 'rc82')).toBe(true)
+    expect(matchesWrapSearch(row, ' jones ')).toBe(true)
+  })
+
+  it('keeps every line for no search, and drops the rest', () => {
+    expect(matchesWrapSearch(row, undefined)).toBe(true)
+    expect(matchesWrapSearch(row, '  ')).toBe(true)
+    expect(matchesWrapSearch(row, '999')).toBe(false)
   })
 })

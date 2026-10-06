@@ -1039,7 +1039,13 @@ type ReleaseInput = {
 }
 
 export const useReleaseOrders = (
-  onSuccess: (result: { released: number; exported: number; cutlists: number }) => void
+  onSuccess: (result: {
+    released: number
+    exported: number
+    cutlists: number
+    /** Sales orders sent but not released — the server answers 200 for a batch it only partly took. */
+    missed: number[]
+  }) => void
 ) =>
   useMutation({
     mutationFn: async ({ days, exportDays, departmentId }: ReleaseInput) =>
@@ -1053,11 +1059,19 @@ export const useReleaseOrders = (
     onSettled: async (_, __, ___, ____, { client }) => {
       await client.invalidateQueries({ queryKey: boardKeys.all })
     },
-    onSuccess: result =>
+    onSuccess: (result, { days, exportDays = [] }) =>
       onSuccess({
         released: result.released.length,
         exported: result.exported.length,
-        cutlists: result.cutlists.length
+        cutlists: result.cutlists.length,
+        missed: [
+          ...new Set(
+            [...days, ...exportDays]
+              .map(day => day.sales_order_id)
+              // An exported part is released whether or not it was ticked, so it is not a miss.
+              .filter(id => !result.released.includes(id) && !result.exported.includes(id))
+          )
+        ]
       })
   })
 
@@ -1951,26 +1965,34 @@ export const wrappingRowsQuery = (departmentId: number | undefined, day: string 
 
 // The server sums package weights as floats (69.47999999999999); a pound to the hundredth is all
 // anybody reads.
-const pounds = z.pipe(
-  z.number(),
-  z.transform(weight => Math.round(weight * 100) / 100)
-)
+const hundredths = (weight: number) => Math.round(weight * 100) / 100
 
-const locationSlotSchema = z.object({
-  location_id: z.number(),
-  name: z._default(z.nullable(z.string()), null),
-  warehouse: z._default(z.nullable(z.string()), null),
-  max_weight: z._default(z.nullable(z.number()), null),
-  used_weight: z._default(pounds, 0),
-  orders_on_it: z._default(z.number(), 0),
-  multi_order: z._default(z.boolean(), false),
-  max_orders: z._default(z.nullable(z.number()), null),
-  // Greyed out once full; the board still lets the Worker ask for another department's locations.
-  available: z._default(z.boolean(), true),
-  remaining_weight: z._default(z.nullable(pounds), null),
-  // Select Location opens on the default warehouse p1 (543,104).
-  warehouse_is_default: z._default(z.boolean(), false)
-})
+const pounds = z.pipe(z.number(), z.transform(hundredths))
+
+const locationSlotSchema = z.pipe(
+  z.object({
+    location_id: z.number(),
+    name: z._default(z.nullable(z.string()), null),
+    warehouse: z._default(z.nullable(z.string()), null),
+    max_weight: z._default(z.nullable(z.number()), null),
+    used_weight: z._default(pounds, 0),
+    orders_on_it: z._default(z.number(), 0),
+    multi_order: z._default(z.boolean(), false),
+    max_orders: z._default(z.nullable(z.number()), null),
+    // Greyed out once full; the board still lets the Worker ask for another department's locations.
+    available: z._default(z.boolean(), true),
+    remaining_weight: z._default(z.nullable(pounds), null),
+    // Select Location opens on the default warehouse p1 (543,104).
+    warehouse_is_default: z._default(z.boolean(), false)
+  }),
+  z.transform(slot => ({
+    ...slot,
+    // Some slots come without it, and read as the full max a used location showed as wholly free.
+    remaining_weight:
+      slot.remaining_weight ??
+      (slot.max_weight === null ? null : hundredths(slot.max_weight - slot.used_weight))
+  }))
+)
 
 export type LocationSlot = z.infer<typeof locationSlotSchema>
 
