@@ -7,7 +7,7 @@ import { cn } from 'cn'
 import { ChevronRight, Split } from 'lucide-react'
 import { Fragment } from 'react'
 import { isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { materialsOf, splitOf } from '../lib/parts'
 import { LineItems } from './line-items'
 import { NoteButton, type NoteState } from '@/components/note-button'
@@ -50,6 +50,7 @@ export const OrderRow = ({
   onOpenLineNotes
 }: OrderRowProps) => {
   const stock = isStockOrder(order)
+  const viewOnly = useViewOnly()
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const { order: columnOrder, cells } = useColumnCells(useBoard().tables.unscheduled)
 
@@ -66,7 +67,7 @@ export const OrderRow = ({
             checked={selected}
             // Picking line items for a split and ticking orders are mutually exclusive, board-wide
             // (p1 (286,309), (332,315)).
-            disabled={splitting}
+            disabled={splitting || viewOnly}
             title={splitting ? 'Clear the Split selection first' : undefined}
             onCheckedChange={onToggleSelected}
           />

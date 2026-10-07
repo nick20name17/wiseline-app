@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
@@ -127,6 +127,7 @@ export const ScheduledLineItems = ({
   })
   // A trim is assigned to the machine that bends it.
   const stations = machines?.filter(isBender)
+  const viewOnly = useViewOnly()
   const update = useUpdateLineItem()
   const slit = useSlitRequest()
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
@@ -176,7 +177,7 @@ export const ScheduledLineItems = ({
           </Button>
         </div>
       ) : null}
-      {released ? null : (
+      {released || viewOnly ? null : (
         <div className='flex items-center gap-3'>
           <span className='text-sm font-medium'>
             {board.makes ? 'Reviewing order' : 'Scheduled order'}
@@ -241,7 +242,7 @@ export const ScheduledLineItems = ({
             {rows.map((item, index) => {
               const itemDay = lineDay(item)
               const otherDay = !own.has(item.id)
-              const editable = !released && !otherDay
+              const editable = !viewOnly && !released && !otherDay
               const fromStock = item.item?.pull_from_stock ?? 0
               const allFromStock = isAllFromStock(item)
               // A line says nothing about itself until the order is released — except a line pulled

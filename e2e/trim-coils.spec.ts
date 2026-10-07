@@ -172,7 +172,14 @@ test('a figure opens the adjustment window, works the others out, and asks befor
 
   await feet.fill('1200')
   await expect(dialog.getByLabel('Coil Thickness')).not.toHaveValue('5.95')
+  const applied = page.waitForRequest(request => request.url().endsWith('/apply/'))
   await dialog.getByRole('button', { name: 'Apply' }).click()
+  // The figure goes with the build in the window: nothing is saved before the answer.
+  expect((await applied).postDataJSON()).toMatchObject({
+    linear_feet: 1200,
+    material_thickness: expect.any(Number),
+    core_od: expect.any(Number)
+  })
 
   await expect(page.getByText('Make this adjustment?')).toBeVisible()
   await expect(page.getByText(/new Linear Feet amount \(1,200 ft\)/)).toBeVisible()
@@ -183,7 +190,9 @@ test('a coil with no build stays locked until it has one', async ({ page }) => {
   await page.getByRole('button', { name: 'Adjust Weight of coil 3797401' }).click()
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByText(/Enter Material Thickness and Core OD to unlock/)).toBeVisible()
+  await expect(
+    dialog.getByText(/Enter a Material Thickness under 0.25″ and a Core OD up to 60″ to unlock/)
+  ).toBeVisible()
   await expect(dialog.getByLabel('Weight')).toBeDisabled()
   await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled()
 

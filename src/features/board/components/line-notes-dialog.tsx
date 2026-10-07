@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,10 +50,11 @@ export const LineNotesDialog = ({
   onOpenChange
 }: LineNotesDialogProps) => {
   const board = useBoard()
+  const viewOnly = useViewOnly()
   const [originItem, release] = useRetained(current)
   // Only a label, so nothing needs releasing: the next opening replaces it.
   const [productId] = useRetained(current === null ? null : currentProductId)
-  const [readOnly] = useRetained(current === null ? null : currentReadOnly)
+  const [readOnly] = useRetained(current === null ? null : currentReadOnly || viewOnly)
   const [draft, setDraft] = useState('')
   const { data: thread, isPending } = useQuery(lineNotesQuery(originItem))
   const add = useAddLineNote(originItem ?? '')

@@ -1,4 +1,6 @@
 import { usePageHeader } from '@/components/layout/page-header-context'
+import { Badge } from '@/components/ui/badge'
+import { Eye } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { countsQuery, cutlistsQuery, machinesQuery } from '../api'
@@ -26,8 +28,11 @@ type BoardPageProps = {
   view: BoardView
   search: string | undefined
   departmentId: number
-  /** The viewer's role inside the department, settled before the board mounts — see `BoardGate`. */
-  role: 'manager' | 'worker'
+  /**
+   * The user's role inside the department, settled before the board mounts — see `BoardGate`. A
+   * Viewer sees the Manager's tabs; the server refuses every change it tries.
+   */
+  role: 'manager' | 'worker' | 'viewer'
   onViewChange: (view: BoardView) => void
   onSearchChange: (search: string | undefined) => void
 }
@@ -114,7 +119,16 @@ export const BoardPage = ({
         }}
         // The station a label is made at checks one too p2 (980,536), p3 (1216,364); Trim's Wrapping
         // offers it among its machine tabs.
-        actions={view === 'wrapping' || view === 'packaging' ? <ScanPackageDialog /> : null}
+        actions={
+          role === 'viewer' ? (
+            <Badge variant='secondary'>
+              <Eye data-icon='inline-start' />
+              View only
+            </Badge>
+          ) : view === 'wrapping' || view === 'packaging' ? (
+            <ScanPackageDialog />
+          ) : null
+        }
       />
 
       {showStrip && machines.length ? (

@@ -35,6 +35,7 @@ import {
   slinetColumns,
   type CutlistGroup
 } from '../lib/cutlists'
+import { useViewOnly } from '../lib/board-context'
 import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
@@ -59,6 +60,7 @@ type CompleteCellProps = {
 /** Ticking is silent; unticking asks first — reopening a row undoes somebody's sign-off. */
 const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
   const [confirming, setConfirming] = useState(false)
+  const viewOnly = useViewOnly()
 
   return (
     <>
@@ -76,7 +78,7 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
         <Checkbox
           aria-label={`Complete ${sizeOf(group)}`}
           checked={group.complete}
-          disabled={!!blocked && !group.complete}
+          disabled={viewOnly || (!!blocked && !group.complete)}
           onCheckedChange={() => (group.complete ? setConfirming(true) : onComplete(true))}
         />
         {/* Signed off reads green across the strip; outstanding stays quiet. */}
@@ -326,6 +328,8 @@ export const CutlistRows = ({
   onOpenTotal,
   onRemanufacture
 }: CutlistRowsProps) => {
+  const viewOnly = useViewOnly()
+  const editsLines = lineEdits && !viewOnly
   const update = useUpdateCutlistRow()
   // A bendlist's lines are released by definition.
   const updateLine = useUpdateLineItem({ released: true })
@@ -438,7 +442,7 @@ export const CutlistRows = ({
                   ),
                   stock: (
                     <TableCell>
-                      {lineEdits && !group.complete ? (
+                      {editsLines && !group.complete ? (
                         <StockCell group={group} onStock={setStocking} />
                       ) : (
                         <Figure value={about.fromStock || null} />
@@ -449,7 +453,7 @@ export const CutlistRows = ({
                     <TableCell>
                       {/* «When a row is marked as Complete ... the Machine button would disappear»
                           p1 (653,358). */}
-                      {lineEdits && !group.complete ? (
+                      {editsLines && !group.complete ? (
                         <MachineCell
                           group={group}
                           machines={machines}
@@ -528,6 +532,7 @@ export const CutlistRows = ({
                       <NoteInput
                         aria-label='Operator notes'
                         placeholder='Notes…'
+                        readOnly={viewOnly}
                         saved={group.rows.find(row => row.operator_notes)?.operator_notes ?? ''}
                         onSave={operator_notes => edit(group, { operator_notes })}
                       />
@@ -541,6 +546,8 @@ export const CutlistRows = ({
                         <RemakePill done={remake.is_cut}>
                           {remake.remanufacturing_qty ?? group.quantity}
                         </RemakePill>
+                      ) : viewOnly ? (
+                        <span className='text-muted-foreground'>—</span>
                       ) : (
                         <RemanufactureCell
                           group={group}

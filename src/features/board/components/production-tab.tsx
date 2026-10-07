@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { byDay, formatDate, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
@@ -125,6 +125,7 @@ type ProductionTabProps = {
  */
 export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionTabProps) => {
   const view = useProductionView()
+  const viewOnly = useViewOnly()
   const [total, setTotal] = useState<CutlistGroup | null>(null)
   const [manufacturing, setManufacturing] = useState(false)
   const [coils, setCoils] = useState<Cutlist | null>(null)
@@ -299,12 +300,14 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
         </Tabs>
 
         {/* p1 (1004,289): on every station, for pieces made against no order. */}
-        <Button variant='outline' className='mb-1.5' onClick={() => setManufacturing(true)}>
-          <Factory data-icon='inline-start' />
-          Stock Manufacturing
-        </Button>
+        {viewOnly ? null : (
+          <Button variant='outline' className='mb-1.5' onClick={() => setManufacturing(true)}>
+            <Factory data-icon='inline-start' />
+            Stock Manufacturing
+          </Button>
+        )}
 
-        {isWrapping ? <ScanPackageDialog /> : null}
+        {isWrapping && !viewOnly ? <ScanPackageDialog /> : null}
 
         {/* The worker reaches the coils from where he is standing — the same list the Coils tab
             shows, under the Manager's filter. */}

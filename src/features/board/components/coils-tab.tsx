@@ -40,6 +40,7 @@ import {
   type CoilFilter,
   type CoilLot
 } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
@@ -108,6 +109,7 @@ type NoteCellProps = { lot: CoilLot }
 /** The coil's own note, saved as it is typed. */
 const NoteCell = ({ lot }: NoteCellProps) => {
   const saved = lot.note ?? ''
+  const viewOnly = useViewOnly()
   const [draft, setDraft] = useState(saved)
   const [seen, setSeen] = useState(saved)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -128,6 +130,7 @@ const NoteCell = ({ lot }: NoteCellProps) => {
 
   return (
     <Input
+      readOnly={viewOnly}
       aria-label={`Note on coil ${coilName(lot)}`}
       placeholder='Add note…'
       value={draft}
@@ -159,6 +162,7 @@ const FIGURES: { key: CoilFigure; label: string }[] = [
 const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
   const rollformingShut = !lot.in_rollforming && !lot.rollforming_available
   const slinetShut = !lot.in_slinet && !lot.slinet_available
+  const viewOnly = useViewOnly()
 
   return (
     <>
@@ -169,14 +173,18 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
           other two out, with the cursor in the one clicked. */}
       {FIGURES.map(({ key, label }) => (
         <TableCell key={key}>
-          <Button
-            variant='link'
-            aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
-            title='Click to open the Coil Adjustment window'
-            onClick={() => onAdjust(lot, key)}
-          >
+          {viewOnly ? (
             <span className='font-mono'>{figure(lot[key])}</span>
-          </Button>
+          ) : (
+            <Button
+              variant='link'
+              aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
+              title='Click to open the Coil Adjustment window'
+              onClick={() => onAdjust(lot, key)}
+            >
+              <span className='font-mono'>{figure(lot[key])}</span>
+            </Button>
+          )}
         </TableCell>
       ))}
       <TableCell>
@@ -192,7 +200,7 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
           <Checkbox
             aria-label={`Rollforming holds coil ${coilName(lot)}`}
             checked={lot.in_rollforming}
-            disabled={rollformingShut}
+            disabled={viewOnly || rollformingShut}
             onCheckedChange={checked => onTick(lot, 'in_rollforming', checked)}
           />
         </span>
@@ -201,6 +209,7 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
         <Checkbox
           aria-label={`Trim holds coil ${coilName(lot)}`}
           checked={lot.in_trim}
+          disabled={viewOnly}
           onCheckedChange={checked => onTick(lot, 'in_trim', checked)}
         />
       </TableCell>
@@ -213,7 +222,7 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
           <Checkbox
             aria-label={`Slinet holds coil ${coilName(lot)}`}
             checked={lot.in_slinet}
-            disabled={slinetShut}
+            disabled={viewOnly || slinetShut}
             onCheckedChange={checked => onSlinet(lot, checked)}
           />
         </span>
@@ -557,6 +566,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
+  const viewOnly = useViewOnly()
   // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
   const [folder, setFolder] = useState<string | null>(null)
 
@@ -631,7 +641,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   )
 
   const filterButton =
-    !worker && trim ? (
+    !worker && !viewOnly && trim ? (
       <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
         <SlidersHorizontal data-icon='inline-start' />
         Coil Filter

@@ -60,7 +60,7 @@ export const overPackageLimit = (weight: number | null, limit: number | null) =>
 
 /** Past its ceiling already, or would be once `adding` more pounds stand on it. */
 export const overWeight = (slot: LocationSlot, adding = 0) =>
-  slot.max_weight !== null && slot.used_weight + adding > slot.max_weight
+  slot.remaining_weight !== null && adding > slot.remaining_weight
 
 /**
  * Where the next package goes: the cell the Worker picked, or else the one the order already
@@ -111,7 +111,9 @@ export const benchLocations = (
             name: pending.name,
             max_weight: pending.max_weight,
             packages: 0,
-            weight_on_it: pending.used_weight,
+            weight_on_it: 0,
+            used_weight: pending.used_weight,
+            remaining_weight: pending.remaining_weight,
             orange: false,
             current: true
           }

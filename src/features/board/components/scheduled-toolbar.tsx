@@ -2,7 +2,7 @@ import { formatDate } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ArrowRight, Database } from 'lucide-react'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 
 type ScheduledToolbarProps = {
   total: number
@@ -29,6 +29,7 @@ export const ScheduledToolbar = ({
 }: ScheduledToolbarProps) => {
   // Release To Production is a making department's; Allocated Stock is Trim's shelf alone.
   const { makes, stockCards } = useBoard()
+  const viewOnly = useViewOnly()
   return (
     <div className='flex flex-wrap items-center gap-2.5'>
       <span className='text-sm text-muted-foreground'>
@@ -47,7 +48,7 @@ export const ScheduledToolbar = ({
         )}
       </span>
 
-      {makes ? (
+      {makes && !viewOnly ? (
         <div className='ml-auto flex flex-wrap items-center gap-2'>
           {/* A release is all stock orders or all customer orders, never a mix. */}
           {selectionKind ? (

@@ -27,8 +27,11 @@ type OrderNoteDialogProps = {
   order: { id: string; invoice: string } | null
   notes: Record<string, OrderNote> | undefined
   isPending: boolean
-  /** Marks the note dealt with, or takes that back; `onDone` runs once it is saved. */
-  onSetRead: (order: string, read: boolean, onDone?: () => void) => void
+  /**
+   * Marks the note dealt with, or takes that back; `onDone` runs once it is saved. Without it the note
+   * is only read.
+   */
+  onSetRead?: (order: string, read: boolean, onDone?: () => void) => void
   onOpenChange: (open: boolean) => void
 }
 
@@ -89,9 +92,9 @@ export const OrderNoteDialog = ({
         <DialogFooter className='items-center sm:justify-between'>
           <span className='flex items-center gap-1.5 text-xs text-muted-foreground'>
             <Lock className='size-3.5' />
-            Read-only — acknowledge it here.
+            {onSetRead ? 'Read-only — acknowledge it here.' : 'Read-only.'}
           </span>
-          {note?.read ? (
+          {!onSetRead ? null : note?.read ? (
             // Stays open: the note turning red again is the confirmation that the check was taken back.
             <Button
               variant='outline'

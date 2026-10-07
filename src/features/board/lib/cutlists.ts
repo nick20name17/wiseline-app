@@ -194,27 +194,14 @@ export const slinetTotals = (cutlists: Cutlist[], day: string) => {
 /**
  * Why an open row on a list cannot be ticked Complete yet, or `null` when it can.
  *
- * Nothing is cut without a coil of the list's colour in the Slinet: once the last one is depleted, the
- * Worker checks another in before the list can go on p1 (502,469). A bendlist is Not Started until the
- * Slinet cuts into its release; from then on a row can be signed off before its own piece is cut, and
- * Bent overrides Cut (p1 (686,329)).
+ * A bendlist is Not Started until the Slinet cuts into its release; from then on a row can be signed
+ * off before its own piece is cut, and Bent overrides Cut (p1 (686,329)). The Slinet needs no coil
+ * checked in: short pieces come off the cutoffs on a skid (Kevin, 2026-10-01).
  */
 export const completeBlocker = ({
   isSlinet,
-  slinetStarted,
-  color,
-  coilsInSlinet
+  slinetStarted
 }: {
   isSlinet: boolean
   slinetStarted: boolean
-  color: string | null
-  /**
-   * `'checking'` while the answer is on its way; `null` when it is not asked — a done list, or a read
-   * that failed, which should not lock the floor out of its work.
-   */
-  coilsInSlinet: number | 'checking' | null
-}) => {
-  if (!isSlinet) return slinetStarted ? null : 'Available once the Slinet starts on this release'
-  if (coilsInSlinet === 'checking') return 'Checking the coils in the Slinet…'
-  return coilsInSlinet === 0 ? `Check a ${color ?? 'matching'} coil into the Slinet first` : null
-}
+}) => (isSlinet || slinetStarted ? null : 'Available once the Slinet starts on this release')

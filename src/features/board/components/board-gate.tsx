@@ -7,7 +7,7 @@ import { Lock } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { departmentRoleQuery, useBoardDepartment } from '../api'
 import { BOARDS, type BoardCode } from '../lib/boards'
-import { BoardContext } from '../lib/board-context'
+import { BoardContext, ViewOnlyContext } from '../lib/board-context'
 import { BoardPage } from './board-page'
 
 type BoardGateProps = Omit<ComponentProps<typeof BoardPage>, 'departmentId' | 'role'> & {
@@ -40,10 +40,12 @@ export const BoardGate = ({ code, userRole, userId, ...page }: BoardGateProps) =
   const assignment = useQuery(departmentRoleQuery(userId, department?.id))
   const role = departmentRole(userRole, assignment.data ?? null)
 
-  if (department && (role === 'manager' || role === 'worker'))
+  if (department && (role === 'manager' || role === 'worker' || role === 'viewer'))
     return (
       <BoardContext value={board}>
-        <BoardPage {...page} departmentId={department.id} role={role} />
+        <ViewOnlyContext value={role === 'viewer'}>
+          <BoardPage {...page} departmentId={department.id} role={role} />
+        </ViewOnlyContext>
       </BoardContext>
     )
 

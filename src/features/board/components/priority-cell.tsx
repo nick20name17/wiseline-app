@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
 import { departmentStateOf, prioritiesQuery, useSetPriority, type BoardOrder } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { PriorityPill } from './priority-pill'
 
 const NO_PRIORITY = 'none'
@@ -17,8 +18,9 @@ export const PriorityCell = ({ order, departmentId }: PriorityCellProps) => {
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
   const mutation = useSetPriority(order.id)
   const current = departmentStateOf(order, departmentId)?.priority ?? null
+  const viewOnly = useViewOnly()
 
-  if (!departmentId) return <PriorityPill priority={current} />
+  if (!departmentId || viewOnly) return <PriorityPill priority={current} />
 
   return (
     // A select, not a menu: the cell holds one value and the list picks it.

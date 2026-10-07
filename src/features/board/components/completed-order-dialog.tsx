@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
@@ -196,6 +196,7 @@ type PackagesSectionProps = {
 /** The packages that carried the order out, each with a label the shop can print again. */
 const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionProps) => {
   const reprint = useReprintPackage()
+  const viewOnly = useViewOnly()
   const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
 
@@ -225,6 +226,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
                     <Checkbox
                       aria-label={`Move package ${parcel.name ?? parcel.package_id}`}
                       checked={picked.has(parcel.package_id)}
+                      disabled={viewOnly}
                       onCheckedChange={() => onToggle(parcel.package_id)}
                     />
                   </TableCell>
@@ -248,25 +250,27 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
                     )
                   })}
                   <TableCell>
-                    <span className='flex justify-end'>
-                      <Button
-                        variant='outline'
-                        disabled={reprint.isPending}
-                        title='Reprint this package label'
-                        onClick={() =>
-                          reprint.mutate(parcel.package_id, {
-                            onSuccess: () =>
-                              toast.add({
-                                type: 'success',
-                                title: `Reprinted label ${parcel.name ?? parcel.package_id}`
-                              })
-                          })
-                        }
-                      >
-                        <Printer data-icon='inline-start' />
-                        Reprint
-                      </Button>
-                    </span>
+                    {viewOnly ? null : (
+                      <span className='flex justify-end'>
+                        <Button
+                          variant='outline'
+                          disabled={reprint.isPending}
+                          title='Reprint this package label'
+                          onClick={() =>
+                            reprint.mutate(parcel.package_id, {
+                              onSuccess: () =>
+                                toast.add({
+                                  type: 'success',
+                                  title: `Reprinted label ${parcel.name ?? parcel.package_id}`
+                                })
+                            })
+                          }
+                        >
+                          <Printer data-icon='inline-start' />
+                          Reprint
+                        </Button>
+                      </span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -303,6 +307,7 @@ export const CompletedOrderDialog = ({
   const [picking, setPicking] = useState(false)
   const [picked, setPicked] = useState<ReadonlySet<number>>(new Set())
   const move = useMoveOrderPackages()
+  const viewOnly = useViewOnly()
 
   const toggle = (packageId: number) => setPicked(current => toggled(current, packageId))
 
@@ -352,17 +357,19 @@ export const CompletedOrderDialog = ({
                 )}
                 {/* p1 (912,576): a finished order can still be moved, or a location added to it by
                     moving only some of its packages. */}
-                <Button
-                  variant='outline'
-                  className='ml-auto'
-                  disabled={!data.packages.length}
-                  onClick={() => setPicking(true)}
-                >
-                  <MapPin data-icon='inline-start' />
-                  {picked.size
-                    ? `Move ${picked.size} package${picked.size === 1 ? '' : 's'}`
-                    : 'Select location'}
-                </Button>
+                {viewOnly ? null : (
+                  <Button
+                    variant='outline'
+                    className='ml-auto'
+                    disabled={!data.packages.length}
+                    onClick={() => setPicking(true)}
+                  >
+                    <MapPin data-icon='inline-start' />
+                    {picked.size
+                      ? `Move ${picked.size} package${picked.size === 1 ? '' : 's'}`
+                      : 'Select location'}
+                  </Button>
+                )}
               </section>
 
               <Facts detail={data} isStock={isStock} />
@@ -379,6 +386,7 @@ export const CompletedOrderDialog = ({
 
       <LocationDialog
         departmentId={departmentId}
+        order={order?.order ?? null}
         orderNumber={order?.order_number ?? order?.order ?? ''}
         orderLocations={locations ?? []}
         stagedWeight={0}

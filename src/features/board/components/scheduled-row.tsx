@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { partLines, partState, splitOf, toMake } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from '@/components/note-button'
@@ -156,6 +156,7 @@ export const ScheduledRow = ({
   const split = splitOf(order)
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const board = useBoard()
+  const viewOnly = useViewOnly()
   const { cells } = useColumnCells(board.tables.scheduled)
 
   // Gate 1: every line of this part that still has to be made carries a machine — on a board that
@@ -174,7 +175,7 @@ export const ScheduledRow = ({
       >
         <TableCell onClick={stopRowClick}>
           {/* Only a department that makes what it packs reviews and releases it p3 (1103,281). */}
-          {board.makes ? (
+          {board.makes && !viewOnly ? (
             <SelectCell
               released={released}
               reviewed={reviewed}
@@ -211,7 +212,7 @@ export const ScheduledRow = ({
                 day={day}
                 overdue={overdue}
                 stock={stock}
-                fixed={released}
+                fixed={released || viewOnly}
                 onReschedule={onReschedule}
               />
             </TableCell>
@@ -262,7 +263,7 @@ export const ScheduledRow = ({
             <TableCell onClick={stopRowClick}>
               {exported ? (
                 <FileOutput className='size-4 text-primary' aria-label='Exported' />
-              ) : released || !reviewed ? (
+              ) : released || !reviewed || viewOnly ? (
                 <span className='text-muted-foreground'>—</span>
               ) : (
                 <Checkbox

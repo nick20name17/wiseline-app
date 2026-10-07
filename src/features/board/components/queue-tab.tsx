@@ -33,6 +33,7 @@ import {
   type Priority,
   type QueueRow
 } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
 import { CoilLock } from './coil-lock'
 import { PriorityPill } from './priority-pill'
@@ -165,6 +166,7 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
 export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => {
   const { data, isPending, isError, error, refetch } = useQuery(queueQuery(departmentId, machineId))
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const viewOnly = useViewOnly()
   const reorder = useReorderQueue()
   const inMachine = useSetCurrentCoil()
   const sensors = useDragSensors()
@@ -172,7 +174,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
   const [dropped, setDropped] = useState<QueueRow[] | null>(null)
   const rows = dropped ?? data ?? []
   const days = byDay(rows, row => row.production_date)
-  const movable = !worker && !reorder.isPending
+  const movable = !worker && !viewOnly && !reorder.isPending
 
   const announcements = dragAnnouncements({
     name: id => {
@@ -294,6 +296,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                         priority={priorities?.find(found => found.id === row.priority?.id) ?? null}
                         movable={movable}
                         onInMachine={
+                          viewOnly ||
                           departmentId === undefined ||
                           machineId === undefined ||
                           inMachine.isPending

@@ -22,6 +22,7 @@ import {
   type StockOrderRow,
   type WrappingRow
 } from '../api'
+import { useViewOnly } from '../lib/board-context'
 import { itemStatus } from '../lib/status'
 import { lineName } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -51,6 +52,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
   const [keying, setKeying] = useState<StockOrderRow | null>(null)
   const [confirming, setConfirming] = useState(false)
   const setWrapped = useSetStockWrapped()
+  const viewOnly = useViewOnly()
   const batch = useCreateStockBatch(completed => {
     setConfirming(false)
     setChecked(new Set())
@@ -110,7 +112,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                       <Checkbox
                         aria-label={`Include ${lineName(line)} in the batch`}
                         checked={line.can_select && checked.has(line.origin_item)}
-                        disabled={!line.can_select}
+                        disabled={viewOnly || !line.can_select}
                         onCheckedChange={() => toggle(line.origin_item)}
                       />
                     )}
@@ -124,6 +126,8 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                   <TableCell>
                     {line.manufactured ? (
                       <span className='text-muted-foreground'>—</span>
+                    ) : viewOnly ? (
+                      <Figure value={line.wrapped ?? 0} />
                     ) : (
                       <Button
                         variant='outline'
@@ -172,15 +176,17 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
         </Table>
       </div>
 
-      <div className='flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
-        <span className='text-sm text-muted-foreground'>
-          Stock order — no packages or locations. Tick the rows you are done wrapping.
-        </span>
-        <Button disabled={!picked.length} onClick={() => setConfirming(true)}>
-          <Factory data-icon='inline-start' />
-          Create Manufacturing Batch{picked.length ? ` (${picked.length})` : ''}
-        </Button>
-      </div>
+      {viewOnly ? null : (
+        <div className='flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
+          <span className='text-sm text-muted-foreground'>
+            Stock order — no packages or locations. Tick the rows you are done wrapping.
+          </span>
+          <Button disabled={!picked.length} onClick={() => setConfirming(true)}>
+            <Factory data-icon='inline-start' />
+            Create Manufacturing Batch{picked.length ? ` (${picked.length})` : ''}
+          </Button>
+        </div>
+      )}
 
       <KeypadDialog
         target={

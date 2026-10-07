@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { CalendarDays, FastForward, Plus, QrCode } from 'lucide-react'
 
 type UnscheduledToolbarProps = {
@@ -25,6 +25,7 @@ export const UnscheduledToolbar = ({
 }: UnscheduledToolbarProps) => {
   // Stock orders, stock cards and Bypass Production belong to a department that makes what it packs.
   const { stockCards } = useBoard()
+  const viewOnly = useViewOnly()
   return (
     <div className='flex flex-wrap items-center gap-2.5'>
       <span className='text-sm text-muted-foreground'>
@@ -40,33 +41,35 @@ export const UnscheduledToolbar = ({
         )}
       </span>
 
-      <div className='ml-auto flex flex-wrap items-center gap-2'>
-        {stockCards ? (
-          <>
-            <Button variant='outline' onClick={onStockCards}>
-              <QrCode data-icon='inline-start' />
-              Stock Cards
-            </Button>
-            <Button variant='outline' onClick={onCreateStockOrder}>
-              <Plus data-icon='inline-start' />
-              Create stock order
-            </Button>
-            <Button
-              variant='outline'
-              disabled={!ready || !selectedCount}
-              title='Skip Slinet + Machines — straight to Wrapping (Status: Bypassed), Production Date today'
-              onClick={onBypass}
-            >
-              <FastForward data-icon='inline-start' />
-              Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
-            </Button>
-          </>
-        ) : null}
-        <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
-          <CalendarDays data-icon='inline-start' />
-          Schedule{selectedCount ? ` (${selectedCount})` : ''}
-        </Button>
-      </div>
+      {viewOnly ? null : (
+        <div className='ml-auto flex flex-wrap items-center gap-2'>
+          {stockCards ? (
+            <>
+              <Button variant='outline' onClick={onStockCards}>
+                <QrCode data-icon='inline-start' />
+                Stock Cards
+              </Button>
+              <Button variant='outline' onClick={onCreateStockOrder}>
+                <Plus data-icon='inline-start' />
+                Create stock order
+              </Button>
+              <Button
+                variant='outline'
+                disabled={!ready || !selectedCount}
+                title='Skip Slinet + Machines — straight to Wrapping (Status: Bypassed), Production Date today'
+                onClick={onBypass}
+              >
+                <FastForward data-icon='inline-start' />
+                Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
+              </Button>
+            </>
+          ) : null}
+          <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
+            <CalendarDays data-icon='inline-start' />
+            Schedule{selectedCount ? ` (${selectedCount})` : ''}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

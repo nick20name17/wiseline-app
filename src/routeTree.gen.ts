@@ -22,7 +22,6 @@ import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppStockCardsRouteImport } from './routes/_app/stock-cards'
 import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
-import { Route as AppSettingsColorsRouteImport } from './routes/_app/settings/colors'
 import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
 import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
 import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
@@ -97,11 +96,6 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const AppSettingsColorsRoute = AppSettingsColorsRouteImport.update({
-  id: '/colors',
-  path: '/colors',
-  getParentRoute: () => AppSettingsRouteRoute,
-} as any)
 const AppSettingsLocationTypesRoute =
   AppSettingsLocationTypesRouteImport.update({
     id: '/location-types',
@@ -161,7 +155,6 @@ export interface FileRoutesByFullPath {
   '/shipping': typeof AppShippingRoute
   '/stock-cards': typeof AppStockCardsRoute
   '/trim': typeof AppTrimRoute
-  '/settings/colors': typeof AppSettingsColorsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -184,7 +177,6 @@ export interface FileRoutesByTo {
   '/stock-cards': typeof AppStockCardsRoute
   '/trim': typeof AppTrimRoute
   '/': typeof AppIndexRoute
-  '/settings/colors': typeof AppSettingsColorsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -210,7 +202,6 @@ export interface FileRoutesById {
   '/_app/stock-cards': typeof AppStockCardsRoute
   '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/settings/colors': typeof AppSettingsColorsRoute
   '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/_app/settings/locations': typeof AppSettingsLocationsRoute
   '/_app/settings/machines': typeof AppSettingsMachinesRoute
@@ -236,7 +227,6 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/stock-cards'
     | '/trim'
-    | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -259,7 +249,6 @@ export interface FileRouteTypes {
     | '/stock-cards'
     | '/trim'
     | '/'
-    | '/settings/colors'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -284,7 +273,6 @@ export interface FileRouteTypes {
     | '/_app/stock-cards'
     | '/_app/trim'
     | '/_app/'
-    | '/_app/settings/colors'
     | '/_app/settings/location-types'
     | '/_app/settings/locations'
     | '/_app/settings/machines'
@@ -397,13 +385,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_app/settings/colors': {
-      id: '/_app/settings/colors'
-      path: '/colors'
-      fullPath: '/settings/colors'
-      preLoaderRoute: typeof AppSettingsColorsRouteImport
-      parentRoute: typeof AppSettingsRouteRoute
-    }
     '/_app/settings/location-types': {
       id: '/_app/settings/location-types'
       path: '/location-types'
@@ -471,7 +452,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppSettingsRouteRouteChildren {
-  AppSettingsColorsRoute: typeof AppSettingsColorsRoute
   AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
   AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
   AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
@@ -484,7 +464,6 @@ interface AppSettingsRouteRouteChildren {
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
-  AppSettingsColorsRoute: AppSettingsColorsRoute,
   AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
   AppSettingsLocationsRoute: AppSettingsLocationsRoute,
   AppSettingsMachinesRoute: AppSettingsMachinesRoute,
