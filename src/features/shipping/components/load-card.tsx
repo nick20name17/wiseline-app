@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { cn } from 'cn'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import type { Assignment, DayLoad } from '../api'
@@ -16,7 +17,11 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
   <li className='flex items-center gap-3 border-t border-border px-3 py-2 text-sm'>
     {lead}
     {/* A supplier pickup has no order number; the server puts the supplier in both fields. */}
-    <span className='w-28 font-mono font-medium'>
+    {/* Past its ship date and not delivered p3 (605,628). */}
+    <span
+      className={cn('w-28 font-mono font-medium', order.is_overdue && 'text-destructive')}
+      title={order.is_overdue ? 'Overdue' : undefined}
+    >
       {order.kind === 'pickup' ? (
         <Badge variant='muted'>Pickup</Badge>
       ) : (

@@ -1647,11 +1647,26 @@ export const completedOrderQuery = (departmentId: number | undefined, order: str
  * The label is rebuilt from the package rather than stored, so one reprinted after the package moved
  * shows where it is now.
  */
-export const useReprintPackage = (onSuccess?: () => void) =>
+const reprintSchema = z.object({
+  package_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  order_number: z._default(z.nullable(z.string()), null),
+  location: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.nullable(z.number()), null),
+  contents: z._default(
+    z.array(z.object({ origin_item: z.string(), quantity: z._default(z.number(), 0) })),
+    []
+  )
+})
+
+export type Reprint = z.infer<typeof reprintSchema>
+
+/** A label's data rebuilt from the package as it stands now — its location included — to print. */
+export const useReprintPackage = () =>
   useMutation({
     meta: { errorTitle: 'The label was not printed' },
-    mutationFn: (packageId: number) => authApi.post(`packages/${packageId}/reprint/`).json(),
-    onSuccess
+    mutationFn: async (packageId: number) =>
+      reprintSchema.parse(await authApi.post(`packages/${packageId}/reprint/`).json())
   })
 
 const coilPageSchema = z.object({
@@ -2545,14 +2560,27 @@ export const useAssignCoil = () =>
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
   })
 
-/** Lines sent to the Slit Line, or taken back before they are slit p2 (566,565). */
+/**
+ * Lines sent to the Slit Line p2 (566,565) with the Supplier and/or Coil Number the Manager chose at
+ * Create p2 (586,558) — none leaves them to the Slit Line — or taken back before they are slit.
+ */
 export const useSlitRequest = () =>
   useMutation({
     meta: { errorTitle: 'The Slit Line was not changed' },
-    mutationFn: (input: { originItems: string[]; slit: boolean }) =>
+    mutationFn: (
+      input:
+        | { slit: true; originItems: string[]; supplier: string | null; coilNumber: string | null }
+        | { slit: false; originItems: string[] }
+    ) =>
       authApi
         .post(input.slit ? 'slit-line/request/' : 'slit-line/cancel/', {
-          json: { origin_items: input.originItems }
+          json: input.slit
+            ? {
+                origin_items: input.originItems,
+                supplier: input.supplier,
+                coil_number: input.coilNumber
+              }
+            : { origin_items: input.originItems }
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)

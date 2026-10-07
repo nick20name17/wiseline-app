@@ -45,6 +45,7 @@ import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
+import { usePackageLabel } from './use-package-label'
 import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
@@ -433,8 +434,9 @@ type CompleteOrderButtonProps = {
 }
 
 /**
- * Order Complete: available once Left To Wrap is zero on every line and no remake is still out, and
- * asked about — the batch it sends to EBMS cannot be taken back.
+ * Order Complete: available once Left To Wrap is zero on every line and no remake is still out — on
+ * Accessories once the first package is made p3 (1265,296) — and asked about: the batch it sends to
+ * EBMS cannot be taken back. Accessories' batch is what was packed, not what was ordered.
  */
 const CompleteOrderButton = ({
   departmentId,
@@ -450,13 +452,14 @@ const CompleteOrderButton = ({
     (total, line) => total + line.manufactured,
     0
   )
+  // Completing early leaves lines short; EBMS hears only of what went into packages.
+  const short = completion?.outstanding.length ?? 0
 
   const complete = useCompleteOrder(() => {
     setCompleting(false)
     toast.add({
       type: 'success',
-      // Only a department that makes what it packs sends a manufacturing batch to EBMS.
-      title: makes
+      title: batch
         ? `Order ${number} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
         : `Order ${number} complete`
     })
@@ -485,12 +488,17 @@ const CompleteOrderButton = ({
         open={completing}
         onOpenChange={setCompleting}
         title={`Complete order ${number}?`}
-        description={
-          makes
-            ? 'Are you sure you are done with this order and that you want to create a manufacturing batch for it?'
-            : 'Are you sure you are done with this order? It leaves Packaging for Completed Orders.'
-        }
-        confirmLabel={makes ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'}
+        description={[
+          batch
+            ? `Are you sure you are done with this order and that you want to create a manufacturing batch for it (${batch} pcs)?`
+            : `Are you sure you are done with this order? It leaves ${makes ? 'Wrapping' : 'Packaging'} for Completed Orders.`,
+          short
+            ? `${short} line${short === 1 ? ' is' : 's are'} not fully packed; only what is in the packages goes to EBMS.`
+            : null
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        confirmLabel={batch ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'}
         cancelLabel='No'
         isPending={complete.isPending}
         onConfirm={() => departmentId && complete.mutate({ order, departmentId })}
@@ -526,6 +534,7 @@ const CreatePrintButton = ({
   onPrinted
 }: CreatePrintButtonProps) => {
   const [confirming, setConfirming] = useState(false)
+  const label = usePackageLabel()
   const createPackage = useCreatePackage(() => {
     setConfirming(false)
     onPrinted()
@@ -551,11 +560,23 @@ const CreatePrintButton = ({
         ...(override ? { override_weight: true } : {})
       },
       {
-        onSuccess: created =>
+        onSuccess: created => {
           toast.add({
             type: 'success',
-            title: `Printed label ${created.name ?? ''} · ${pieces} pcs → ${target.name ?? target.location_id}`
+            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs → ${target.name ?? target.location_id}`
           })
+          if (created.name)
+            label.print({
+              name: created.name,
+              orderNumber: order,
+              location: target.name,
+              weight,
+              contents: lines.map(line => ({
+                product: lineName(line.row),
+                quantity: line.quantity
+              }))
+            })
+        }
       }
     )
 
@@ -586,6 +607,7 @@ const CreatePrintButton = ({
         isPending={createPackage.isPending}
         onConfirm={() => print(true)}
       />
+      {label.sheet}
     </>
   )
 }

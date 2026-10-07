@@ -2,6 +2,7 @@ import { authApi } from '@/api/client'
 import {
   infiniteQueryOptions,
   keepPreviousData,
+  type InfiniteData,
   queryOptions,
   useMutation,
   type QueryClient
@@ -20,12 +21,30 @@ const shippingKeys = {
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
   packages: (order: string) => [...shippingKeys.all, 'packages', order] as const,
-  orderNotes: (orders: string[]) => [...shippingKeys.all, 'order-notes', orders] as const,
+  overdue: () => [...shippingKeys.all, 'overdue'] as const,
   route: (loadId: number) => [...shippingKeys.all, 'route', loadId] as const
 }
 
 /** What goes onto a truck together: sales orders by autoid, supplier pickups by their id. */
 export type Selection = { orders: string[]; pickupIds: number[] }
+
+const orderNoteSchema = z.object({
+  has_note: z._default(z.boolean(), false),
+  text: z._default(z.nullable(z.string()), null),
+  author: z._default(z.nullable(z.string()), null),
+  created_at: z._default(z.nullable(z.string()), null),
+  read: z._default(z.boolean(), false)
+})
+
+export type OrderNote = z.infer<typeof orderNoteSchema>
+
+const NO_NOTE: OrderNote = {
+  has_note: false,
+  text: null,
+  author: null,
+  created_at: null,
+  read: false
+}
 
 const unscheduledOrderSchema = z.object({
   order: z.string(),
@@ -37,7 +56,20 @@ const unscheduledOrderSchema = z.object({
   ship_date: z._default(z.nullable(z.string()), null),
   weight: z._default(z.number(), 0),
   longest_length: z._default(z.number(), 0),
-  ship_via: z._default(z.nullable(z.string()), null)
+  // EBMS's own; the list holds deliveries only until customer pickups are settled
+  // (`client-questions.md` 6).
+  ship_via: z._default(z.nullable(z.string()), null),
+  // Past its ship date and not delivered p3 (605,628).
+  is_overdue: z._default(z.boolean(), false),
+  // The salesman's note and whether this user has dealt with it p3 (592,338).
+  note: z._default(z.nullable(orderNoteSchema), null),
+  // `null` until the app has a sales order for it; the first priority set makes one.
+  sales_order_id: z._default(z.nullable(z.number()), null),
+  // The order's priority in Shipping p3 (560,202).
+  priority: z._default(
+    z.nullable(z.object({ id: z.number(), name: z._default(z.string(), '') })),
+    null
+  )
 })
 
 export type UnscheduledOrder = z.infer<typeof unscheduledOrderSchema>
@@ -204,7 +236,9 @@ const assignmentSchema = z.object({
   kind: z._default(z.string(), 'delivery'),
   weight: z._default(z.number(), 0),
   load_id: z._default(z.nullable(z.number()), null),
-  status: z._default(z.nullable(z.string()), null)
+  status: z._default(z.nullable(z.string()), null),
+  // Past its ship date and not delivered p3 (605,628).
+  is_overdue: z._default(z.boolean(), false)
 })
 
 export type Assignment = z.infer<typeof assignmentSchema>
@@ -215,7 +249,9 @@ const truckCardSchema = z.object({
   weight_limit: z._default(z.nullable(z.number()), null),
   delivery: kindTotalsSchema,
   pickup: kindTotalsSchema,
-  orders: z._default(z.array(assignmentSchema), [])
+  orders: z._default(z.array(assignmentSchema), []),
+  // Holding an overdue order p3 (593,606).
+  is_overdue: z._default(z.boolean(), false)
 })
 
 export type TruckCard = z.infer<typeof truckCardSchema>
@@ -241,7 +277,9 @@ const loadTabSchema = z.object({
   status: z._default(z.nullable(z.string()), null),
   weight: z._default(z.number(), 0),
   orders: z._default(z.array(assignmentSchema), []),
-  is_empty: z._default(z.boolean(), false)
+  is_empty: z._default(z.boolean(), false),
+  // Past its day and not delivered p3 (593,606); an empty Load never is.
+  is_overdue: z._default(z.boolean(), false)
 })
 
 export type LoadTab = z.infer<typeof loadTabSchema>
@@ -376,7 +414,8 @@ export const useCompleteLoad = () =>
   )
 
 const stopSchema = z.object({
-  route_id: z.number(),
+  // `null` on the warehouse of a route never built: shown first, saved by the first plan.
+  route_id: z._default(z.nullable(z.number()), null),
   /** The delivery's place in the run; the warehouse the truck leaves from has none. */
   sequence: z._default(z.nullable(z.number()), null),
   dispatch_point: z._default(z.boolean(), false),
@@ -389,7 +428,7 @@ const stopSchema = z.object({
 
 export type Stop = z.infer<typeof stopSchema>
 
-/** A Load's stops in delivery order, the warehouse first p3 (617,441). Empty until it is planned. */
+/** A Load's stops in delivery order, the warehouse first p3 (617,441), planned or not. */
 export const routeQuery = (loadId: number) =>
   queryOptions({
     queryKey: shippingKeys.route(loadId),
@@ -469,31 +508,123 @@ export const useCreatePickup = () =>
         .json()
   )
 
-const orderNoteSchema = z.object({
-  has_note: z._default(z.boolean(), false),
-  text: z._default(z.nullable(z.string()), null),
-  author: z._default(z.nullable(z.string()), null),
-  created_at: z._default(z.nullable(z.string()), null),
-  read: z._default(z.boolean(), false)
-})
+/** Every order's note on a page of Unscheduled, keyed as the shared Order Notes window reads them. */
+export const notesOf = (orders: UnscheduledOrder[]) =>
+  Object.fromEntries(orders.map(order => [order.order, order.note ?? NO_NOTE]))
 
-/** The salesman's note on each order on screen, in one call p3 (592,338). */
-export const orderNotesQuery = (orders: string[]) =>
-  queryOptions({
-    queryKey: shippingKeys.orderNotes(orders),
-    enabled: orders.length > 0,
-    queryFn: async () =>
-      z
-        .record(z.string(), orderNoteSchema)
-        .parse(await authApi.post('orders/notes/', { json: { orders } }).json())
-  })
-
-/** Marks an order's note dealt with, or takes that back. */
+/** Marks an order's note dealt with, or takes that back; the rows carry the state. */
 export const useSetOrderNoteRead = () =>
   useMutation({
     meta: { errorTitle: 'The note was not updated' },
     mutationFn: ({ order, read }: { order: string; read: boolean }) =>
       authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: [...shippingKeys.all, 'order-notes'] })
+      client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+  })
+
+/** The ship days holding a shipment past its date and not delivered: red in the calendar p3 (605,628). */
+export const overdueDaysQuery = queryOptions({
+  queryKey: shippingKeys.overdue(),
+  queryFn: async () =>
+    z
+      .object({ days: z._default(z.array(z.string()), []) })
+      .parse(await authApi.get('shipping/overdue/').json()).days
+})
+
+const departmentSchema = z.object({ id: z.number(), code: z._default(z.string(), '') })
+
+const departmentsQuery = queryOptions({
+  queryKey: ['departments', 'all'] as const,
+  queryFn: async () => z.array(departmentSchema).parse(await authApi.get('departments/all/').json())
+})
+
+/** Shipping is a department of its own, with its own priorities (`client-questions.md` 7). */
+export const shippingDepartmentQuery = queryOptions({
+  ...departmentsQuery,
+  select: departments => departments.find(department => department.code === 'shipping') ?? null
+})
+
+const prioritySchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  color: z._default(z.nullable(z.string()), null),
+  position: z._default(z.nullable(z.number()), null)
+})
+
+export type Priority = z.infer<typeof prioritySchema>
+
+/** The priorities to pick from in Shipping, Hierarchy 1 on top. Same key as the boards'. */
+export const prioritiesQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: ['priorities', 'department', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(prioritySchema)
+        .parse(
+          await authApi
+            .get('priorities/', { searchParams: { department: departmentId ?? 0 } })
+            .json()
+        ),
+    select: (priorities: Priority[]) =>
+      priorities.toSorted(
+        (a, b) => (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
+      )
+  })
+
+type UnscheduledPages = InfiniteData<z.infer<typeof unscheduledPageSchema>>
+
+const patchUnscheduled = (
+  client: QueryClient,
+  order: string,
+  patch: (row: UnscheduledOrder) => UnscheduledOrder
+) =>
+  client.setQueriesData<UnscheduledPages>(
+    { queryKey: [...shippingKeys.all, 'unscheduled'] },
+    data =>
+      data && {
+        ...data,
+        pages: data.pages.map(page => ({
+          ...page,
+          results: page.results.map(row => (row.order === order ? patch(row) : row))
+        }))
+      }
+  )
+
+/**
+ * An order's priority in Shipping. It shows the moment it is picked and snaps back if refused; an
+ * order the app has no sales order for gets one first. `scope` keeps one order's picks in order.
+ */
+export const useSetShippingPriority = (order: string) =>
+  useMutation({
+    meta: { errorTitle: 'The priority was not saved' },
+    scope: { id: `shipping-priority:${order}` },
+    mutationFn: async (input: { departmentId: number; priority: Priority | null }, { client }) => {
+      // Read now, not when clicked: a pick queued behind the one that made the sales order uses it.
+      let id = client
+        .getQueriesData<UnscheduledPages>({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+        .flatMap(([, data]) => data?.pages.flatMap(page => page.results) ?? [])
+        .find(row => row.order === order)?.sales_order_id
+      if (!id) {
+        id = z
+          .object({ id: z.number() })
+          .parse(await authApi.post('sales-orders/', { json: { order } }).json()).id
+        const created = id
+        patchUnscheduled(client, order, row => ({ ...row, sales_order_id: created }))
+      }
+      return authApi
+        .patch(`sales-orders/${id}/departments/${input.departmentId}/`, {
+          json: { priority: input.priority?.id ?? null }
+        })
+        .json()
+    },
+    onMutate: async ({ priority }, { client }) => {
+      await client.cancelQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+      patchUnscheduled(client, order, row => ({
+        ...row,
+        priority: priority && { id: priority.id, name: priority.name }
+      }))
+    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
   })

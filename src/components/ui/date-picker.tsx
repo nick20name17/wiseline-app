@@ -13,6 +13,8 @@ interface DatePickerProps {
   onChange: (date: Date) => void
   format?: (date: Date) => string
   className?: string
+  /** Days the calendar reads red: ones that need attention, such as late shipments. */
+  flagged?: Date[]
 }
 
 const defaultFormat = (date: Date) => date.toLocaleDateString()
@@ -23,7 +25,8 @@ export const DatePicker = ({
   endMonth,
   onChange,
   format = defaultFormat,
-  className
+  className,
+  flagged = []
 }: DatePickerProps) => {
   const [open, setOpen] = useState(false)
 
@@ -45,6 +48,10 @@ export const DatePicker = ({
           defaultMonth={value}
           endMonth={endMonth}
           captionLayout='dropdown'
+          modifiers={{ flagged }}
+          modifiersClassNames={{
+            flagged: '[&>button]:bg-destructive/10 [&>button]:text-destructive'
+          }}
           onSelect={next => {
             if (!next) return
             onChange(next)

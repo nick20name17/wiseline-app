@@ -124,6 +124,33 @@ test('a line gets a Supplier and a Coil Number picked from its coil’s lots', a
   ])
 })
 
+test('a line goes to the Slit Line with the Supplier chosen for it', async ({ page }) => {
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('button', { name: /^All Scheduled Orders/ }).click()
+  await page
+    .getByRole('row', { name: /330615/ })
+    .getByRole('button')
+    .first()
+    .click()
+  await page.getByRole('checkbox', { name: 'Select TED8250' }).click()
+  await page.getByRole('button', { name: 'Send to the Slit Line' }).click()
+
+  // The Slit Line fills in the Coil Number left blank (round 8 answers, B4).
+  const dialog = page.getByRole('dialog', { name: 'Send to the Slit Line' })
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'COLSTE' }).click()
+  await dialog.getByRole('button', { name: 'Create' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(posted).toEqual([
+    {
+      path: 'slit-line/request/',
+      body: { origin_items: ['102'], supplier: 'COLSTE', coil_number: null }
+    }
+  ])
+})
+
 test('a line waiting for the Slit Line reads waiting and is taken back off it', async ({
   page
 }) => {

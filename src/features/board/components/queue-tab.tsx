@@ -36,7 +36,7 @@ import {
 import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
 import { CoilLock } from './coil-lock'
-import { PriorityPill } from './priority-pill'
+import { PriorityPill } from '@/components/priority-pill'
 
 const COLUMNS = 11
 

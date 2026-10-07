@@ -21,9 +21,14 @@ import { routeUrl } from '../lib/format'
 // Once the truck has left, the run is the Driver's and the order is history.
 const ON_THE_ROAD = new Set(['en_route', 'delivered', 'completed'])
 
+/** A customer's stop: saved once the route is planned, so it has an id to drag by. */
+type Delivery = Stop & { route_id: number }
+
+const isDelivery = (stop: Stop): stop is Delivery => !stop.dispatch_point && stop.route_id !== null
+
 const place = (stop: Stop) => [stop.address, stop.city].filter(Boolean).join(', ') || '—'
 
-type StopRowProps = { stop: Stop; number: number; locked: boolean }
+type StopRowProps = { stop: Delivery; number: number; locked: boolean }
 
 const StopRow = ({ stop, number, locked }: StopRowProps) => {
   const {
@@ -77,17 +82,20 @@ export const LoadRoute = ({ load }: { load: Load }) => {
   const reorder = useReorderRoute()
   const sensors = useDragSensors()
   // The order a drop left, held until the save settles so the rows do not flash back first.
-  const [dropped, setDropped] = useState<Stop[] | null>(null)
+  const [dropped, setDropped] = useState<Delivery[] | null>(null)
   const locked = ON_THE_ROAD.has(load.status ?? '')
 
   if (isPending) return <Skeleton className='h-16' />
 
   const all = stops ?? []
+  // The warehouse comes first whether or not the route was planned — unsaved until it is, and never
+  // dragged: the run starts there.
   const start = all.filter(stop => stop.dispatch_point)
-  const deliveries = dropped ?? all.filter(stop => !stop.dispatch_point)
+  const deliveries = dropped ?? all.filter(isDelivery)
+  const planned = all.some(stop => stop.route_id !== null)
   // A route planned before orders came on or off the Load no longer covers them.
   const ordersOnLoad = load.orders.filter(order => order.kind === 'delivery').length
-  const stale = all.length > 0 && deliveries.length !== ordersOnLoad
+  const stale = planned && deliveries.length !== ordersOnLoad
   const map = routeUrl([...start, ...deliveries])
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
@@ -129,16 +137,16 @@ export const LoadRoute = ({ load }: { load: Load }) => {
           ) : null}
           {locked ? null : (
             <Button
-              variant={all.length ? 'outline' : 'default'}
+              variant={planned ? 'outline' : 'default'}
               disabled={plan.isPending}
-              onClick={() => plan.mutate({ loadId: load.load_id, rebuild: all.length > 0 })}
+              onClick={() => plan.mutate({ loadId: load.load_id, rebuild: planned })}
             >
               {plan.isPending ? (
                 <Spinner data-icon='inline-start' />
               ) : (
                 <RefreshCw data-icon='inline-start' />
               )}
-              {all.length ? 'Rebuild route' : 'Plan route'}
+              {planned ? 'Rebuild route' : 'Plan route'}
             </Button>
           )}
         </span>
@@ -148,7 +156,7 @@ export const LoadRoute = ({ load }: { load: Load }) => {
         <ol>
           {start.map(stop => (
             <li
-              key={stop.route_id}
+              key={stop.route_id ?? 'warehouse'}
               className='flex items-center gap-3 border-t border-border px-3 py-2 text-sm text-muted-foreground'
             >
               <Warehouse className='size-3.5' />

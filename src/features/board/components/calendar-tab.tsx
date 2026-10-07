@@ -17,7 +17,7 @@ import {
 } from '../api'
 import { dayLoadHint } from '../lib/format'
 import { partDays, partState } from '../lib/parts'
-import { PriorityPill } from './priority-pill'
+import { PriorityPill } from '@/components/priority-pill'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 

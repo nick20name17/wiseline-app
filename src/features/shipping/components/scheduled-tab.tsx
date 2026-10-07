@@ -1,4 +1,5 @@
 import { QueryError } from '@/components/query-error'
+import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatLongDate } from '@/lib/days'
@@ -70,7 +71,7 @@ export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
-      <DayPicker day={day} onDayChange={onDayChange} />
+      <DayPicker day={day} onDayChange={onDayChange} markOverdue />
 
       {isError && !cards ? (
         <QueryError title='The trucks did not load' error={error} onRetry={() => void refetch()} />
@@ -107,7 +108,11 @@ export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
                   open === card.truck_id || '-rotate-90'
                 )}
               />
-              <span className='font-medium'>Truck {card.name}</span>
+              <span className={cn('font-medium', card.is_overdue && 'text-destructive')}>
+                Truck {card.name}
+              </span>
+              {/* A truck holding an order past its ship date p3 (593,606). */}
+              {card.is_overdue ? <Badge variant='destructive'>Overdue</Badge> : null}
               <span className='text-sm text-muted-foreground'>
                 Limit {formatWeight(card.weight_limit)}
               </span>

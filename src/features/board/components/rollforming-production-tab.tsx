@@ -28,7 +28,7 @@ import { coilNumbersOf, productionParts, runsOffCoil, sourceOf } from '../lib/ro
 import { itemStatus, orderStatus } from '../lib/status'
 import { CoilLock } from './coil-lock'
 import { CurrentCoil } from './current-coil'
-import { PriorityPill } from './priority-pill'
+import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from './status-pill'
 
 const COLUMNS = 13

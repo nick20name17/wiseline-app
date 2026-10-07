@@ -15,7 +15,7 @@ import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { packagingQuery, prioritiesQuery, wrappingRowsQuery, type PackagingOrder } from '../api'
 import { orderStatus } from '../lib/status'
-import { PriorityPill } from './priority-pill'
+import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from './status-pill'
 import { WrapOrder } from './wrap-order'
 

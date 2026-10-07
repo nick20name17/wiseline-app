@@ -15,7 +15,7 @@ import { completeBlocker, type CutlistGroup } from '../lib/cutlists'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from './confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
-import { PriorityPill } from './priority-pill'
+import { PriorityPill } from '@/components/priority-pill'
 import { RemakePill } from './reman-badge'
 
 type CutlistCardProps = {

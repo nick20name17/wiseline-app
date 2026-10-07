@@ -1,5 +1,7 @@
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { OrderNoteDialog } from '@/components/order-note-dialog'
+import { PriorityPill } from '@/components/priority-pill'
+import { PrioritySelect } from '@/components/priority-select'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -23,16 +25,19 @@ import { Fragment, useState } from 'react'
 import { toast } from '@/components/ui/toast'
 import {
   UNSCHEDULED_PAGE,
-  orderNotesQuery,
+  notesOf,
   orderPackagesQuery,
+  prioritiesQuery,
+  shippingDepartmentQuery,
   unscheduledQuery,
   useSetOrderNoteRead,
+  useSetShippingPriority,
   type UnscheduledOrder
 } from '../api'
 import { formatLength, formatWeight, mapUrl } from '../lib/format'
 import { ScheduleDialog } from './schedule-dialog'
 
-const COLUMNS = 13
+const COLUMNS = 14
 
 /** What an expanded order holds for Shipping: its packages, where they stand and what they weigh. */
 const OrderPackages = ({ order }: { order: string }) => {
@@ -50,6 +55,29 @@ const OrderPackages = ({ order }: { order: string }) => {
         </li>
       ))}
     </ul>
+  )
+}
+
+type PriorityCellProps = { order: UnscheduledOrder; departmentId: number | undefined }
+
+/** The order's priority in Shipping, set without losing the ticks p3 (560,202). */
+const PriorityCell = ({ order, departmentId }: PriorityCellProps) => {
+  const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const mutation = useSetShippingPriority(order.order)
+  // The row carries no colour; the department's list does.
+  const current = order.priority && {
+    ...order.priority,
+    color: priorities?.find(priority => priority.id === order.priority?.id)?.color ?? null
+  }
+
+  if (departmentId === undefined) return <PriorityPill priority={current} />
+
+  return (
+    <PrioritySelect
+      priorities={priorities}
+      current={current}
+      onChange={priority => mutation.mutate({ departmentId, priority })}
+    />
   )
 }
 
@@ -81,11 +109,11 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
   const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
   const orders = data?.pages.flatMap(page => page.results) ?? []
   const picked = [...selected.values()]
-  // The salesman's notes, checked off here as on the boards p3 (592,338).
-  const { data: notes } = useQuery(orderNotesQuery(orders.map(order => order.order)))
+  const { data: department } = useQuery(shippingDepartmentQuery)
+  // The salesman's notes come on the rows, checked off here as on the boards p3 (592,338).
+  const notes = notesOf(orders)
   const setRead = useSetOrderNoteRead()
-  const noteState = (order: string): NoteState => {
-    const note = notes?.[order]
+  const noteState = ({ note }: UnscheduledOrder): NoteState => {
     if (!note?.has_note) return 'none'
     return note.read ? 'read' : 'unread'
   }
@@ -135,8 +163,8 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns take 1320px; the floor leaves the Customer room to read. */}
-          <Table className='min-w-380 table-fixed'>
+          {/* The fixed columns take 1464px; the floor leaves the Customer room to read. */}
+          <Table className='min-w-420 table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />
@@ -150,6 +178,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
               <col className='w-28' />
               <col className='w-36' />
               <col className='w-24' />
+              <col className='w-36' />
               <col className='w-20' />
             </colgroup>
             <TableHeader>
@@ -166,6 +195,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                 <TableHead>Weight</TableHead>
                 <TableHead>Longest Length</TableHead>
                 <TableHead>Ship Via</TableHead>
+                <TableHead>Priority</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
@@ -210,7 +240,15 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                           </Button>
                         </TableCell>
                         <TableCell>{formatDate(order.entry_date)}</TableCell>
-                        <TableCell>{formatDate(order.ship_date)}</TableCell>
+                        <TableCell>
+                          {/* Past its ship date and not delivered p3 (605,628). */}
+                          <span
+                            className={cn(order.is_overdue && 'font-medium text-destructive')}
+                            title={order.is_overdue ? 'Overdue' : undefined}
+                          >
+                            {formatDate(order.ship_date)}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <span className='font-mono font-medium'>
                             {order.order_number ?? order.order}
@@ -255,8 +293,11 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                         </TableCell>
                         <TableCell>{order.ship_via ?? '—'}</TableCell>
                         <TableCell>
+                          <PriorityCell order={order} departmentId={department?.id} />
+                        </TableCell>
+                        <TableCell>
                           <NoteButton
-                            state={noteState(order.order)}
+                            state={noteState(order)}
                             label={`Order notes for ${name}`}
                             onClick={() => setNoteOrder(order)}
                           />

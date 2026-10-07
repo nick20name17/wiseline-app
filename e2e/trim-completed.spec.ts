@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { mockAuthApi } from './api.ts'
-import { mockTrimApi, signIn } from './trim-api.ts'
+import { capturePrints, mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -47,8 +47,10 @@ test('the order says where it is standing, and its last location stays while pac
 })
 
 test('a package label can be sent to the printer again', async ({ page }) => {
+  const printed = await capturePrints(page)
+  await page.reload()
   await page.getByRole('row').filter({ hasText: '338008' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Reprint' }).click()
 
-  await expect(page.getByText('Reprinted label 01-338008-01')).toBeVisible()
+  await expect.poll(printed).toEqual([expect.stringMatching(/01-338008-01.*Order 338008/)])
 })

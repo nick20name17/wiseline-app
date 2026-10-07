@@ -39,6 +39,8 @@ import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
 import { packageContents, remanTotal } from '../lib/wrapping'
 import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
+import { reprintLabel } from '../lib/package-label'
+import { usePackageLabel } from './use-package-label'
 
 const titleOf = (order: CompletedOrder, isStock: boolean) =>
   `Completed · ${order.order_number ?? order.order}${isStock ? '' : ` · ${order.customer ?? '—'}`}`
@@ -196,6 +198,7 @@ type PackagesSectionProps = {
 /** The packages that carried the order out, each with a label the shop can print again. */
 const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionProps) => {
   const reprint = useReprintPackage()
+  const label = usePackageLabel()
   const viewOnly = useViewOnly()
   const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
@@ -258,11 +261,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
                           title='Reprint this package label'
                           onClick={() =>
                             reprint.mutate(parcel.package_id, {
-                              onSuccess: () =>
-                                toast.add({
-                                  type: 'success',
-                                  title: `Reprinted label ${parcel.name ?? parcel.package_id}`
-                                })
+                              onSuccess: data => label.print(reprintLabel(data, names))
                             })
                           }
                         >
@@ -278,6 +277,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
           </Table>
         </div>
       )}
+      {label.sheet}
     </section>
   )
 }
