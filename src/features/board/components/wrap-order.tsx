@@ -688,7 +688,9 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const { data: department } = useBoardDepartment(useBoard().code)
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   // This department's cells, for the weight already standing on the one the package is going to.
-  const { data: slots } = useQuery(wrappingLocationsQuery(departmentId, order?.order ?? null, true))
+  const { data: slots } = useQuery(
+    wrappingLocationsQuery(departmentId, order?.order ?? null, !!order)
+  )
   const move = useMoveOrderPackages()
   const viewOnly = useViewOnly()
 

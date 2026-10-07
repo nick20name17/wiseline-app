@@ -1062,7 +1062,7 @@ export const useReleaseOrders = (
           const refused = releaseFailureSchema.safeParse(
             (error.data as { detail?: unknown } | undefined)?.detail
           )
-          if (refused.success)
+          if (refused.success && refused.data.failed.length)
             error.message = refused.data.failed
               .map(({ order, reason }) => `${order}: ${reason}`)
               .join('; ')
