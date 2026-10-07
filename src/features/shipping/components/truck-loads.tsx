@@ -7,6 +7,7 @@ import { formatLongDate } from '@/lib/days'
 import { toggled } from '@/lib/sets'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
 import { ArrowRight, CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -138,8 +139,12 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
             <div className='px-3'>
               <TabsList variant='line'>
                 {loads.map(load => (
-                  <TabsTrigger key={tabKey(load)} value={tabKey(load)}>
-                    {load.name}
+                  <TabsTrigger
+                    key={tabKey(load)}
+                    value={tabKey(load)}
+                    title={load.is_overdue ? 'Overdue' : undefined}
+                  >
+                    <span className={cn(load.is_overdue && 'text-destructive')}>{load.name}</span>
                     <span className='ml-1 font-mono text-xs text-muted-foreground'>
                       {formatWeight(load.weight)}
                     </span>

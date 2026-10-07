@@ -664,7 +664,18 @@ export const mockTrimApi = async (page: Page) => {
   await page.route(`${API_URL}/departments/${DEPARTMENT.id}/completed-orders/?*`, route =>
     route.fulfill({ json: COMPLETED })
   )
-  await page.route(`${API_URL}/packages/*/reprint/`, route => route.fulfill({ json: {} }))
+  await page.route(`${API_URL}/packages/*/reprint/`, route =>
+    route.fulfill({
+      json: {
+        package_id: 71,
+        name: '01-338008-01',
+        order_number: '338008',
+        location: '101',
+        weight: 120,
+        contents: [{ origin_item: '901', quantity: 36 }]
+      }
+    })
+  )
   await page.route(`${API_URL}/remanufacturings/request/`, route =>
     route.fulfill({ json: { id: 5, order: 'ARINV-2', origin_item: '902' } })
   )
@@ -768,6 +779,21 @@ export const mockTrimApi = async (page: Page) => {
     const start = url.searchParams.get('start') ?? '2024-05-08'
     void route.fulfill({ json: dayStrip(start, Number(url.searchParams.get('days') ?? 5)) })
   })
+}
+
+/**
+ * What each `window.print()` had on its label sheet. The browser's dialog is stubbed out, and the sheet
+ * comes down right after it, so the text is read as print is called.
+ */
+export const capturePrints = async (page: Page) => {
+  await page.addInitScript(() => {
+    const printed: string[] = []
+    Object.assign(window, { printed })
+    window.print = () => {
+      printed.push(document.querySelector('[data-print-report]')?.textContent ?? '')
+    }
+  })
+  return () => page.evaluate(() => (window as unknown as { printed: string[] }).printed)
 }
 
 export const signIn = async (page: Page) => {

@@ -1,6 +1,5 @@
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
-import type { Priority } from '../api'
 
 /**
  * The priority's own colour tints the pill, so a row is read by colour before it is read by word. The
@@ -8,8 +7,11 @@ import type { Priority } from '../api'
  */
 const wash = (color: string) => `color-mix(in oklch, ${color} 16%, transparent)`
 
+/** What a pill needs of a priority; a Shipping row carries no colour. */
+export type PillPriority = { name: string; color?: string | null }
+
 type PriorityPillProps = {
-  priority: Priority | null
+  priority: PillPriority | null
   className?: string
 }
 

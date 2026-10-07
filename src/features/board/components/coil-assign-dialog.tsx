@@ -31,6 +31,7 @@ import {
   departmentCoilLotsQuery,
   useAssignCoil,
   useMarkSlit,
+  useSlitRequest,
   type BoardLineItem
 } from '../api'
 
@@ -38,10 +39,23 @@ import {
 const UNDEFINED = 'undefined'
 
 /**
- * The same choice made twice over: the Manager assigning a coil to roll from p2 (563,488), and the Slit
- * Line recording the coil it slit from p2 (1086,349).
+ * The same choice made three times over: the Manager assigning a coil to roll from p2 (563,488), the
+ * Manager sending lines to the Slit Line with the coil chosen for them p2 (586,558), and the Slit Line
+ * recording the coil it slit from p2 (1086,349).
  */
-type CoilAction = 'assign' | 'slit'
+type CoilAction = 'assign' | 'request' | 'slit'
+
+const SUBMIT: Record<CoilAction, string> = {
+  assign: 'Assign',
+  request: 'Create',
+  slit: 'Mark slit'
+}
+
+const TITLE: Record<CoilAction, string> = {
+  assign: 'Select Supplier / Coil Number',
+  request: 'Send to the Slit Line',
+  slit: 'Mark slit'
+}
 
 /** A line the coil is for, named the way the dialog prints it. */
 export type CoilLine = Pick<BoardLineItem, 'id' | 'id_inven'>
@@ -79,22 +93,22 @@ const CoilAssignForm = ({ lines, action, departmentId, onDone }: CoilAssignFormP
   const [coil, setCoil] = useState<string | null>(null)
   const { data: lots, isPending: lotsPending } = useQuery(coilNumbersQuery(coil))
   const assign = useAssignCoil()
+  const request = useSlitRequest()
   const markSlit = useMarkSlit()
-  const save = action === 'slit' ? markSlit : assign
+  const pending = assign.isPending || request.isPending || markSlit.isPending
 
   return (
     <form
       noValidate
       onSubmit={event => {
         event.preventDefault()
-        save.mutate(
-          {
-            originItems: lines.map(line => line.id),
-            supplier,
-            coilNumber: supplier && coilNumber.trim() ? coilNumber.trim() : null
-          },
-          { onSuccess: onDone }
-        )
+        const choice = {
+          originItems: lines.map(line => line.id),
+          supplier,
+          coilNumber: supplier && coilNumber.trim() ? coilNumber.trim() : null
+        }
+        if (action === 'request') request.mutate({ ...choice, slit: true }, { onSuccess: onDone })
+        else (action === 'slit' ? markSlit : assign).mutate(choice, { onSuccess: onDone })
       }}
     >
       <FieldGroup>
@@ -231,9 +245,9 @@ const CoilAssignForm = ({ lines, action, departmentId, onDone }: CoilAssignFormP
 
       <div className='mt-6 flex justify-end gap-2'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
-        <Button type='submit' disabled={save.isPending}>
-          {save.isPending ? <Spinner data-icon='inline-start' /> : null}
-          {action === 'slit' ? 'Mark slit' : 'Assign'}
+        <Button type='submit' disabled={pending}>
+          {pending ? <Spinner data-icon='inline-start' /> : null}
+          {SUBMIT[action]}
         </Button>
       </div>
     </form>
@@ -251,7 +265,8 @@ type CoilAssignDialogProps = {
 
 /**
  * «Select Supplier / Coil Number» p2 (563,488): leave both Undefined, name a Supplier only, or a
- * Supplier and a Coil Number — a Coil Number only under a Supplier.
+ * Supplier and a Coil Number — a Coil Number only under a Supplier. Sent to the Slit Line, Undefined
+ * reads «waiting...» until the Slit Line fills it in.
  */
 export const CoilAssignDialog = ({
   lines,
@@ -264,9 +279,7 @@ export const CoilAssignDialog = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className='sm:max-w-2xl'>
       <DialogHeader>
-        <DialogTitle>
-          {action === 'slit' ? 'Mark slit' : 'Select Supplier / Coil Number'}
-        </DialogTitle>
+        <DialogTitle>{TITLE[action]}</DialogTitle>
         <DialogDescription>
           {lines.length} line{lines.length === 1 ? '' : 's'} of {lines[0]?.id_inven ?? '—'}
         </DialogDescription>

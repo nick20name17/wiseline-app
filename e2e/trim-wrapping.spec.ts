@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { WRAPPING_ROWS, mockTrimApi, signIn } from './trim-api.ts'
+import { WRAPPING_ROWS, capturePrints, mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -74,6 +74,9 @@ test('Select location waits for an amount, and the order starts where it already
 test('a package over the location limit is printed only once the Worker says so', async ({
   page
 }) => {
+  const printed = await capturePrints(page)
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
   const sent: Record<string, unknown>[] = []
   await page.route(`${API_URL}/wrapping/packages/`, route => {
     sent.push(route.request().postDataJSON() as Record<string, unknown>)
@@ -90,7 +93,9 @@ test('a package over the location limit is printed only once the Worker says so'
   await page.getByRole('button', { name: 'Yes, Create & Print' }).click()
 
   await expect.poll(() => sent[0]?.override_weight).toBe(true)
-  await expect(page.getByText('Printed label 01-330608-01 · 36 pcs → 101')).toBeVisible()
+  await expect(page.getByText('Created 01-330608-01 · 36 pcs → 101')).toBeVisible()
+  // The label is the browser's to print (round 8 answers, B6).
+  await expect.poll(printed).toEqual([expect.stringMatching(/01-330608-01.*Location 101.*36/)])
 })
 
 test('the last location of an order with packages cannot be taken off', async ({ page }) => {
@@ -155,6 +160,7 @@ test('Order complete is held until nothing is left to wrap', async ({ page }) =>
 })
 
 test('See packages reprints a lost label', async ({ page }) => {
+  const printed = await capturePrints(page)
   const reprinted: string[] = []
   await page.route(`${API_URL}/wrapping/orders/*/packages/`, route =>
     route.fulfill({
@@ -172,7 +178,17 @@ test('See packages reprints a lost label', async ({ page }) => {
   )
   await page.route(`${API_URL}/packages/*/reprint/`, route => {
     reprinted.push(new URL(route.request().url()).pathname)
-    return route.fulfill({ json: {} })
+    // Moved since it was packed: the label says where it stands now.
+    return route.fulfill({
+      json: {
+        package_id: 71,
+        name: '01-330608-01',
+        order_number: '330608',
+        location: '102',
+        weight: 110,
+        contents: [{ origin_item: '901', quantity: 10 }]
+      }
+    })
   })
   // Ten of the line are already wrapped, so there is a package to see.
   await page.route(`${API_URL}/wrapping/?*`, route =>
@@ -190,6 +206,7 @@ test('See packages reprints a lost label', async ({ page }) => {
   await page.getByRole('button', { name: 'Reprint label 01-330608-01' }).click()
 
   await expect.poll(() => reprinted).toEqual(['/packages/71/reprint/'])
+  await expect.poll(printed).toEqual([expect.stringMatching(/01-330608-01.*Location 102/)])
 })
 
 test('a damaged piece is replaced from stock at the bench, on the keypad', async ({ page }) => {

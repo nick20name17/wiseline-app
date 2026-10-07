@@ -133,6 +133,13 @@ export const ScheduledLineItems = ({
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [assigning, setAssigning] = useState(false)
+  // Assign rolls the lines off a coil; request sends them to the Slit Line with the coil chosen. Kept
+  // apart from `assigning` so the closing dialog keeps its title.
+  const [coilAction, setCoilAction] = useState<'assign' | 'request'>('assign')
+  const chooseCoil = (action: 'assign' | 'request') => {
+    setCoilAction(action)
+    setAssigning(true)
+  }
   const [seeing, setSeeing] = useState(false)
 
   // A stock order is what puts trims on the shelf, so it has nothing to take from it.
@@ -189,7 +196,7 @@ export const ScheduledLineItems = ({
                 variant='outline'
                 className='ml-auto'
                 disabled={!pickedLines.length}
-                onClick={() => setAssigning(true)}
+                onClick={() => chooseCoil('assign')}
               >
                 <Cylinder data-icon='inline-start' />
                 Select Supplier / Coil Number{pickedLines.length ? ` (${pickedLines.length})` : ''}
@@ -198,14 +205,14 @@ export const ScheduledLineItems = ({
                 variant='outline'
                 disabled={!pickedLines.length || slit.isPending}
                 onClick={() =>
-                  slit.mutate(
-                    {
-                      originItems: pickedLines.map(item => item.id),
-                      // All of them already waiting takes them back; anything else sends them.
-                      slit: pickedWaiting.length !== pickedLines.length
-                    },
-                    { onSuccess: () => setPicked(new Set()) }
-                  )
+                  // All of them already waiting takes them back; anything else asks for the coil
+                  // first p2 (586,558).
+                  pickedWaiting.length === pickedLines.length
+                    ? slit.mutate(
+                        { originItems: pickedLines.map(item => item.id), slit: false },
+                        { onSuccess: () => setPicked(new Set()) }
+                      )
+                    : chooseCoil('request')
                 }
               >
                 <Scissors data-icon='inline-start' />
@@ -554,7 +561,7 @@ export const ScheduledLineItems = ({
       {board.coils ? (
         <CoilAssignDialog
           lines={pickedLines}
-          action='assign'
+          action={coilAction}
           departmentId={departmentId}
           open={assigning}
           onOpenChange={setAssigning}
