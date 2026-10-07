@@ -38,7 +38,8 @@ const NAV_GROUPS = [
   }
 ] as const
 
-export const AppSidebar = () => {
+/** `hidden` names the pages this user may not open, so their links are not offered. */
+export const AppSidebar = ({ hidden }: { hidden: ReadonlySet<string> }) => {
   const matchRoute = useMatchRoute()
 
   return (
@@ -65,19 +66,21 @@ export const AppSidebar = () => {
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map(item => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      // Fuzzy, so Settings stays lit on its sub-pages.
-                      isActive={!!matchRoute({ to: item.to, fuzzy: true })}
-                      tooltip={item.label}
-                      render={<Link to={item.to} />}
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {group.items
+                  .filter(item => !hidden.has(item.to))
+                  .map(item => (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuButton
+                        // Fuzzy, so Settings stays lit on its sub-pages.
+                        isActive={!!matchRoute({ to: item.to, fuzzy: true })}
+                        tooltip={item.label}
+                        render={<Link to={item.to} />}
+                      >
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

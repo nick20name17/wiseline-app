@@ -1,6 +1,13 @@
-import { DriverPage, daySearchSchema } from '@/features/shipping'
+import { meQuery } from '@/features/auth'
+import {
+  DriverPage,
+  daySearchSchema,
+  shippingFallback,
+  shippingPages,
+  shippingRoleQuery
+} from '@/features/shipping'
 import { today } from '@/lib/days'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 const DriverRoute = () => {
   const { day } = Route.useSearch()
@@ -16,6 +23,12 @@ const DriverRoute = () => {
 
 export const Route = createFileRoute('/_app/driver')({
   staticData: { crumb: 'Driver' },
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQuery)
+    const role = await context.queryClient.ensureQueryData(shippingRoleQuery(me))
+    if (!shippingPages(me.role, role).driver)
+      throw redirect({ to: shippingFallback(me.role, role), replace: true })
+  },
   validateSearch: daySearchSchema,
   component: DriverRoute
 })

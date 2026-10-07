@@ -418,6 +418,26 @@ test('Production lists the orders released to the machine, a row per day', async
   await expect(page.getByRole('row', { name: /330608/ })).toBeHidden()
 })
 
+test('a Stock line on Production names no coil and no Supplier', async ({ page }) => {
+  await serveOrders(
+    page,
+    onRollFormer(line =>
+      line.id === '102'
+        ? { is_released: true, status: 'stock', supplier: 'COLSTE', coil_icon: 'coil' }
+        : {}
+    )
+  )
+  await page.goto('/rollforming?view=production')
+  await signIn(page)
+
+  await page.getByRole('button', { name: 'Expand 330615' }).click()
+  const line = page.getByRole('row', { name: /^16 TED8250/ })
+  await expect(line).toContainText('Stock')
+  await expect(line).not.toContainText('COLSTE')
+  await expect(line).not.toContainText('Undefined')
+  await expect(line.getByLabel('From a coil')).toBeHidden()
+})
+
 test('a line with no coil yet cannot be packed, and says why', async ({ page }) => {
   await page.route(`${API_URL}/wrapping/*`, route =>
     route.fulfill({

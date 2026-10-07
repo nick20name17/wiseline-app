@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import { API_URL, mockAuthApi } from './api.ts'
+import { API_URL, mockAuthApi, user } from './api.ts'
 import { mockTrimApi, signIn } from './trim-api.ts'
 
 const DAY = '2026-09-30'
+const SHIPPING = { id: 4, name: 'Shipping', code: 'shipping' }
 
 // One truck, one Load, one order, one package: the server moves the statuses, the mock mirrors it.
 const mockLoad = async (page: Page, start: string) => {
@@ -73,6 +74,13 @@ const mockLoad = async (page: Page, start: string) => {
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
   await mockTrimApi(page)
+  // Shipping, Loading and the Driver page open only to a Shipping Manager.
+  await page.route(`${API_URL}/departments/all/`, route =>
+    route.fulfill({ json: [{ id: 1, name: 'Trim', code: 'trim' }, SHIPPING] })
+  )
+  await page.route(`${API_URL}/departments/users/assignments/*`, route =>
+    route.fulfill({ json: [{ user: user.id, department: SHIPPING.id, role: 'manager' }] })
+  )
 })
 
 test('Loading ticks a package onto the truck and the Load reads Loaded', async ({ page }) => {
@@ -162,12 +170,8 @@ test('an unscheduled order opens on its packages, and its note is checked off wi
 test('an unscheduled order takes a Shipping priority, its sales order made first', async ({
   page
 }) => {
-  const SHIPPING = { id: 4, name: 'Shipping', code: 'shipping' }
   let priority: { id: number; name: string } | null = null
   const sent: { method: string; path: string; body: unknown }[] = []
-  await page.route(`${API_URL}/departments/all/`, route =>
-    route.fulfill({ json: [{ id: 1, name: 'Trim', code: 'trim' }, SHIPPING] })
-  )
   await page.route(`${API_URL}/priorities/?*`, route =>
     route.fulfill({
       json: [

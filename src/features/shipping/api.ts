@@ -7,6 +7,7 @@ import {
   useMutation,
   type QueryClient
 } from '@tanstack/react-query'
+import { departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 const shippingKeys = {
@@ -545,6 +546,43 @@ const departmentsQuery = queryOptions({
   queryKey: ['departments', 'all'] as const,
   queryFn: async () => z.array(departmentSchema).parse(await authApi.get('departments/all/').json())
 })
+
+/** The user's role inside one department. Same key as the boards', so they share the answer. */
+const departmentRoleQuery = (userId: number, departmentId: number) =>
+  queryOptions({
+    queryKey: ['departments', 'role', userId, departmentId] as const,
+    queryFn: async () =>
+      z
+        .array(z.object({ user: z.number(), department: z.number(), role: z.string() }))
+        .parse(
+          await authApi
+            .get('departments/users/assignments/', {
+              searchParams: { user_id: userId, department_id: departmentId }
+            })
+            .json()
+        )
+        .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
+/**
+ * The user's role in the Shipping department: `manager`, `worker`, `viewer`, or `null` for none. The
+ * sidebar and the guards on Shipping's windows share it. `fetchQuery`, not `ensureQueryData`, so an
+ * assignment invalidated in Settings is asked again rather than read stale; the inner reads leave
+ * retrying to this query, or each of its retries would retry them again.
+ */
+export const shippingRoleQuery = (user: { id: number; role: string }) =>
+  queryOptions({
+    queryKey: ['departments', 'shipping-role', user.id, user.role] as const,
+    queryFn: async ({ client }) => {
+      const shipping = (await client.fetchQuery({ ...departmentsQuery, retry: false })).find(
+        department => department.code === 'shipping'
+      )
+      const assigned = shipping
+        ? await client.fetchQuery({ ...departmentRoleQuery(user.id, shipping.id), retry: false })
+        : null
+      return departmentRole(user.role, assigned)
+    }
+  })
 
 /** Shipping is a department of its own, with its own priorities (`client-questions.md` 7). */
 export const shippingDepartmentQuery = queryOptions({

@@ -38,6 +38,7 @@ import {
   stagedQuantity,
   wrapAllowed,
   lineName,
+  type CellRoom,
   type ShownLocation
 } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -385,7 +386,7 @@ type PackageWeightProps = {
   overPackage: boolean
   /** The package would push the location it is going to past its own Max Weight. */
   overLocation: boolean
-  slot: LocationSlot | null
+  slot: CellRoom | null
 }
 
 /**
@@ -415,7 +416,7 @@ const PackageWeight = ({ weight, limit, overPackage, overLocation, slot }: Packa
 )
 
 /** What the location still holds, or by how much it is already past its limit. */
-const LocationRoom = ({ slot, max, over }: { slot: LocationSlot; max: number; over: boolean }) => {
+const LocationRoom = ({ slot, max, over }: { slot: CellRoom; max: number; over: boolean }) => {
   const room = slot.remaining_weight ?? max
   const name = slot.name ?? slot.location_id
   return (

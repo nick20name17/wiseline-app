@@ -14,7 +14,9 @@ import { useQuery } from '@tanstack/react-query'
 import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { packagingQuery, prioritiesQuery, wrappingRowsQuery, type PackagingOrder } from '../api'
+import { matchesSearch } from '../lib/search'
 import { orderStatus } from '../lib/status'
+import { matchesWrapSearch } from '../lib/wrapping'
 import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from './status-pill'
 import { WrapOrder } from './wrap-order'
@@ -26,6 +28,7 @@ const isOverdue = (order: PackagingOrder) =>
   !!order.prep_date && order.prep_date < today() && order.status !== 'packaged'
 
 type PackagingTabProps = {
+  search: string | undefined
   departmentId: number
 }
 
@@ -33,7 +36,7 @@ type PackagingTabProps = {
  * The scheduled orders, one list, the days apart — «A Worker should not need to select days of the
  * week» p3 (1249,187). An order leads into its bench, where its accessories are packaged.
  */
-export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
+export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
   const [opened, setOpened] = useState<string | null>(null)
   const {
     data: orders,
@@ -54,10 +57,16 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
 
   // A completed order has left for Completed Orders p3 (1263,354).
   // An order without a Prep Date is not scheduled, whatever the list says.
+  const open = (orders ?? []).filter(
+    (order): order is PackagingOrder & { prep_date: string } =>
+      !!order.prep_date && order.status !== 'completed'
+  )
+  // An order is found by its own fields or by any of its lines on the bench.
   const days = byDay(
-    (orders ?? []).filter(
-      (order): order is PackagingOrder & { prep_date: string } =>
-        !!order.prep_date && order.status !== 'completed'
+    open.filter(
+      order =>
+        matchesSearch(search, order.order, order.order_number, order.customer) ||
+        rows?.some(row => row.order === order.order && matchesWrapSearch(row, search))
     ),
     order => order.prep_date
   )
@@ -80,8 +89,12 @@ export const PackagingTab = ({ departmentId }: PackagingTabProps) => {
           <EmptyMedia variant='icon'>
             <PackageCheck />
           </EmptyMedia>
-          <EmptyTitle>Nothing to package</EmptyTitle>
-          <EmptyDescription>An order lands here once it has been scheduled.</EmptyDescription>
+          <EmptyTitle>{open.length ? 'No orders match' : 'Nothing to package'}</EmptyTitle>
+          <EmptyDescription>
+            {open.length
+              ? `No order on Packaging matches «${search?.trim()}».`
+              : 'An order lands here once it has been scheduled.'}
+          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

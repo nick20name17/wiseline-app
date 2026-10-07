@@ -180,9 +180,9 @@ export const BoardPage = ({
       ) : view === 'completed' ? (
         <CompletedTab departmentId={departmentId} />
       ) : view === 'packaging' ? (
-        <PackagingTab departmentId={departmentId} />
+        <PackagingTab search={search} departmentId={departmentId} />
       ) : view === 'slit' ? (
-        <SlitLineTab departmentId={departmentId} />
+        <SlitLineTab search={search} departmentId={departmentId} />
       ) : view === 'wrapping' ? (
         // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
         <WrappingTab
