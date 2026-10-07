@@ -1,19 +1,21 @@
 import { today } from '@/lib/days'
+import { matchesSearch } from './search'
 import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
 
 /**
  * The header search on Wrapping. Every released day is listed at once, so the search runs over all of
  * them — a bench looking for an order does not have to know which day it was cut for.
  */
-export const matchesWrapSearch = (row: WrappingRow, search: string | undefined) => {
-  const term = search?.trim().toLowerCase()
-  return (
-    !term ||
-    [row.order, row.order_number, row.product_id, row.customer, row.po, row.description].some(
-      field => field?.toLowerCase().includes(term)
-    )
+export const matchesWrapSearch = (row: WrappingRow, search: string | undefined) =>
+  matchesSearch(
+    search,
+    row.order,
+    row.order_number,
+    row.product_id,
+    row.customer,
+    row.po,
+    row.description
   )
-}
 
 /** Every piece the remakes asked for, back or not. */
 export const remanTotal = (remans: Remanufacturing[]) =>
@@ -59,12 +61,19 @@ export const overPackageLimit = (weight: number | null, limit: number | null) =>
   weight !== null && limit !== null && weight > limit
 
 /** Past its ceiling already, or would be once `adding` more pounds stand on it. */
-export const overWeight = (slot: LocationSlot, adding = 0) =>
+export const overWeight = (slot: Pick<LocationSlot, 'remaining_weight'>, adding = 0) =>
   slot.remaining_weight !== null && adding > slot.remaining_weight
+
+/** A cell's room as the bench needs it: its own list row, or the order's chip for it. */
+export type CellRoom = Pick<
+  LocationSlot,
+  'location_id' | 'name' | 'max_weight' | 'remaining_weight'
+>
 
 /**
  * Where the next package goes: the cell the Worker picked, or else the one the order already
- * stands on. `slot` carries the weight standing there, when this department's list has the cell.
+ * stands on. `slot` carries the weight standing there: from this department's list, or — for another
+ * department's cell, which that list lacks — from the order's own locations.
  */
 export const packageTarget = (
   picked: LocationSlot | null,
@@ -75,8 +84,9 @@ export const packageTarget = (
   const target: { location_id: number; name: string | null } | null = picked ?? current ?? null
   // The picked cell is a snapshot from the moment it was clicked; its room is read fresh, so a
   // package just put there counts against it.
-  const slot =
-    slots?.find(candidate => candidate.location_id === target?.location_id) ?? picked ?? null
+  const fresh = (list: CellRoom[] | undefined) =>
+    list?.find(candidate => candidate.location_id === target?.location_id)
+  const slot: CellRoom | null = fresh(slots) ?? fresh(locations) ?? picked ?? null
   return { target, slot }
 }
 

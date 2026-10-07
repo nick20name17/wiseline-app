@@ -24,7 +24,13 @@ import {
 } from '../api'
 import { useBoard } from '../lib/board-context'
 import { materialsOf, partKey } from '../lib/parts'
-import { coilNumbersOf, productionParts, runsOffCoil, sourceOf } from '../lib/rollforming'
+import {
+  coilNumbersOf,
+  isStockLine,
+  productionParts,
+  runsOffCoil,
+  sourceOf
+} from '../lib/rollforming'
 import { itemStatus, orderStatus } from '../lib/status'
 import { CoilLock } from './coil-lock'
 import { CurrentCoil } from './current-coil'
@@ -91,36 +97,45 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {lines.map(line => (
-            <TableRow key={line.id}>
-              <TableCell>
-                <span className='font-mono'>{line.quantity}</span>
-              </TableCell>
-              <TableCell>
-                <span className='font-mono'>{line.id_inven ?? '—'}</span>
-              </TableCell>
-              <TableCell>
-                <span className='truncate text-muted-foreground'>
-                  {line.item?.description ?? line.description ?? '—'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className='font-mono'>{line.length === null ? '—' : `${line.length}"`}</span>
-              </TableCell>
-              <TableCell>
-                <StatusPill status={itemStatus(line.item?.status ?? null)} />
-              </TableCell>
-              <TableCell>
-                <Coil value={line.item?.supplier ?? null} item={line.item} />
-              </TableCell>
-              <TableCell>
-                <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
-              </TableCell>
-              <TableCell>
-                <Source icon={line.item?.coil_icon ?? null} />
-              </TableCell>
-            </TableRow>
-          ))}
+          {lines.map(line => {
+            const stock = isStockLine(line)
+            return (
+              <TableRow key={line.id}>
+                <TableCell>
+                  <span className='font-mono'>{line.quantity}</span>
+                </TableCell>
+                <TableCell>
+                  <span className='font-mono'>{line.id_inven ?? '—'}</span>
+                </TableCell>
+                <TableCell>
+                  <span className='truncate text-muted-foreground'>
+                    {line.item?.description ?? line.description ?? '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className='font-mono'>
+                    {line.length === null ? '—' : `${line.length}"`}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <StatusPill status={itemStatus(line.item?.status ?? null)} />
+                </TableCell>
+                <TableCell>
+                  {stock ? '—' : <Coil value={line.item?.supplier ?? null} item={line.item} />}
+                </TableCell>
+                <TableCell>
+                  {stock ? (
+                    '—'
+                  ) : (
+                    <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Source icon={stock ? null : (line.item?.coil_icon ?? null)} />
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </div>
@@ -273,7 +288,10 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                         </TableCell>
                         <TableCell>
                           <span className='truncate'>
-                            {materialsOf({ ...order, origin_items: lines }).join(', ') || '—'}
+                            {materialsOf({
+                              ...order,
+                              origin_items: lines
+                            }).join(', ') || '—'}
                           </span>
                         </TableCell>
                         <TableCell>

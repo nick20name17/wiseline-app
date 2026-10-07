@@ -173,6 +173,12 @@ describe('packageTarget', () => {
     // Before the list loads the click is all there is.
     expect(packageTarget(clicked, [], undefined).slot).toBe(clicked)
   })
+
+  it('reads another department’s cell from the order’s own locations', () => {
+    const clicked = { location_id: 36, name: 'B-03', remaining_weight: 2000 } as LocationSlot
+    const own = { location_id: 36, name: 'B-03', remaining_weight: 1866.47 } as OrderLocation
+    expect(packageTarget(clicked, [own], []).slot?.remaining_weight).toBe(1866.47)
+  })
 })
 
 describe('matchesWrapSearch', () => {

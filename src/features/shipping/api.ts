@@ -7,6 +7,7 @@ import {
   useMutation,
   type QueryClient
 } from '@tanstack/react-query'
+import { departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 const shippingKeys = {
@@ -531,12 +532,57 @@ export const overdueDaysQuery = queryOptions({
       .parse(await authApi.get('shipping/overdue/').json()).days
 })
 
-const departmentSchema = z.object({ id: z.number(), code: z._default(z.string(), '') })
+const departmentSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. Trim's schema reads it too, and whichever fetches first fills the
+  // shared cache, so every copy of this schema has to keep it.
+  max_package_weight: z._default(z.nullable(z.number()), null)
+})
 
 const departmentsQuery = queryOptions({
   queryKey: ['departments', 'all'] as const,
   queryFn: async () => z.array(departmentSchema).parse(await authApi.get('departments/all/').json())
 })
+
+/** The user's role inside one department. Same key as the boards', so they share the answer. */
+const departmentRoleQuery = (userId: number, departmentId: number) =>
+  queryOptions({
+    queryKey: ['departments', 'role', userId, departmentId] as const,
+    queryFn: async () =>
+      z
+        .array(z.object({ user: z.number(), department: z.number(), role: z.string() }))
+        .parse(
+          await authApi
+            .get('departments/users/assignments/', {
+              searchParams: { user_id: userId, department_id: departmentId }
+            })
+            .json()
+        )
+        .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
+/**
+ * The user's role in the Shipping department: `manager`, `worker`, `viewer`, or `null` for none. The
+ * sidebar and the guards on Shipping's windows share it. `fetchQuery`, not `ensureQueryData`, so an
+ * assignment invalidated in Settings is asked again rather than read stale; the inner reads leave
+ * retrying to this query, or each of its retries would retry them again.
+ */
+export const shippingRoleQuery = (user: { id: number; role: string }) =>
+  queryOptions({
+    queryKey: ['departments', 'shipping-role', user.id, user.role] as const,
+    queryFn: async ({ client }) => {
+      const shipping = (await client.fetchQuery({ ...departmentsQuery, retry: false })).find(
+        department => department.code === 'shipping'
+      )
+      const assigned = shipping
+        ? await client.fetchQuery({ ...departmentRoleQuery(user.id, shipping.id), retry: false })
+        : null
+      return departmentRole(user.role, assigned)
+    }
+  })
 
 /** Shipping is a department of its own, with its own priorities (`client-questions.md` 7). */
 export const shippingDepartmentQuery = queryOptions({
@@ -548,7 +594,9 @@ const prioritySchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   color: z._default(z.nullable(z.string()), null),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // The board's copy reads it, and the cache entry is shared.
+  department: z._default(z.nullable(z.number()), null)
 })
 
 export type Priority = z.infer<typeof prioritySchema>

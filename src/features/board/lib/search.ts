@@ -15,3 +15,12 @@ export const boardSearchSchema = z.object({
 })
 
 export type BoardSearch = z.infer<typeof boardSearchSchema>
+
+/** Whether any of a row's fields holds the header search; no search keeps every row. */
+export const matchesSearch = (
+  search: string | undefined,
+  ...fields: (string | null | undefined)[]
+) => {
+  const term = search?.trim().toLowerCase()
+  return !term || fields.some(field => field?.toLowerCase().includes(term))
+}

@@ -18,6 +18,7 @@ import { Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { slitLineQuery, useSlitRequest } from '../api'
 import { useViewOnly } from '../lib/board-context'
+import { matchesSearch } from '../lib/search'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from '@/components/note-button'
@@ -25,14 +26,14 @@ import { useLineNoteState } from './use-line-note-state'
 
 const COLUMNS = 9
 
-type SlitLineTabProps = { departmentId: number }
+type SlitLineTabProps = { search: string | undefined; departmentId: number }
 
 /**
  * The Slit Line: material the Manager sent to be slit, by Production Date then Priority p2 (1204,296).
  * Marking it slit records the Supplier and Coil Number used, and they fill into the line on the board,
  * its scissors turning green p2 (1086,349).
  */
-export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
+export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
   const [done, setDone] = useState(false)
   const {
     data: queue,
@@ -47,7 +48,10 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
   const cancel = useSlitRequest()
   const viewOnly = useViewOnly()
 
-  const rows = queue ?? []
+  const all = queue ?? []
+  const rows = all.filter(row =>
+    matchesSearch(search, row.order, row.invoice, row.product_id, row.description)
+  )
   // Line notes are open «at any point in production» p2 (526,410), the Slit Line included.
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const chosen = rows.filter(row => picked.has(row.origin_item))
@@ -106,11 +110,15 @@ export const SlitLineTab = ({ departmentId }: SlitLineTabProps) => {
             <EmptyMedia variant='icon'>
               <Scissors />
             </EmptyMedia>
-            <EmptyTitle>{done ? 'Nothing slit yet' : 'Nothing to slit'}</EmptyTitle>
+            <EmptyTitle>
+              {all.length ? 'No material matches' : done ? 'Nothing slit yet' : 'Nothing to slit'}
+            </EmptyTitle>
             <EmptyDescription>
-              {done
-                ? 'Material shows here once the Slit Line marks it slit.'
-                : 'Material shows here once a Manager sends it to the Slit Line.'}
+              {all.length
+                ? `Nothing on the Slit Line matches «${search?.trim()}».`
+                : done
+                  ? 'Material shows here once the Slit Line marks it slit.'
+                  : 'Material shows here once a Manager sends it to the Slit Line.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

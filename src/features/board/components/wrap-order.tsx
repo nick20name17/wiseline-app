@@ -38,6 +38,7 @@ import {
   stagedQuantity,
   wrapAllowed,
   lineName,
+  type CellRoom,
   type ShownLocation
 } from '../lib/wrapping'
 import { ConfirmDialog } from './confirm-dialog'
@@ -385,7 +386,7 @@ type PackageWeightProps = {
   overPackage: boolean
   /** The package would push the location it is going to past its own Max Weight. */
   overLocation: boolean
-  slot: LocationSlot | null
+  slot: CellRoom | null
 }
 
 /**
@@ -415,7 +416,7 @@ const PackageWeight = ({ weight, limit, overPackage, overLocation, slot }: Packa
 )
 
 /** What the location still holds, or by how much it is already past its limit. */
-const LocationRoom = ({ slot, max, over }: { slot: LocationSlot; max: number; over: boolean }) => {
+const LocationRoom = ({ slot, max, over }: { slot: CellRoom; max: number; over: boolean }) => {
   const room = slot.remaining_weight ?? max
   const name = slot.name ?? slot.location_id
   return (
@@ -510,6 +511,8 @@ const CompleteOrderButton = ({
 type CreatePrintButtonProps = {
   departmentId: number | undefined
   order: string
+  /** The order number the label prints; `order` is the autoid the server takes. */
+  number: string
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
   /** `null` when a staged line does not say what it weighs; then no weight is sent. */
@@ -526,6 +529,7 @@ type CreatePrintButtonProps = {
 const CreatePrintButton = ({
   departmentId,
   order,
+  number,
   lines,
   target,
   weight,
@@ -565,17 +569,22 @@ const CreatePrintButton = ({
             type: 'success',
             title: `Created ${created.name ?? 'the package'} · ${pieces} pcs → ${target.name ?? target.location_id}`
           })
-          if (created.name)
-            label.print({
-              name: created.name,
-              orderNumber: order,
-              location: target.name,
-              weight,
-              contents: lines.map(line => ({
-                product: lineName(line.row),
-                quantity: line.quantity
-              }))
+          if (!created.name)
+            return toast.add({
+              type: 'error',
+              title: 'The package has no barcode yet',
+              description: 'Print its label from See packages once it has one.'
             })
+          label.print({
+            name: created.name,
+            orderNumber: number,
+            location: target.name,
+            weight,
+            contents: lines.map(line => ({
+              product: lineName(line.row),
+              quantity: line.quantity
+            }))
+          })
         }
       }
     )
@@ -782,6 +791,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
             <CreatePrintButton
               departmentId={departmentId}
               order={order.order}
+              number={number}
               lines={lines}
               target={target}
               weight={weight}

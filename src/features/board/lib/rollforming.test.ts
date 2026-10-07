@@ -85,6 +85,14 @@ describe('the coil of a part rolled partly off a coil and partly slit', () => {
   })
 })
 
+describe('a Stock line', () => {
+  it('names no coil and no source on its part', () => {
+    const stock = line('a', null, { status: 'stock', coil: 'F1', icon: 'coil' })
+    expect(coilNumbersOf([stock, line('b', null, { coil: 'J2' })])).toEqual(['J2'])
+    expect(sourceOf([stock])).toBeNull()
+  })
+})
+
 describe('runsOffCoil', () => {
   const coil = { supplier: 'COLSTE', coil_number: 'J46A211' } as Parameters<typeof runsOffCoil>[1]
 

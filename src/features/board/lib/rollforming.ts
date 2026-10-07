@@ -32,6 +32,9 @@ export const productionParts = (
 
 const waiting = (line: BoardLineItem) => line.item?.coil_icon === 'waiting_to_slit'
 
+/** A Stock line is rolled off nothing: no coil, no slit, no Supplier p2 (1010,337). */
+export const isStockLine = (line: BoardLineItem) => line.item?.status === 'stock'
+
 /**
  * The coil numbers a part's lines are rolled from, each once p2 (1040,313), and «waiting...» while some
  * of it is still at the Slit Line p2 (1086,321), (1125,332).
@@ -39,7 +42,13 @@ const waiting = (line: BoardLineItem) => line.item?.coil_icon === 'waiting_to_sl
 export const coilNumbersOf = (lines: BoardLineItem[]) => [
   ...new Set(
     lines.flatMap(line =>
-      waiting(line) ? ['waiting...'] : line.item?.coil_number ? [line.item.coil_number] : []
+      isStockLine(line)
+        ? []
+        : waiting(line)
+          ? ['waiting...']
+          : line.item?.coil_number
+            ? [line.item.coil_number]
+            : []
     )
   )
 ]
@@ -48,14 +57,16 @@ export const coilNumbersOf = (lines: BoardLineItem[]) => [
  * Where a part's coil comes from, as one icon: still at the Slit Line if any of it is p2 (1086,315),
  * slit once all of that is, otherwise an existing coil.
  */
-export const sourceOf = (lines: BoardLineItem[]) =>
-  lines.some(waiting)
+export const sourceOf = (all: BoardLineItem[]) => {
+  const lines = all.filter(line => !isStockLine(line))
+  return lines.some(waiting)
     ? 'waiting_to_slit'
     : lines.some(line => line.item?.coil_icon === 'slit')
       ? 'slit'
       : lines.some(line => line.item?.coil_icon === 'coil')
         ? 'coil'
         : null
+}
 
 /**
  * A part with a line rolled off the coil in the machine — what the Worker picks next p2 (1040,322).

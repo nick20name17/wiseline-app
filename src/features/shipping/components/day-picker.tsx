@@ -25,7 +25,8 @@ export const DayPicker = ({ day, onDayChange, markOverdue = false }: DayPickerPr
   const { data: overdue = [] } = useQuery({ ...overdueDaysQuery, enabled: markOverdue })
   const step = (days: number) => onDayChange(toIsoDay(addDays(fromIsoDay(day), days)))
   const late = overdue.includes(day)
-  const shortcuts = overdue.slice(-SHOWN_OVERDUE)
+  // ISO days sort as strings; the server's order is not promised.
+  const shortcuts = overdue.toSorted().slice(-SHOWN_OVERDUE)
 
   return (
     <div className='flex flex-wrap items-center gap-2'>

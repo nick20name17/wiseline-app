@@ -55,8 +55,9 @@ export const PackageLabelSheet = ({ label, onDone }: SheetProps) => {
         </div>
         <table className='w-full text-sm'>
           <tbody>
-            {label.contents.map(line => (
-              <tr key={line.product} className='border-t border-black'>
+            {/* One product can come twice, at two lengths. */}
+            {label.contents.map((line, index) => (
+              <tr key={index} className='border-t border-black'>
                 <td className='py-1 font-mono'>{line.product}</td>
                 <td className='py-1 text-right font-mono font-bold'>{line.quantity}</td>
               </tr>
