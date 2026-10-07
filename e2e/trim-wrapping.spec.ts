@@ -95,7 +95,9 @@ test('a package over the location limit is printed only once the Worker says so'
   await expect.poll(() => sent[0]?.override_weight).toBe(true)
   await expect(page.getByText('Created 01-330608-01 · 36 pcs → 101')).toBeVisible()
   // The label is the browser's to print (round 8 answers, B6).
-  await expect.poll(printed).toEqual([expect.stringMatching(/01-330608-01.*Location 101.*36/)])
+  await expect
+    .poll(printed)
+    .toEqual([expect.stringMatching(/01-330608-01Order 330608Location 101.*36/)])
 })
 
 test('the last location of an order with packages cannot be taken off', async ({ page }) => {

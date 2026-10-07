@@ -531,7 +531,15 @@ export const overdueDaysQuery = queryOptions({
       .parse(await authApi.get('shipping/overdue/').json()).days
 })
 
-const departmentSchema = z.object({ id: z.number(), code: z._default(z.string(), '') })
+const departmentSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  code: z._default(z.string(), ''),
+  position: z._default(z.nullable(z.number()), null),
+  // lb; `null` is no ceiling. Trim's schema reads it too, and whichever fetches first fills the
+  // shared cache, so every copy of this schema has to keep it.
+  max_package_weight: z._default(z.nullable(z.number()), null)
+})
 
 const departmentsQuery = queryOptions({
   queryKey: ['departments', 'all'] as const,
@@ -548,7 +556,9 @@ const prioritySchema = z.object({
   id: z.number(),
   name: z._default(z.string(), ''),
   color: z._default(z.nullable(z.string()), null),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  // The board's copy reads it, and the cache entry is shared.
+  department: z._default(z.nullable(z.number()), null)
 })
 
 export type Priority = z.infer<typeof prioritySchema>

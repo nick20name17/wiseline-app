@@ -510,6 +510,8 @@ const CompleteOrderButton = ({
 type CreatePrintButtonProps = {
   departmentId: number | undefined
   order: string
+  /** The order number the label prints; `order` is the autoid the server takes. */
+  number: string
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
   /** `null` when a staged line does not say what it weighs; then no weight is sent. */
@@ -526,6 +528,7 @@ type CreatePrintButtonProps = {
 const CreatePrintButton = ({
   departmentId,
   order,
+  number,
   lines,
   target,
   weight,
@@ -565,17 +568,22 @@ const CreatePrintButton = ({
             type: 'success',
             title: `Created ${created.name ?? 'the package'} · ${pieces} pcs → ${target.name ?? target.location_id}`
           })
-          if (created.name)
-            label.print({
-              name: created.name,
-              orderNumber: order,
-              location: target.name,
-              weight,
-              contents: lines.map(line => ({
-                product: lineName(line.row),
-                quantity: line.quantity
-              }))
+          if (!created.name)
+            return toast.add({
+              type: 'error',
+              title: 'The package has no barcode yet',
+              description: 'Print its label from See packages once it has one.'
             })
+          label.print({
+            name: created.name,
+            orderNumber: number,
+            location: target.name,
+            weight,
+            contents: lines.map(line => ({
+              product: lineName(line.row),
+              quantity: line.quantity
+            }))
+          })
         }
       }
     )
@@ -782,6 +790,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
             <CreatePrintButton
               departmentId={departmentId}
               order={order.order}
+              number={number}
               lines={lines}
               target={target}
               weight={weight}
