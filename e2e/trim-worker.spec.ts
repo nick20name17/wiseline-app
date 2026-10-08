@@ -51,10 +51,14 @@ test('a Worker’s Coils tab is the Manager’s Coil Filter, not a filter of his
   // p1 (1057,303): filtered by the coil filter in the Manager window, same authorities.
   await page.getByRole('tab', { name: /Coils/ }).first().click()
   // Only Trim Coils — what the Manager's filter lets in — and no filter of his own to set.
-  await expect(page.getByRole('tab', { name: 'All Trim Coils' })).toBeVisible()
+  await expect(page.getByLabel('Search coils')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Coil Filter' })).toBeHidden()
   await expect(page.getByRole('tab', { name: 'All Coils' })).toBeHidden()
   // The same authorities as the Manager's tab: he adjusts a coil like the Manager does.
+  await page
+    .getByRole('button', { name: /^Coils of / })
+    .first()
+    .click()
   await expect(
     page.getByRole('button', { name: /^Adjust Linear Feet of coil / }).first()
   ).toBeEnabled()

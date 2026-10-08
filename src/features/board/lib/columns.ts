@@ -117,12 +117,16 @@ export const WRAP_LINES_TABLE: ColumnTable = {
 export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
-    { key: 'pid', label: 'Product ID', width: 'w-40' },
-    { key: 'color', label: 'Color', width: 'w-40' },
+    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll.
+    { key: 'pid', label: 'Product ID', width: 'w-36' },
+    { key: 'color', label: 'Color' },
     { key: 'width', label: 'Width (in.)', width: 'w-28' },
-    { key: 'count', label: 'Count', width: 'w-24' },
-    { key: 'lf', label: 'Total Linear Feet', width: 'w-40' },
-    { key: 'weight', label: 'Total Weight (lbs.)' }
+    { key: 'count', label: 'Count', width: 'w-20' },
+    { key: 'lf', label: 'Total Linear Feet', width: 'w-36' },
+    { key: 'weight', label: 'Total Weight (lbs.)', width: 'w-40' },
+    // Where the product's coils stand, set for all of them at once.
+    { key: 'rollforming', label: 'Rollforming', width: 'w-32' },
+    { key: 'trim', label: 'Trim', width: 'w-20' }
   ]
 }
 

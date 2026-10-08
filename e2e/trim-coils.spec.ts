@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
 import { mockTrimApi, signIn } from './trim-api.ts'
 
@@ -53,6 +53,10 @@ const FILTER = {
   apply_all: false
 }
 
+// The list is one row per product; its coils are inside it.
+const openProduct = (page: Page, productId: string) =>
+  page.getByRole('button', { name: `Coils of ${productId}` }).click()
+
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
   await mockTrimApi(page)
@@ -76,12 +80,15 @@ test('Trim Coils are the coils inside the Coil Filter, All Coils ignores it', as
     ''
   )
   await expect(page.getByText('Coil Filter active')).toBeVisible()
+  await openProduct(page, 'CB4826R')
+  await openProduct(page, 'CB4828B')
   await expect(page.getByText('3782201')).toBeVisible()
   // Not measured yet, so it has nothing to fail the range with.
   await expect(page.getByText('3797401')).toBeVisible()
   await expect(page.getByText('3800001')).toBeHidden()
 
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
+  await page.getByLabel('Search coils').fill('3800001')
   await expect(page.getByText('3800001')).toBeVisible()
   await expect(page.getByText('Coil Filter active')).toBeHidden()
   await expect(page.getByRole('button', { name: 'Coil Filter' })).toBeHidden()
@@ -90,6 +97,8 @@ test('Trim Coils are the coils inside the Coil Filter, All Coils ignores it', as
 test('a coil in Rollforming cannot also be in Trim, and the Slinet waits on a thickness', async ({
   page
 }) => {
+  await openProduct(page, 'CB4826R')
+  await openProduct(page, 'CB4828B')
   await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3782201/ })).toBeEnabled()
   await expect(
     page.getByRole('checkbox', { name: /Rollforming holds coil 3782201/ })
@@ -99,6 +108,7 @@ test('a coil in Rollforming cannot also be in Trim, and the Slinet waits on a th
 
 test('moving a coil from Rollforming to Trim asks first', async ({ page }) => {
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
+  await openProduct(page, 'CB4828B')
   await page.getByRole('checkbox', { name: /Trim holds coil 3800001/ }).click()
 
   const dialog = page.getByRole('dialog')
@@ -150,18 +160,38 @@ test('a search that misses in one folder points to the others', async ({ page })
   await expect(page.getByText('3797401')).toBeVisible()
 })
 
-test('the size grid holds one row per product, opening into its coils', async ({ page }) => {
-  await page.getByRole('tab', { name: 'By size' }).click()
-
+test('the list holds one row per product, opening into its coils', async ({ page }) => {
   await expect(page.getByText('CB4826R')).toBeVisible()
   await expect(page.getByText('3782201')).toBeHidden()
-  await page.getByRole('button', { name: 'Coils of CB4826R' }).click()
+  await openProduct(page, 'CB4826R')
   await expect(page.getByText('3782201')).toBeVisible()
+})
+
+test('a product is put in a department with all its coils', async ({ page }) => {
+  const moved: string[] = []
+  await page.route(`${API_URL}/coils/lots/*/location/`, route => {
+    moved.push(new URL(route.request().url()).pathname)
+    return route.fulfill({ json: {} })
+  })
+  await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
+
+  // CB4828B has a coil in Rollforming and one in neither: Rollforming is part-ticked.
+  const rollforming = page.getByRole('checkbox', { name: 'Rollforming holds CB4828B' })
+  await expect(rollforming).toHaveAttribute('aria-checked', 'mixed')
+  await page.getByRole('checkbox', { name: 'Trim holds CB4828B' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText(/ok to move these 2 coils to the Trim department/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Yes' }).click()
+  await expect
+    .poll(() => moved.sort())
+    .toEqual(['/coils/lots/LOT-42/location/', '/coils/lots/LOT-43/location/'])
 })
 
 test('a figure opens the adjustment window, works the others out, and asks before it goes', async ({
   page
 }) => {
+  await openProduct(page, 'CB4826R')
   await page.getByRole('button', { name: 'Adjust Linear Feet of coil 3782201' }).click()
 
   const dialog = page.getByRole('dialog')
@@ -187,6 +217,7 @@ test('a figure opens the adjustment window, works the others out, and asks befor
 })
 
 test('a coil with no build stays locked until it has one', async ({ page }) => {
+  await openProduct(page, 'CB4828B')
   await page.getByRole('button', { name: 'Adjust Weight of coil 3797401' }).click()
 
   const dialog = page.getByRole('dialog')
@@ -209,4 +240,24 @@ test('the coil filter window opens on the saved bounds', async ({ page }) => {
   await expect(dialog.getByLabel('Thickness upper bound')).toHaveValue('6')
   // Apply All is what makes a range limitless, so the boxes under it are shut.
   await expect(dialog.getByLabel('Width', { exact: true })).toBeDisabled()
+})
+
+test('the coil list shows 40 products a page', async ({ page }) => {
+  const many = Array.from({ length: 45 }, (_, index) =>
+    coil(100 + index, `CB${4000 + index}`, String(5000000 + index))
+  )
+  await page.route(`${API_URL}/coils/lots/?*`, route =>
+    route.fulfill({ json: { count: many.length, results: many } })
+  )
+  await page.reload()
+
+  await expect(page.getByText('1–40 of 45 products')).toBeVisible()
+  await expect(page.locator('tbody tr')).toHaveCount(40)
+  await page.getByRole('button', { name: 'Next page' }).click()
+  await expect(page.getByText('41–45 of 45 products')).toBeVisible()
+  await expect(page.locator('tbody tr')).toHaveCount(5)
+
+  // A new search starts again from the first page.
+  await page.getByLabel('Search coils').fill('CB400')
+  await expect(page.getByText('1–10 of 10 products')).toBeVisible()
 })

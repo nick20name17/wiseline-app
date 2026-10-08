@@ -146,7 +146,9 @@ test('a machine tab holds its own bendlists, with its daily max', async ({ page 
     })
     .click()
   await expect(page.getByRole('columnheader', { name: 'Qty to Manufacture' })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: 'Remanufacture' })).toBeVisible()
+  // The row fits a touchscreen whole: what the bender reads now and then opens from the row.
+  await expect(page.getByRole('columnheader', { name: 'Complete' })).toBeInViewport()
+  await expect(page.getByRole('columnheader', { name: 'Remanufacture' })).toBeHidden()
   await expect(page.getByRole('columnheader', { name: 'Vented' })).toBeHidden()
   await expect(page.getByRole('columnheader', { name: 'Operator Notes' })).toBeHidden()
 
@@ -231,7 +233,11 @@ test('a machine row asks for a remanufacture against its line', async ({ page })
     .locator('..')
     .getByRole('button', { name: 'Show rows' })
     .click()
-  await page.getByRole('button', { name: /Remanufacture 12.5/ }).click()
+  // A tap on the row opens what does not fit on it.
+  await page.getByRole('cell', { name: 'Ridge Cap Dark Red' }).first().click()
+  const details = page.getByRole('dialog', { name: /TRC8250/ })
+  await expect(details.getByText('Qty ordered')).toBeVisible()
+  await details.getByRole('button', { name: /Remanufacture 12.5/ }).click()
 
   // The keypad opens with it. Nothing on this line is waiting for a remake yet, so the whole order
   // can be asked for.

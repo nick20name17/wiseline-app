@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
 import { ImageUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRetained } from '@/lib/use-retained'
@@ -25,8 +26,10 @@ import {
 } from '../api'
 import { productFacts } from '../lib/format'
 
-// The upload is refused for anything else, so the picker does not offer it.
+// The upload is refused for anything else, so the picker does not offer it, and a dropped or pasted
+// file of another kind is turned away here.
 const IMAGE_TYPES = '.jpg,.jpeg,.png,.gif'
+const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif'])
 
 type StockCardFormProps = {
   card: StockCard | null
@@ -83,10 +86,30 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
     (width === '' || Number(width) > 0) &&
     !!image
   const preview = image?.preview ?? (image && image.id === card?.image_id ? card.image_url : null)
+  const [dragging, setDragging] = useState(false)
+
+  // The sketch is usually a screenshot: picked, dropped on the box or pasted anywhere in the window.
+  const take = (file: File | null | undefined) => {
+    if (!file) return
+    if (!IMAGE_MIME.has(file.type))
+      return toast.add({ type: 'error', title: 'The image must be a JPG, PNG or GIF' })
+    upload.mutate(file, {
+      onSuccess: uploaded => setImage({ id: uploaded.id, preview: URL.createObjectURL(file) })
+    })
+  }
 
   return (
     <>
-      <FieldGroup>
+      <FieldGroup
+        onPaste={event => {
+          const file = [...event.clipboardData.files].find(pasted =>
+            pasted.type.startsWith('image/')
+          )
+          if (!file) return
+          event.preventDefault()
+          take(file)
+        }}
+      >
         <Field>
           <FieldLabel htmlFor='card-pid'>Product ID</FieldLabel>
           <Input
@@ -171,34 +194,55 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
 
         <Field>
           <FieldLabel htmlFor='card-image'>Image</FieldLabel>
-          <label
-            htmlFor='card-image'
-            className='flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed border-border text-sm text-muted-foreground hover:border-input'
+          {/* A drop target for the mouse; the label under it is what keyboards and readers use. */}
+          <div
+            role='presentation'
+            onDragOver={event => {
+              event.preventDefault()
+              setDragging(true)
+            }}
+            onDragLeave={event => {
+              // Passing over the box's own text and preview leaves the box only on paper.
+              if (
+                event.relatedTarget instanceof Node &&
+                event.currentTarget.contains(event.relatedTarget)
+              )
+                return
+              setDragging(false)
+            }}
+            onDrop={event => {
+              event.preventDefault()
+              setDragging(false)
+              take(event.dataTransfer.files[0])
+            }}
           >
-            {upload.isPending ? (
-              <Spinner />
-            ) : preview ? (
-              <img src={preview} alt='Profile sketch' className='h-full object-contain' />
-            ) : (
-              <span className='flex items-center gap-2'>
-                <ImageUp className='size-4' />
-                {image ? 'Image uploaded — click to replace' : 'Upload the profile sketch'}
-              </span>
-            )}
-          </label>
+            <label
+              htmlFor='card-image'
+              className={cn(
+                'flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed border-border text-sm text-muted-foreground hover:border-input',
+                dragging && 'border-primary bg-primary/5'
+              )}
+            >
+              {upload.isPending ? (
+                <Spinner />
+              ) : preview ? (
+                <img src={preview} alt='Profile sketch' className='h-full object-contain' />
+              ) : (
+                <span className='flex items-center gap-2'>
+                  <ImageUp className='size-4' />
+                  {image
+                    ? 'Image uploaded — click, drop or paste to replace'
+                    : 'Click, drop or paste the profile sketch'}
+                </span>
+              )}
+            </label>
+          </div>
           <input
             id='card-image'
             type='file'
             accept={IMAGE_TYPES}
             className='sr-only'
-            onChange={event => {
-              const file = event.target.files?.[0]
-              if (file)
-                upload.mutate(file, {
-                  onSuccess: uploaded =>
-                    setImage({ id: uploaded.id, preview: URL.createObjectURL(file) })
-                })
-            }}
+            onChange={event => take(event.target.files?.[0])}
           />
         </Field>
       </FieldGroup>

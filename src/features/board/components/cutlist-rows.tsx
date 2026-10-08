@@ -2,6 +2,13 @@ import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -15,7 +22,7 @@ import {
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
 import { ChevronDown, Package, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   useUpdateCutlistRow,
   useUpdateLineItem,
@@ -36,6 +43,7 @@ import {
   type CutlistGroup
 } from '../lib/cutlists'
 import { useViewOnly } from '../lib/board-context'
+import { useRetained } from '@/lib/use-retained'
 import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
@@ -68,7 +76,11 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
           atomic inline box — which is how the sign-off itself stays unstruck. The hint sits on the
           label because a disabled box shows no tooltip of its own. */}
       <label
-        className='inline-flex items-center gap-2'
+        className={cn(
+          // A finger-sized target: the floor signs rows off on a touchscreen.
+          'inline-flex min-h-11 min-w-24 cursor-pointer items-center gap-2.5 rounded-md border px-3 has-disabled:cursor-not-allowed has-disabled:opacity-60',
+          group.complete ? 'border-success/40 bg-success/10' : 'border-border bg-background'
+        )}
         title={
           group.complete
             ? 'Marked complete — uncheck to reopen (asks first)'
@@ -76,6 +88,7 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
         }
       >
         <Checkbox
+          className='size-5'
           aria-label={`Complete ${sizeOf(group)}`}
           checked={group.complete}
           disabled={viewOnly || (!!blocked && !group.complete)}
@@ -131,15 +144,16 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
         <DropdownMenuTrigger
           render={
             <Button
-              variant='ghost'
-              size='sm'
+              variant='outline'
+              size='lg'
               aria-label={`Remanufacture ${sizeOf(group)}`}
               disabled={!onBoard.length}
             />
           }
         >
           <RefreshCw data-icon='inline-start' />
-          {count} orders
+          Remanufacture · {count} orders
+          <ChevronDown data-icon='inline-end' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='start' className='min-w-48'>
           {/* Base UI throws for a group label outside a group. */}
@@ -160,14 +174,15 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
   const line = item ? lines.get(item) : undefined
   return (
     <Button
-      variant='ghost'
-      size='icon-sm'
+      variant='outline'
+      size='lg'
       aria-label={`Remanufacture ${sizeOf(group)}`}
-      title={line ? 'Remanufacture' : 'This line is not on the board any more'}
+      title={line ? undefined : 'This line is not on the board any more'}
       disabled={!line}
       onClick={() => line && onRemanufacture(line)}
     >
-      <RefreshCw />
+      <RefreshCw data-icon='inline-start' />
+      Remanufacture
     </Button>
   )
 }
@@ -205,13 +220,13 @@ const MachineCell = ({ group, machines, onMove }: MachineCellProps) => {
         render={
           <Button
             variant='outline'
-            size='sm'
+            size='lg'
             aria-label={`Change the machine for ${sizeOf(group)}`}
             disabled={!lines.length || !others.length}
           />
         }
       >
-        Machine
+        Change machine
         <ChevronDown data-icon='inline-end' />
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' className='min-w-48'>
@@ -263,8 +278,9 @@ const StockCell = ({ group, onStock }: StockCellProps) => {
   if (lines.length > 1)
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant='link' aria-label={label} />}>
+        <DropdownMenuTrigger render={<Button variant='outline' size='lg' aria-label={label} />}>
           {figure}
+          <ChevronDown data-icon='inline-end' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='start' className='min-w-48'>
           <DropdownMenuGroup>
@@ -283,7 +299,8 @@ const StockCell = ({ group, onStock }: StockCellProps) => {
     )
   return (
     <Button
-      variant='link'
+      variant='outline'
+      size='lg'
       aria-label={label}
       title='Pull from stock'
       onClick={() => onStock(first)}
@@ -292,6 +309,126 @@ const StockCell = ({ group, onStock }: StockCellProps) => {
     </Button>
   )
 }
+
+type RowDetailsBodyProps = Omit<RowDetailsProps, 'open' | 'group' | 'onClose' | 'onClosed'> & {
+  group: CutlistGroup
+}
+
+type RowActionsProps = Pick<
+  RowDetailsBodyProps,
+  'group' | 'machines' | 'onMove' | 'lines' | 'onRemanufacture'
+> & { editable: boolean; remakeable: boolean }
+
+/** The row's occasional actions: moving its pieces to another machine, and asking for a remake. */
+const RowActions = ({
+  editable,
+  remakeable,
+  group,
+  machines,
+  onMove,
+  ...remake
+}: RowActionsProps) =>
+  editable || remakeable ? (
+    <div className='flex flex-wrap gap-2'>
+      {editable ? <MachineCell group={group} machines={machines} onMove={onMove} /> : null}
+      {remakeable ? <RemanufactureCell group={group} {...remake} /> : null}
+    </div>
+  ) : null
+
+const RowDetailsBody = ({
+  group,
+  remake,
+  editsLines,
+  onStock,
+  ...actions
+}: RowDetailsBodyProps) => {
+  const viewOnly = useViewOnly()
+  const about = describeGroup(group)
+  // «When a row is marked as Complete ... the Machine button would disappear» p1 (653,358).
+  const editable = editsLines && !group.complete
+  // A remake asked for at the bench shows only what was asked for; one from a machine keeps the
+  // full Qty Ordered (p1 (612,482), (653,546)).
+  const ordered = remake?.source === 'wrapping' ? group.quantity : about.ordered || null
+  const stock = editable ? (
+    <StockCell group={group} onStock={onStock} />
+  ) : (
+    <Figure value={about.fromStock || null} />
+  )
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>
+          <span className='font-mono'>{about.productId ?? `${about.lines} lines`}</span> ·{' '}
+          {sizeOf(group)}
+        </DialogTitle>
+        <DialogDescription>{about.description ?? 'No description'}</DialogDescription>
+      </DialogHeader>
+
+      <dl className='grid grid-cols-3 gap-4'>
+        <Fact label='Qty ordered'>
+          <Figure value={ordered} />
+        </Fact>
+        <Fact label='Stock'>{stock}</Fact>
+        <Fact label='Qty to manufacture'>{group.quantity}</Fact>
+      </dl>
+
+      {remake ? (
+        <p className='flex items-center gap-2 text-sm'>
+          Remaking
+          <RemakePill done={remake.is_cut}>
+            {remake.remanufacturing_qty ?? group.quantity}
+          </RemakePill>
+        </p>
+      ) : null}
+
+      <RowActions
+        group={group}
+        editable={editable}
+        remakeable={!remake && !viewOnly && !group.complete}
+        {...actions}
+      />
+    </>
+  )
+}
+
+type RowDetailsProps = {
+  open: boolean
+  /** Kept through the closing animation, so the window does not empty as it fades. */
+  group: CutlistGroup | null
+  remake: Remanufacturing | null
+  /** The row's lines can still be moved and pulled from stock. */
+  editsLines: boolean
+  lines: ReadonlyMap<string, WrappingRow>
+  onStock: (line: EditableLine) => void
+  onMove: (line: EditableLine, machine: Machine) => void
+  machines: Machine[]
+  onRemanufacture: (line: WrappingRow) => void
+  onClose: () => void
+  onClosed: (open: boolean) => void
+}
+
+const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className='flex flex-col gap-1'>
+    <dt className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+      {label}
+    </dt>
+    <dd className='font-mono text-lg'>{children}</dd>
+  </div>
+)
+
+/**
+ * Everything on a bendlist row the bender does not read at every piece: the whole description, the
+ * order's figures, and the actions taken now and then. A tap on the row opens it; the floor's
+ * screens are too narrow to carry it all as columns.
+ */
+const RowDetails = ({ open, group, onClose, onClosed, ...body }: RowDetailsProps) => (
+  <Dialog open={open} onOpenChange={next => !next && onClose()} onOpenChangeComplete={onClosed}>
+    <DialogContent className='sm:max-w-lg'>
+      {group ? <RowDetailsBody group={group} {...body} /> : null}
+    </DialogContent>
+  </Dialog>
+)
 
 type CutlistRowsProps = {
   rows: CutlistRow[]
@@ -349,29 +486,16 @@ export const CutlistRows = ({
   const machineKey = (column: (typeof machineColumns)[number]) =>
     column.kind === 'vented' ? 'vented' : `machine-${column.machine.id}`
   // Machines are columns of the Slinet's list, so they move like the rest; one added later lands
-  // beside the machine it is declared after.
+  // beside the machine it is declared after. The list has to fit a touchscreen whole — a sideways
+  // scroll hides Complete — so the machine columns share what the fixed ones leave.
   const columns = useColumnOrder({
     table: isSlinet ? 'cutlist-slinet' : 'cutlist-bend',
     columns: [
-      { key: 'w', label: 'W"' },
-      { key: 'l', label: 'L"' },
-      // The board's bendlist: Qty to Manufacture is Qty Ordered less Stock, so the two sit before it.
-      ...(isSlinet
-        ? []
-        : [
-            { key: 'ordered', label: 'Qty Ordered' },
-            { key: 'stock', label: 'Stock' }
-          ]),
-      { key: 'qty', label: isSlinet ? 'Total' : 'Qty to Manufacture' },
+      { key: 'w', label: 'W"', width: 'w-20' },
+      { key: 'l', label: 'L"', width: 'w-20' },
+      { key: 'qty', label: isSlinet ? 'Total' : 'Qty to Manufacture', width: 'w-28' },
       // p1 (478,586): the Slinet's recut list carries its own Recut column.
-      ...(isSlinet && remake ? [{ key: 'recut', label: 'Recut' }] : []),
-      ...(isSlinet
-        ? []
-        : [
-            { key: 'pid', label: 'ID' },
-            { key: 'desc', label: 'Description' },
-            { key: 'machine', label: 'Machine' }
-          ]),
+      ...(isSlinet && remake ? [{ key: 'recut', label: 'Recut', width: 'w-20' }] : []),
       ...(isSlinet
         ? [
             ...machineColumns.map(column => ({
@@ -381,24 +505,39 @@ export const CutlistRows = ({
                   ? 'Vented'
                   : (column.machine.name ?? `Machine ${column.machine.id}`)
             })),
-            { key: 'op', label: 'Operator Notes' }
+            { key: 'op', label: 'Operator Notes', width: 'w-44' }
           ]
-        : [
-            { key: 'reman', label: 'Remanufacture' },
-            { key: 'status', label: 'Status' },
-            { key: 'drawing', label: 'Drawing' },
-            { key: 'notes', label: 'Line Item Notes' }
+        : // A bendlist row keeps what the bender reads at the machine; Qty Ordered, Stock, Machine
+          // and Remanufacture open from the row, so the list fits without a sideways scroll.
+          [
+            { key: 'pid', label: 'ID', width: 'w-32' },
+            { key: 'desc', label: 'Description' },
+            // On a remake list it says what is being remade, green once the Slinet has recut it
+            // (p1 (608,446), (613,462), (686,501)).
+            ...(remake ? [{ key: 'reman', label: 'Remanufacture', width: 'w-28' }] : []),
+            { key: 'status', label: 'Status', width: 'w-36' },
+            { key: 'drawing', label: 'Drawing', width: 'w-20' },
+            { key: 'notes', label: 'Notes', width: 'w-20' }
           ]),
-      { key: 'complete', label: 'Complete' }
+      { key: 'complete', label: 'Complete', width: 'w-32' }
     ]
   })
+  // The row whose details are open, by key: the rows are rebuilt on every refetch, the key is not.
+  const [detailsKey, setDetailsKey] = useState<string | null>(null)
+  // A row that leaves the list — moved to another machine — closes its window for good, rather than
+  // opening it again should a refetch bring the row back.
+  if (detailsKey !== null && !groups.some(group => group.key === detailsKey)) setDetailsKey(null)
+  const [shownKey, releaseDetails] = useRetained(detailsKey)
+  const detailed = groups.find(group => group.key === shownKey) ?? null
 
   const edit = (group: CutlistGroup, patch: { complete?: boolean; operator_notes?: string }) =>
     group.rows.forEach(row => update.mutate({ rowId: row.id, edit: patch }))
 
   return (
     <>
-      <Table>
+      {/* Headings wrap rather than widen their column: every column has to fit. */}
+      <Table className='table-fixed [&_th]:whitespace-normal'>
+        <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>
         </TableHeader>
@@ -407,7 +546,21 @@ export const CutlistRows = ({
             const about = describeGroup(group)
             const item = about.originItem
             return (
-              <TableRow key={group.key} data-complete={group.complete ? true : undefined}>
+              <TableRow
+                key={group.key}
+                data-complete={group.complete ? true : undefined}
+                className={cn(!isSlinet && 'cursor-pointer')}
+                onClick={event => {
+                  if (isSlinet) return
+                  // The row's own controls, and windows opened from them, which React bubbles here
+                  // through their portal, keep their clicks.
+                  if (!(event.target instanceof Element)) return
+                  if (!event.currentTarget.contains(event.target)) return
+                  if (event.target.closest('button, a, input, label, [role=menuitem]')) return
+                  if (window.getSelection()?.toString()) return
+                  setDetailsKey(group.key)
+                }}
+              >
                 {columns.cells({
                   w: (
                     <TableCell>
@@ -424,65 +577,42 @@ export const CutlistRows = ({
                       </span>
                     </TableCell>
                   ),
-                  ordered: (
-                    <TableCell>
-                      {/* A remake asked for at the bench shows only what was asked for; one from a
-                          machine keeps the full Qty Ordered (p1 (612,482), (653,546)). */}
-                      <Figure
-                        value={
-                          remake?.source === 'wrapping' ? group.quantity : about.ordered || null
-                        }
-                      />
-                    </TableCell>
-                  ),
                   recut: (
                     <TableCell>
                       <RemakePill done={group.complete}>{group.quantity}</RemakePill>
                     </TableCell>
                   ),
-                  stock: (
+                  reman: remake ? (
                     <TableCell>
-                      {editsLines && !group.complete ? (
-                        <StockCell group={group} onStock={setStocking} />
-                      ) : (
-                        <Figure value={about.fromStock || null} />
-                      )}
+                      <RemakePill done={remake.is_cut}>
+                        {remake.remanufacturing_qty ?? group.quantity}
+                      </RemakePill>
                     </TableCell>
-                  ),
-                  machine: (
-                    <TableCell>
-                      {/* «When a row is marked as Complete ... the Machine button would disappear»
-                          p1 (653,358). */}
-                      {editsLines && !group.complete ? (
-                        <MachineCell
-                          group={group}
-                          machines={machines}
-                          onMove={(line, machine) => setMoving({ line, machine })}
-                        />
-                      ) : (
-                        <span className='text-muted-foreground'>—</span>
-                      )}
-                    </TableCell>
-                  ),
+                  ) : null,
                   pid: (
                     <TableCell>
-                      {/* A row cutting several orders' pieces is opened through its Total. */}
-                      <span className='inline-flex items-center gap-1.5 font-mono'>
+                      {/* The keyboard's way into the row's details; a tap anywhere on it is the
+                          floor's. A row cutting several orders' pieces is opened through its Total. */}
+                      <Button
+                        variant='link'
+                        className='max-w-full'
+                        aria-label={`Details of ${about.productId ?? sizeOf(group)}`}
+                        onClick={() => setDetailsKey(group.key)}
+                      >
                         {about.isStock ? (
                           <Package
                             className='size-3.5 text-muted-foreground'
                             aria-label='Stock order'
                           />
                         ) : null}
-                        {about.productId ??
-                          (about.lines > 1 ? (
-                            <span className='text-xs text-muted-foreground'>
-                              {about.lines} lines
-                            </span>
-                          ) : (
-                            '—'
-                          ))}
-                      </span>
+                        {about.productId ? (
+                          <span className='truncate font-mono'>{about.productId}</span>
+                        ) : about.lines > 1 ? (
+                          <span className='text-xs text-muted-foreground'>{about.lines} lines</span>
+                        ) : (
+                          '—'
+                        )}
+                      </Button>
                     </TableCell>
                   ),
                   desc: (
@@ -536,25 +666,6 @@ export const CutlistRows = ({
                         saved={group.rows.find(row => row.operator_notes)?.operator_notes ?? ''}
                         onSave={operator_notes => edit(group, { operator_notes })}
                       />
-                    </TableCell>
-                  ),
-                  reman: (
-                    <TableCell>
-                      {/* On a remake list the column says what is being remade, green once the
-                          Slinet has recut it (p1 (608,446), (613,462), (686,501)). */}
-                      {remake ? (
-                        <RemakePill done={remake.is_cut}>
-                          {remake.remanufacturing_qty ?? group.quantity}
-                        </RemakePill>
-                      ) : viewOnly ? (
-                        <span className='text-muted-foreground'>—</span>
-                      ) : (
-                        <RemanufactureCell
-                          group={group}
-                          lines={lines}
-                          onRemanufacture={onRemanufacture}
-                        />
-                      )}
                     </TableCell>
                   ),
                   drawing: (
@@ -635,6 +746,24 @@ export const CutlistRows = ({
             { onSuccess: () => setStocking(null) }
           )
         }
+      />
+
+      <RowDetails
+        open={detailsKey !== null}
+        group={detailed}
+        remake={remake}
+        editsLines={editsLines}
+        lines={lines}
+        machines={machines}
+        onStock={setStocking}
+        onMove={(line, machine) => setMoving({ line, machine })}
+        onRemanufacture={line => {
+          // The remake window takes over; the details would sit behind it doing nothing.
+          setDetailsKey(null)
+          onRemanufacture(line)
+        }}
+        onClose={() => setDetailsKey(null)}
+        onClosed={releaseDetails}
       />
 
       <LineNotesDialog

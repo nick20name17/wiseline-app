@@ -1030,21 +1030,46 @@ export const useSetPriority = (orderId: string) =>
  *
  * Turning it on is silent; turning it back off is what the board puts a confirmation behind, which is
  * the caller's business rather than this hook's.
+ *
+ * The switch flips at once and the board refetches behind it: waiting on that refetch — every board
+ * list, coils included — held the switch greyed out for seconds on the floor.
  */
+type ReviewedInput = {
+  order: BoardOrder
+  departmentId: number
+  /** The part's production day: each day of a split order is reviewed on its own. */
+  day: string
+  reviewed: boolean
+}
+
+/** The order with `reviewed` on the part for `day`, read the way `partState` reads it back. */
+const withReviewed = (order: BoardOrder, { departmentId, day, reviewed }: ReviewedInput) => {
+  const dated = order.origin_items.some(line => line.item?.production_date)
+  const inPart = new Set(
+    order.origin_items.filter(line => line.item && (!dated || line.item.production_date === day))
+  )
+  if (!inPart.size)
+    return {
+      ...order,
+      sales_order: order.sales_order && {
+        ...order.sales_order,
+        department_states: order.sales_order.department_states.map(state =>
+          state.department === departmentId ? { ...state, reviewed } : state
+        )
+      }
+    }
+  return {
+    ...order,
+    origin_items: order.origin_items.map(line =>
+      line.item && inPart.has(line) ? { ...line, item: { ...line.item, reviewed } } : line
+    )
+  }
+}
+
 export const useSetReviewed = () =>
   useMutation({
-    mutationFn: async ({
-      order,
-      departmentId,
-      day,
-      reviewed
-    }: {
-      order: BoardOrder
-      departmentId: number
-      /** The part's production day: each day of a split order is reviewed on its own. */
-      day: string
-      reviewed: boolean
-    }) => {
+    meta: { errorTitle: 'Reviewed was not saved' },
+    mutationFn: async ({ order, departmentId, day, reviewed }: ReviewedInput) => {
       const id = await ensureSalesOrderId(order)
       return authApi
         .patch(`sales-orders/${id}/departments/${departmentId}/`, {
@@ -1053,9 +1078,16 @@ export const useSetReviewed = () =>
         })
         .json()
     },
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    }
+    onMutate: async (input, { client }) => {
+      await client.cancelQueries({ queryKey: boardKeys.orders() })
+      patchCachedOrder(client, input.order.id, cached => withReviewed(cached, input))
+    },
+    onError: (_, input, __, { client }) =>
+      patchCachedOrder(client, input.order.id, cached =>
+        withReviewed(cached, { ...input, reviewed: !input.reviewed })
+      ),
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 const releaseResultSchema = z.object({
@@ -1782,13 +1814,20 @@ export const useUpdateCoilLot = () =>
 export const useSetCoilLocation = () =>
   useMutation({
     meta: { errorTitle: 'The coil stayed where it was' },
-    mutationFn: ({
-      lotId,
+    // The API places one lot at a time; a product's coils go together and settle as one.
+    mutationFn: async ({
+      lotIds,
       location
     }: {
-      lotId: string
+      lotIds: string[]
       location: { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
-    }) => authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
+    }) => {
+      const placed = await Promise.allSettled(
+        lotIds.map(id => authApi.post(`coils/lots/${id}/location/`, { json: location }).json())
+      )
+      const failed = placed.find(result => result.status === 'rejected')
+      if (failed) throw failed.reason
+    },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 

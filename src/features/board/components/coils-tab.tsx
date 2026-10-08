@@ -1,6 +1,5 @@
 import { useColumnOrder } from '@/components/table/column-order'
-import { SpacerRows } from '@/components/table/spacer-rows'
-import { useWindowRows } from '@/components/table/use-window-rows'
+import { Pager } from '@/components/table/pager'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -75,7 +74,10 @@ const DEPARTMENT_LABEL: Record<Department, string> = {
 const otherOf = (department: Department): Department =>
   department === 'in_trim' ? 'in_rollforming' : 'in_trim'
 
-/** One size of coil: the board sizes a coil by Product ID, Color and Width. */
+/**
+ * One coil product and its lots. Colour, width and gauge are the EBMS product's, so they hold for
+ * every lot under it: a coil of another colour or width is another product ID.
+ */
 type CoilGroup = {
   key: string
   productId: string | null
@@ -87,7 +89,7 @@ type CoilGroup = {
 const groupsOf = (lots: CoilLot[]) => {
   const groups = new Map<string, CoilGroup>()
   for (const lot of lots) {
-    const key = `${lot.product_id ?? ''}|${lot.color ?? ''}|${lot.width ?? ''}`
+    const key = lot.product_id ?? ''
     const group = groups.get(key) ?? {
       key,
       productId: lot.product_id,
@@ -103,6 +105,12 @@ const groupsOf = (lots: CoilLot[]) => {
 
 const total = (lots: CoilLot[], key: 'linear_feet' | 'weight') =>
   lots.reduce((sum, lot) => sum + (lot[key] ?? 0), 0)
+
+// A product's coils a department can be ticked into: one mounted in the Slinet stays in Trim.
+const movable = (lots: CoilLot[], department: Department) =>
+  department === 'in_rollforming'
+    ? lots.filter(lot => lot.in_rollforming || lot.rollforming_available)
+    : lots
 
 type NoteCellProps = { lot: CoilLot }
 
@@ -264,87 +272,81 @@ const LotHead = ({ lead = [] }: { lead?: string[] }) => (
 const LotColumns = () => (
   <>
     <col className='w-32' />
-    <col className='w-36' />
-    <col className='w-32' />
-    <col className='w-32' />
+    <col className='w-28' />
+    <col className='w-28' />
+    <col className='w-28' />
     {/* Each of these columns is headed by a word longer than the box under it, and the heading is
         what sets the width. */}
     <col className='w-32' />
     <col className='w-20' />
-    <col className='w-36' />
+    <col className='w-32' />
     <col />
   </>
 )
 
 type CellHandlers = Omit<LotCellsProps, 'lot'>
 
-type CoilTableProps = CellHandlers & { coils: CoilLot[]; loading: boolean }
+type GroupLocationProps = {
+  group: CoilGroup
+  department: Department
+  onTick: (lots: CoilLot[], department: Department, checked: boolean) => void
+}
 
 /**
- * One row per coil, with the size it belongs to spelled out in front — the list read for coil #s.
- * The company holds hundreds of coils, so only the rows on screen are in the page.
+ * Where a product's coils stand, set for all of them at once: the floor places a coil product in a
+ * department, not each coil. Ticked once every coil that can go is in — a coil held in the Slinet
+ * cannot, and would otherwise leave the box part-ticked for good — part-ticked while only some are.
  */
-const CoilList = ({ coils, loading, ...handlers }: CoilTableProps) => {
-  const { tableRef, items, measure, before, after } = useWindowRows(
-    coils.length,
-    index => coils[index]?.id ?? String(index)
-  )
+const GroupLocation = ({ group, department, onTick }: GroupLocationProps) => {
+  const viewOnly = useViewOnly()
+  const lots = movable(group.lots, department)
+  const all = lots.length > 0 && lots.every(lot => lot[department])
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table ref={tableRef} className='min-w-6xl table-fixed'>
-        <colgroup>
-          <col className='w-36' />
-          <col className='w-36' />
-          <col className='w-28' />
-          <LotColumns />
-        </colgroup>
-        <LotHead lead={['Product ID', 'Color', 'Grade (ksi)']} />
-        {loading ? (
-          <TableBody>
-            <TableSkeletonRows columns={10} />
-          </TableBody>
-        ) : (
-          <>
-            <SpacerRows height={before} />
-            <TableBody>
-              {items.map(item => {
-                const lot = coils[item.index]
-                if (!lot) return null
-                return (
-                  <TableRow key={item.key} data-index={item.index} ref={measure}>
-                    <TableCell>
-                      <span className='font-mono'>{lot.product_id ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='truncate'>{lot.color ?? '—'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className='font-mono'>{figure(lot.grade)}</span>
-                    </TableCell>
-                    <LotCells lot={lot} {...handlers} />
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-            <SpacerRows height={after} />
-          </>
-        )}
-      </Table>
-    </div>
+    <span
+      className='inline-flex'
+      title={
+        !lots.length
+          ? 'Every coil of this product is mounted in the Slinet — take it off the Slinet first'
+          : undefined
+      }
+    >
+      <Checkbox
+        aria-label={`${DEPARTMENT_LABEL[department]} holds ${group.productId ?? 'these coils'}`}
+        checked={all}
+        indeterminate={!all && group.lots.some(lot => lot[department])}
+        disabled={viewOnly || !lots.length}
+        onCheckedChange={checked => onTick(lots, department, checked)}
+      />
+    </span>
   )
 }
 
-/** One row per size with its totals; a row opens into the coils of that size. */
-const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+type ProductGridProps = CellHandlers & {
+  groups: CoilGroup[]
+  loading: boolean
+  /** A search is on: the products it found open on their coils, which is what it was looking for. */
+  searching: boolean
+  onTickGroup: GroupLocationProps['onTick']
+}
+
+/** One row per coil product with its totals and location; a row opens into its coils. */
+const ProductGrid = ({
+  groups,
+  loading,
+  searching,
+  onTickGroup,
+  ...handlers
+}: ProductGridProps) => {
+  // The rows turned against how they open by default — shut, or open under a search.
+  const [flipped, setFlipped] = useState<Set<string>>(() => new Set())
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
 
-  const toggle = (key: string) => setExpanded(current => toggled(current, key))
+  const toggle = (key: string) => setFlipped(current => toggled(current, key))
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table className='min-w-6xl table-fixed'>
+      <Table className='table-fixed'>
         <colgroup>
           <col className='w-12' />
           {columns.cols}
@@ -359,14 +361,25 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableSkeletonRows columns={6} />
+            <TableSkeletonRows columns={COIL_GROUPS_TABLE.columns.length + 1} />
           ) : (
-            groupsOf(coils).map(group => {
-              const open = expanded.has(group.key)
+            groups.map(group => {
+              const open = searching !== flipped.has(group.key)
 
               return (
                 <Fragment key={group.key}>
-                  <TableRow className='cursor-pointer' onClick={() => toggle(group.key)}>
+                  <TableRow
+                    className='cursor-pointer'
+                    onClick={event => {
+                      // The location boxes are the row's own controls, not a way to open it.
+                      if (
+                        event.target instanceof Element &&
+                        event.target.closest('label, button, [role=checkbox]')
+                      )
+                        return
+                      toggle(group.key)
+                    }}
+                  >
                     <TableCell>
                       <Button
                         variant='ghost'
@@ -413,16 +426,30 @@ const SizeGrid = ({ coils, loading, ...handlers }: CoilTableProps) => {
                         <TableCell>
                           <span className='font-mono'>{figure(total(group.lots, 'weight'))}</span>
                         </TableCell>
+                      ),
+                      rollforming: (
+                        <TableCell>
+                          <GroupLocation
+                            group={group}
+                            department='in_rollforming'
+                            onTick={onTickGroup}
+                          />
+                        </TableCell>
+                      ),
+                      trim: (
+                        <TableCell>
+                          <GroupLocation group={group} department='in_trim' onTick={onTickGroup} />
+                        </TableCell>
                       )
                     })}
                   </TableRow>
 
                   {open ? (
                     <TableRow>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
-                            <Table className='table-fixed'>
+                            <Table className='table-fixed [&_th]:whitespace-normal'>
                               <colgroup>
                                 <LotColumns />
                               </colgroup>
@@ -506,15 +533,12 @@ const nothingListed = (trim: boolean, filter: CoilFilter | null, worker: boolean
   }
 }
 
-/** The two ways to read the list: one row per coil, or one row per size opening into its coils. */
-type Layout = 'coils' | 'sizes'
-
 const searched = (lots: CoilLot[], term: string) => {
   const search = term.trim().toLowerCase()
   return lots.filter(lot => !search || matches(lot, search)).sort(byColorProductCoil)
 }
 
-type Moving = { lot: CoilLot; to: Department }
+type Moving = { lots: CoilLot[]; to: Department }
 
 type MoveConfirmProps = {
   moving: Moving | null
@@ -531,14 +555,15 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
   const from = moved ? DEPARTMENT_LABEL[otherOf(moved.to)] : ''
+  const what = moved?.lots.length === 1 ? 'this coil' : `these ${moved?.lots.length ?? 0} coils`
 
   return (
     <ConfirmDialog
       open={!!moving}
       onOpenChange={open => !open && onCancel()}
       onOpenChangeComplete={release}
-      title={`Have you checked with the ${from} department to ensure that it is ok to move this coil to the ${to} department?`}
-      description={`Yes moves the coil to ${to} and unchecks ${from} — a coil can only be in one department.`}
+      title={`Have you checked with the ${from} department to ensure that it is ok to move ${what} to the ${to} department?`}
+      description={`Yes moves ${what} to ${to} and unchecks ${from} — a coil can only be in one department.`}
       confirmLabel='Yes'
       cancelLabel='No'
       isPending={isPending}
@@ -560,8 +585,6 @@ type CoilsTabProps = {
  */
 export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
-  // Coil numbers are what the tab is opened for, so the flat list is the one it lands on.
-  const [layout, setLayout] = useState<Layout>('coils')
   const [term, setTerm] = useState('')
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -569,6 +592,9 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const viewOnly = useViewOnly()
   // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
   const [folder, setFolder] = useState<string | null>(null)
+  const [pageSize, setPageSize] = useState(40)
+  const [paging, setPaging] = useState({ view: '', page: 0 })
+  const listTop = useRef<HTMLDivElement>(null)
 
   const scoped: CoilScope = worker ? 'trim' : scope
   const trim = scoped === 'trim'
@@ -596,21 +622,42 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const inFolder = trim && folder ? listed.filter(lot => lot.folder_id === folder) : listed
   const setLocation = useSetCoilLocation()
 
-  const move = (lot: CoilLot, location: Parameters<typeof setLocation.mutate>[0]['location']) =>
-    setLocation.mutate({ lotId: lot.id, location }, { onSuccess: () => setMoving(null) })
+  // Only the coils not already where they are being put are sent.
+  const move = (
+    lots: CoilLot[],
+    location: Parameters<typeof setLocation.mutate>[0]['location']
+  ) => {
+    const lotIds = lots
+      .filter(lot =>
+        Object.entries(location).some(([key, value]) => lot[key as keyof typeof location] !== value)
+      )
+      .map(lot => lot.id)
+    if (!lotIds.length) return setMoving(null)
+    setLocation.mutate({ lotIds, location }, { onSuccess: () => setMoving(null) })
+  }
+
+  // Moving coils between departments asks; clearing a box, or ticking one with nothing to displace,
+  // does not. The question is only worth asking when an answer is being overwritten.
+  const tick = (lots: CoilLot[], department: Department, checked: boolean) =>
+    checked && lots.some(lot => lot[otherOf(department)])
+      ? setMoving({ lots, to: department })
+      : move(lots, { [department]: checked })
 
   const handlers: CellHandlers = {
     onAdjust: (lot, focus) => setAdjusting({ lotId: lot.id, focus }),
-    // Moving a coil between departments asks; clearing a box, or ticking one with nothing to
-    // displace, does not. The question is only worth asking when an answer is being overwritten.
-    onTick: (lot, department, checked) =>
-      checked && lot[otherOf(department)]
-        ? setMoving({ lot, to: department })
-        : move(lot, { [department]: checked }),
-    onSlinet: (lot, checked) => move(lot, { in_slinet: checked })
+    onTick: (lot, department, checked) => tick([lot], department, checked),
+    onSlinet: (lot, checked) => move([lot], { in_slinet: checked })
   }
 
   const shown = searched(inFolder, term)
+  // A page belongs to the list it was turned on: any change to what is listed starts again at one.
+  const view = [scoped, folder, term, pageSize].join('|')
+  const page = paging.view === view ? paging.page : 0
+  // Pages through products, so a product's coils never split across two pages.
+  const groups = groupsOf(shown)
+  // An edit can drop coils off the last page; the page then steps back rather than show nothing.
+  const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
+  const from = current * pageSize
   // A folder tab left open hides the coil being searched for, and nothing on screen says so.
   const elsewhere = !!folder && !!term.trim() && !shown.length ? searched(listed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
@@ -621,13 +668,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   )
 
   const scopeTabs = worker ? null : (
-    <Tabs
-      value={scope}
-      onValueChange={value => {
-        setScope(value as CoilScope)
-        setLayout('coils')
-      }}
-    >
+    <Tabs value={scope} onValueChange={value => setScope(value as CoilScope)}>
       <TabsList className='h-10'>
         <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
         <TabsTrigger
@@ -664,18 +705,12 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      {scopeTabs}
-
-      <div className='flex flex-wrap items-center gap-3'>
-        <Tabs value={layout} onValueChange={value => setLayout(value as Layout)}>
-          <TabsList>
-            {/* Inside All Coils the outer tab already says «All Coils» — this one says whose. */}
-            <TabsTrigger value='coils'>{trim ? 'All Trim Coils' : 'All Company Coils'}</TabsTrigger>
-            <TabsTrigger value='sizes'>By size</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {filterButton}
-      </div>
+      {scopeTabs || filterButton ? (
+        <div className='flex flex-wrap items-center gap-3'>
+          {scopeTabs}
+          {filterButton}
+        </div>
+      ) : null}
 
       {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. */}
       {trim && folders?.length ? (
@@ -701,6 +736,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
       <div className='flex flex-wrap items-center gap-3'>
         <p className='text-sm text-muted-foreground'>
+          <span className='font-medium text-foreground'>{groups.length}</span>{' '}
+          {groups.length === 1 ? 'product' : 'products'} ·{' '}
           <span className='font-medium text-foreground'>{shown.length}</span>{' '}
           {shown.length === 1 ? 'coil' : 'coils'}
         </p>
@@ -737,10 +774,32 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
             ) : null
           }
         />
-      ) : layout === 'coils' ? (
-        <CoilList coils={shown} loading={loading} {...handlers} />
       ) : (
-        <SizeGrid coils={shown} loading={loading} {...handlers} />
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
+          <ProductGrid
+            // Starting a search, or clearing one, starts the rows over from how it opens them.
+            key={term.trim() ? 'searching' : 'listing'}
+            groups={groups.slice(from, from + pageSize)}
+            loading={loading}
+            searching={!!term.trim()}
+            onTickGroup={tick}
+            {...handlers}
+          />
+          {loading ? null : (
+            <Pager
+              page={current}
+              pageSize={pageSize}
+              total={groups.length}
+              noun='products'
+              onPage={next => {
+                setPaging({ view, page: next })
+                // The pager sits under the rows; the next page is read from its first row.
+                listTop.current?.scrollIntoView({ block: 'start' })
+              }}
+              onPageSize={setPageSize}
+            />
+          )}
+        </div>
       )}
 
       <CoilAdjustDialog
@@ -755,7 +814,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         moving={moving}
         isPending={setLocation.isPending}
         onCancel={() => setMoving(null)}
-        onConfirm={({ lot, to }) => move(lot, { [to]: true, [otherOf(to)]: false })}
+        onConfirm={({ lots, to }) => move(lots, { [to]: true, [otherOf(to)]: false })}
       />
     </div>
   )
