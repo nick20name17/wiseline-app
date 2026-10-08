@@ -14,36 +14,50 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
-import { Scissors } from 'lucide-react'
+import { CalendarClock, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { slitLineQuery, useSlitRequest } from '../api'
+import { slitLineQuery, useScheduleSlit, useSlitRequest, type SlitStage } from '../api'
 import { useViewOnly } from '../lib/board-context'
 import { matchesSearch } from '../lib/search'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
+import { ScheduleDialog } from './schedule-dialog'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
-const COLUMNS = 9
+const COLUMNS = 10
+
+const EMPTY: Record<SlitStage, [string, string]> = {
+  unscheduled: [
+    'Nothing to schedule',
+    "A machine's request shows here until it is given a slit day."
+  ],
+  scheduled: ['Nothing scheduled', 'A request shows here once it has its day on the Slit Line.'],
+  slit: ['Nothing slit yet', 'Material shows here once the Slit Line marks it slit.']
+}
 
 type SlitLineTabProps = { search: string | undefined; departmentId: number }
 
 /**
- * The Slit Line: material the Manager sent to be slit, by Production Date then Priority p2 (1204,296).
+ * The Slit Line: material a machine asked to have slit p2 (754,297). The Manager gives a request its
+ * own slit day, whole — no Split p2 (761,308) — and it is read by that day then Priority p2 (1204,296).
  * Marking it slit records the Supplier and Coil Number used, and they fill into the line on the board,
  * its scissors turning green p2 (1086,349).
  */
 export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
-  const [done, setDone] = useState(false)
+  const [stage, setStage] = useState<SlitStage>('unscheduled')
+  const done = stage === 'slit'
   const {
     data: queue,
     isPending,
     isError,
     error,
     refetch
-  } = useQuery(slitLineQuery(departmentId, done))
+  } = useQuery(slitLineQuery(departmentId, stage))
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
   const [marking, setMarking] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
+  const schedule = useScheduleSlit()
   const [noteItem, setNoteItem] = useState<string | null>(null)
   const cancel = useSlitRequest()
   const viewOnly = useViewOnly()
@@ -55,23 +69,37 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
   // Line notes are open «at any point in production» p2 (526,410), the Slit Line included.
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const chosen = rows.filter(row => picked.has(row.origin_item))
-  // One coil at a time, so one Product ID at a time p2 (540,467).
-  const chosenProduct = chosen[0]?.product_id
-  const days = byDay(rows, row => row.production_date)
+  // Mark slit is one coil, so one Product ID p2 (540,467); a request is scheduled whole, products and all.
+  const oneProduct = new Set(chosen.map(row => row.product_id)).size <= 1
+  const days = byDay(rows, row =>
+    stage === 'scheduled' ? row.slit_production_date : row.production_date
+  )
+  const [emptyTitle, emptyText] = EMPTY[stage]
+  const setDay = (productionDate: string | null) =>
+    schedule.mutate(
+      { originItems: chosen.map(row => row.origin_item), productionDate },
+      {
+        onSuccess: () => {
+          setScheduling(false)
+          setPicked(new Set())
+        }
+      }
+    )
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
       <div className='flex flex-wrap items-center gap-2.5'>
         <div className='border-b border-border'>
           <Tabs
-            value={done ? 'slit' : 'waiting'}
+            value={stage}
             onValueChange={value => {
-              setDone(value === 'slit')
+              setStage(value as SlitStage)
               setPicked(new Set())
             }}
           >
             <TabsList variant='line' className='h-9'>
-              <TabsTrigger value='waiting'>Waiting</TabsTrigger>
+              <TabsTrigger value='unscheduled'>Unscheduled</TabsTrigger>
+              <TabsTrigger value='scheduled'>Scheduled</TabsTrigger>
               <TabsTrigger value='slit'>Slit</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -90,7 +118,16 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
             >
               Take off the Slit Line
             </Button>
-            <Button disabled={!chosen.length} onClick={() => setMarking(true)}>
+            <Button variant='outline' disabled={!chosen.length} onClick={() => setScheduling(true)}>
+              <CalendarClock data-icon='inline-start' />
+              {stage === 'scheduled' ? 'Reschedule' : 'Schedule'}
+              {chosen.length ? ` (${chosen.length})` : ''}
+            </Button>
+            <Button
+              disabled={!chosen.length || !oneProduct}
+              title={oneProduct ? undefined : 'One Product ID at a time: it is slit off one coil'}
+              onClick={() => setMarking(true)}
+            >
               <Scissors data-icon='inline-start' />
               Mark slit{chosen.length ? ` (${chosen.length})` : ''}
             </Button>
@@ -110,15 +147,9 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
             <EmptyMedia variant='icon'>
               <Scissors />
             </EmptyMedia>
-            <EmptyTitle>
-              {all.length ? 'No material matches' : done ? 'Nothing slit yet' : 'Nothing to slit'}
-            </EmptyTitle>
+            <EmptyTitle>{all.length ? 'No material matches' : emptyTitle}</EmptyTitle>
             <EmptyDescription>
-              {all.length
-                ? `Nothing on the Slit Line matches «${search?.trim()}».`
-                : done
-                  ? 'Material shows here once the Slit Line marks it slit.'
-                  : 'Material shows here once a Manager sends it to the Slit Line.'}
+              {all.length ? `Nothing on the Slit Line matches «${search?.trim()}».` : emptyText}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -129,6 +160,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
               <col className='w-10' />
               <col className='w-36' />
               <col className='w-28' />
+              <col className='w-32' />
               <col className='w-32' />
               <col />
               <col className='w-16' />
@@ -141,6 +173,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 <TableHead />
                 <TableHead>Production Date</TableHead>
                 <TableHead>Order #</TableHead>
+                <TableHead>Requested By</TableHead>
                 <TableHead>Product ID</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Qty</TableHead>
@@ -165,7 +198,6 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                     </TableRow>
                     {day.items.map(row => {
                       const product = row.product_id
-                      const pickable = chosenProduct === undefined || chosenProduct === product
                       return (
                         <TableRow
                           key={row.origin_item}
@@ -178,7 +210,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                               <Checkbox
                                 aria-label={`Select ${product ?? row.origin_item} of ${row.invoice ?? row.order}`}
                                 checked={picked.has(row.origin_item)}
-                                disabled={viewOnly || !pickable}
+                                disabled={viewOnly}
                                 onCheckedChange={() =>
                                   setPicked(current => {
                                     const next = new Set(current)
@@ -194,6 +226,9 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             <span className='font-mono font-medium'>
                               {row.invoice ?? row.order ?? '—'}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className='truncate'>{row.requested_by ?? '—'}</span>
                           </TableCell>
                           <TableCell>
                             <span className='font-mono'>{product ?? '—'}</span>
@@ -239,6 +274,19 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         open={marking}
         onOpenChange={setMarking}
         onAssigned={() => setPicked(new Set())}
+      />
+
+      <ScheduleDialog
+        open={scheduling}
+        onOpenChange={setScheduling}
+        title='Slit Line day'
+        description={`The day the Slit Line slits ${chosen.length === 1 ? 'this request' : `these ${chosen.length} lines`}.`}
+        actionLabel='Schedule'
+        departmentId={departmentId}
+        initialDay={stage === 'scheduled' ? (chosen[0]?.slit_production_date ?? null) : null}
+        isPending={schedule.isPending}
+        onPick={setDay}
+        onUnschedule={stage === 'scheduled' ? () => setDay(null) : undefined}
       />
 
       <LineNotesDialog

@@ -71,7 +71,9 @@ const machineSchema = z.object({
   // several («Tuff Rib & Diamond Rib»).
   ebms_profile_names: z._default(z.array(z.string()), []),
   daily_max_pieces: z._default(z.nullable(z.number()), null),
-  daily_max_bends: z._default(z.nullable(z.number()), null)
+  daily_max_bends: z._default(z.nullable(z.number()), null),
+  // Rollforming's day is counted in linear feet.
+  daily_max_feet: z._default(z.nullable(z.number()), null)
 })
 
 export type Machine = z.infer<typeof machineSchema>
@@ -83,7 +85,8 @@ export const machineFormSchema = z.object({
   kind: z.string(),
   ebms_profile_names: z.array(z.string().check(z.maxLength(100, 'At most 100 characters'))),
   daily_max_pieces: z.nullable(z.number()),
-  daily_max_bends: z.nullable(z.number())
+  daily_max_bends: z.nullable(z.number()),
+  daily_max_feet: z.nullable(z.number())
 })
 
 export type MachineForm = z.infer<typeof machineFormSchema>
@@ -145,6 +148,71 @@ export const useUpdateMaxPackageWeight = (onSuccess: () => void) =>
     onSuccess: async (_, __, ___, { client }) => {
       // Every feature's copy of the departments, the boards' ceiling included.
       await client.invalidateQueries({ queryKey: ['departments'] })
+      onSuccess()
+    }
+  })
+
+const capacitySchema = z.object({
+  id: z.number(),
+  per_day: z._default(z.nullable(z.number()), null),
+  department: z._default(z.nullable(z.number()), null)
+})
+
+export type DepartmentCapacity = z.infer<typeof capacitySchema>
+
+// One row per department at most, and a plant has a handful.
+const CAPACITIES_LIMIT = 100
+
+/**
+ * A department's own daily capacity: the day tabs' ceiling where its machines set none —
+ * Accessories', counted in pieces p3 (1078,280).
+ */
+export const capacitiesQuery = queryOptions({
+  queryKey: ['capacities'] as const,
+  queryFn: async () =>
+    z
+      .object({ results: z.array(capacitySchema) })
+      .parse(await authApi.get('capacities/', { searchParams: { limit: CAPACITIES_LIMIT } }).json())
+      .results
+})
+
+// The form starts empty where nothing is set yet, but the server keeps no capacity without a figure.
+export const dailyCapacityFormSchema = z.object({
+  per_day: z
+    .nullable(z.number().check(z.positive('Enter a number above 0')))
+    .check(z.refine(value => value !== null, 'Enter a number above 0'))
+})
+
+export type DailyCapacityForm = z.infer<typeof dailyCapacityFormSchema>
+
+export const useSaveDailyCapacity = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The daily capacity was not saved' },
+    mutationFn: async ({
+      department,
+      capacity,
+      values
+    }: {
+      department: Department
+      capacity: DepartmentCapacity | undefined
+      values: DailyCapacityForm
+    }) => {
+      if (capacity) return authApi.patch(`capacities/${capacity.id}/`, { json: values }).json()
+      // A capacity row is keyed by the department's EBMS category too, which the shared
+      // department list does not carry.
+      const { category } = z
+        .object({ category: z.nullable(z.string()) })
+        .parse(await authApi.get(`departments/${department.id}/`).json())
+      return authApi
+        .post('capacities/', { json: { ...values, category, department: department.id } })
+        .json()
+    },
+    onSuccess: async (_, __, ___, { client }) => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['capacities'] }),
+        // The boards' day tabs read it.
+        client.invalidateQueries({ queryKey: ['board'] })
+      ])
       onSuccess()
     }
   })

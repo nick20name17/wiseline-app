@@ -1,4 +1,4 @@
-import { dayLoad } from '../lib/format'
+import { dayLoad, loadUnit } from '../lib/format'
 import { useBoard } from '../lib/board-context'
 import { formatDate, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
@@ -119,7 +119,7 @@ export const ScheduledDayTabs = ({
             const active = entry.date === day
             const used =
               entry.capacity && entry.capacity > 0
-                ? Math.min(100, Math.round((entry.bends / entry.capacity) * 100))
+                ? Math.min(100, Math.round((entry.used / entry.capacity) * 100))
                 : 0
 
             return (
@@ -148,15 +148,15 @@ export const ScheduledDayTabs = ({
                     title={
                       entry.over_capacity
                         ? 'Over capacity — soft warning'
-                        : board.assignsMachines
-                          ? 'Assigned bends / total plant daily bend capacity'
-                          : 'Pieces assigned to the day'
+                        : entry.capacity === null
+                          ? `Assigned to the day, in ${loadUnit(entry.capacity_unit)}`
+                          : `Assigned ${loadUnit(entry.capacity_unit)} / the day's capacity`
                     }
                   >
-                    ({dayLoad(entry, board)}){entry.over_capacity ? ' · over' : ''}
+                    ({dayLoad(entry)}){entry.over_capacity ? ' · over' : ''}
                   </span>
-                  {/* A share of the day's bend capacity, which only Trim's machines have. */}
-                  {board.assignsMachines ? (
+                  {/* A share of the day's capacity, where the department has set one. */}
+                  {entry.capacity ? (
                     <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
                       <span
                         className={cn(
@@ -170,7 +170,7 @@ export const ScheduledDayTabs = ({
                 </button>
                 {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
                     a keyboard reaching it shows it too. A board with no machines has no report. */}
-                {board.assignsMachines ? (
+                {board.makes ? (
                   <span className='absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 focus-within:opacity-100'>
                     <Button
                       variant='outline'

@@ -80,6 +80,11 @@ export type Board = {
    * p2 (542,280). Trim's machines are tabs of Production only.
    */
   machineTabs: boolean
+  /**
+   * Packages are made at the machine with no location, and Wrapping only locates them; the last one
+   * located completes the order, so there is no Order Complete — Rollforming's p2 (1020,440), (1144,383).
+   */
+  packsAtMachine: boolean
   /** How the department says packing: Trim wraps its trims, Accessories packages p3 (1077,291). */
   /** `ready` is the status a line is packed from once made, `null` for a department that makes none. */
   pack: { station: string; verb: string; done: string; doneLabel: string; ready: string | null }
@@ -110,6 +115,7 @@ export const BOARDS: Record<BoardCode, Board> = {
     stockCards: true,
     coils: false,
     machineTabs: false,
+    packsAtMachine: false,
     pack: {
       station: 'Wrapping',
       verb: 'Wrap',
@@ -149,11 +155,14 @@ export const BOARDS: Record<BoardCode, Board> = {
     stockCards: false,
     coils: true,
     machineTabs: true,
+    packsAtMachine: true,
+    // Packed at the machine, on Production p2 (1011,367); Wrapping only gives the packages a
+    // location p2 (1143,329).
     pack: {
-      station: 'Wrapping',
-      verb: 'Wrap',
-      done: 'wrapped',
-      doneLabel: 'Wrapped',
+      station: 'Production',
+      verb: 'Package',
+      done: 'rolled',
+      doneLabel: 'Rolled',
       // A released line packs from Not Started; the packages move it to In Progress and Rolled.
       ready: null
     },
@@ -180,6 +189,7 @@ export const BOARDS: Record<BoardCode, Board> = {
     stockCards: false,
     coils: false,
     machineTabs: false,
+    packsAtMachine: false,
     pack: {
       station: 'Packaging',
       verb: 'Package',

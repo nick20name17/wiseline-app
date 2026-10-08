@@ -83,11 +83,16 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
       kind: machine?.kind ?? 'bending',
       ebms_profile_names: machine?.ebms_profile_names ?? [],
       daily_max_pieces: machine?.daily_max_pieces ?? null,
-      daily_max_bends: machine?.daily_max_bends ?? null
+      daily_max_bends: machine?.daily_max_bends ?? null,
+      daily_max_feet: machine?.daily_max_feet ?? null
     }
   })
 
   const kind = useWatch({ control: form.control, name: 'kind' })
+  const departmentId = useWatch({ control: form.control, name: 'department' })
+  // Only Rollforming's day is counted in feet, so only its machines are asked for a figure in them.
+  const inFeet =
+    departments?.find(department => department.id === departmentId)?.code === 'rollforming'
   const mutation = useUpsertMachine(onSuccess)
   const { errors } = form.formState
 
@@ -215,6 +220,25 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
             />
             <FieldDescription>One per line, spelled as in EBMS.</FieldDescription>
             <FieldError errors={[errors.ebms_profile_names]} />
+          </Field>
+        ) : null}
+
+        {inFeet ? (
+          <Field data-invalid={invalid(errors.daily_max_feet)}>
+            <FieldLabel htmlFor='machine-feet'>Daily max linear feet</FieldLabel>
+            {/* What Rollforming's day tabs and Machine Capacities hold the day against. */}
+            <InputGroup>
+              <InputGroupInput
+                id='machine-feet'
+                type='number'
+                min={0}
+                inputMode='numeric'
+                placeholder='No ceiling'
+                aria-invalid={invalid(errors.daily_max_feet)}
+                {...form.register('daily_max_feet', { setValueAs: asNumber })}
+              />
+            </InputGroup>
+            <FieldError errors={[errors.daily_max_feet]} />
           </Field>
         ) : null}
 

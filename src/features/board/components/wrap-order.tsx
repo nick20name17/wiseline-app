@@ -15,6 +15,7 @@ import {
   remanufacturingsQuery,
   useCompleteOrder,
   useCreatePackage,
+  useFillInCoil,
   useMoveOrderPackages,
   useBoardDepartment,
   useUpdateLineItem,
@@ -22,6 +23,7 @@ import {
   type LocationSlot,
   type OrderLocation,
   type Remanufacturing,
+  type UnitCoil,
   type WrappingRow
 } from '../api'
 import { itemStatus } from '../lib/status'
@@ -41,6 +43,8 @@ import {
   type CellRoom,
   type ShownLocation
 } from '../lib/wrapping'
+import { CoilAssignDialog } from './coil-assign-dialog'
+import { CoilCell, type CoilItem, type CopiedCoil } from './coil-cell'
 import { ConfirmDialog } from './confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
@@ -117,6 +121,9 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
   const viewOnly = useViewOnly()
   if (row.status === pack.done)
     return <span className='text-xs text-muted-foreground'>{pack.doneLabel} ✓</span>
+  // A Stock line stays Stock once all of it is packed p2 (941,521), so the figures say it is done.
+  if (row.wrapped > 0 && row.left_to_wrap <= 0)
+    return <span className='text-xs text-muted-foreground'>Packed ✓</span>
 
   if (viewOnly) return <span className='text-muted-foreground'>—</span>
 
@@ -188,6 +195,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
 type WrapLinesProps = {
   departmentId: number | undefined
   rows: WrappingRow[]
+  coils?: ReadonlyMap<string, CoilItem>
   remansOf: (row: WrappingRow) => Remanufacturing[]
   allowedOf: (row: WrappingRow) => number
   stagedOf: (row: WrappingRow) => number
@@ -201,11 +209,19 @@ const WrapLines = ({
   remansOf,
   allowedOf,
   stagedOf,
+  coils,
   onAmount
 }: WrapLinesProps) => {
   const [remaking, setRemaking] = useState<WrappingRow | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const [stocking, setStocking] = useState<WrappingRow | null>(null)
+  const [filling, setFilling] = useState<{
+    row: WrappingRow
+    units: UnitCoil[] | null
+  } | null>(null)
+  // The Coil Number copied off one line, to paste into the others p2 (1040,347).
+  const [copied, setCopied] = useState<CopiedCoil | null>(null)
+  const fillIn = useFillInCoil()
   const noteState = useLineNoteState(rows.map(row => row.origin_item))
   const board = useBoard()
   const viewOnly = useViewOnly()
@@ -309,6 +325,19 @@ const WrapLines = ({
                         />
                       </TableCell>
                     ),
+                    coil: (
+                      <TableCell>
+                        <CoilCell
+                          row={row}
+                          item={coils?.get(row.origin_item)}
+                          copied={copied}
+                          pasting={fillIn.isPending}
+                          onFill={units => setFilling({ row, units })}
+                          onCopy={setCopied}
+                          onPaste={entries => fillIn.mutate(entries)}
+                        />
+                      </TableCell>
+                    ),
                     wrapping: (
                       <TableCell>
                         <WrapCell
@@ -338,6 +367,17 @@ const WrapLines = ({
           </TableBody>
         </Table>
       </div>
+
+      <CoilAssignDialog
+        lines={filling ? [{ id: filling.row.origin_item, id_inven: filling.row.product_id }] : []}
+        action='fill'
+        departmentId={departmentId}
+        current={filling ? coils?.get(filling.row.origin_item) : undefined}
+        units={{ fill: filling?.units ?? null }}
+        open={!!filling}
+        onOpenChange={open => !open && setFilling(null)}
+        onAssigned={() => setFilling(null)}
+      />
 
       <RemanufactureDialog
         departmentId={departmentId}
@@ -474,11 +514,13 @@ const CompleteOrderButton = ({
         title={
           completion?.can_complete
             ? undefined
-            : owesReman
-              ? 'Waiting on a remanufacture — available once the machine marks it Bent'
-              : makes
-                ? 'Available once Left To Wrap is zero on every line'
-                : 'Available once the first package is created'
+            : completion?.reason
+              ? completion.reason
+              : owesReman
+                ? 'Waiting on a remanufacture — available once the machine marks it Bent'
+                : makes
+                  ? 'Available once Left To Wrap is zero on every line'
+                  : 'Available once the first package is created'
         }
         onClick={() => setCompleting(true)}
       >
@@ -515,6 +557,8 @@ type CreatePrintButtonProps = {
   number: string
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
+  /** Packed at the machine, with no location: Wrapping gives it one later p2 (1020,440). */
+  atMachine: boolean
   /** `null` when a staged line does not say what it weighs; then no weight is sent. */
   weight: number | null
   overPackage: boolean
@@ -532,6 +576,7 @@ const CreatePrintButton = ({
   number,
   lines,
   target,
+  atMachine,
   weight,
   overPackage,
   overLocation,
@@ -553,12 +598,12 @@ const CreatePrintButton = ({
 
   const print = (override: boolean) =>
     departmentId &&
-    target &&
+    (target || atMachine) &&
     createPackage.mutate(
       {
         order,
         department_id: departmentId,
-        location_id: target.location_id,
+        ...(target ? { location_id: target.location_id } : {}),
         lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
         ...(weight === null ? {} : { weight }),
         ...(override ? { override_weight: true } : {})
@@ -567,7 +612,7 @@ const CreatePrintButton = ({
         onSuccess: created => {
           toast.add({
             type: 'success',
-            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs → ${target.name ?? target.location_id}`
+            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
           })
           if (!created.name)
             return toast.add({
@@ -578,7 +623,7 @@ const CreatePrintButton = ({
           label.print({
             name: created.name,
             orderNumber: number,
-            location: target.name,
+            location: target?.name ?? null,
             weight,
             contents: lines.map(line => ({
               product: lineName(line.row),
@@ -592,7 +637,7 @@ const CreatePrintButton = ({
   return (
     <>
       <Button
-        disabled={!lines.length || !target || createPackage.isPending}
+        disabled={!lines.length || (!target && !atMachine) || createPackage.isPending}
         onClick={() => (overPackage || overLocation ? setConfirming(true) : print(false))}
       >
         <Printer data-icon='inline-start' />
@@ -652,7 +697,7 @@ type OrderFactsProps = {
   /** Any of the order's rows: the order info rides on every one. */
   order: WrappingRow
   locations: ShownLocation[]
-  onRemove: (location: OrderLocation) => void
+  onRemove?: (location: OrderLocation) => void
 }
 
 const Fact = ({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) => (
@@ -697,6 +742,8 @@ type WrapOrderProps = {
   departmentId: number | undefined
   /** Every released line of this one order, as the Wrapping list holds them. */
   rows: WrappingRow[]
+  /** At the machine: each line's coil, which the Worker fills in where the Manager left it Undefined. */
+  coils?: ReadonlyMap<string, CoilItem>
   onBack: () => void
 }
 
@@ -704,8 +751,10 @@ type WrapOrderProps = {
  * One order at the wrapping bench and the three gates it walks: a quantity opens Select location, a
  * location opens Create & print, and only every line wrapped opens Order Complete.
  */
-export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
+export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps) => {
   const order = rows[0]
+  const board = useBoard()
+  const atMachine = board.packsAtMachine
   // The operator's scratch pad, cleared by printing rather than kept anywhere.
   const [amounts, setAmounts] = useState<Record<string, string>>({})
   const [picked, setPicked] = useState<LocationSlot | null>(null)
@@ -716,7 +765,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
   const [seeing, setSeeing] = useState(false)
 
   const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
-  const { data: department } = useBoardDepartment(useBoard().code)
+  const { data: department } = useBoardDepartment(board.code)
   const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
   // This department's cells, for the weight already standing on the one the package is going to.
   const { data: slots } = useQuery(
@@ -740,7 +789,10 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
     .map(row => ({ row, quantity: stagedOf(row) }))
     .filter(line => line.quantity > 0)
 
-  const { target, slot: targetSlot } = packageTarget(picked, locations, slots)
+  // At the machine a package is made with no location, whatever the order already stands on.
+  const { target, slot: targetSlot } = atMachine
+    ? { target: null, slot: null }
+    : packageTarget(picked, locations, slots)
   const weight = lines.length ? packageWeight(lines) : null
   const limit = department?.max_package_weight ?? null
   const overPackage = overPackageLimit(weight, limit)
@@ -764,6 +816,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         remansOf={remansOf}
         allowedOf={allowedOf}
         stagedOf={stagedOf}
+        coils={coils}
         onAmount={(originItem, amount) =>
           setAmounts(current => ({ ...current, [originItem]: amount }))
         }
@@ -773,20 +826,22 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
         number={number}
         order={order}
         locations={shownLocations}
-        onRemove={removeLocation}
+        onRemove={atMachine ? undefined : removeLocation}
       />
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
         {viewOnly ? null : (
           <>
-            <Button
-              variant='outline'
-              disabled={!lines.length}
-              onClick={() => setPicking('package')}
-            >
-              <MapPin data-icon='inline-start' />
-              Select location{target ? ` · ${target.name ?? target.location_id}` : ''}
-            </Button>
+            {atMachine ? null : (
+              <Button
+                variant='outline'
+                disabled={!lines.length}
+                onClick={() => setPicking('package')}
+              >
+                <MapPin data-icon='inline-start' />
+                Select location{target ? ` · ${target.name ?? target.location_id}` : ''}
+              </Button>
+            )}
 
             <CreatePrintButton
               departmentId={departmentId}
@@ -794,6 +849,7 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
               number={number}
               lines={lines}
               target={target}
+              atMachine={atMachine}
               weight={weight}
               overPackage={overPackage}
               overLocation={overTarget}
@@ -816,7 +872,8 @@ export const WrapOrder = ({ departmentId, rows, onBack }: WrapOrderProps) => {
           See packages
         </Button>
 
-        {viewOnly ? null : (
+        {/* At the machine the order completes itself once Wrapping locates its last package. */}
+        {viewOnly || atMachine ? null : (
           <CompleteOrderButton
             departmentId={departmentId}
             order={order.order}

@@ -12,7 +12,12 @@ const SETTINGS_TABS = [
   { to: '/settings/work-days', label: 'Work Days' }
 ] as const
 
-export const SettingsTabs = () => {
+type SettingsTabsProps = {
+  /** Tabs the user may not open, left out rather than shown and refused. */
+  hidden: ReadonlySet<string>
+}
+
+export const SettingsTabs = ({ hidden }: SettingsTabsProps) => {
   const pathname = useLocation({ select: location => location.pathname })
 
   return (
@@ -23,7 +28,7 @@ export const SettingsTabs = () => {
             their focus ring where the strip has to scroll. */}
         <div className='scrollport overflow-x-auto'>
           <TabsList variant='line'>
-            {SETTINGS_TABS.map(tab => (
+            {SETTINGS_TABS.filter(tab => !hidden.has(tab.to)).map(tab => (
               <TabsTrigger
                 key={tab.to}
                 value={tab.to}

@@ -75,7 +75,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
 
   const loadOn = (day: string) => {
     const entry = load.get(day)
-    return entry ? dayLoadHint(entry, board) : undefined
+    return entry ? dayLoadHint(entry) : undefined
   }
 
   return (

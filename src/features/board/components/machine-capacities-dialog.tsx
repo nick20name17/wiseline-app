@@ -12,7 +12,10 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Printer } from 'lucide-react'
-import { machineCapacitiesQuery } from '../api'
+import { machineCapacitiesQuery, machineLoad } from '../api'
+
+// Feet come back to the hundredth; the report reads whole ones.
+const whole = (value: number) => Math.round(value)
 
 type MachineCapacitiesDialogProps = {
   departmentId: number | undefined
@@ -28,7 +31,7 @@ type FigureProps = {
   /** The server's verdict against `max`, not worked out here. */
   over?: boolean
   /** Part of the value beside it, never an addition to it. */
-  fromStock: number
+  fromStock?: number
   /** The day still has trim with no machine, which is what the gap below this row is. */
   unrouted?: boolean
 }
@@ -39,16 +42,16 @@ type FigureProps = {
  * Value, slash, max and the parenthetical are tracks of one fixed-width row, so the slashes and the
  * «(n - Stock)» notes line up down the column without the slash being dragged from its own number.
  */
-const Figure = ({ value, max, over = false, fromStock, unrouted }: FigureProps) => (
+const Figure = ({ value, max, over = false, fromStock = 0, unrouted }: FigureProps) => (
   <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold'>
     {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
     <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
-      {value}
+      {whole(value)}
     </span>
     {max ? (
       <>
         <span className='mx-1.5 text-muted-foreground'>/</span>
-        <span className={cn(over && 'text-destructive')}>{max}</span>
+        <span className={cn(over && 'text-destructive')}>{whole(max)}</span>
       </>
     ) : null}
     {fromStock ? (
@@ -112,12 +115,20 @@ export const MachineCapacitiesDialog = ({
 }: MachineCapacitiesDialogProps) => {
   const [day, release] = useRetained(current)
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
-  // The report names the pieces with no machine; the bends are whatever the machines do not add up to.
+  // Trim's machines are held to bends, Rollforming's to linear feet: the second column is the day's
+  // own unit, the one its Daily Max is set in.
+  const unit = data?.total.capacity_unit ?? 'bends'
+  const feet = unit === 'linear_feet'
+  const total = data ? (feet ? data.total.linear_feet : data.total.bends) : 0
+  // The report names the pieces with no machine; the rest is whatever the machines do not add up to.
   const unroutedPieces = data?.pieces_without_a_machine ?? 0
-  const unroutedBends = data
-    ? Math.max(0, data.total.bends - data.machines.reduce((sum, machine) => sum + machine.bends, 0))
+  const unroutedMeasure = data
+    ? Math.max(
+        0,
+        total - data.machines.reduce((sum, machine) => sum + machineLoad(machine, unit).value, 0)
+      )
     : 0
-  const unrouted = unroutedPieces > 0 || unroutedBends > 0
+  const unrouted = unroutedPieces > 0 || unroutedMeasure >= 1
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
@@ -152,7 +163,7 @@ export const MachineCapacitiesDialog = ({
                     Pieces
                   </th>
                   <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                    Bends
+                    {feet ? 'Linear Feet' : 'Bends'}
                   </th>
                 </tr>
               </thead>
@@ -161,7 +172,7 @@ export const MachineCapacitiesDialog = ({
                   isDay
                   title={
                     unrouted
-                      ? `${unroutedBends} bends (${unroutedPieces} pcs) scheduled but not routed to a machine yet`
+                      ? `${whole(unroutedMeasure)} ${feet ? 'ft' : 'bends'} (${unroutedPieces} pcs) scheduled but not routed to a machine yet`
                       : undefined
                   }
                   name={
@@ -182,10 +193,10 @@ export const MachineCapacitiesDialog = ({
                   </Cell>
                   <Cell isDay>
                     <Figure
-                      value={data.total.bends}
+                      value={total}
                       max={data.total.capacity}
                       over={data.total.over_capacity}
-                      fromStock={data.total.bends_from_stock}
+                      fromStock={feet ? 0 : data.total.bends_from_stock}
                       unrouted={unrouted}
                     />
                   </Cell>
@@ -197,12 +208,7 @@ export const MachineCapacitiesDialog = ({
                       <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
                     </Cell>
                     <Cell>
-                      <Figure
-                        value={machine.bends}
-                        max={machine.max_bends}
-                        over={machine.over_bends}
-                        fromStock={machine.bends_from_stock}
-                      />
+                      <Figure {...machineLoad(machine, unit)} />
                     </Cell>
                   </Row>
                 ))}

@@ -1,5 +1,4 @@
-import type { DayStripEntry } from '../api'
-import type { Board } from './boards'
+import type { CapacityUnit, DayStripEntry } from '../api'
 /**
  * `Tue, July 14, 2026 · 2:41 PM` — an instant rather than a production day (`@/lib/days`), so it is
  * read in local time: it records when somebody on the floor pressed a button.
@@ -23,18 +22,31 @@ export const formatCount = (value: number) => numbers.format(value)
 export const productFacts = (product: { color: string | null; gauge: string | null }) =>
   [product.color, product.gauge === null ? null : `${product.gauge} ga`].filter(Boolean).join(' · ')
 
+const UNITS: Record<CapacityUnit, { short: string; long: string }> = {
+  // The board prints Trim's as bare figures, «2710 / 5000» p1 (251,486).
+  bends: { short: '', long: 'bends' },
+  linear_feet: { short: ' ft', long: 'linear feet' },
+  pieces: { short: ' pcs', long: 'pieces' }
+}
+
+/** What a day's load is counted in, for the words around the figure. */
+export const loadUnit = (unit: CapacityUnit) => UNITS[unit].long
+
+// Feet come back to the hundredth; a pill wants whole numbers, ungrouped like the board's.
+const whole = (value: number) => String(Math.round(value))
+
 /**
- * A day's load as its pill prints it: Trim's bends against its machines' daily capacity; a board
- * whose machines are not assigned here, the pieces on the day p3 (1078,280).
+ * A day's load as its pill prints it: what is on the day against its capacity, in the department's
+ * unit p1 (81,286), p2 (731,390), p3 (1078,280); the figure alone where the day has no ceiling.
  */
-export const dayLoad = (entry: DayStripEntry, board: Board) =>
-  board.assignsMachines ? `${entry.bends} / ${entry.capacity ?? '—'}` : `${entry.pieces} pcs`
+export const dayLoad = (entry: DayStripEntry) => {
+  const { short } = UNITS[entry.capacity_unit]
+  // A bare figure needs the slash to read as a load: Trim with no Daily Max reads «21 / —».
+  if (entry.capacity === null)
+    return short ? `${whole(entry.used)}${short}` : `${whole(entry.used)} / —`
+  return `${whole(entry.used)} / ${whole(entry.capacity)}${short}`
+}
 
-/** What a day's load is counted in on the board, for the words around the figure. */
-export const loadUnit = (board: Board) => (board.assignsMachines ? 'bends' : 'pieces')
-
-/** A day's load in a sentence, for a hint: against the capacity where the board has one. */
-export const dayLoadHint = (entry: DayStripEntry, board: Board) =>
-  board.assignsMachines
-    ? `${formatCount(entry.bends)}${entry.capacity === null ? '' : ` of ${formatCount(entry.capacity)}`} bends scheduled${entry.over_capacity ? ' — over the daily capacity' : ''}`
-    : `${formatCount(entry.pieces)} pcs scheduled`
+/** A day's load in a sentence, for a hint: against the capacity where the day has one. */
+export const dayLoadHint = (entry: DayStripEntry) =>
+  `${formatCount(entry.used)}${entry.capacity === null ? '' : ` of ${formatCount(entry.capacity)}`} ${loadUnit(entry.capacity_unit)} scheduled${entry.over_capacity ? ' — over the daily capacity' : ''}`

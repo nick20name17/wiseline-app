@@ -334,10 +334,22 @@ export const ROLLFORMING_WRAPPING_TABLE: ColumnTable = {
   columns: without(WRAPPING_TABLE, ['remfg'])
 }
 
-// The bench p2 (1144,315): nothing is remade in Rollforming.
+// The bench at the machine p2 (1011,367): nothing is remade in Rollforming, every line names the coil
+// it rolls off, and it is packaged here, not wrapped.
 export const ROLLFORMING_WRAP_LINES_TABLE: ColumnTable = {
   table: 'rollforming-wrap-lines',
-  columns: without(WRAP_LINES_TABLE, ['reman'])
+  columns: without(WRAP_LINES_TABLE, ['reman']).flatMap(column =>
+    column.key === 'wrapped'
+      ? [{ ...column, label: 'Packaged', width: 'w-24' }]
+      : column.key === 'left'
+        ? [{ ...column, label: 'Left to package' }]
+        : column.key === 'wrapping'
+          ? [
+              { key: 'coil', label: 'Supplier / Coil Number', width: 'w-72' },
+              { ...column, label: 'Packaging' }
+            ]
+          : [column]
+  )
 }
 
 export const ROLLFORMING_COMPLETED_TABLE: ColumnTable = {

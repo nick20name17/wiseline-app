@@ -20,6 +20,7 @@ import { itemStatus } from '../lib/status'
 import { matchesWrapSearch, remanState } from '../lib/wrapping'
 import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
+import { LocatePackages } from './locate-packages'
 import { NoteButton } from '@/components/note-button'
 import { PriorityPill } from '@/components/priority-pill'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
@@ -73,10 +74,13 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   if (order) {
     const onOrder = (rows ?? []).filter(row => row.order === order)
     const back = () => setOrder(null)
-    // A stock order opens its Stock window instead of the package modal.
+    // A stock order opens its Stock window instead of the package modal; a board that packs at the
+    // machine only locates the packages here.
     if (onOrder.length)
       return onOrder[0]?.is_stock ? (
         <StockWrap departmentId={departmentId} rows={onOrder} onBack={back} />
+      ) : board.packsAtMachine ? (
+        <LocatePackages departmentId={departmentId} rows={onOrder} onBack={back} />
       ) : (
         <WrapOrder departmentId={departmentId} rows={onOrder} onBack={back} />
       )

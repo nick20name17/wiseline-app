@@ -60,7 +60,9 @@ test.beforeEach(async ({ page }) => {
     'coil-assignment/assign/',
     'slit-line/request/',
     'slit-line/cancel/',
-    'slit-line/mark-slit/'
+    'slit-line/mark-slit/',
+    'slit-line/schedule/',
+    'coil-assignment/fill-in/'
   ])
     await page.route(`${API_URL}/${path}`, route => {
       posted.push({ path, body: route.request().postDataJSON() })
@@ -122,6 +124,81 @@ test('a line gets a Supplier and a Coil Number picked from its coil’s lots', a
       body: { origin_items: ['102'], supplier: 'COLSTE', coil_number: 'F7601268' }
     }
   ])
+})
+
+test('units of a line take a coil of their own, one line per coil', async ({ page }) => {
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('button', { name: /^All Scheduled Orders/ }).click()
+  await page
+    .getByRole('row', { name: /330615/ })
+    .getByRole('button')
+    .first()
+    .click()
+
+  // Qty lines of 1 under the order line p2 (679,416).
+  await page.getByRole('button', { name: 'Units of TED8250' }).click()
+  await page.getByRole('checkbox', { name: 'Select unit 2 of TED8250' }).click()
+  await page.getByRole('checkbox', { name: 'Select unit 3 of TED8250' }).click()
+  await page.getByRole('button', { name: /Select Supplier \/ Coil Number \(1\)/ }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Select Supplier / Coil Number' })
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'SAMSUNG' }).click()
+  await dialog.getByLabel('Coil Number').fill('J46A211')
+  await dialog.getByRole('button', { name: 'Assign' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(posted).toEqual([
+    {
+      path: 'coil-assignment/assign/',
+      body: {
+        origin_items: ['102'],
+        supplier: 'SAMSUNG',
+        coil_number: 'J46A211',
+        units: { '102': [2, 3] }
+      }
+    }
+  ])
+})
+
+test('a unit with a coil of its own shows under its line', async ({ page }) => {
+  await serveOrders(
+    page,
+    onRollFormer(line =>
+      line.id === '102'
+        ? {
+            supplier: 'COLSTE',
+            unit_coils: [{ unit: 2, supplier: 'SAMSUNG', coil_number: 'J46A211' }]
+          }
+        : {}
+    )
+  )
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('button', { name: /^All Scheduled Orders/ }).click()
+  await page
+    .getByRole('row', { name: /330615/ })
+    .getByRole('button')
+    .first()
+    .click()
+
+  await expect(page.getByRole('checkbox', { name: /^Select unit \d+ of TED8250$/ })).toHaveCount(16)
+  const second = page
+    .getByRole('row')
+    .filter({
+      has: page.getByRole('checkbox', { name: 'Select unit 2 of TED8250' })
+    })
+    .last()
+  await expect(second).toContainText('SAMSUNG')
+  await expect(second).toContainText('J46A211')
+  const first = page
+    .getByRole('row')
+    .filter({
+      has: page.getByRole('checkbox', { name: 'Select unit 1 of TED8250' })
+    })
+    .last()
+  await expect(first).toContainText('COLSTE')
 })
 
 test('a line goes to the Slit Line with the Supplier chosen for it', async ({ page }) => {
@@ -227,6 +304,55 @@ test('the Slit Line marks waiting material slit with the coil it used', async ({
       body: { origin_items: ['102'], supplier: 'SAMSUNG', coil_number: 'J46A211' }
     }
   ])
+})
+
+test('the Slit Line gives a machine’s request its own day', async ({ page }) => {
+  const asked: (string | null)[] = []
+  await page.route(`${API_URL}/slit-line/?*`, route => {
+    const params = new URL(route.request().url()).searchParams
+    asked.push(params.get('scheduled'))
+    return route.fulfill({
+      json:
+        params.get('scheduled') === 'false'
+          ? [
+              {
+                origin_item: '102',
+                order: 'ARINV-3',
+                invoice: '330615',
+                product_id: 'TED8250',
+                production_date: '2026-09-23',
+                requested_by: 'Roll Former',
+                icon: 'waiting_to_slit',
+                locked: true,
+                supplier: 'waiting...',
+                coil_number: 'waiting...'
+              }
+            ]
+          : []
+    })
+  })
+  await page.goto('/rollforming?view=slit')
+  await signIn(page)
+
+  const row = page.getByRole('row', { name: /330615/ })
+  await expect(row).toContainText('Roll Former')
+  await row.getByRole('checkbox', { name: 'Select TED8250 of 330615' }).click()
+  await page.getByRole('button', { name: 'Schedule (1)' }).click()
+  await page.getByRole('button', { name: /September 24th, 2026/ }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Schedule' }).click()
+
+  await expect
+    .poll(() => posted)
+    .toEqual([
+      {
+        path: 'slit-line/schedule/',
+        body: { origin_items: ['102'], production_date: '2026-09-24' }
+      }
+    ])
+
+  await page.getByRole('tab', { name: 'Scheduled', exact: true }).click()
+  await expect(page.getByText('Nothing scheduled')).toBeVisible()
+  expect(asked).toContain('true')
 })
 
 test('Wrapping checks a label, and Completed names Rollforming’s own locations', async ({
@@ -439,35 +565,103 @@ test('a Stock line on Production names no coil and no Supplier', async ({ page }
 })
 
 test('a line with no coil yet cannot be packed, and says why', async ({ page }) => {
+  await serveOrders(
+    page,
+    onRollFormer(line => (line.id === '102' ? { is_released: true } : {}))
+  )
   await page.route(`${API_URL}/wrapping/*`, route =>
     route.fulfill({
       json: [
         {
-          item_id: 9001,
-          origin_item: '901',
-          order: 'ARINV-2',
-          order_number: '330608',
-          description: 'Tuff Rib White White',
+          item_id: 102,
+          origin_item: '102',
+          order: 'ARINV-3',
+          order_number: '330615',
+          description: 'Eave Drip Dark Red',
           production_date: '2026-09-23',
           status: 'not_started',
-          qty_ordered: 10,
-          left_to_wrap: 10,
+          qty_ordered: 16,
+          left_to_wrap: 16,
           can_wrap: false,
           coil_missing: true
         }
       ]
     })
   )
-  await page.goto('/rollforming?view=wrapping')
+  await page.goto('/rollforming?view=production')
   await signIn(page)
-  // The row's line is on no released order of the fixtures, so it stands under «No machine» and not
-  // on the Roll Former p2 (541,730).
-  await expect(page.getByText('Nothing to wrap')).toBeVisible()
-  await page.getByRole('tab', { name: 'No machine' }).click()
-  await page.getByRole('row').filter({ hasText: 'Tuff Rib White White' }).click()
+  // Rollforming packs at the machine p2 (1010,346), so the order opens from Production.
+  await page.getByRole('row', { name: /Package 330615/ }).click()
 
   await expect(page.getByText('No coil yet')).toBeVisible()
   await expect(
     page.getByTitle('Needs a Supplier and Coil Number before it is packaged')
   ).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Supplier and Coil Number for / })).toBeVisible()
+})
+
+test('the Worker fills in the units of a line still without a coil', async ({ page }) => {
+  await serveOrders(
+    page,
+    onRollFormer(line =>
+      line.id === '102'
+        ? {
+            is_released: true,
+            unit_coils: [
+              {
+                unit: 2,
+                supplier: 'SAMSUNG',
+                coil_number: 'J46A211',
+                supplier_locked: true,
+                coil_number_locked: true
+              }
+            ]
+          }
+        : {}
+    )
+  )
+  await page.route(`${API_URL}/wrapping/*`, route =>
+    route.fulfill({
+      json: [
+        {
+          item_id: 102,
+          origin_item: '102',
+          order: 'ARINV-3',
+          order_number: '330615',
+          product_id: 'TED8250',
+          production_date: '2026-09-23',
+          status: 'not_started',
+          qty_ordered: 3,
+          left_to_wrap: 3,
+          can_wrap: false,
+          coil_missing: true
+        }
+      ]
+    })
+  )
+  await page.goto('/rollforming?view=production')
+  await signIn(page)
+  await page.getByRole('row', { name: /Package 330615/ }).click()
+
+  await expect(page.getByText('2 coils')).toBeVisible()
+  await page.getByRole('button', { name: 'Supplier and Coil Number for TED8250' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Supplier / Coil Number' })
+  await expect(dialog).toContainText('Units 1, 3 of TED8250')
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'COLSTE' }).click()
+  await dialog.getByLabel('Coil Number').fill('F7601268')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(posted).toEqual([
+    {
+      path: 'coil-assignment/fill-in/',
+      body: {
+        lines: [
+          { origin_item: '102', unit: 1, supplier: 'COLSTE', coil_number: 'F7601268' },
+          { origin_item: '102', unit: 3, supplier: 'COLSTE', coil_number: 'F7601268' }
+        ]
+      }
+    }
+  ])
 })
