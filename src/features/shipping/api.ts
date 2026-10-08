@@ -12,7 +12,7 @@ import * as z from 'zod/mini'
 
 const shippingKeys = {
   all: ['shipping'] as const,
-  unscheduled: (search: string) => [...shippingKeys.all, 'unscheduled', { search }] as const,
+  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.all, 'unscheduled', filter] as const,
   totals: (selection: Selection) => [...shippingKeys.all, 'totals', selection] as const,
   selection: (selection: Selection, shipDate: string | null) =>
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
@@ -22,6 +22,7 @@ const shippingKeys = {
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
   packages: (order: string) => [...shippingKeys.all, 'packages', order] as const,
+  lines: (order: string) => [...shippingKeys.all, 'lines', order] as const,
   overdue: () => [...shippingKeys.all, 'overdue'] as const,
   route: (loadId: number) => [...shippingKeys.all, 'route', loadId] as const
 }
@@ -47,7 +48,17 @@ const NO_NOTE: OrderNote = {
   read: false
 }
 
+// «2 of 3 ready»: the shipper sends what is done when the customer needs it (round 10, C1). A pickup
+// carries no order, so 0 of 0.
+const readinessShape = {
+  lines_total: z._default(z.number(), 0),
+  lines_ready: z._default(z.number(), 0)
+}
+
+export type Readiness = { lines_total: number; lines_ready: number }
+
 const unscheduledOrderSchema = z.object({
+  ...readinessShape,
   order: z.string(),
   order_number: z._default(z.nullable(z.string()), null),
   customer: z._default(z.nullable(z.string()), null),
@@ -83,13 +94,16 @@ const unscheduledPageSchema = z.object({
   results: z._default(z.array(unscheduledOrderSchema), [])
 })
 
+/** Both ship-date ends are included; either may be left open. */
+export type UnscheduledFilter = { search: string; shipFrom?: string; shipTo?: string }
+
 /**
  * The delivery orders still waiting for a ship date and a truck p3 (605,182). A long list — every open
  * delivery in EBMS — so it is read a page at a time, each «Show more» fetching only the next.
  */
-export const unscheduledQuery = (search: string) =>
+export const unscheduledQuery = ({ search, shipFrom, shipTo }: UnscheduledFilter) =>
   infiniteQueryOptions({
-    queryKey: shippingKeys.unscheduled(search),
+    queryKey: shippingKeys.unscheduled({ search, shipFrom, shipTo }),
     placeholderData: keepPreviousData,
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
@@ -99,7 +113,9 @@ export const unscheduledQuery = (search: string) =>
             searchParams: {
               limit: UNSCHEDULED_PAGE,
               offset: pageParam,
-              ...(search ? { search } : {})
+              ...(search ? { search } : {}),
+              ...(shipFrom ? { ship_date__gte: shipFrom } : {}),
+              ...(shipTo ? { ship_date__lte: shipTo } : {})
             }
           })
           .json()
@@ -230,6 +246,7 @@ const kindTotalsSchema = z.object({
 })
 
 const assignmentSchema = z.object({
+  ...readinessShape,
   assignment_id: z.number(),
   order: z._default(z.nullable(z.string()), null),
   order_number: z._default(z.nullable(z.string()), null),
@@ -367,6 +384,28 @@ const packageSchema = z.object({
 })
 
 export type ShippingPackage = z.infer<typeof packageSchema>
+
+const shippingLineSchema = z.object({
+  origin_item: z.string(),
+  // `null` for a line no department makes — bought in, so nothing to wait for.
+  department: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  quantity: z._default(z.number(), 0),
+  packaged: z._default(z.number(), 0),
+  status: z._default(z.nullable(z.string()), null),
+  ready: z._default(z.boolean(), false)
+})
+
+export type ShippingLine = z.infer<typeof shippingLineSchema>
+
+/** Every line of the order in every department, the ones not ready yet first. */
+export const orderLinesQuery = (order: string) =>
+  queryOptions({
+    queryKey: shippingKeys.lines(order),
+    queryFn: async () =>
+      z.array(shippingLineSchema).parse(await authApi.get(`shipping/orders/${order}/lines/`).json())
+  })
 
 /** An order's packages, each saying whether it is on the truck yet. */
 export const orderPackagesQuery = (order: string) =>

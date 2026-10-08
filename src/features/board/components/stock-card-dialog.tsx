@@ -1,5 +1,13 @@
 import { Button } from '@/components/ui/button'
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList
+} from '@/components/ui/combobox'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,10 +27,12 @@ import { ImageUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRetained } from '@/lib/use-retained'
 import {
+  stockCardOptionsQuery,
   stockCardProductQuery,
   useSaveStockCard,
   useUploadStockCardImage,
-  type StockCard
+  type StockCard,
+  type StockCardOption
 } from '../api'
 import { productFacts } from '../lib/format'
 
@@ -36,13 +46,61 @@ type StockCardFormProps = {
   onClose: () => void
 }
 
+type ProductPickerProps = {
+  picked: StockCardOption | null
+  onPick: (product: StockCardOption | null) => void
+}
+
+/** The Product ID, picked from EBMS's active Trim products by ID or description. */
+const ProductPicker = ({ picked, onPick }: ProductPickerProps) => {
+  const [query, setQuery] = useState('')
+  const search = useDebouncedValue(query.trim(), 250)
+  const { data: options = [], isFetching } = useQuery(stockCardOptionsQuery(search))
+
+  return (
+    <Combobox
+      items={options}
+      // The server searches; the list shows what it answered.
+      filter={null}
+      value={picked}
+      onValueChange={onPick}
+      inputValue={query}
+      onInputValueChange={text => {
+        setQuery(text)
+        // Typing past a pick is a new search: the old pick no longer names what is in the box.
+        if (picked && text !== picked.product_id) onPick(null)
+      }}
+      itemToStringLabel={(option: StockCardOption) => option.product_id}
+      isItemEqualToValue={(a: StockCardOption, b: StockCardOption) => a.product_id === b.product_id}
+    >
+      <ComboboxInput id='card-pid' placeholder='Search ID or description…' />
+      <ComboboxContent>
+        <ComboboxEmpty>
+          {isFetching ? 'Searching…' : 'No active Trim product matches.'}
+        </ComboboxEmpty>
+        <ComboboxList>
+          {(option: StockCardOption) => (
+            <ComboboxItem key={option.product_id} value={option} disabled={option.has_card}>
+              <span className='w-28 shrink-0 font-mono'>{option.product_id}</span>
+              <span className='min-w-0 flex-1 truncate text-muted-foreground'>
+                {option.has_card ? 'Has a stock card' : (option.description ?? '—')}
+              </span>
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  )
+}
+
 /**
- * Create enables once all five fields are filled (p1 (72,321)); Width is optional. On Create the
- * typed Product ID is looked up in EBMS for the description, colour and gauge p1 (71,307) — the
- * server still fills the description itself. The product is fixed once created.
+ * Create enables once all five fields are filled (p1 (72,321)); Width is optional. The Product ID is
+ * picked from EBMS, then looked up for the width its orders agree on p1 (71,307) — the server still
+ * fills the description itself. The product is fixed once created.
  */
 const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
-  const [productId, setProductId] = useState(card?.product_id ?? '')
+  const [picked, setPicked] = useState<StockCardOption | null>(null)
+  const productId = card?.product_id ?? picked?.product_id ?? ''
   const [minimum, setMinimum] = useState(() => card?.stock_minimum?.toString() ?? '')
   const [orderQty, setOrderQty] = useState(() => card?.order_qty?.toString() ?? '')
   // `null` until the Manager touches the field: until then it shows the width past orders agree on,
@@ -51,10 +109,9 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
   const [image, setImage] = useState<{ id: number; preview: string | null } | null>(
     card?.image_id ? { id: card.image_id, preview: null } : null
   )
-  const lookedUp = useDebouncedValue(card ? '' : productId.trim(), 400)
-  const { data: product, isFetching: lookingUp } = useQuery(stockCardProductQuery(lookedUp))
-  // A stale answer must not describe the ID now in the box while the next lookup is still waiting.
-  const found = lookedUp === productId.trim() ? product : undefined
+  const { data: found, isFetching: lookingUp } = useQuery(
+    stockCardProductQuery(card ? '' : productId)
+  )
   const suggestedWidth = card ? card.width_from_orders : (found?.width_from_orders ?? null)
   // A new card starts from the suggestion; an existing one only offers it, so saving an unrelated
   // change does not quietly make the suggestion the card's own width.
@@ -70,13 +127,15 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
   const save = useSaveStockCard(() => {
     toast.add({
       type: 'success',
-      title: card ? `Saved ${card.product_id}` : `Stock card ${productId.trim()} created`
+      title: card ? `Saved ${card.product_id}` : `Stock card ${productId} created`
     })
     onClose()
   })
 
   const ready =
-    productId.trim() !== '' &&
+    productId !== '' &&
+    // Not before the lookup answers: the width it suggests is what a new card saves.
+    !lookingUp &&
     // The server refuses both; there is no point letting Create try.
     found !== null &&
     !found?.has_card &&
@@ -112,32 +171,30 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
       >
         <Field>
           <FieldLabel htmlFor='card-pid'>Product ID</FieldLabel>
-          <Input
-            id='card-pid'
-            placeholder='e.g. TSG8306'
-            readOnly={!!card}
-            value={productId}
-            onChange={event => setProductId(event.target.value.toUpperCase())}
-          />
           {card ? (
-            <FieldDescription>
-              {[card.description ?? '—', productFacts(card)].filter(Boolean).join(' — ')}
-            </FieldDescription>
-          ) : found === null ? (
-            <FieldError>{productId.trim()} is not a product ID in EBMS.</FieldError>
-          ) : found?.has_card ? (
-            <FieldError>A stock card for {found.product_id} already exists.</FieldError>
-          ) : found ? (
-            <FieldDescription>
-              {[found.description ?? '—', productFacts(found)].filter(Boolean).join(' — ')}
-            </FieldDescription>
+            <>
+              <Input id='card-pid' readOnly value={card.product_id} />
+              <FieldDescription>
+                {[card.description ?? '—', productFacts(card)].filter(Boolean).join(' — ')}
+              </FieldDescription>
+            </>
           ) : (
-            <FieldDescription>
-              <span className='flex items-center gap-2'>
-                {lookingUp || lookedUp !== productId.trim() ? <Spinner /> : null}
-                Must be an active EBMS ID; the description fills from it.
-              </span>
-            </FieldDescription>
+            <>
+              <ProductPicker picked={picked} onPick={setPicked} />
+              {found === null ? (
+                <FieldError>{productId} is no longer an active product in EBMS.</FieldError>
+              ) : found?.has_card ? (
+                <FieldError>A stock card for {found.product_id} already exists.</FieldError>
+              ) : picked ? (
+                <FieldDescription>
+                  {[picked.description ?? '—', productFacts(picked)].filter(Boolean).join(' — ')}
+                </FieldDescription>
+              ) : (
+                <FieldDescription>
+                  Active Trim products in EBMS, by ID or description.
+                </FieldDescription>
+              )}
+            </>
           )}
         </Field>
 

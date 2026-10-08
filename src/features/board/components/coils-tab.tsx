@@ -31,10 +31,11 @@ import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFoldersQuery,
-  useSetCoilLocation,
   coilFiltersQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
+  useSetCoilProductLocation,
+  useSetCoilSlinet,
   useUpdateCoilLot,
   type CoilFilter,
   type CoilLot
@@ -106,12 +107,6 @@ const groupsOf = (lots: CoilLot[]) => {
 const total = (lots: CoilLot[], key: 'linear_feet' | 'weight') =>
   lots.reduce((sum, lot) => sum + (lot[key] ?? 0), 0)
 
-// A product's coils a department can be ticked into: one mounted in the Slinet stays in Trim.
-const movable = (lots: CoilLot[], department: Department) =>
-  department === 'in_rollforming'
-    ? lots.filter(lot => lot.in_rollforming || lot.rollforming_available)
-    : lots
-
 type NoteCellProps = { lot: CoilLot }
 
 /** The coil's own note, saved as it is typed. */
@@ -156,7 +151,6 @@ const NoteCell = ({ lot }: NoteCellProps) => {
 type LotCellsProps = {
   lot: CoilLot
   onAdjust: (lot: CoilLot, focus: CoilFigure) => void
-  onTick: (lot: CoilLot, department: Department, checked: boolean) => void
   onSlinet: (lot: CoilLot, checked: boolean) => void
 }
 
@@ -166,9 +160,11 @@ const FIGURES: { key: CoilFigure; label: string }[] = [
   { key: 'weight', label: 'Weight' }
 ]
 
-/** The cells every lot row has, whether it hangs under its size or stands in the flat list. */
-const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
-  const rollformingShut = !lot.in_rollforming && !lot.rollforming_available
+/**
+ * A coil under its product. Trim and Rollforming are the product's and set on its row; the Slinet
+ * holds one physical coil, so it is ticked here.
+ */
+const LotCells = ({ lot, onAdjust, onSlinet }: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
   const viewOnly = useViewOnly()
 
@@ -196,32 +192,6 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
         </TableCell>
       ))}
       <TableCell>
-        {/* The hint sits on a wrapper: a disabled control never shows its own. */}
-        <span
-          className='inline-flex'
-          title={
-            rollformingShut && lot.in_slinet
-              ? 'Coil is mounted in the Slinet — take it off the Slinet first'
-              : undefined
-          }
-        >
-          <Checkbox
-            aria-label={`Rollforming holds coil ${coilName(lot)}`}
-            checked={lot.in_rollforming}
-            disabled={viewOnly || rollformingShut}
-            onCheckedChange={checked => onTick(lot, 'in_rollforming', checked)}
-          />
-        </span>
-      </TableCell>
-      <TableCell>
-        <Checkbox
-          aria-label={`Trim holds coil ${coilName(lot)}`}
-          checked={lot.in_trim}
-          disabled={viewOnly}
-          onCheckedChange={checked => onTick(lot, 'in_trim', checked)}
-        />
-      </TableCell>
-      <TableCell>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
         <span
           className='inline-flex'
@@ -242,43 +212,26 @@ const LotCells = ({ lot, onAdjust, onTick, onSlinet }: LotCellsProps) => {
   )
 }
 
-/** The lot columns' head, two rows deep: «Location» spans the three departments a coil can be in. */
-const LotHead = ({ lead = [] }: { lead?: string[] }) => (
+const LotHead = () => (
   <TableHeader>
     <TableRow>
-      {lead.map(label => (
-        <TableHead key={label} rowSpan={2}>
-          {label}
-        </TableHead>
-      ))}
-      <TableHead rowSpan={2}>Coil #</TableHead>
-      <TableHead rowSpan={2}>Coil Thickness</TableHead>
-      <TableHead rowSpan={2}>Linear Feet</TableHead>
-      <TableHead rowSpan={2}>Weight (lbs.)</TableHead>
-      <TableHead colSpan={3} className='text-center'>
-        Location
-      </TableHead>
-      <TableHead rowSpan={2}>Note</TableHead>
-    </TableRow>
-    <TableRow>
-      <TableHead>Rollforming</TableHead>
-      <TableHead>Trim</TableHead>
+      <TableHead>Coil #</TableHead>
+      <TableHead>Coil Thickness</TableHead>
+      <TableHead>Linear Feet</TableHead>
+      <TableHead>Weight (lbs.)</TableHead>
       <TableHead>Slinet In / Out</TableHead>
+      <TableHead>Note</TableHead>
     </TableRow>
   </TableHeader>
 )
 
-/** Column widths shared by both lot tables, so a lot reads the same under its size and on its own. */
 const LotColumns = () => (
   <>
     <col className='w-32' />
     <col className='w-28' />
     <col className='w-28' />
     <col className='w-28' />
-    {/* Each of these columns is headed by a word longer than the box under it, and the heading is
-        what sets the width. */}
-    <col className='w-32' />
-    <col className='w-20' />
+    {/* Headed by words longer than the box under it, and the heading is what sets the width. */}
     <col className='w-32' />
     <col />
   </>
@@ -289,34 +242,35 @@ type CellHandlers = Omit<LotCellsProps, 'lot'>
 type GroupLocationProps = {
   group: CoilGroup
   department: Department
-  onTick: (lots: CoilLot[], department: Department, checked: boolean) => void
+  onTick: (group: CoilGroup, department: Department, checked: boolean) => void
 }
 
 /**
- * Where a product's coils stand, set for all of them at once: the floor places a coil product in a
- * department, not each coil. Ticked once every coil that can go is in — a coil held in the Slinet
- * cannot, and would otherwise leave the box part-ticked for good — part-ticked while only some are.
+ * Where a coil product stands. The department belongs to the product ID, not to a lot: every lot of
+ * it reads the same, and a lot EBMS adds later arrives already in.
  */
 const GroupLocation = ({ group, department, onTick }: GroupLocationProps) => {
   const viewOnly = useViewOnly()
-  const lots = movable(group.lots, department)
-  const all = lots.length > 0 && lots.every(lot => lot[department])
+  const checked = group.lots.some(lot => lot[department])
+  // A coil mounted in the Slinet keeps its product in Trim.
+  const shut =
+    department === 'in_rollforming' &&
+    !checked &&
+    group.lots.some(lot => !lot.rollforming_available)
 
   return (
+    // The hint sits on a wrapper: a disabled control never shows its own.
     <span
       className='inline-flex'
       title={
-        !lots.length
-          ? 'Every coil of this product is mounted in the Slinet — take it off the Slinet first'
-          : undefined
+        shut ? 'A coil of this product is mounted in the Slinet — take it off first' : undefined
       }
     >
       <Checkbox
         aria-label={`${DEPARTMENT_LABEL[department]} holds ${group.productId ?? 'these coils'}`}
-        checked={all}
-        indeterminate={!all && group.lots.some(lot => lot[department])}
-        disabled={viewOnly || !lots.length}
-        onCheckedChange={checked => onTick(lots, department, checked)}
+        checked={checked}
+        disabled={viewOnly || shut || !group.productId}
+        onCheckedChange={next => onTick(group, department, next)}
       />
     </span>
   )
@@ -538,7 +492,7 @@ const searched = (lots: CoilLot[], term: string) => {
   return lots.filter(lot => !search || matches(lot, search)).sort(byColorProductCoil)
 }
 
-type Moving = { lots: CoilLot[]; to: Department }
+type Moving = { group: CoilGroup; to: Department }
 
 type MoveConfirmProps = {
   moving: Moving | null
@@ -555,7 +509,7 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
   const from = moved ? DEPARTMENT_LABEL[otherOf(moved.to)] : ''
-  const what = moved?.lots.length === 1 ? 'this coil' : `these ${moved?.lots.length ?? 0} coils`
+  const what = moved?.group.productId ?? 'this product'
 
   return (
     <ConfirmDialog
@@ -563,7 +517,7 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
       onOpenChange={open => !open && onCancel()}
       onOpenChangeComplete={release}
       title={`Have you checked with the ${from} department to ensure that it is ok to move ${what} to the ${to} department?`}
-      description={`Yes moves ${what} to ${to} and unchecks ${from} — a coil can only be in one department.`}
+      description={`Yes moves ${what} and every coil of it to ${to} and unchecks ${from} — a coil can only be in one department.`}
       confirmLabel='Yes'
       cancelLabel='No'
       isPending={isPending}
@@ -580,8 +534,9 @@ type CoilsTabProps = {
 
 /**
  * The coils EBMS has sent. Trim Coils are the ones inside the department's Coil Filter; All Coils is
- * every coil in the company, which the filter does not narrow. A coil is checked into a department
- * and, inside Trim, into the Slinet; its figures are adjusted from here and pushed back.
+ * every coil in the company, which the filter does not narrow. A coil product is checked into a
+ * department and, inside Trim, each coil into the Slinet; its figures are adjusted from here and
+ * pushed back.
  */
 export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
@@ -620,33 +575,23 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     enabled: trim && departmentId !== undefined
   })
   const inFolder = trim && folder ? listed.filter(lot => lot.folder_id === folder) : listed
-  const setLocation = useSetCoilLocation()
+  const place = useSetCoilProductLocation()
+  const slinet = useSetCoilSlinet()
 
-  // Only the coils not already where they are being put are sent.
-  const move = (
-    lots: CoilLot[],
-    location: Parameters<typeof setLocation.mutate>[0]['location']
-  ) => {
-    const lotIds = lots
-      .filter(lot =>
-        Object.entries(location).some(([key, value]) => lot[key as keyof typeof location] !== value)
-      )
-      .map(lot => lot.id)
-    if (!lotIds.length) return setMoving(null)
-    setLocation.mutate({ lotIds, location }, { onSuccess: () => setMoving(null) })
-  }
+  const move = (group: CoilGroup, location: Partial<Record<Department, boolean>>) =>
+    group.productId &&
+    place.mutate({ productId: group.productId, location }, { onSuccess: () => setMoving(null) })
 
-  // Moving coils between departments asks; clearing a box, or ticking one with nothing to displace,
-  // does not. The question is only worth asking when an answer is being overwritten.
-  const tick = (lots: CoilLot[], department: Department, checked: boolean) =>
-    checked && lots.some(lot => lot[otherOf(department)])
-      ? setMoving({ lots, to: department })
-      : move(lots, { [department]: checked })
+  // Moving a product between departments asks; clearing a box, or ticking one with nothing to
+  // displace, does not. The question is only worth asking when an answer is being overwritten.
+  const tick = (group: CoilGroup, department: Department, checked: boolean) =>
+    checked && group.lots.some(lot => lot[otherOf(department)])
+      ? setMoving({ group, to: department })
+      : move(group, { [department]: checked })
 
   const handlers: CellHandlers = {
     onAdjust: (lot, focus) => setAdjusting({ lotId: lot.id, focus }),
-    onTick: (lot, department, checked) => tick([lot], department, checked),
-    onSlinet: (lot, checked) => move([lot], { in_slinet: checked })
+    onSlinet: (lot, checked) => slinet.mutate({ lotId: lot.id, inSlinet: checked })
   }
 
   const shown = searched(inFolder, term)
@@ -712,7 +657,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         </div>
       ) : null}
 
-      {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. */}
+      {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. Brett may cut this to the
+          one Coil folder (round 10, A1). */}
       {trim && folders?.length ? (
         <Tabs
           value={folder ?? 'all'}
@@ -726,7 +672,12 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
               {folders.map(entry => (
                 <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
                   {entry.name}
-                  <span className='font-mono text-xs text-muted-foreground'>{entry.coils}</span>
+                  <span
+                    className='font-mono text-xs text-muted-foreground'
+                    title={`${entry.products} products · ${entry.lots} coils`}
+                  >
+                    {entry.products}
+                  </span>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -812,9 +763,9 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
       <MoveConfirm
         moving={moving}
-        isPending={setLocation.isPending}
+        isPending={place.isPending}
         onCancel={() => setMoving(null)}
-        onConfirm={({ lots, to }) => move(lots, { [to]: true, [otherOf(to)]: false })}
+        onConfirm={({ group, to }) => move(group, { [to]: true })}
       />
     </div>
   )

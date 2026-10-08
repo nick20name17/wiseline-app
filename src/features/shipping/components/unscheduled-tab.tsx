@@ -4,7 +4,7 @@ import { PriorityPill } from '@/components/priority-pill'
 import { PrioritySelect } from '@/components/priority-select'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -35,18 +35,20 @@ import {
   type UnscheduledOrder
 } from '../api'
 import { formatLength, formatWeight, mapUrl } from '../lib/format'
+import { OrderLines, ReadyCount } from './order-readiness'
 import { ScheduleDialog } from './schedule-dialog'
+import { ShipDateFilter, type ShipDates } from './ship-date-filter'
 
-const COLUMNS = 14
+const COLUMNS = 15
 
-/** What an expanded order holds for Shipping: its packages, where they stand and what they weigh. */
+/** An order's packages, where they stand and what they weigh. */
 const OrderPackages = ({ order }: { order: string }) => {
   const { data: packages, isPending } = useQuery(orderPackagesQuery(order))
   if (isPending) return <p className='px-3 py-3 text-sm text-muted-foreground'>Loading packages…</p>
   if (!packages?.length)
     return <p className='px-3 py-3 text-sm text-muted-foreground'>No packages made yet.</p>
   return (
-    <ul className='divide-y divide-border border-l-2 border-primary/40 bg-muted/30'>
+    <ul className='divide-y divide-border'>
       {packages.map(pkg => (
         <li key={pkg.package_id} className='flex items-center gap-4 px-3 py-2 text-sm'>
           <span className='w-40 font-mono'>{pkg.name ?? pkg.package_id}</span>
@@ -83,6 +85,8 @@ const PriorityCell = ({ order, departmentId }: PriorityCellProps) => {
 
 type UnscheduledTabProps = {
   search: string | undefined
+  shipDates: ShipDates
+  onShipDatesChange: (next: ShipDates) => void
   onScheduled: (shipDate: string) => void
 }
 
@@ -90,7 +94,12 @@ type UnscheduledTabProps = {
  * The delivery orders still without a ship date and a truck p3 (605,182). Ticking some opens the
  * Schedule window; selections survive expanding, searching and the map p3 (560,202).
  */
-export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => {
+export const UnscheduledTab = ({
+  search,
+  shipDates,
+  onShipDatesChange,
+  onScheduled
+}: UnscheduledTabProps) => {
   const {
     data,
     isPending,
@@ -100,7 +109,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage
-  } = useInfiniteQuery(unscheduledQuery(search ?? ''))
+  } = useInfiniteQuery(unscheduledQuery({ search: search ?? '', ...shipDates }))
   const count = data?.pages[0]?.count ?? 0
   // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
@@ -141,6 +150,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
             </>
           )}
         </span>
+        <ShipDateFilter {...shipDates} onChange={onShipDatesChange} />
         <Button className='ml-auto' disabled={!picked.length} onClick={() => setScheduling(true)}>
           <CalendarDays data-icon='inline-start' />
           Schedule{picked.length ? ` (${picked.length})` : ''}
@@ -157,14 +167,16 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
             <EmptyDescription>
               {search
                 ? `Nothing matches “${search}”.`
-                : 'Every delivery has a ship date and a truck.'}
+                : shipDates.shipFrom || shipDates.shipTo
+                  ? 'No delivery waits for a truck on these ship dates.'
+                  : 'Every delivery has a ship date and a truck.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns take 1464px; the floor leaves the Customer room to read. */}
-          <Table className='min-w-420 table-fixed'>
+          {/* The fixed columns take 1592px; the floor leaves the Customer room to read. */}
+          <Table className='min-w-452 table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />
@@ -179,6 +191,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
               <col className='w-36' />
               <col className='w-24' />
               <col className='w-36' />
+              <col className='w-32' />
               <col className='w-20' />
             </colgroup>
             <TableHeader>
@@ -196,6 +209,7 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                 <TableHead>Longest Length</TableHead>
                 <TableHead>Ship Via</TableHead>
                 <TableHead>Priority</TableHead>
+                <TableHead>Ready</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
@@ -269,20 +283,15 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                         </TableCell>
                         <TableCell>
                           {order.address ? (
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
-                              render={
-                                <a
-                                  href={mapUrl(order.address, order.city)}
-                                  target='_blank'
-                                  rel='noreferrer'
-                                  aria-label={`Map of ${order.order_number ?? order.order}`}
-                                />
-                              }
+                            <a
+                              href={mapUrl(order.address, order.city)}
+                              target='_blank'
+                              rel='noreferrer'
+                              aria-label={`Map of ${order.order_number ?? order.order}`}
+                              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                             >
                               <MapPin />
-                            </Button>
+                            </a>
                           ) : null}
                         </TableCell>
                         <TableCell>
@@ -296,6 +305,9 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                           <PriorityCell order={order} departmentId={department?.id} />
                         </TableCell>
                         <TableCell>
+                          <ReadyCount order={order.order} readiness={order} />
+                        </TableCell>
+                        <TableCell>
                           <NoteButton
                             state={noteState(order)}
                             label={`Order notes for ${name}`}
@@ -306,7 +318,23 @@ export const UnscheduledTab = ({ search, onScheduled }: UnscheduledTabProps) => 
                       {open ? (
                         <TableRow>
                           <TableCell colSpan={COLUMNS}>
-                            <OrderPackages order={order.order} />
+                            {/* What can go now and what is still being made, above what is packed
+                                (round 10, C1). Held at the left edge: the table is wider than the
+                                screen, and anything past it would need a sideways scroll to read. */}
+                            <div className='sticky left-0 flex max-w-5xl flex-col gap-3 border-l-2 border-primary/40 bg-muted/30 p-3'>
+                              <section className='rounded-lg border border-border bg-card'>
+                                <h3 className='border-b border-border px-3 py-2 text-sm font-medium'>
+                                  Lines
+                                </h3>
+                                <OrderLines order={order.order} />
+                              </section>
+                              <section className='rounded-lg border border-border bg-card'>
+                                <h3 className='border-b border-border px-3 py-2 text-sm font-medium'>
+                                  Packages
+                                </h3>
+                                <OrderPackages order={order.order} />
+                              </section>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ) : null}

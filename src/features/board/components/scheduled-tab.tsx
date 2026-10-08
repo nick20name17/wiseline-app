@@ -16,6 +16,7 @@ import {
   countsQuery,
   departmentStateOf,
   isStockOrder,
+  isPartial,
   scheduledOrdersQuery,
   useReleaseOrders,
   useSplitOrder,
@@ -197,7 +198,9 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   const { data: counts } = useQuery(countsQuery(departmentId))
   const everything = counts?.scheduled
 
-  const { notes, noteState } = useOrderNotes(orders)
+  // Asked once the list is whole, not again for every page as it streams in.
+  const whole = !isPartial(page)
+  const { notes, noteState } = useOrderNotes(whole ? orders : [])
 
   const release = useReleaseOrders(({ released, exported, cutlists }) => {
     setSelectedIds(new Set())
@@ -308,7 +311,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
         }}
       />
 
-      {!isPending && !parts.length ? (
+      {!isPending && whole && !parts.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>

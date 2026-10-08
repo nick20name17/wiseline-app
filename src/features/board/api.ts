@@ -1,5 +1,6 @@
 import { authApi } from '@/api/client'
 import {
+  experimental_streamedQuery as streamedQuery,
   keepPreviousData,
   queryOptions,
   useMutation,
@@ -331,6 +332,38 @@ const allOrders = async (category: string, filters: OrderFilters) => {
   return { count: pages[0].count, results: pages.flatMap(page => page.results) }
 }
 
+type OrderList = { count: number; results: BoardOrder[] }
+
+/**
+ * A streamed list with pages still to come. Its rows can be shown, but an empty filter of them proves
+ * nothing yet — the order sought may be on a later page.
+ */
+export const isPartial = (list: OrderList | undefined) => !!list && list.results.length < list.count
+
+/**
+ * A tab's orders a page at a time, one request after another: the table shows the first hundred as
+ * soon as they land instead of waiting on every page, and the server answers one page at a time. A
+ * refetch swaps the list in once it is whole, so the table neither empties nor shrinks meanwhile.
+ */
+const streamedOrders = (category: string, filters: OrderFilters) =>
+  streamedQuery({
+    // No abort signal: leaving the tab mid-stream would cut the list short, and the pages already
+    // cached would read as the whole of it until it next went stale.
+    streamFn: async function* () {
+      for (let offset = 0, count = 1; offset < count; offset += PAGE_SIZE) {
+        const page = await orderPage(category, filters, offset, PAGE_SIZE)
+        count = page.count
+        yield page
+      }
+    },
+    reducer: (list: OrderList, page: OrderList) => ({
+      count: page.count,
+      results: [...list.results, ...page.results]
+    }),
+    initialValue: { count: 0, results: [] },
+    refetchMode: 'replace'
+  })
+
 const countsSchema = z.object({
   unscheduled: z._default(z.number(), 0),
   scheduled: z._default(z.number(), 0),
@@ -353,7 +386,7 @@ export const unscheduledOrdersQuery = (category: string, search: string | undefi
     // Each search term is its own cache entry; without this the table falls back to the skeleton on
     // every keystroke pause and resizes itself twice per search.
     placeholderData: keepPreviousData,
-    queryFn: () => allOrders(category, { is_scheduled: false, ...(search ? { search } : {}) })
+    queryFn: streamedOrders(category, { is_scheduled: false, ...(search ? { search } : {}) })
   })
 
 /**
@@ -384,7 +417,7 @@ export const scheduledOrdersQuery = (category: string, search: string | undefine
   queryOptions({
     queryKey: boardKeys.scheduled(category, search),
     placeholderData: keepPreviousData,
-    queryFn: () => allOrders(category, { is_scheduled: true, ...(search ? { search } : {}) })
+    queryFn: streamedOrders(category, { is_scheduled: true, ...(search ? { search } : {}) })
   })
 
 /**
@@ -405,15 +438,14 @@ export const releasedOrdersQuery = (category: string, search: string | undefined
       { search: search ?? '', open }
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: () =>
-      allOrders(category, {
-        is_scheduled: true,
-        release_to_production: true,
-        // One value, comma-separated: the listing reads only the last of a repeated key.
-        origin_status__in: 'U,O,X',
-        ...(open ? { has_open_lines: true } : {}),
-        ...(search ? { search } : {})
-      })
+    queryFn: streamedOrders(category, {
+      is_scheduled: true,
+      release_to_production: true,
+      // One value, comma-separated: the listing reads only the last of a repeated key.
+      origin_status__in: 'U,O,X',
+      ...(open ? { has_open_lines: true } : {}),
+      ...(search ? { search } : {})
+    })
   })
 
 /**
@@ -715,6 +747,8 @@ export const orderNotesQuery = (orders: string[]) =>
   queryOptions({
     queryKey: boardKeys.orderNotes(orders),
     enabled: orders.length > 0,
+    // A new search asks for a new list of orders; the dots already shown stay until it answers.
+    placeholderData: keepPreviousData,
     queryFn: async () =>
       z
         .record(z.string(), orderNoteSchema)
@@ -1266,8 +1300,34 @@ const stockCardProductSchema = z.object({
   has_card: z._default(z.boolean(), false)
 })
 
+const stockCardOptionSchema = z.object({
+  product_id: z.string(),
+  description: z._default(z.nullable(z.string()), null),
+  color: z._default(z.nullable(z.string()), null),
+  gauge: gaugeOf,
+  has_card: z._default(z.boolean(), false)
+})
+
+export type StockCardOption = z.infer<typeof stockCardOptionSchema>
+
 /**
- * What the Create form fills in once a Product ID is typed p1 (71,307). An ID EBMS does not know
+ * The Product ID list: active Trim products in EBMS whose ID or description holds the text, IDs that
+ * start with it first. Brett wanted a list to pick from, not an exact ID to know by heart.
+ */
+export const stockCardOptionsQuery = (search: string) =>
+  queryOptions({
+    queryKey: [...boardKeys.stockCards(), 'options', search] as const,
+    placeholderData: keepPreviousData,
+    queryFn: async () =>
+      z
+        .array(stockCardOptionSchema)
+        .parse(
+          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 20 } }).json()
+        )
+  })
+
+/**
+ * What the Create form fills in once a Product ID is picked p1 (71,307). An ID EBMS does not know
  * answers 404, which reads as `null` — the form says so rather than a toast.
  */
 export const stockCardProductQuery = (productId: string) =>
@@ -1784,7 +1844,6 @@ export const departmentCoilLotsQuery = (departmentId: number | undefined) =>
     queryFn: () => allCoils({ department_id: departmentId! })
   })
 
-/** How many coils Trim Coils lists, for the tab strip: the page's count, without the coils. */
 /** The Cutlist Coils window reads its coils through the cutlist, so both lists hear of a change. */
 const invalidateCoils = (client: QueryClient) =>
   Promise.all([
@@ -1808,26 +1867,32 @@ export const useUpdateCoilLot = () =>
   })
 
 /**
- * Checking a coil into Trim, Rollforming or the Slinet. The rules about what that does to the other
- * two are the server's — it answers with the coil as it now stands.
+ * A coil product checked into Trim or Rollforming: every lot of it, and every lot EBMS adds to it
+ * later. The rules — one department at a time, Rollforming refused while a lot is in the Slinet,
+ * leaving Trim takes its lots off the Slinet — are the server's.
  */
-export const useSetCoilLocation = () =>
+export const useSetCoilProductLocation = () =>
   useMutation({
-    meta: { errorTitle: 'The coil stayed where it was' },
-    // The API places one lot at a time; a product's coils go together and settle as one.
-    mutationFn: async ({
-      lotIds,
+    meta: { errorTitle: 'The coils stayed where they were' },
+    mutationFn: ({
+      productId,
       location
     }: {
-      lotIds: string[]
-      location: { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
-    }) => {
-      const placed = await Promise.allSettled(
-        lotIds.map(id => authApi.post(`coils/lots/${id}/location/`, { json: location }).json())
-      )
-      const failed = placed.find(result => result.status === 'rejected')
-      if (failed) throw failed.reason
-    },
+      productId: string
+      location: { in_trim?: boolean; in_rollforming?: boolean }
+    }) =>
+      authApi
+        .post(`coils/products/${encodeURIComponent(productId)}/location/`, { json: location })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
+  })
+
+/** One coil mounted on the Slinet or taken off it: the Slinet holds a coil, not a product. */
+export const useSetCoilSlinet = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil stayed where it was' },
+    mutationFn: ({ lotId, inSlinet }: { lotId: string; inSlinet: boolean }) =>
+      authApi.post(`coils/lots/${lotId}/location/`, { json: { in_slinet: inSlinet } }).json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
@@ -1958,7 +2023,9 @@ export const coilFoldersQuery = (departmentId: number | undefined) =>
               z.transform(id => id.trim())
             ),
             name: z._default(z.string(), ''),
-            coils: z._default(z.number(), 0)
+            // What the list lists: products with coil left, and their lots.
+            products: z._default(z.number(), 0),
+            lots: z._default(z.number(), 0)
           })
         )
         .parse(

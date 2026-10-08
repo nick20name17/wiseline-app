@@ -11,7 +11,10 @@ export type ShippingView = (typeof SHIPPING_VIEWS)[number]
 export const shippingSearchSchema = z.object({
   view: z.catch(z.enum(SHIPPING_VIEWS), 'unscheduled'),
   search: searchTerm,
-  day: isoDay
+  day: isoDay,
+  // Unscheduled's ship date filter, both ends included.
+  shipFrom: isoDay,
+  shipTo: isoDay
 })
 
 /** The Loading and Driver windows work one day at a time. */
