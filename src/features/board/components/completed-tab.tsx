@@ -12,6 +12,15 @@ import { useBoard } from '../lib/board-context'
 import { formatStamp } from '../lib/format'
 import { CompletedOrderDialog } from './completed-order-dialog'
 
+const Waiting = () => (
+  <span
+    className='text-warning'
+    title='Done at the machine; waiting for the Wrapping Worker to give every package a location'
+  >
+    waiting...
+  </span>
+)
+
 type CompletedTabProps = {
   departmentId: number | undefined
 }
@@ -21,7 +30,7 @@ type CompletedTabProps = {
  * is worked on — a row is opened to answer a question about an order that has already gone.
  */
 export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
-  const { tables, pack } = useBoard()
+  const { tables, pack, packsAtMachine } = useBoard()
   const [opened, setOpened] = useState<CompletedOrder | null>(null)
   // The header search is the open orders' business: the history is read by opening a row.
   const {
@@ -50,7 +59,9 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
             </EmptyMedia>
             <EmptyTitle>No completed orders</EmptyTitle>
             <EmptyDescription>
-              Orders you finish {pack.station.toLowerCase()} and mark complete land here.
+              {packsAtMachine
+                ? 'Orders land here once they are rolled, and complete once Wrapping locates every package.'
+                : `Orders you finish ${pack.station.toLowerCase()} and mark complete land here.`}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -89,7 +100,13 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       ),
                       completed: (
                         <TableCell>
-                          {order.completed_at ? formatStamp(order.completed_at) : '—'}
+                          {order.completed_at ? (
+                            formatStamp(order.completed_at)
+                          ) : order.status === 'rolled' ? (
+                            <Waiting />
+                          ) : (
+                            '—'
+                          )}
                         </TableCell>
                       ),
                       order: (
@@ -106,7 +123,18 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       ),
                       location: (
                         <TableCell>
-                          <span className='font-mono'>{order.trim_location.join(', ') || '—'}</span>
+                          <span className='truncate'>
+                            <span className='font-mono'>{order.trim_location.join(', ')}</span>
+                            {/* Done but not located: the locations so far, and more to come. */}
+                            {order.status === 'rolled' ? (
+                              <>
+                                {order.trim_location.length ? ', ' : null}
+                                <Waiting />
+                              </>
+                            ) : order.trim_location.length ? null : (
+                              '—'
+                            )}
+                          </span>
                         </TableCell>
                       )
                     })}

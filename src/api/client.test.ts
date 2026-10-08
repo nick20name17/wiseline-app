@@ -87,3 +87,20 @@ test("a 422 reads as FastAPI's sentences", async () => {
     'Input should be less than or equal to 60'
   )
 })
+
+test('a 500 hides the raw exception', async () => {
+  fetchMock.mockImplementation(async () =>
+    json({ detail: '(sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) null value' }, 500)
+  )
+
+  const error = await authApi.get('broken').catch((caught: unknown) => caught)
+  expect(error).toBeInstanceOf(HTTPError)
+  expect((error as HTTPError).message).not.toContain('sqlalchemy')
+})
+
+test('a 502 keeps what EBMS said', async () => {
+  fetchMock.mockImplementation(async () => json({ detail: 'EBMS refused the batch.' }, 502))
+
+  const error = await authApi.get('ebms').catch((caught: unknown) => caught)
+  expect((error as HTTPError).message).toBe('EBMS refused the batch.')
+})

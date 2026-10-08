@@ -61,7 +61,8 @@ type LocationDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onPick: (location: LocationSlot) => void
-  onRemove: (location: OrderLocation) => void
+  /** Clicking one of the order's own cells takes it off; without this it is picked like any other. */
+  onRemove?: (location: OrderLocation) => void
 }
 
 /**
@@ -116,8 +117,8 @@ export const LocationDialog = ({
             Defaults to {board.name} locations — click an available cell to put this package there.
             Multi-Order cells show an order count (e.g. 2/4) and accept several orders up to their
             cap or Max Weight; greyed cells are full or single-order and in use. Adding a 2nd
-            location oranges the earlier one. Click one of this order&rsquo;s own cells to remove
-            it.
+            location oranges the earlier one.
+            {onRemove ? ' Click one of this order’s own cells to remove it.' : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -167,7 +168,7 @@ export const LocationDialog = ({
                     key={slot.location_id}
                     type='button'
                     disabled={!mine && !slot.available}
-                    title={`${slot.name ?? slot.location_id} · ${slot.used_weight}${slot.max_weight === null ? '' : `/${slot.max_weight}`} lb · ${slot.orders_on_it}/${slot.max_orders ?? 1}${slot.multi_order ? ' orders (Multi-Order)' : ' order'}${mine ? ' · click to remove it from this order' : ''}`}
+                    title={`${slot.name ?? slot.location_id} · ${slot.used_weight}${slot.max_weight === null ? '' : `/${slot.max_weight}`} lb · ${slot.orders_on_it}/${slot.max_orders ?? 1}${slot.multi_order ? ' orders (Multi-Order)' : ' order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
                     className={cn(
                       'rounded-md border border-border bg-background px-1 py-2 text-center font-mono text-sm leading-tight font-medium hover:border-input disabled:pointer-events-none disabled:bg-muted disabled:text-muted-foreground',
                       mine
@@ -178,7 +179,7 @@ export const LocationDialog = ({
                     )}
                     onClick={() => {
                       onOpenChange(false)
-                      if (mine) onRemove(mine)
+                      if (mine && onRemove) onRemove(mine)
                       else onPick(slot)
                     }}
                   >
@@ -224,7 +225,8 @@ export const LocationDialog = ({
 
 type LocationChipsProps = {
   locations: ShownLocation[]
-  onRemove: (location: OrderLocation) => void
+  /** None where the locations are only read, as at the machine. */
+  onRemove?: (location: OrderLocation) => void
 }
 
 /** The locations an order stands on, each a chip that asks to take it off. */
@@ -236,7 +238,7 @@ export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
   return locations.map(spot => {
     const over = !!spot.over || (spot.remaining_weight !== null && spot.remaining_weight < 0)
 
-    if (viewOnly)
+    if (viewOnly || !onRemove)
       return (
         <span
           key={spot.location_id}

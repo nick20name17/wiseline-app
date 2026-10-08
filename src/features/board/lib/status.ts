@@ -18,6 +18,8 @@ const PURPLE = 'bg-bypass/15 text-bypass'
 const ORDER_STATUS: Record<string, { label: string; tint: string }> = {
   not_started: { label: 'Not Started', tint: GREY },
   in_progress: { label: 'In Progress', tint: AMBER },
+  // Rollforming's Done: all packed at the machine, its packages waiting for locations p2 (1145,294).
+  rolled: { label: 'Rolled', tint: BLUE },
   wrapped: { label: 'Wrapped', tint: GREEN },
   // Accessories finish at Packaged where Trim finishes at Wrapped p3 (1077,291).
   packaged: { label: 'Packaged', tint: GREEN },

@@ -112,6 +112,16 @@ export type Machine = z.infer<typeof machineSchema>
 
 // The app's own row against one EBMS line item. Present only once somebody has scheduled, assigned or
 // annotated the line; until then the mirror is all there is.
+const unitCoilSchema = z.object({
+  unit: z.number(),
+  supplier: z._default(z.nullable(z.string()), null),
+  coil_number: z._default(z.nullable(z.string()), null),
+  supplier_locked: z._default(z.boolean(), false),
+  coil_number_locked: z._default(z.boolean(), false)
+})
+
+export type UnitCoil = z.infer<typeof unitCoilSchema>
+
 const itemSchema = z.object({
   id: z.number(),
   status: z._default(z.nullable(z.string()), null),
@@ -137,7 +147,13 @@ const itemSchema = z.object({
   /** `coil`, `waiting_to_slit` or `slit`; none for a line that takes no coil. */
   coil_icon: z._default(z.nullable(z.string()), null),
   // Locked while the Slit Line still owes the coil p2 (1086,321).
-  coil_fields_locked: z._default(z.boolean(), false)
+  coil_fields_locked: z._default(z.boolean(), false),
+  // Per field: set by the Manager or the Slit Line, so the Worker cannot change it p2 (1010,333).
+  // An unlocked one is the Worker's to fill in once the line is released p2 (894,313).
+  supplier_locked: z._default(z.boolean(), false),
+  coil_number_locked: z._default(z.boolean(), false),
+  // Units with a coil of their own p2 (679,416); the others take the line's. Empty: one coil.
+  unit_coils: z._default(z.array(unitCoilSchema), [])
 })
 
 const lineItemSchema = z.object({
@@ -454,6 +470,12 @@ export const overdueQuery = (departmentId: number | undefined) =>
       overdueSchema.parse(await authApi.get(`departments/${departmentId}/overdue/`).json())
   })
 
+// What a department's day is counted in. The server decides: bends in Trim, linear feet in
+// Rollforming, pieces in Accessories.
+const capacityUnitSchema = z.catch(z.enum(['bends', 'linear_feet', 'pieces']), 'bends')
+
+export type CapacityUnit = z.infer<typeof capacityUnitSchema>
+
 const machineCapacitySchema = z.object({
   date: z.string(),
   total: z.object({
@@ -461,8 +483,12 @@ const machineCapacitySchema = z.object({
     pieces_from_stock: z._default(z.number(), 0),
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
-    // The sum of the department's machines' daily max bends.
+    linear_feet: z._default(z.number(), 0),
+    // The day's ceiling in `capacity_unit`: the machines' daily max bends in Trim, feet in
+    // Rollforming.
     capacity: z._default(z.nullable(z.number()), null),
+    capacity_unit: capacityUnitSchema,
+    used: z._default(z.number(), 0),
     over_capacity: z._default(z.boolean(), false)
   }),
   machines: z.catch(
@@ -476,13 +502,29 @@ const machineCapacitySchema = z.object({
         bends: z._default(z.number(), 0),
         bends_from_stock: z._default(z.number(), 0),
         max_bends: z._default(z.nullable(z.number()), null),
-        over_bends: z._default(z.boolean(), false)
+        over_bends: z._default(z.boolean(), false),
+        linear_feet: z._default(z.number(), 0),
+        max_feet: z._default(z.nullable(z.number()), null),
+        over_feet: z._default(z.boolean(), false)
       })
     ),
     []
   ),
   pieces_without_a_machine: z._default(z.number(), 0)
 })
+
+type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
+
+/** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */
+export const machineLoad = (machine: MachineCapacity, unit: CapacityUnit) =>
+  unit === 'linear_feet'
+    ? { value: machine.linear_feet, max: machine.max_feet, over: machine.over_feet, fromStock: 0 }
+    : {
+        value: machine.bends,
+        max: machine.max_bends,
+        over: machine.over_bends,
+        fromStock: machine.bends_from_stock
+      }
 
 /** One day broken down by machine — what the gear on a day tab opens. */
 export const machineCapacitiesQuery = (departmentId: number | undefined, day: string | null) =>
@@ -553,8 +595,10 @@ const dayStripSchema = z.array(
     pieces_from_stock: z._default(z.number(), 0),
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
-    // The sum of the department's machines' daily max bends; `null` is no ceiling.
+    // The day's ceiling and what is on it, in `capacity_unit`; `null` is no ceiling.
     capacity: z._default(z.nullable(z.number()), null),
+    capacity_unit: capacityUnitSchema,
+    used: z._default(z.number(), 0),
     over_capacity: z._default(z.boolean(), false),
     // Monday to Friday, plus the weekend when the company works it, and never a holiday.
     is_work_day: z._default(z.boolean(), true),
@@ -1537,6 +1581,9 @@ const completedOrderSchema = z.object({
   customer: z._default(z.nullable(z.string()), null),
   is_stock: z._default(z.boolean(), false),
   completed_at: z._default(z.nullable(z.string()), null),
+  // `rolled` is Rollforming's Done: all of it packed at the machine, some packages still waiting
+  // for a location at Wrapping, so no `completed_at` yet p2 (1041,532).
+  status: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   ship_date: z._default(z.nullable(z.string()), null),
   // The codes the order's packages stand on, oldest first.
@@ -2301,7 +2348,9 @@ export const useCreatePackage = (onSuccess: () => void) =>
     mutationFn: async (parcel: {
       order: string
       department_id: number
-      location_id: number
+      // None in Rollforming: it packs at the machine and Wrapping locates the package later
+      // p2 (1020,440), (1143,329).
+      location_id?: number
       lines: PackageLine[]
       weight?: number
       override_weight?: boolean
@@ -2315,8 +2364,38 @@ export const useCreatePackage = (onSuccess: () => void) =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
+/**
+ * Put a package made at the machine on a location p2 (1143,329). The last one located completes
+ * the order on the server p2 (1144,383). A location the package would push over its Max Weight
+ * answers 409 unless `override_weight`.
+ */
+export const useLocatePackage = () =>
+  useMutation({
+    meta: { errorTitle: 'The package was not located' },
+    mutationFn: async ({
+      packageId,
+      locationId,
+      override
+    }: {
+      packageId: number
+      locationId: number
+      override: boolean
+    }) =>
+      z.object({ name: z._default(z.nullable(z.string()), null) }).parse(
+        await authApi
+          .post(`wrapping/packages/${packageId}/location/`, {
+            json: { location_id: locationId, ...(override ? { override_weight: true } : {}) }
+          })
+          .json()
+      ),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
+  // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
+  reason: z._default(z.nullable(z.string()), null),
   // A stock order is finished through its own Stock window, never through Order Complete.
   is_stock: z._default(z.boolean(), false),
   outstanding: z.catch(
@@ -2503,6 +2582,10 @@ const slitLineSchema = z.object({
   description: z._default(z.nullable(z.string()), null),
   quantity: z._default(z.nullable(z.number()), null),
   production_date: z._default(z.nullable(z.string()), null),
+  // The Slit Line's own day for a machine's request p2 (754,297); none until the Manager gives one.
+  slit_production_date: z._default(z.nullable(z.string()), null),
+  /** The machine that asked for it. */
+  requested_by: z._default(z.nullable(z.string()), null),
   /** `coil`, `waiting_to_slit` or `slit`. */
   icon: z._default(z.nullable(z.string()), null),
   locked: z._default(z.boolean(), false),
@@ -2512,22 +2595,32 @@ const slitLineSchema = z.object({
 
 export type SlitLine = z.infer<typeof slitLineSchema>
 
+export type SlitStage = 'unscheduled' | 'scheduled' | 'slit'
+
 /**
- * The Slit Line tab: what waits to be slit, or what has been, by Production Date then Priority
- * p2 (1204,296). A line carries the Supplier and Coil Number the Slit Line filled in, or «waiting...».
+ * The Slit Line tab: the machines' requests with no slit day yet, those with one, or what has been
+ * slit, by slit day (else Production Date) then Priority p2 (754,297), (1204,296). A line carries the
+ * Supplier and Coil Number the Slit Line filled in, or «waiting...».
  */
-export const slitLineQuery = (departmentId: number | undefined, slit: boolean) =>
+export const slitLineQuery = (departmentId: number | undefined, stage: SlitStage) =>
   queryOptions({
-    queryKey: [...boardKeys.all, 'slit-line', departmentId ?? 0, slit] as const,
+    queryKey: [...boardKeys.all, 'slit-line', departmentId ?? 0, stage] as const,
     enabled: departmentId !== undefined,
     queryFn: async () =>
-      z
-        .array(slitLineSchema)
-        .parse(
-          await authApi
-            .get('slit-line/', { searchParams: { department_id: departmentId!, slit } })
-            .json()
-        )
+      z.array(slitLineSchema).parse(
+        await authApi
+          .get('slit-line/', {
+            searchParams:
+              stage === 'slit'
+                ? { department_id: departmentId!, slit: true }
+                : {
+                    department_id: departmentId!,
+                    slit: false,
+                    scheduled: stage === 'scheduled'
+                  }
+          })
+          .json()
+      )
   })
 
 const invalidateCoilAssignment = (client: QueryClient) =>
@@ -2547,17 +2640,42 @@ export const useAssignCoil = () =>
       originItems: string[]
       supplier: string | null
       coilNumber: string | null
+      /** The units of a line that take this coil; a line not named here takes it whole. */
+      units?: Record<string, number[]>
     }) =>
       authApi
         .post('coil-assignment/assign/', {
           json: {
             origin_items: input.originItems,
             supplier: input.supplier,
-            coil_number: input.coilNumber
+            coil_number: input.coilNumber,
+            units: input.units
           }
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
+  })
+
+export type CoilEntry = {
+  origin_item: string
+  unit?: number
+  supplier: string | null
+  coil_number: string | null
+}
+
+/**
+ * The Worker fills in the Supplier and Coil Number the Manager left Undefined, line by line, before
+ * packing p2 (894,313), (1010,346). A field the Manager or the Slit Line set is refused (locked).
+ */
+export const useFillInCoil = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil was not filled in' },
+    // One entry per line, or per unit of a line split by coil p2 (679,416).
+    mutationFn: (lines: CoilEntry[]) =>
+      authApi.post('coil-assignment/fill-in/', { json: { lines } }).json(),
+    // The bench's rows say whether a line may be packed yet, so they are read again too.
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
 /**
@@ -2584,6 +2702,23 @@ export const useSlitRequest = () =>
         })
         .json(),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoilAssignment(client)
+  })
+
+/**
+ * The Manager gives the machines' requests their day on the Slit Line, or takes it back (null). A
+ * request goes whole — no Split p2 (761,308) — so every line named takes the one day.
+ */
+export const useScheduleSlit = () =>
+  useMutation({
+    meta: { errorTitle: 'The Slit Line day was not set' },
+    mutationFn: (input: { originItems: string[]; productionDate: string | null }) =>
+      authApi
+        .post('slit-line/schedule/', {
+          json: { origin_items: input.originItems, production_date: input.productionDate }
+        })
+        .json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: [...boardKeys.all, 'slit-line'] })
   })
 
 /**
@@ -2621,7 +2756,9 @@ const queueLineSchema = z.object({
   // What is left of the line to roll.
   quantity: z._default(z.number(), 0),
   length: z._default(z.nullable(z.number()), null),
-  status: z._default(z.nullable(z.string()), null)
+  status: z._default(z.nullable(z.string()), null),
+  // The units of the line on this row's coil p2 (679,416); null: the whole line.
+  units: z._default(z.nullable(z.array(z.number())), null)
 })
 
 const queueRowSchema = z.object({

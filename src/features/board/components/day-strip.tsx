@@ -1,5 +1,4 @@
 import { dayLoad, loadUnit } from '../lib/format'
-import { useBoard } from '../lib/board-context'
 import { formatDayLabel, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,37 +22,31 @@ type DayPillProps = {
  * One day and what is already on it. The pills answer «how full is this week» while somebody decides
  * what to schedule, and nothing more — they are not a selector, and the board does not make them one.
  */
-const DayPill = ({ entry, isToday }: DayPillProps) => {
-  const board = useBoard()
-  return (
-    <div
-      className={cn(TILE, 'border-border bg-muted/40', isToday && 'border-primary bg-primary/10')}
-      title={`${formatDayLabel(entry.date)} — ${loadUnit(board)} scheduled${board.assignsMachines ? ' against the daily capacity' : ''}`}
-    >
-      <DayFigures entry={entry} isToday={isToday} />
-    </div>
-  )
-}
+const DayPill = ({ entry, isToday }: DayPillProps) => (
+  <div
+    className={cn(TILE, 'border-border bg-muted/40', isToday && 'border-primary bg-primary/10')}
+    title={`${formatDayLabel(entry.date)} — ${loadUnit(entry.capacity_unit)} scheduled${entry.capacity === null ? '' : ' against the daily capacity'}`}
+  >
+    <DayFigures entry={entry} isToday={isToday} />
+  </div>
+)
 
-const DayFigures = ({ entry, isToday }: DayPillProps) => {
-  const board = useBoard()
-  return (
-    <>
-      <span className='block truncate text-xs font-semibold'>
-        {formatDayLabel(entry.date)}
-        {isToday ? ' · today' : ''}
-      </span>
-      <span
-        className={cn(
-          'mt-0.5 block font-mono text-xs text-muted-foreground',
-          entry.over_capacity && 'text-destructive'
-        )}
-      >
-        ({dayLoad(entry, board)})
-      </span>
-    </>
-  )
-}
+const DayFigures = ({ entry, isToday }: DayPillProps) => (
+  <>
+    <span className='block truncate text-xs font-semibold'>
+      {formatDayLabel(entry.date)}
+      {isToday ? ' · today' : ''}
+    </span>
+    <span
+      className={cn(
+        'mt-0.5 block font-mono text-xs text-muted-foreground',
+        entry.over_capacity && 'text-destructive'
+      )}
+    >
+      ({dayLoad(entry)})
+    </span>
+  </>
+)
 
 type PinnedDayProps = {
   entry: DayStripEntry
@@ -92,7 +85,6 @@ type DayStripProps = {
 }
 
 export const DayStrip = ({ departmentId }: DayStripProps) => {
-  const board = useBoard()
   const start = today()
   const [peek, setPeek] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -143,7 +135,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         title='Show another day'
-        description={`Pin any day beside the five work days to see the ${loadUnit(board)} already scheduled to it.`}
+        description={`Pin any day beside the five work days to see the ${loadUnit(days?.[0]?.capacity_unit ?? 'pieces')} already scheduled to it.`}
         actionLabel='Show day'
         departmentId={departmentId}
         anyDay

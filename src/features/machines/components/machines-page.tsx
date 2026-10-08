@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { departmentsQuery, machinesQuery, type Machine } from '../api'
 import { machineSections, type MachineSection } from '../lib/sections'
 import { CoilSuppliersDialog } from './coil-suppliers-dialog'
+import { DailyCapacityDialog } from './daily-capacity-dialog'
 import { MachineActions } from './machine-actions'
 import { CreateMachineDialog } from './machine-dialog'
 import { MaxPackageDialog } from './max-package-dialog'
@@ -15,6 +16,8 @@ import { MaxPackageDialog } from './max-package-dialog'
 // The cutter is where a department's work enters its machines, which is why it is tagged.
 const GATEWAY_KIND = 'cutting'
 const COIL_SUPPLIERS_DEPARTMENT = 'rollforming'
+// Accessories packs and makes nothing, so its day is held to a capacity of its own, not its machines'.
+const DAILY_CAPACITY_DEPARTMENT = 'accessories'
 
 // Cards stand in for the departments until they arrive; a plant runs three or four.
 const SKELETON_SECTIONS = 3
@@ -22,7 +25,12 @@ const SKELETON_SECTIONS = 3
 type MachineRowProps = { machine: Machine; unit: MachineSection['unit'] }
 
 const MachineRow = ({ machine, unit }: MachineRowProps) => {
-  const max = unit === 'bends' ? machine.daily_max_bends : machine.daily_max_pieces
+  const max =
+    unit === 'bends'
+      ? machine.daily_max_bends
+      : unit === 'feet'
+        ? machine.daily_max_feet
+        : machine.daily_max_pieces
 
   return (
     <li className='flex items-center gap-2.5 border-b border-border px-4 py-2.5 last:border-b-0'>
@@ -66,6 +74,9 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
 
         {section.department ? <MaxPackageDialog department={section.department} /> : null}
         {section.code === COIL_SUPPLIERS_DEPARTMENT ? <CoilSuppliersDialog /> : null}
+        {section.department?.code === DAILY_CAPACITY_DEPARTMENT ? (
+          <DailyCapacityDialog department={section.department} />
+        ) : null}
         <Button
           variant='ghost'
           size='icon-sm'

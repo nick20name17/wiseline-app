@@ -20,10 +20,11 @@ import {
   currentCoilQuery,
   departmentStateOf,
   releasedOrdersQuery,
+  wrappingRowsQuery,
   type BoardLineItem
 } from '../api'
 import { useBoard } from '../lib/board-context'
-import { materialsOf, partKey } from '../lib/parts'
+import { materialsOf, partKey, partLines } from '../lib/parts'
 import {
   coilNumbersOf,
   isStockLine,
@@ -36,6 +37,7 @@ import { CoilLock } from './coil-lock'
 import { CurrentCoil } from './current-coil'
 import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from './status-pill'
+import { WrapOrder } from './wrap-order'
 
 const COLUMNS = 13
 
@@ -145,8 +147,8 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
 /**
  * A Rollforming machine's Production tab p2 (1007,312): the orders released to it and not yet done,
  * by Production Date with the days apart — one list, the same for the Manager and the Worker
- * p2 (1045,276), (540,715). The packages are made at Wrapping until the board's machine bench lands
- * (backend R11).
+ * p2 (1045,276), (540,715). An order opens onto the bench where its packages are made p2 (1011,367);
+ * once Left To Package is all zeros it is Rolled and leaves the list p2 (1041,510).
  */
 export const RollformingProductionTab = (props: RollformingProductionTabProps) => (
   <div className='flex flex-col gap-3'>
@@ -166,9 +168,33 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
   } = useQuery(releasedOrdersQuery(board.name, search, true))
   const { data: coil } = useQuery(currentCoilQuery(machineId))
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const [packing, setPacking] = useState<string | null>(null)
+  // Only the bench reads the Wrapping rows, so they are fetched once an order is opened.
+  const { data: benchRows } = useQuery({
+    ...wrappingRowsQuery(departmentId, null),
+    enabled: departmentId !== undefined && packing !== null
+  })
   const parts =
     machineId === undefined ? [] : productionParts(page?.results ?? [], machineId, departmentId)
   const days = byDay(parts, part => part.day)
+
+  const bench = parts.find(part => partKey(part.order.id, part.day) === packing)
+  if (bench) {
+    // The bench takes the part's every line, the ones already rolled included, so its figures add up.
+    const lines = partLines(bench.order, bench.day)
+    const ids = new Set(lines.map(line => line.id))
+    const rows = (benchRows ?? []).filter(row => ids.has(row.origin_item))
+    const coils = new Map(lines.flatMap(line => (line.item ? [[line.id, line.item] as const] : [])))
+    if (rows.length)
+      return (
+        <WrapOrder
+          departmentId={departmentId}
+          rows={rows}
+          coils={coils}
+          onBack={() => setPacking(null)}
+        />
+      )
+  }
 
   if (isError && !page)
     return (
@@ -254,8 +280,15 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                   const onCoil = runsOffCoil(lines, coil)
                   return (
                     <Fragment key={key}>
-                      <TableRow data-overdue={lines.some(line => line.item?.over_due) || undefined}>
-                        <TableCell>
+                      {/* The row opens the order's bench, where it is packaged; the chevron only
+                          shows its lines. */}
+                      <TableRow
+                        aria-label={`Package ${order.invoice}`}
+                        title='Open to package'
+                        data-overdue={lines.some(line => line.item?.over_due) || undefined}
+                        onClick={() => setPacking(key)}
+                      >
+                        <TableCell onClick={event => event.stopPropagation()}>
                           <Button
                             variant='ghost'
                             size='icon-sm'

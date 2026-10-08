@@ -563,7 +563,10 @@ const dayStrip = (start: string, days: number) =>
       pieces_from_stock: 0,
       bends: 1000,
       bends_from_stock: 0,
+      // Trim's day is counted in bends.
       capacity: 5000,
+      capacity_unit: 'bends',
+      used: 1000,
       over_capacity: false
     }
   })
@@ -612,7 +615,9 @@ export const mockTrimApi = async (page: Page) => {
           pieces_from_stock: 4,
           bends: 1000,
           bends_from_stock: 0,
-          capacity: 5000
+          capacity: 5000,
+          capacity_unit: 'bends',
+          used: 1000
         },
         machines: BENDERS.map(station => ({
           flow_id: station.id,

@@ -1,5 +1,4 @@
 import { dayLoad, dayLoadHint } from '../lib/format'
-import { useBoard } from '../lib/board-context'
 import { toIsoDay, today } from '@/lib/days'
 import { Calendar } from '@/components/ui/calendar'
 import { useQuery } from '@tanstack/react-query'
@@ -34,7 +33,6 @@ export const CapacityCalendar = ({
   onSelect,
   anyDay = false
 }: CapacityCalendarProps) => {
-  const board = useBoard()
   const { data: strip } = useQuery(
     dayStripQuery(departmentId, toIsoDay(startOfMonth(month)), getDaysInMonth(month))
   )
@@ -65,7 +63,7 @@ export const CapacityCalendar = ({
         DayButton: ({ day, modifiers, className, children, ...props }) => {
           const iso = toIsoDay(day.date)
           const budget = budgets.get(iso)
-          const load = budget ? dayLoadHint(budget, board) : undefined
+          const load = budget ? dayLoadHint(budget) : undefined
           const past = !anyDay && iso < today()
           const late = overdueDays.has(iso)
           const hint = [
@@ -101,7 +99,7 @@ export const CapacityCalendar = ({
                   budget?.over_capacity && !modifiers.selected && 'text-destructive'
                 )}
               >
-                {budget ? dayLoad(budget, board) : ''}
+                {budget ? dayLoad(budget) : ''}
               </span>
             </button>
           )

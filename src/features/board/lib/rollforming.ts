@@ -2,8 +2,8 @@ import type { BoardLineItem, BoardOrder, CurrentCoil } from '../api'
 import { onMachine } from './machines'
 import { partDays, partLines } from './parts'
 
-// Packed and located: the line has left the machine's list.
-const DONE = new Set(['wrapped'])
+// All of it packed at the machine: the line has left the machine's list p2 (1041,510).
+const DONE = new Set(['rolled', 'wrapped'])
 
 /** One order's released, unfinished lines on one machine for one day — a row of Production. */
 export type ProductionPart = { order: BoardOrder; day: string; lines: BoardLineItem[] }

@@ -377,7 +377,9 @@ export const CompletedOrderDialog = ({
               <p className='text-center text-sm text-muted-foreground'>
                 {data.completed_at
                   ? `Completed ${formatStamp(data.completed_at)}`
-                  : 'Completion time not recorded'}
+                  : order?.status === 'rolled'
+                    ? 'Done — completes once Wrapping gives every package a location'
+                    : 'Completion time not recorded'}
               </p>
             </>
           )}

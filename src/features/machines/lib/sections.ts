@@ -4,8 +4,9 @@ import type { Department, Machine } from '../api'
 // A machine whose department the API no longer lists still has to be reachable.
 const NO_DEPARTMENT = 'none'
 
-// Trim's machines are rated by the bends they make; every other department counts pieces.
-const BENDS_DEPARTMENT = 'trim'
+// What a department's machines are rated in, as its day tabs count it: Trim's bends, Rollforming's
+// linear feet, pieces anywhere else.
+const UNITS: Record<string, MachineSection['unit']> = { trim: 'bends', rollforming: 'feet' }
 
 export type MachineSection = {
   key: string
@@ -13,7 +14,7 @@ export type MachineSection = {
   code: string
   /** Missing on the section of machines whose department is gone. */
   department?: Department
-  unit: 'bends' | 'pieces'
+  unit: 'bends' | 'feet' | 'pieces'
   machines: Machine[]
 }
 
@@ -34,7 +35,7 @@ export const machineSections = ({ machines, departments }: Input): MachineSectio
     name: department.name,
     code: department.code,
     department,
-    unit: department.code === BENDS_DEPARTMENT ? 'bends' : 'pieces',
+    unit: UNITS[department.code] ?? 'pieces',
     machines: all.filter(machine => machine.department === department.id)
   }))
 

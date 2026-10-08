@@ -33,6 +33,7 @@ import {
   type Priority,
   type QueueRow
 } from '../api'
+import { unitRuns } from '../lib/unit-coils'
 import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
 import { CoilLock } from './coil-lock'
@@ -152,7 +153,18 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
       </TableCell>
       <TableCell>
         <span className='truncate text-xs text-muted-foreground'>
-          {[...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ')}
+          {/* A line split by coil is on this row for some of its units p2 (679,416). */}
+          {[
+            ...new Set(
+              row.lines
+                .filter(line => line.order_number)
+                .map(line =>
+                  line.units
+                    ? `${line.order_number} (units ${unitRuns(line.units)})`
+                    : line.order_number
+                )
+            )
+          ].join(', ')}
         </span>
       </TableCell>
     </TableRow>

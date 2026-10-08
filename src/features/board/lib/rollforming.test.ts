@@ -39,6 +39,8 @@ describe('productionParts', () => {
           line('c', '2026-10-02'),
           line('d', '2026-10-02', { released: false }),
           line('e', '2026-10-02', { status: 'wrapped' }),
+          // All of it packed at the machine: Rolled, off the list p2 (1041,510).
+          line('g', '2026-10-02', { status: 'rolled' }),
           line('f', '2026-10-02', { machine: 71 })
         ])
       ],
