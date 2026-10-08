@@ -39,8 +39,13 @@ const BASE_OPTIONS: Options = {
     beforeError: [
       ({ error }) => {
         if (error instanceof HTTPError) {
+          const { status } = error.response
+          // A 500 is the server's catch-all: its detail is the raw exception (SQL, a traceback line),
+          // nothing a user can act on. The 502/504s name what EBMS refused, so those are kept.
           error.message =
-            getServerMessage(error.data) ?? `Request failed with status ${error.response.status}`
+            status === 500
+              ? 'The server ran into an error, so nothing was saved. Please try again.'
+              : (getServerMessage(error.data) ?? `Request failed with status ${status}`)
         }
         return error
       }
