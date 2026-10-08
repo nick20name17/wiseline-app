@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Inbox } from 'lucide-react'
 import { useState } from 'react'
 import {
+  isPartial,
   unscheduledOrdersQuery,
   useBypassProduction,
   useScheduleOrders,
@@ -68,7 +69,9 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
   const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)
   const [noteLine, setNoteLine] = useState<{ item: BoardLineItem; readOnly: boolean } | null>(null)
 
-  const { notes, noteState } = useOrderNotes(orders)
+  // Asked once the list is whole, not again for every page as it streams in.
+  const whole = !isPartial(page)
+  const { notes, noteState } = useOrderNotes(whole ? orders : [])
 
   const scheduled = (productionDate: string) => () =>
     toast.add({ type: 'success', title: `Scheduled to ${formatLongDate(productionDate)}` })
@@ -117,7 +120,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
           error={error}
           onRetry={() => void refetch()}
         />
-      ) : !isPending && !orders.length ? (
+      ) : !isPending && whole && !orders.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>

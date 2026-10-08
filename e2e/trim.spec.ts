@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { mockTrimApi, signIn } from './trim-api.ts'
+import { mockTrimApi, ORDER, signIn, STOCK_ORDER } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -166,4 +166,37 @@ test('what is left of a split order is scheduled like any other order', async ({
   await expect
     .poll(() => scheduled)
     .toEqual([{ department: 1, orders: [31], production_date: '2026-09-24' }])
+})
+
+test('a long list shows its first page while the next is still on its way', async ({ page }) => {
+  let sendSecond = () => {}
+  const secondAsked = new Promise<void>(resolve => {
+    sendSecond = resolve
+  })
+  const offsets: string[] = []
+  await page.route(`${API_URL}/ebms/orders/*`, async route => {
+    const params = new URL(route.request().url()).searchParams
+    if (params.get('is_scheduled') !== 'false') return route.fallback()
+    if (!params.get('search')) return route.fallback()
+    const offset = params.get('offset') ?? '0'
+    offsets.push(offset)
+    if (offset !== '0') await secondAsked
+    await route.fulfill({
+      json: { count: 101, results: offset === '0' ? [ORDER] : [STOCK_ORDER] }
+    })
+  })
+  // A search is a list not cached yet, so it streams from its first page.
+  await page.getByRole('searchbox', { name: 'Search orders' }).fill('H F H')
+
+  await expect(page.getByText('330605')).toBeVisible()
+  await expect(page.getByText('S1041')).toBeHidden()
+  // One page at a time: the second is asked for only after the first came back.
+  expect(offsets).toEqual(['0', '100'])
+
+  // Leaving the tab mid-stream does not cut the list short.
+  await page.getByRole('tab', { name: /^Scheduled/ }).click()
+  sendSecond()
+  await page.getByRole('tab', { name: /^Unscheduled/ }).click()
+  await expect(page.getByText('S1041')).toBeVisible()
+  await expect(page.getByText('2 unscheduled orders')).toBeVisible()
 })

@@ -10,6 +10,7 @@ import { Package, PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import {
   prioritiesQuery,
+  isPartial,
   releasedOrdersQuery,
   remanufacturingsQuery,
   wrappingRowsQuery,
@@ -104,7 +105,8 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   // Lines there, but none the search names, is a miss rather than an empty bench.
   const missed = !!rows?.length && !!search?.trim()
 
-  if (!isPending && !days.length)
+  // A machine's rows are known only once every released order is in.
+  if (!isPending && !(machine !== undefined && isPartial(released)) && !days.length)
     return (
       <Empty>
         <EmptyHeader>

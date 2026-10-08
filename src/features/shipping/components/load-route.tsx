@@ -1,5 +1,5 @@
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
@@ -120,20 +120,16 @@ export const LoadRoute = ({ load }: { load: Load }) => {
         ) : null}
         <span className='ml-auto flex gap-2'>
           {map ? (
-            <Button
-              variant='outline'
-              render={
-                <a
-                  href={map}
-                  target='_blank'
-                  rel='noreferrer'
-                  aria-label={`View the route of ${load.name} on the map`}
-                />
-              }
+            <a
+              href={map}
+              target='_blank'
+              rel='noreferrer'
+              aria-label={`View the route of ${load.name} on the map`}
+              className={buttonVariants({ variant: 'outline' })}
             >
               <MapIcon data-icon='inline-start' />
               View on map
-            </Button>
+            </a>
           ) : null}
           {locked ? null : (
             <Button

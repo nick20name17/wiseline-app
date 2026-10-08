@@ -10,7 +10,7 @@ const PRIORITIES = [
   { id: 9, name: 'Rollforming only', color: '#16a34a', position: 1, department: 2 }
 ]
 
-const ORDER = {
+export const ORDER = {
   id: 'ARINV-1',
   invoice: '330605',
   customer: 'H F H Inc',
@@ -49,7 +49,7 @@ const ORDER = {
   ]
 }
 
-const STOCK_ORDER = {
+export const STOCK_ORDER = {
   id: 'S1041',
   invoice: 'S1041',
   customer: 'Stock',

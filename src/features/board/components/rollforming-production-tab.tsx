@@ -19,6 +19,7 @@ import { Fragment, useState } from 'react'
 import {
   currentCoilQuery,
   departmentStateOf,
+  isPartial,
   releasedOrdersQuery,
   wrappingRowsQuery,
   type BoardLineItem
@@ -205,7 +206,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
       />
     )
 
-  if (!isPending && !parts.length)
+  if (!isPending && !isPartial(page) && !parts.length)
     return (
       <Empty>
         <EmptyHeader>

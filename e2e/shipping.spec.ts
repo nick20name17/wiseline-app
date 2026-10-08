@@ -122,7 +122,7 @@ test('the Driver leaves, delivers and completes the Load', async ({ page }) => {
   expect(posted).toEqual(['loads/126/left-warehouse/', 'delivered/', 'loads/126/complete/'])
 })
 
-test('an unscheduled order opens on its packages, and its note is checked off with the tick kept', async ({
+test('an unscheduled order opens on its lines and packages, and its note is checked off with the tick kept', async ({
   page
 }) => {
   let read = false
@@ -137,7 +137,9 @@ test('an unscheduled order opens on its packages, and its note is checked off wi
             order_number: '116764',
             customer: 'Kielstra',
             weight: 40,
-            note: { has_note: true, text: 'Trim Location: 30', author: 'JAKE FEHR', read }
+            note: { has_note: true, text: 'Trim Location: 30', author: 'JAKE FEHR', read },
+            lines_total: 2,
+            lines_ready: 1
           }
         ]
       }
@@ -148,6 +150,33 @@ test('an unscheduled order opens on its packages, and its note is checked off wi
       json: [{ package_id: 9, name: '01-116764-1', weight: 40, location: 'A-01', is_loaded: false }]
     })
   )
+  // Not ready first, as the server sorts them (round 10, C1).
+  await page.route(`${API_URL}/shipping/orders/ORD-7/lines/`, route =>
+    route.fulfill({
+      json: [
+        {
+          origin_item: 'L-2',
+          department: 'Trim',
+          product_id: 'TSG8306',
+          description: 'Gable trim',
+          quantity: 4,
+          packaged: 0,
+          status: 'bent',
+          ready: false
+        },
+        {
+          origin_item: 'L-1',
+          department: 'Trim',
+          product_id: 'TRC4426',
+          description: 'Ridge cap',
+          quantity: 2,
+          packaged: 2,
+          status: 'wrapped',
+          ready: true
+        }
+      ]
+    })
+  )
   await page.route(`${API_URL}/orders/ORD-7/note/read/`, route => {
     read = true
     return route.fulfill({ json: {} })
@@ -155,9 +184,12 @@ test('an unscheduled order opens on its packages, and its note is checked off wi
   await page.goto('/shipping?view=unscheduled')
   await signIn(page)
 
+  await expect(page.getByRole('button', { name: '1 of 2 ready' })).toBeVisible()
   await page.getByRole('checkbox', { name: 'Select order 116764' }).click()
   await page.getByRole('button', { name: 'Expand order 116764' }).click()
   await expect(page.getByText('01-116764-1')).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText('Not ready')
+  await expect(page.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText('Bent')
 
   await page.getByRole('button', { name: 'Order notes for 116764' }).click()
   await expect(page.getByText('Trim Location: 30')).toBeVisible()
@@ -418,4 +450,62 @@ test.describe('a truck on the Scheduled tab', () => {
       .poll(() => posted)
       .toEqual([{ path: 'loads/40/route/', body: { route_ids: [12, 11] } }])
   })
+})
+
+test('Unscheduled narrows to the ship dates in the address', async ({ page }) => {
+  const asked: URLSearchParams[] = []
+  await page.route(`${API_URL}/shipping/unscheduled/?*`, route => {
+    asked.push(new URL(route.request().url()).searchParams)
+    return route.fulfill({ json: { count: 0, results: [] } })
+  })
+  await page.goto('/shipping?view=unscheduled&shipFrom=2026-10-01&shipTo=2026-10-09')
+  await signIn(page)
+
+  await expect(page.getByText('No delivery waits for a truck on these ship dates.')).toBeVisible()
+  const last = () => asked.at(-1)
+  await expect.poll(() => last()?.get('ship_date__gte')).toBe('2026-10-01')
+  expect(last()?.get('ship_date__lte')).toBe('2026-10-09')
+
+  await page.getByRole('button', { name: 'Clear the ship date filter' }).click()
+  await expect.poll(() => last()?.has('ship_date__gte')).toBe(false)
+  await expect(page).not.toHaveURL(/shipFrom/)
+})
+
+test('Loading says how much of an order is ready, so Loading is not read as stuck', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/shipping/loads/?*`, route =>
+    route.fulfill({
+      json: [
+        {
+          load_id: 126,
+          name: 'Load 2',
+          status: 'loading',
+          weight: 190.34,
+          truck: { id: 105, name: '105' },
+          orders: [
+            {
+              assignment_id: 2,
+              order: 'ORD-2',
+              order_number: 'W20793',
+              customer: 'Wigle Home Hardware',
+              kind: 'delivery',
+              weight: 190.34,
+              load_id: 126,
+              status: 'loading',
+              lines_total: 3,
+              lines_ready: 2
+            }
+          ]
+        }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/wrapping/orders/ORD-2/packages/`, route =>
+    route.fulfill({ json: [] })
+  )
+  await page.goto(`/loading?day=${DAY}`)
+  await signIn(page)
+
+  await expect(page.getByRole('button', { name: '2 of 3 ready' })).toBeVisible()
 })

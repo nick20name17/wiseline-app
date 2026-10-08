@@ -9,7 +9,7 @@ import {
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 const ShippingRoute = () => {
-  const { view, search, day } = Route.useSearch()
+  const { view, search, day, shipFrom, shipTo } = Route.useSearch()
   const navigate = Route.useNavigate()
 
   return (
@@ -17,6 +17,7 @@ const ShippingRoute = () => {
       view={view}
       search={search}
       day={day}
+      shipDates={{ shipFrom, shipTo }}
       onChange={next =>
         void navigate({ search: previous => ({ ...previous, ...next }), replace: !next.view })
       }

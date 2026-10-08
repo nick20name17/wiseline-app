@@ -3,6 +3,7 @@ import { cn } from 'cn'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import type { Assignment, DayLoad } from '../api'
+import { ReadyCount } from './order-readiness'
 
 type OrderLineProps = {
   order: Assignment
@@ -34,6 +35,10 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
     </span>
     <span className='w-24 text-right text-xs text-muted-foreground'>
       {statusLabel(order.status) ?? ''}
+    </span>
+    {/* The shipper sends what is done when the customer needs it (round 10, C1). */}
+    <span className='flex w-32 justify-end'>
+      <ReadyCount order={order.order} readiness={order} />
     </span>
     {trail}
   </li>

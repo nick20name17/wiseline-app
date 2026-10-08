@@ -4,17 +4,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { today } from '@/lib/days'
 import type { ShippingView } from '../lib/search'
 import { ScheduledTab } from './scheduled-tab'
+import type { ShipDates } from './ship-date-filter'
 import { UnscheduledTab } from './unscheduled-tab'
 
 type ShippingPageProps = {
   view: ShippingView
   search: string | undefined
   day: string | undefined
-  onChange: (next: { view?: ShippingView; search?: string | undefined; day?: string }) => void
+  shipDates: ShipDates
+  onChange: (
+    next: { view?: ShippingView; search?: string | undefined; day?: string } & ShipDates
+  ) => void
 }
 
 /** Dispatch: the orders going out, their ship date and truck, and the Loads they go out on. */
-export const ShippingPage = ({ view, search, day, onChange }: ShippingPageProps) => {
+export const ShippingPage = ({ view, search, day, shipDates, onChange }: ShippingPageProps) => {
   usePageHeader({
     trail: [view === 'scheduled' ? 'Scheduled' : 'Unscheduled'],
     search: (
@@ -42,6 +46,8 @@ export const ShippingPage = ({ view, search, day, onChange }: ShippingPageProps)
       ) : (
         <UnscheduledTab
           search={search}
+          shipDates={shipDates}
+          onShipDatesChange={onChange}
           onScheduled={shipDate => onChange({ view: 'scheduled', day: shipDate })}
         />
       )}

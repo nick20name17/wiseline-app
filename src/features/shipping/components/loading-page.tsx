@@ -17,6 +17,7 @@ import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { DayPicker } from './day-picker'
 import { LoadCard, OrderLine } from './load-card'
+import { ReadyCount } from './order-readiness'
 
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
 const ON_THE_DOCK: readonly string[] = ['not_started', 'loading', 'loaded']
@@ -34,6 +35,8 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
         <span className='w-28 font-mono font-medium'>{order.order_number ?? '—'}</span>
         <span className='min-w-0 flex-1 truncate'>{order.customer ?? '—'}</span>
         <span className='text-xs text-muted-foreground'>{statusLabel(order.status) ?? ''}</span>
+        {/* Loaded waits for every line, packaged or not yet (round 10, C3): this says what is left. */}
+        <ReadyCount order={order.order} readiness={order} />
       </div>
       {isPending ? (
         <Skeleton className='mt-2 h-6' />
