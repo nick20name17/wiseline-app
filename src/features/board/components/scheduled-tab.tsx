@@ -329,8 +329,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
-          {/* Rollforming's Export column takes room of its own. */}
-          <Table className={cn('table-fixed', board.coils ? 'min-w-384' : 'min-w-360')}>
+          {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
+          <Table className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}>
             <colgroup>
               <col className='w-12' />
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}

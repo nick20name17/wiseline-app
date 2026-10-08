@@ -346,7 +346,7 @@ export const ROLLFORMING_WRAP_LINES_TABLE: ColumnTable = {
     column.key === 'wrapped'
       ? [{ ...column, label: 'Packaged', width: 'w-24' }]
       : column.key === 'left'
-        ? [{ ...column, label: 'Left to package' }]
+        ? [{ ...column, label: 'Left to package', width: 'w-40' }]
         : column.key === 'wrapping'
           ? [
               { key: 'coil', label: 'Supplier / Coil Number', width: 'w-72' },

@@ -233,8 +233,9 @@ const WrapLines = ({
   return (
     <>
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-        {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it. */}
-        <Table className='min-w-300 table-fixed'>
+        {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it.
+            Rollforming's fixed columns, Supplier / Coil Number among them, take 1312px. */}
+        <Table className={cn('table-fixed', board.coils ? 'min-w-360' : 'min-w-300')}>
           <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>

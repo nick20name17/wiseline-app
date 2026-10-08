@@ -35,6 +35,10 @@ export const loadUnit = (unit: CapacityUnit) => UNITS[unit].long
 // Feet come back to the hundredth; a pill wants whole numbers, ungrouped like the board's.
 const whole = (value: number) => String(Math.round(value))
 
+/** What is on a day, without its ceiling: a month grid's cell has no room for «1033 / 1000 ft». */
+export const dayUsed = (entry: DayStripEntry) =>
+  `${whole(entry.used)}${UNITS[entry.capacity_unit].short}`
+
 /**
  * A day's load as its pill prints it: what is on the day against its capacity, in the department's
  * unit p1 (81,286), p2 (731,390), p3 (1078,280); the figure alone where the day has no ceiling.
@@ -42,8 +46,7 @@ const whole = (value: number) => String(Math.round(value))
 export const dayLoad = (entry: DayStripEntry) => {
   const { short } = UNITS[entry.capacity_unit]
   // A bare figure needs the slash to read as a load: Trim with no Daily Max reads «21 / —».
-  if (entry.capacity === null)
-    return short ? `${whole(entry.used)}${short}` : `${whole(entry.used)} / —`
+  if (entry.capacity === null) return short ? dayUsed(entry) : `${whole(entry.used)} / —`
   return `${whole(entry.used)} / ${whole(entry.capacity)}${short}`
 }
 

@@ -1,4 +1,4 @@
-import { dayLoad, dayLoadHint } from '../lib/format'
+import { dayLoadHint, dayUsed } from '../lib/format'
 import { toIsoDay, today } from '@/lib/days'
 import { Calendar } from '@/components/ui/calendar'
 import { useQuery } from '@tanstack/react-query'
@@ -18,8 +18,9 @@ type CapacityCalendarProps = {
 }
 
 /**
- * The month grid with each day's budget under its number — bends already scheduled against the
- * department's daily capacity.
+ * The month grid with each day's load under its number, in the department's unit, red once it is past
+ * the daily capacity. The capacity itself stays in the hint and on the day pills: «1033 / 1000 ft» does
+ * not fit a cell.
  *
  * Every scheduling decision goes through it, because the question is never «which date» on its own,
  * it is «which date has room». One component for the dialog and for the day strip's day picker, so
@@ -99,7 +100,7 @@ export const CapacityCalendar = ({
                   budget?.over_capacity && !modifiers.selected && 'text-destructive'
                 )}
               >
-                {budget ? dayLoad(budget) : ''}
+                {budget ? dayUsed(budget) : ''}
               </span>
             </button>
           )

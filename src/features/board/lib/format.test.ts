@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DayStripEntry } from '../api'
-import { dayLoad, dayLoadHint } from './format'
+import { dayLoad, dayLoadHint, dayUsed } from './format'
 
 const day = (entry: Partial<DayStripEntry>): DayStripEntry => ({
   date: '2026-10-08',
@@ -34,6 +34,18 @@ describe('dayLoad', () => {
 
   it('Accessories with no capacity reads its pieces alone', () => {
     expect(dayLoad(day({ capacity_unit: 'pieces', used: 12 }))).toBe('12 pcs')
+  })
+})
+
+describe('dayUsed', () => {
+  it('leaves the capacity out, in the unit the pill uses', () => {
+    expect(dayUsed(day({ capacity_unit: 'linear_feet', used: 1033.4, capacity: 1000 }))).toBe(
+      '1033 ft'
+    )
+  })
+
+  it("Trim's bends stay bare", () => {
+    expect(dayUsed(day({ used: 2710, capacity: 5000 }))).toBe('2710')
   })
 })
 

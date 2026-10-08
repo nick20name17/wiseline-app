@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import { useBoard } from '../lib/board-context'
 import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -137,8 +138,12 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
-              still between the skeleton, the data and every search. */}
-          <Table ref={tableRef} className='min-w-5xl table-fixed'>
+              still between the skeleton, the data and every search. Rollforming's Gauge / Color
+              column takes room of its own: 1108px fixed, which would leave the customer nothing. */}
+          <Table
+            ref={tableRef}
+            className={cn('table-fixed', board.coils ? 'min-w-7xl' : 'min-w-5xl')}
+          >
             <colgroup>
               <col className='w-10' />
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}

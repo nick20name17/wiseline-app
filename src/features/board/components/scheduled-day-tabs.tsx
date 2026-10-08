@@ -153,7 +153,10 @@ export const ScheduledDayTabs = ({
                           : `Assigned ${loadUnit(entry.capacity_unit)} / the day's capacity`
                     }
                   >
-                    ({dayLoad(entry)}){entry.over_capacity ? ' · over' : ''}
+                    ({dayLoad(entry)})
+                    {/* Not printed: four-digit loads already fill the tile. Said for a screen reader,
+                        since the red and the triangle mean overdue too. */}
+                    {entry.over_capacity ? <span className='sr-only'> · over capacity</span> : null}
                   </span>
                   {/* A share of the day's capacity, where the department has set one. */}
                   {entry.capacity ? (
