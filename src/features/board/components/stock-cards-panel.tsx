@@ -37,7 +37,7 @@ import {
   type StockCard,
   type StockCardLabel
 } from '../api'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StockCardDialog } from './stock-card-dialog'
 import { StockCardLabels } from './stock-card-labels'
 

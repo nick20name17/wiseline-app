@@ -45,7 +45,7 @@ import {
 } from '../lib/wrapping'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { CoilCell, type CoilItem, type CopiedCoil } from './coil-cell'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
 import { LineNotesDialog } from './line-notes-dialog'

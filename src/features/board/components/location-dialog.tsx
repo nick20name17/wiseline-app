@@ -35,7 +35,7 @@ import {
   type OrderLocation
 } from '../api'
 import { defaultWarehouseOf, overWeight, warehousesOf, type ShownLocation } from '../lib/wrapping'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
 const TINT = {

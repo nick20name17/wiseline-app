@@ -85,11 +85,8 @@ export const useUpsertUser = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteUser = (onSuccess: () => void) =>
+export const useDeleteUser = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`users/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: usersKeys.all })
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: usersKeys.all })
   })

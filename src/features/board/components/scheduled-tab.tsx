@@ -27,7 +27,7 @@ import {
 } from '../api'
 import { partDays, partKey, partLines, partState } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { OrderNoteDialog } from './order-note-dialog'
 import { ScheduleDialog } from './schedule-dialog'

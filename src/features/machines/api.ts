@@ -130,15 +130,12 @@ export const useUpsertMachine = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteMachine = (onSuccess: () => void) =>
+export const useDeleteMachine = () =>
   useMutation({
     // The API refuses a machine that still holds work, and only it knows that.
     meta: { errorTitle: 'The machine stayed' },
     mutationFn: (id: number) => authApi.delete(`flows/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: machinesKeys.all })
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: machinesKeys.all })
   })
 
 export const useUpdateMaxPackageWeight = (onSuccess: () => void) =>

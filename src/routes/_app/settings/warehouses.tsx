@@ -1,4 +1,5 @@
-import { WarehousesPage, warehousesSearchSchema } from '@/features/warehouses'
+import { searchOnlySchema } from '@/lib/search-term'
+import { WarehousesPage } from '@/features/warehouses'
 import { createFileRoute } from '@tanstack/react-router'
 
 const WarehousesRoute = () => {
@@ -15,6 +16,6 @@ const WarehousesRoute = () => {
 
 export const Route = createFileRoute('/_app/settings/warehouses')({
   staticData: { crumb: 'Warehouses' },
-  validateSearch: warehousesSearchSchema,
+  validateSearch: searchOnlySchema,
   component: WarehousesRoute
 })

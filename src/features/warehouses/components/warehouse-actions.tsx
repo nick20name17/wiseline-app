@@ -1,46 +1,27 @@
-import { Button } from '@/components/ui/button'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import type { Warehouse } from '../api'
-import { DeleteWarehouseDialog } from './delete-warehouse-dialog'
+import { RowActions } from '@/components/row-actions'
+import { useDeleteWarehouse, type Warehouse } from '../api'
 import { UpdateWarehouseDialog } from './warehouse-dialog'
 
-type WarehouseActionsProps = {
-  warehouse: Warehouse
-}
-
-export const WarehouseActions = ({ warehouse }: WarehouseActionsProps) => {
-  const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
+export const WarehouseActions = ({ warehouse }: { warehouse: Warehouse }) => {
+  // The schema lets the name be null, though the database always has one.
+  const name = warehouse.name ?? `#${warehouse.id}`
+  const deletion = useDeleteWarehouse()
+  const locations = warehouse.locations.length
 
   return (
-    <div className='flex justify-end gap-1 text-muted-foreground'>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Edit ${warehouse.name}`}
-        onClick={() => setDialog('update')}
-      >
-        <Pencil />
-      </Button>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Delete ${warehouse.name}`}
-        onClick={() => setDialog('delete')}
-      >
-        <Trash2 />
-      </Button>
-
-      <UpdateWarehouseDialog
-        warehouse={warehouse}
-        open={dialog === 'update'}
-        onOpenChange={open => setDialog(open ? 'update' : null)}
-      />
-      <DeleteWarehouseDialog
-        warehouse={warehouse}
-        open={dialog === 'delete'}
-        onOpenChange={open => setDialog(open ? 'delete' : null)}
-      />
-    </div>
+    <RowActions
+      name={name}
+      edit={dialog => <UpdateWarehouseDialog warehouse={warehouse} {...dialog} />}
+      remove={{
+        title: `Delete warehouse ${name}?`,
+        // The API refuses the delete in this case, so say it before the request goes out.
+        description: locations
+          ? `It still holds ${locations} ${locations === 1 ? 'location' : 'locations'}. Move or remove them first.`
+          : 'This cannot be undone.',
+        blocked: locations > 0,
+        isPending: deletion.isPending,
+        onConfirm: () => deletion.mutateAsync(warehouse.id)
+      }}
+    />
   )
 }

@@ -28,7 +28,7 @@ import {
 } from '../api'
 import { CUTLIST_COILS_TABLE } from '../lib/columns'
 import { coilName, figure, figuresAtThickness } from '../lib/coils'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { KeypadDialog } from './keypad-dialog'
 import { NoteInput } from './note-input'
 
