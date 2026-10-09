@@ -761,6 +761,8 @@ const lineNoteSummarySchema = z.object({
   has_notes: z._default(z.boolean(), false)
 })
 
+type LineNoteSummary = z.infer<typeof lineNoteSummarySchema>
+
 /** Whether each line item's dot is red, green or absent, for a whole expanded order at once. */
 export const lineNotesSummaryQuery = (originItems: string[]) =>
   queryOptions({
@@ -820,14 +822,31 @@ export const lineNotesQuery = (originItem: string | null) =>
     }
   })
 
-/** The check on an Order Note, and taking it back when it was made by mistake. */
+const orderNotesKey = [...boardKeys.all, 'order-notes'] as const
+
+const patchOrderNoteRead = (client: QueryClient, order: string, read: boolean) =>
+  client.setQueriesData<Record<string, OrderNote>>({ queryKey: orderNotesKey }, notes =>
+    notes?.[order] ? { ...notes, [order]: { ...notes[order], read } } : notes
+  )
+
+/**
+ * The check on an Order Note, and taking it back when it was made by mistake. The dot turns at once
+ * and back if refused.
+ */
 export const useSetOrderNoteRead = () =>
   useMutation({
+    meta: { errorTitle: 'The note was not updated' },
+    scope: { id: 'order-note-read' },
     mutationFn: ({ order, read }: { order: string; read: boolean }) =>
       authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
+    onMutate: async ({ order, read }, { client }) => {
+      await client.cancelQueries({ queryKey: orderNotesKey })
+      patchOrderNoteRead(client, order, read)
+    },
+    onError: (_, { order, read }, __, { client }) => patchOrderNoteRead(client, order, !read),
     // The check lives on the note alone; refetching the board for it re-streamed every order list.
-    onSuccess: (_, __, ___, { client }) =>
-      void client.invalidateQueries({ queryKey: [...boardKeys.all, 'order-notes'] })
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: orderNotesKey })
   })
 
 /** The thread and the dot that summarises it in the table, which are two different queries. */
@@ -850,14 +869,49 @@ export const useAddLineNote = (originItem: string) =>
     }
   })
 
-/** One card's check, and taking it back; the thread's dot follows. */
+const patchLineNoteRead = (
+  client: QueryClient,
+  originItem: string,
+  noteId: number,
+  read: boolean
+) => {
+  client.setQueryData<LineNoteThread>(boardKeys.lineNotes(originItem), thread => {
+    if (!thread) return thread
+    const notes = thread.notes.map(note => (note.id === noteId ? { ...note, read } : note))
+    return { ...thread, notes, unread: notes.some(note => !note.read) }
+  })
+  client.setQueriesData<Record<string, LineNoteSummary>>(
+    { queryKey: boardKeys.lineNotesSummaries() },
+    summaries =>
+      summaries?.[originItem]
+        ? {
+            ...summaries,
+            [originItem]: {
+              ...summaries[originItem],
+              unread: Math.max(0, summaries[originItem].unread + (read ? -1 : 1))
+            }
+          }
+        : summaries
+  )
+}
+
+/** One card's check, and taking it back; the thread's dot follows at once, and back if refused. */
 export const useSetLineNoteRead = (originItem: string) =>
   useMutation({
+    meta: { errorTitle: 'The note was not updated' },
+    scope: { id: `line-note-read:${originItem}` },
     mutationFn: ({ noteId, read }: { noteId: number; read: boolean }) =>
       authApi.post(`notes/${noteId}/${read ? 'read' : 'unread'}/`).json(),
-    onSuccess: async (_, __, ___, { client }) => {
-      await invalidateLineNotes(client, originItem)
-    }
+    onMutate: async ({ noteId, read }, { client }) => {
+      await Promise.all([
+        client.cancelQueries({ queryKey: boardKeys.lineNotes(originItem) }),
+        client.cancelQueries({ queryKey: boardKeys.lineNotesSummaries() })
+      ])
+      patchLineNoteRead(client, originItem, noteId, read)
+    },
+    onError: (_, { noteId, read }, __, { client }) =>
+      patchLineNoteRead(client, originItem, noteId, !read),
+    onSettled: (_, __, ___, ____, { client }) => void invalidateLineNotes(client, originItem)
   })
 
 /**
@@ -957,12 +1011,7 @@ const isOrderPage = (data: unknown): data is { results: BoardOrder[] } =>
 const isOrder = (data: unknown): data is BoardOrder =>
   !!data && typeof data === 'object' && 'origin_items' in data
 
-const patchCachedOrder = (
-  client: QueryClient,
-  orderId: string,
-  edit: (order: BoardOrder) => BoardOrder
-) => {
-  const patch = (order: BoardOrder) => (order.id === orderId ? edit(order) : order)
+const patchCachedOrders = (client: QueryClient, patch: (order: BoardOrder) => BoardOrder) =>
   client.setQueriesData({ queryKey: boardKeys.orders() }, (data: unknown) =>
     isOrderPage(data)
       ? { ...data, results: data.results.map(patch) }
@@ -970,7 +1019,12 @@ const patchCachedOrder = (
         ? patch(data)
         : data
   )
-}
+
+const patchCachedOrder = (
+  client: QueryClient,
+  orderId: string,
+  edit: (order: BoardOrder) => BoardOrder
+) => patchCachedOrders(client, order => (order.id === orderId ? edit(order) : order))
 
 /** The newest cached copy of an order that has a real sales order, or the one given. */
 const freshOrder = (client: QueryClient, order: BoardOrder) =>
@@ -1224,27 +1278,128 @@ export type LineItemEdit = {
   description?: string
 }
 
+type LineItemFields = Pick<
+  z.infer<typeof itemSchema>,
+  'flow' | 'vented' | 'pull_from_stock' | 'width' | 'description'
+>
+
+const patchCachedItem = (client: QueryClient, itemId: number, fields: Partial<LineItemFields>) =>
+  patchCachedOrders(client, order =>
+    order.origin_items.some(line => line.item?.id === itemId)
+      ? {
+          ...order,
+          origin_items: order.origin_items.map(line =>
+            line.item?.id === itemId ? { ...line, item: { ...line.item, ...fields } } : line
+          )
+        }
+      : order
+  )
+
+const cachedItem = (client: QueryClient, itemId: number) =>
+  client
+    .getQueriesData({ queryKey: boardKeys.orders() })
+    .flatMap(([, data]) => (isOrderPage(data) ? data.results : isOrder(data) ? [data] : []))
+    .flatMap(order => order.origin_items)
+    .find(line => line.item?.id === itemId)?.item
+
+const cachedMachine = (client: QueryClient, id: number) =>
+  client
+    .getQueriesData<Machine[]>({ queryKey: [...boardKeys.all, 'machines'] })
+    .flatMap(([, machines]) => machines ?? [])
+    .find(machine => machine.id === id) ?? null
+
+// A list's coils sit under the same key as the lists themselves.
+const isCutlists = (data: unknown): data is Cutlist[] =>
+  Array.isArray(data) && data.every(entry => 'rows' in entry)
+
+const cachedCutlistRows = (client: QueryClient) =>
+  client
+    .getQueriesData({ queryKey: boardKeys.cutlists() })
+    .flatMap(([, data]) => (isCutlists(data) ? data.flatMap(cutlist => cutlist.rows) : []))
+
+const patchCachedCutlists = (client: QueryClient, patch: (cutlist: Cutlist) => Cutlist) =>
+  client.setQueriesData({ queryKey: boardKeys.cutlists() }, (data: unknown) =>
+    isCutlists(data) ? data.map(patch) : data
+  )
+
+/**
+ * A released line's new machine or Stock, drawn on the lists that show it. The quantities the server
+ * works out from Stock follow with the refetch.
+ */
+const withLineOnCutlist = (cutlist: Cutlist, itemId: number, edit: LineItemEdit): Cutlist => {
+  // What the Slinet has cut or a machine has bent stays where it was done, as on the server.
+  const own = (row: CutlistRow) =>
+    !row.complete &&
+    row.sources.length > 0 &&
+    row.sources.every(source => source.item_id === itemId)
+  const rows = cutlist.rows.map(row => ({
+    ...row,
+    sources:
+      edit.pull_from_stock === undefined
+        ? row.sources
+        : row.sources.map(source =>
+            source.item_id === itemId
+              ? { ...source, pull_from_stock: edit.pull_from_stock! }
+              : source
+          )
+  }))
+  if (edit.flow === undefined) return { ...cutlist, rows }
+  // A bendlist belongs to one machine, so the line leaves it; the Slinet's list moves its column.
+  return cutlist.kind === 'cutlist'
+    ? { ...cutlist, rows: rows.map(row => (own(row) ? { ...row, machine: edit.flow! } : row)) }
+    : cutlist.machine === edit.flow
+      ? { ...cutlist, rows }
+      : { ...cutlist, rows: rows.filter(row => !own(row)) }
+}
+
+// Released edits refetch more than the order lists, so each kind counts its own queue.
+const lineItemKey = (released: boolean) => ['board', 'line-item', released] as const
+
 /**
  * Keyed on this app's own row for the line, which exists by the time an order reaches this tab —
  * scheduling is what puts the production date on it.
+ *
+ * The edit shows at once and is undone if refused. Edits go out one at a time (`scope`), so two
+ * quick picks on one line reach the server in the order they were made.
  */
 export const useUpdateLineItem = ({ released = false } = {}) =>
   useMutation({
     meta: { errorTitle: 'The line was not changed' },
+    mutationKey: lineItemKey(released),
+    scope: { id: 'line-item' },
     mutationFn: ({ itemId, edit }: { itemId: number; edit: LineItemEdit }) =>
       authApi.patch(`items/${itemId}/`, { json: edit }).json(),
-    // A released line's new machine or Stock moves its cutlist, bendlists and what is left to wrap;
-    // one still being reviewed has only the order lists to change.
-    onSettled: async (_, __, ___, ____, { client }) => {
+    onMutate: async ({ itemId, edit }, { client }) => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: boardKeys.orders() }),
-        ...(released
-          ? [
-              client.invalidateQueries({ queryKey: boardKeys.cutlists() }),
-              client.invalidateQueries({ queryKey: boardKeys.wrapping() })
-            ]
-          : [])
+        client.cancelQueries({ queryKey: boardKeys.orders() }),
+        released && client.cancelQueries({ queryKey: boardKeys.cutlists() })
       ])
+      const before = cachedItem(client, itemId)
+      const { flow, ...rest } = edit
+      patchCachedItem(client, itemId, {
+        ...rest,
+        ...(flow === undefined ? {} : { flow: flow === null ? null : cachedMachine(client, flow) })
+      })
+      if (released) patchCachedCutlists(client, cutlist => withLineOnCutlist(cutlist, itemId, edit))
+      // Only the fields this edit touched go back: the rest of the line may have moved since.
+      return (
+        before &&
+        Object.fromEntries(Object.keys(edit).map(key => [key, before[key as keyof LineItemFields]]))
+      )
+    },
+    onError: (_, { itemId }, previous, { client }) => {
+      if (previous) patchCachedItem(client, itemId, previous)
+    },
+    // A released line's new machine or Stock moves its cutlist, bendlists and what is left to wrap;
+    // one still being reviewed has only the order lists to change. Refetched once the last queued
+    // edit is in, so a refetch does not draw over an edit still on its way.
+    onSettled: (_, __, ___, ____, { client }) => {
+      if (client.isMutating({ mutationKey: lineItemKey(released) }) > 1) return
+      void client.invalidateQueries({ queryKey: boardKeys.orders() })
+      if (released) {
+        void client.invalidateQueries({ queryKey: boardKeys.cutlists() })
+        void client.invalidateQueries({ queryKey: boardKeys.wrapping() })
+      }
     }
   })
 
@@ -1578,23 +1733,52 @@ export const cutlistsQuery = (
       )
   })
 
+type CutlistRowEdit = { complete?: boolean; operator_notes?: string | null }
+
+const patchCachedCutlistRow = (client: QueryClient, rowId: number, edit: CutlistRowEdit) =>
+  patchCachedCutlists(client, cutlist =>
+    cutlist.rows.some(row => row.id === rowId)
+      ? {
+          ...cutlist,
+          rows: cutlist.rows.map(row => (row.id === rowId ? { ...row, ...edit } : row))
+        }
+      : cutlist
+  )
+
+const cutlistRowKey = ['board', 'cutlist-row'] as const
+
 /**
  * Marking a row complete is how the material gets its status — the Slinet's list cuts it, a machine's
  * list bends it. The server owns that; this only reports the row.
+ *
+ * The row ticks at once and unticks if refused; the statuses it moves follow with the refetch.
  */
 export const useUpdateCutlistRow = () =>
   useMutation({
-    mutationFn: ({
-      rowId,
-      edit
-    }: {
-      rowId: number
-      edit: { complete?: boolean; operator_notes?: string }
-    }) => authApi.patch(`cutlists/rows/${rowId}/`, { json: edit }).json(),
+    meta: { errorTitle: 'The row was not changed' },
+    mutationKey: cutlistRowKey,
+    scope: { id: 'cutlist-row' },
+    mutationFn: ({ rowId, edit }: { rowId: number; edit: CutlistRowEdit }) =>
+      authApi.patch(`cutlists/rows/${rowId}/`, { json: edit }).json(),
+    onMutate: async ({ rowId, edit }, { client }) => {
+      await client.cancelQueries({ queryKey: boardKeys.cutlists() })
+      const before = cachedCutlistRows(client).find(row => row.id === rowId)
+      patchCachedCutlistRow(client, rowId, edit)
+      return (
+        before &&
+        Object.fromEntries(Object.keys(edit).map(key => [key, before[key as keyof CutlistRowEdit]]))
+      )
+    },
+    onError: (_, { rowId }, previous, { client }) => {
+      if (previous) patchCachedCutlistRow(client, rowId, previous)
+    },
     // A completed row moves the line items behind it, and those move their order — so the whole
-    // board, not just this list.
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: boardKeys.all })
+    // board, not just this list. Once the last queued tick is in, so no refetch draws over one still
+    // on its way.
+    onSettled: (_, __, ___, ____, { client }) => {
+      if (client.isMutating({ mutationKey: cutlistRowKey }) > 1) return
+      void client.invalidateQueries({ queryKey: boardKeys.all })
+    }
   })
 
 /**
@@ -1673,6 +1857,8 @@ const completedOrderSchema = z.object({
   // `rolled` is Rollforming's Done: all of it packed at the machine, some packages still waiting
   // for a location at Wrapping, so no `completed_at` yet p2 (1041,532).
   status: z._default(z.nullable(z.string()), null),
+  // Why EBMS would not complete a `rolled` order once its packages were located; cleared once it does.
+  complete_error: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   ship_date: z._default(z.nullable(z.string()), null),
   // The codes the order's packages stand on, oldest first.
@@ -2297,37 +2483,80 @@ export const stockOrderRowsQuery = (departmentId: number | undefined, order: str
       )
   })
 
-/** The Wrapped keypad. The server takes the row's new total; the +/- arithmetic happens here. */
+type StockWrappedInput = {
+  departmentId: number
+  order: string
+  originItem: string
+  wrapped: number
+}
+
+const patchStockWrapped = (
+  client: QueryClient,
+  { departmentId, order, originItem }: StockWrappedInput,
+  wrapped: number | null
+) =>
+  client.setQueryData<StockOrderRow[]>(boardKeys.stockOrderRows(departmentId, order), rows =>
+    rows?.map(row => (row.origin_item === originItem ? { ...row, wrapped } : row))
+  )
+
+const stockWrappedKey = ['board', 'stock-wrapped'] as const
+
+/**
+ * The Wrapped keypad. The server takes the row's new total; the +/- arithmetic happens here.
+ *
+ * The figure shows at once and goes back if refused; Left To Wrap follows with the refetch.
+ */
 export const useSetStockWrapped = () =>
   useMutation({
     meta: { errorTitle: 'Wrapped was not changed' },
-    mutationFn: ({
-      departmentId,
-      order,
-      originItem,
-      wrapped
-    }: {
-      departmentId: number
-      order: string
-      originItem: string
-      wrapped: number
-    }) =>
+    mutationKey: stockWrappedKey,
+    scope: { id: 'stock-wrapped' },
+    mutationFn: ({ departmentId, order, originItem, wrapped }: StockWrappedInput) =>
       authApi
         .patch(`wrapping/stock-orders/${order}/lines/${originItem}/`, {
           json: { department: departmentId, wrapped }
         })
         .json(),
-    onSettled: (_, __, ___, ____, { client }) =>
-      client.invalidateQueries({ queryKey: boardKeys.wrapping() })
+    onMutate: async (input, { client }) => {
+      const key = boardKeys.stockOrderRows(input.departmentId, input.order)
+      await client.cancelQueries({ queryKey: key })
+      const before = client
+        .getQueryData<StockOrderRow[]>(key)
+        ?.find(row => row.origin_item === input.originItem)
+      patchStockWrapped(client, input, input.wrapped)
+      return before && { wrapped: before.wrapped }
+    },
+    onError: (_, input, previous, { client }) => {
+      if (previous) patchStockWrapped(client, input, previous.wrapped)
+    },
+    onSettled: (_, __, ___, ____, { client }) => {
+      if (client.isMutating({ mutationKey: stockWrappedKey }) > 1) return
+      void client.invalidateQueries({ queryKey: boardKeys.wrapping() })
+    }
   })
 
 /**
- * Create Manufacturing Batch for the checked rows, each at its Wrapped figure. EBMS may refuse the
- * batch (502), and then nothing changes.
+ * 502 and 504 change nothing on either side, so each says the batch can simply be sent again; a 4xx is
+ * the server's own refusal.
  */
-export const useCreateStockBatch = (onSuccess: (completed: boolean) => void) =>
+const batchErrorTitle = (error: unknown) => {
+  const status = error instanceof HTTPError ? error.response.status : null
+  if (status === 502) return 'EBMS refused the manufacturing batch — try again or tell the office'
+  if (status === 504) return 'EBMS did not answer — try again in a minute'
+  // No answer reached the browser, so the batch may have been made all the same.
+  if (status === null) return 'No answer — check the batches before sending it again'
+  return 'The manufacturing batch was not created'
+}
+
+/**
+ * Create Manufacturing Batch for the checked rows, each at its Wrapped figure. EBMS may refuse the
+ * batch (502) or not answer (504), and then nothing changes. EBMS numbers the batch.
+ */
+export const useCreateStockBatch = (
+  onSuccess: (result: { completed: boolean; batch: string | null }) => void
+) =>
   useMutation({
-    meta: { errorTitle: 'EBMS refused the batch' },
+    meta: { errorTitle: batchErrorTitle },
     mutationFn: async ({
       departmentId,
       order,
@@ -2337,14 +2566,25 @@ export const useCreateStockBatch = (onSuccess: (completed: boolean) => void) =>
       order: string
       originItems: string[]
     }) =>
-      z.object({ completed: z._default(z.boolean(), false) }).parse(
-        await authApi
-          .post(`wrapping/stock-orders/${order}/manufacturing-batch/`, {
-            json: { department: departmentId, origin_items: originItems }
-          })
-          .json()
-      ),
-    onSuccess: result => onSuccess(result.completed),
+      z
+        .object({
+          completed: z._default(z.boolean(), false),
+          // Only names the batch in the message: a shape it cannot read must not turn a made batch
+          // into an error.
+          batch: z.catch(z.nullable(manufacturingBatchSchema), null)
+        })
+        .parse(
+          await authApi
+            .post(`wrapping/stock-orders/${order}/manufacturing-batch/`, {
+              json: { department: departmentId, origin_items: originItems }
+            })
+            .json()
+        ),
+    onSuccess: result =>
+      onSuccess({
+        completed: result.completed,
+        batch: result.batch && (result.batch.ebms_batch ?? String(result.batch.id))
+      }),
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
@@ -2388,10 +2628,10 @@ export const manufacturingBatchesQuery = (departmentId: number | undefined, enab
       )
   })
 
-/** Create Manufacturing Batch in the Stock Manufacturing window. EBMS may refuse it (502). */
+/** Create Manufacturing Batch in the Stock Manufacturing window. EBMS may refuse it (502, 504). */
 export const useCreateStockManufacturing = (onSuccess: (batch: ManufacturingBatch) => void) =>
   useMutation({
-    meta: { errorTitle: 'EBMS refused the batch' },
+    meta: { errorTitle: batchErrorTitle },
     mutationFn: async ({
       departmentId,
       lines
@@ -2401,7 +2641,9 @@ export const useCreateStockManufacturing = (onSuccess: (batch: ManufacturingBatc
     }) =>
       manufacturingBatchSchema.parse(
         await authApi
-          .post(`departments/${departmentId}/stock-manufacturing/`, { json: { lines } })
+          .post(`departments/${departmentId}/stock-manufacturing/`, {
+            json: { lines }
+          })
           .json()
       ),
     onSuccess,
@@ -2936,6 +3178,8 @@ export type CurrentCoil = NonNullable<z.infer<typeof currentCoilSchema>>
 
 const currentCoilKey = (flowId: number) => [...boardKeys.orders(), 'current-coil', flowId] as const
 
+const currentCoilMutationKey = ['board', 'current-coil'] as const
+
 /** «Current Coil In The Rollformer» p2 (1007,312): what the machine is rolling off, or `null`. */
 export const currentCoilQuery = (flowId: number | undefined) =>
   queryOptions({
@@ -2961,15 +3205,61 @@ type CurrentCoilInput = {
 export const useSetCurrentCoil = () =>
   useMutation({
     meta: { errorTitle: 'The coil in the machine did not change' },
+    mutationKey: currentCoilMutationKey,
+    // One machine's ticks reach the server in the order they were made.
+    scope: { id: 'current-coil' },
     mutationFn: ({ flowId, key }: CurrentCoilInput) =>
       key === null
         ? authApi.delete(`rollforming/machines/${flowId}/current-coil/`)
         : authApi.post(`rollforming/machines/${flowId}/current-coil/`, { json: { key } }),
-    onSettled: (_, __, { departmentId, flowId }, ___, { client }) =>
-      Promise.all([
-        client.invalidateQueries({ queryKey: currentCoilKey(flowId) }),
-        client.invalidateQueries({ queryKey: queueKey(departmentId, flowId) })
+    // The tick shows at once: every row on the same Supplier and Coil Number runs off it, as the server
+    // reads it back.
+    onMutate: async ({ departmentId, flowId, key }, { client }) => {
+      const queue = queueKey(departmentId, flowId)
+      await Promise.all([
+        client.cancelQueries({ queryKey: queue }),
+        client.cancelQueries({ queryKey: currentCoilKey(flowId) })
       ])
+      const previous = {
+        queue: client.getQueryData<QueueRow[]>(queue),
+        coil: client.getQueryData<CurrentCoil | null>(currentCoilKey(flowId))
+      }
+      // A row with no Supplier or Coil Number is refused, so it draws nothing.
+      const found = key === null ? null : previous.queue?.find(row => row.key === key)
+      const picked = found?.supplier && found.coil_number ? found : null
+      if (key !== null && !picked) return previous
+      client.setQueryData<QueueRow[]>(queue, rows =>
+        rows?.map(row => ({
+          ...row,
+          current:
+            !!picked && row.supplier === picked.supplier && row.coil_number === picked.coil_number
+        }))
+      )
+      if (key === null) client.setQueryData(currentCoilKey(flowId), null)
+      else if (picked)
+        client.setQueryData<CurrentCoil>(currentCoilKey(flowId), {
+          key,
+          supplier: picked.supplier!,
+          coil_number: picked.coil_number!,
+          material_id: picked.material_id,
+          gauge: picked.gauge,
+          color: picked.color,
+          set_at: new Date().toISOString()
+        })
+      return previous
+    },
+    // The machine has one coil, so its last known state goes back whole — unless a later tick is
+    // queued, whose own state that would wipe; the refetch after it settles both.
+    onError: (_, { departmentId, flowId }, previous, { client }) => {
+      if (!previous || client.isMutating({ mutationKey: currentCoilMutationKey }) > 1) return
+      client.setQueryData(queueKey(departmentId, flowId), previous.queue)
+      client.setQueryData(currentCoilKey(flowId), previous.coil)
+    },
+    onSettled: (_, __, { departmentId, flowId }, ___, { client }) => {
+      if (client.isMutating({ mutationKey: currentCoilMutationKey }) > 1) return
+      void client.invalidateQueries({ queryKey: currentCoilKey(flowId) })
+      void client.invalidateQueries({ queryKey: queueKey(departmentId, flowId) })
+    }
   })
 
 /** The Manager drags the material within its day p2 (530,641), (498,662). */

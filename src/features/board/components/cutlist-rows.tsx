@@ -715,14 +715,11 @@ export const CutlistRows = ({
         }
         confirmLabel='Move'
         cancelLabel='Cancel'
-        isPending={updateLine.isPending}
-        onConfirm={() =>
-          moving &&
-          updateLine.mutate(
-            { itemId: moving.line.item_id, edit: { flow: moving.machine.id } },
-            { onSuccess: () => setMoving(null) }
-          )
-        }
+        onConfirm={() => {
+          if (!moving) return
+          updateLine.mutate({ itemId: moving.line.item_id, edit: { flow: moving.machine.id } })
+          setMoving(null)
+        }}
       />
 
       {/* Stock is the line's whole figure, «anything from zero up to the Qty Ordered» p1 (699,482);
@@ -737,15 +734,12 @@ export const CutlistRows = ({
               }
             : null
         }
-        isPending={updateLine.isPending}
         onOpenChange={open => !open && setStocking(null)}
-        onEnter={value =>
-          stocking &&
-          updateLine.mutate(
-            { itemId: stocking.item_id, edit: { pull_from_stock: value } },
-            { onSuccess: () => setStocking(null) }
-          )
-        }
+        onEnter={value => {
+          if (!stocking) return
+          updateLine.mutate({ itemId: stocking.item_id, edit: { pull_from_stock: value } })
+          setStocking(null)
+        }}
       />
 
       <RowDetails

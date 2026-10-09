@@ -34,6 +34,9 @@ const getServerMessage = (data: unknown) => {
 
 const BASE_OPTIONS: Options = {
   baseUrl: env.VITE_API_URL,
+  // Above the server's own 30 s wait on EBMS, which it answers with a 504: giving up first would
+  // report a write that EBMS may yet make as a failure.
+  timeout: 45_000,
   retry: { limit: 1, methods: [], statusCodes: [] },
   hooks: {
     beforeError: [

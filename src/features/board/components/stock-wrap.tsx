@@ -53,12 +53,14 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
   const [confirming, setConfirming] = useState(false)
   const setWrapped = useSetStockWrapped()
   const viewOnly = useViewOnly()
-  const batch = useCreateStockBatch(completed => {
+  const batch = useCreateStockBatch(({ completed, batch: number }) => {
     setConfirming(false)
     setChecked(new Set())
+    // «Created», not «added to stock»: whether EBMS processes it at once is still being tried live.
+    const created = number ? `Manufacturing batch ${number} created` : 'Manufacturing batch created'
     toast.add({
       type: 'success',
-      title: completed ? 'Stock order complete — moved to Completed' : 'Manufacturing batch created'
+      title: completed ? `${created} — stock order moved to Completed` : created
     })
     if (completed) onBack()
   })
@@ -198,16 +200,17 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
               }
             : null
         }
-        isPending={setWrapped.isPending}
         onOpenChange={open => !open && setKeying(null)}
-        onEnter={wrapped =>
-          departmentId &&
-          keying &&
-          setWrapped.mutate(
-            { departmentId, order: order.order, originItem: keying.origin_item, wrapped },
-            { onSuccess: () => setKeying(null) }
-          )
-        }
+        onEnter={wrapped => {
+          if (!departmentId || !keying) return
+          setWrapped.mutate({
+            departmentId,
+            order: order.order,
+            originItem: keying.origin_item,
+            wrapped
+          })
+          setKeying(null)
+        }}
       />
 
       <ConfirmDialog

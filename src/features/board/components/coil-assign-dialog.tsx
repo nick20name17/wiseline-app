@@ -193,7 +193,11 @@ const CoilAssignForm = ({
           {supplierLocked ? (
             <FieldDescription>Set by the Manager — locked.</FieldDescription>
           ) : !isPending && !choices?.suppliers.length ? (
-            <FieldDescription>No coil in EBMS matches this colour and gauge.</FieldDescription>
+            // The server leaves out a coil with no gauge in EBMS, stock or not (wiseline-back #336).
+            <FieldDescription>
+              No coil in EBMS matches this colour and gauge. A coil whose gauge is blank in EBMS is
+              not listed until it is filled in.
+            </FieldDescription>
           ) : null}
         </Field>
 

@@ -320,9 +320,26 @@ export const loadsQuery = (truckId: number, shipDate: string) =>
         )
   })
 
+const packageSchema = z.object({
+  package_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  weight: z._default(z.nullable(z.number()), null),
+  location: z._default(z.nullable(z.string()), null),
+  is_loaded: z._default(z.boolean(), false)
+})
+
+export type ShippingPackage = z.infer<typeof packageSchema>
+
 const dayLoadSchema = z.object({
   ...loadTabSchema.shape,
   load_id: z.number(),
+  // Each order's packages come with the day, so Loading reads them in this one request.
+  orders: z._default(
+    z.array(
+      z.object({ ...assignmentSchema.shape, packages: z._default(z.array(packageSchema), []) })
+    ),
+    []
+  ),
   truck: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null)
 })
 
@@ -375,16 +392,6 @@ export const useReleaseLoad = () =>
     authApi.post(`shipping/loads/${loadId}/release/`).json()
   )
 
-const packageSchema = z.object({
-  package_id: z.number(),
-  name: z._default(z.nullable(z.string()), null),
-  weight: z._default(z.nullable(z.number()), null),
-  location: z._default(z.nullable(z.string()), null),
-  is_loaded: z._default(z.boolean(), false)
-})
-
-export type ShippingPackage = z.infer<typeof packageSchema>
-
 const shippingLineSchema = z.object({
   origin_item: z.string(),
   // `null` for a line no department makes — bought in, so nothing to wait for.
@@ -415,24 +422,61 @@ export const orderPackagesQuery = (order: string) =>
       z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
   })
 
+type MarkLoadedInput = { loadId: number; packageIds: number[]; loaded: boolean }
+
+const patchLoaded = (
+  client: QueryClient,
+  { loadId, packageIds }: MarkLoadedInput,
+  loaded: boolean
+) => {
+  const marked = new Set(packageIds)
+  client.setQueriesData<DayLoad[]>({ queryKey: [...shippingKeys.allLoads(), 'day'] }, loads =>
+    loads?.map(load =>
+      load.load_id === loadId
+        ? {
+            ...load,
+            orders: load.orders.map(order => ({
+              ...order,
+              packages: order.packages.map(pack =>
+                marked.has(pack.package_id) ? { ...pack, is_loaded: loaded } : pack
+              )
+            }))
+          }
+        : load
+    )
+  )
+}
+
+const markLoadedKey = ['shipping', 'mark-loaded'] as const
+
 /**
  * Packages scanned onto the truck, or taken back off. The statuses follow on the server: the first
  * package Loading, all of an order's Loaded, all of the Load's Loaded p3 (592,489)-(592,523).
+ *
+ * The tick shows at once and comes off if refused; the statuses follow with the refetch.
  */
 export const useMarkLoaded = () =>
   useMutation({
     meta: { errorTitle: 'The package was not marked' },
-    mutationFn: (input: { loadId: number; order: string; packageIds: number[]; loaded: boolean }) =>
+    mutationKey: markLoadedKey,
+    // One package ticked twice quickly reaches the server in the order it was ticked.
+    scope: { id: 'mark-loaded' },
+    mutationFn: (input: MarkLoadedInput) =>
       authApi
         .post(`shipping/loads/${input.loadId}/packages-loaded/`, {
           json: { package_ids: input.packageIds, loaded: input.loaded }
         })
         .json(),
-    onSettled: (_, __, input, ___, { client }) =>
-      Promise.all([
-        client.invalidateQueries({ queryKey: shippingKeys.packages(input.order) }),
-        refreshLoads(client)
-      ])
+    onMutate: async (input, { client }) => {
+      await client.cancelQueries({ queryKey: [...shippingKeys.allLoads(), 'day'] })
+      patchLoaded(client, input, input.loaded)
+    },
+    onError: (_, input, __, { client }) => patchLoaded(client, input, !input.loaded),
+    // The day's Loads carry the packages, so one refetch brings the ticks and the statuses.
+    onSettled: (_, __, ___, ____, { client }) => {
+      if (client.isMutating({ mutationKey: markLoadedKey }) > 1) return
+      void refreshLoads(client)
+    }
   })
 
 /** The Driver has left: the Load and its orders go En Route, and lock p3 (592,540), (592,543). */
@@ -552,12 +596,25 @@ export const useCreatePickup = () =>
 export const notesOf = (orders: UnscheduledOrder[]) =>
   Object.fromEntries(orders.map(order => [order.order, order.note ?? NO_NOTE]))
 
-/** Marks an order's note dealt with, or takes that back; the rows carry the state. */
+/**
+ * Marks an order's note dealt with, or takes that back; the rows carry the state. The dot turns at
+ * once and back if refused.
+ */
 export const useSetOrderNoteRead = () =>
   useMutation({
     meta: { errorTitle: 'The note was not updated' },
+    scope: { id: 'shipping-note-read' },
     mutationFn: ({ order, read }: { order: string; read: boolean }) =>
       authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
+    onMutate: async ({ order, read }, { client }) => {
+      await client.cancelQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+      patchUnscheduled(client, order, row => ({ ...row, note: row.note && { ...row.note, read } }))
+    },
+    onError: (_, { order, read }, __, { client }) =>
+      patchUnscheduled(client, order, row => ({
+        ...row,
+        note: row.note && { ...row.note, read: !read }
+      })),
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
   })

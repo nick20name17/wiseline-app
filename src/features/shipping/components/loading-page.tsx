@@ -6,13 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { PackageOpen } from 'lucide-react'
-import {
-  dayLoadsQuery,
-  orderPackagesQuery,
-  useMarkLoaded,
-  type Assignment,
-  type Load
-} from '../api'
+import { dayLoadsQuery, useMarkLoaded, type DayLoad } from '../api'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { DayPicker } from './day-picker'
@@ -22,11 +16,13 @@ import { ReadyCount } from './order-readiness'
 // A Load reaches this window once it is released p3 (598,468) and leaves it once the truck is gone.
 const ON_THE_DOCK: readonly string[] = ['not_started', 'loading', 'loaded']
 
-type OrderPackagesProps = { load: Load; order: Assignment & { order: string } }
+type OrderPackagesProps = {
+  load: DayLoad
+  order: DayLoad['orders'][number] & { order: string }
+}
 
 /** One order's packages, ticked onto the truck one by one. */
 const OrderPackages = ({ load, order }: OrderPackagesProps) => {
-  const { data: packages, isPending } = useQuery(orderPackagesQuery(order.order))
   const mark = useMarkLoaded()
 
   return (
@@ -38,21 +34,17 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
         {/* Loaded waits for every line, packaged or not yet (round 10, C3): this says what is left. */}
         <ReadyCount order={order.order} readiness={order} />
       </div>
-      {isPending ? (
-        <Skeleton className='mt-2 h-6' />
-      ) : packages?.length ? (
+      {order.packages.length ? (
         <ul className='mt-2 flex flex-wrap gap-2'>
-          {packages.map(pack => (
+          {order.packages.map(pack => (
             <li key={pack.package_id}>
               <label className='flex cursor-pointer items-center gap-2 rounded-md border border-border px-2 py-1 text-sm'>
                 <Checkbox
                   aria-label={`${pack.name ?? pack.package_id} loaded`}
                   checked={pack.is_loaded}
-                  disabled={mark.isPending}
                   onCheckedChange={checked =>
                     mark.mutate({
                       loadId: load.load_id,
-                      order: order.order,
                       packageIds: [pack.package_id],
                       loaded: checked === true
                     })

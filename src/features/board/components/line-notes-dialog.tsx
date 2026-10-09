@@ -104,7 +104,6 @@ export const LineNotesDialog = ({
                         className='ml-auto'
                         aria-label={note.read ? 'Undo dealt with' : 'Mark dealt with'}
                         title={note.read ? 'Undo dealt with' : 'Mark dealt with'}
-                        disabled={setRead.isPending}
                         onClick={() => setRead.mutate({ noteId: note.id, read: !note.read })}
                       >
                         {note.read ? <Undo2 /> : <Check />}

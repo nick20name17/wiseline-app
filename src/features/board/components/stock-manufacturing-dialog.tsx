@@ -57,7 +57,7 @@ export const StockManufacturingDialog = ({
   const create = useCreateStockManufacturing(batch => {
     toast.add({
       type: 'success',
-      title: `Manufacturing batch ${batch.ebms_batch ?? batch.id} created in EBMS`
+      title: `Manufacturing batch ${batch.ebms_batch ?? batch.id} created`
     })
     setLines([emptyLine()])
     onOpenChange(false)

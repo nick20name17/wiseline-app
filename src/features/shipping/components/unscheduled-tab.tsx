@@ -364,8 +364,7 @@ export const UnscheduledTab = ({
           noteOrder && { id: noteOrder.order, invoice: noteOrder.order_number ?? noteOrder.order }
         }
         notes={notes}
-        isPending={setRead.isPending}
-        onSetRead={(id, read, onDone) => setRead.mutate({ order: id, read }, { onSuccess: onDone })}
+        onSetRead={(id, read) => setRead.mutate({ order: id, read })}
         onOpenChange={open => !open && setNoteOrder(null)}
       />
 

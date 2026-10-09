@@ -21,6 +21,13 @@ const Waiting = () => (
   </span>
 )
 
+// Located, but EBMS would not complete it: no Wrapping Worker can move it on, so it says why.
+const Refused = ({ error }: { error: string }) => (
+  <span className='text-destructive' title={error}>
+    EBMS refused
+  </span>
+)
+
 type CompletedTabProps = {
   departmentId: number | undefined
 }
@@ -103,7 +110,11 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                           {order.completed_at ? (
                             formatStamp(order.completed_at)
                           ) : order.status === 'rolled' ? (
-                            <Waiting />
+                            order.complete_error ? (
+                              <Refused error={order.complete_error} />
+                            ) : (
+                              <Waiting />
+                            )
                           ) : (
                             '—'
                           )}
@@ -125,8 +136,9 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                         <TableCell>
                           <span className='truncate'>
                             <span className='font-mono'>{order.trim_location.join(', ')}</span>
-                            {/* Done but not located: the locations so far, and more to come. */}
-                            {order.status === 'rolled' ? (
+                            {/* Done but not located: the locations so far, and more to come. A refused
+                                one is located already; Completed says why it stays. */}
+                            {order.status === 'rolled' && !order.complete_error ? (
                               <>
                                 {order.trim_location.length ? ', ' : null}
                                 <Waiting />

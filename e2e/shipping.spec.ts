@@ -20,7 +20,16 @@ const mockLoad = async (page: Page, start: string) => {
     kind: 'delivery',
     weight: 190.34,
     load_id: 126,
-    status: load.order
+    status: load.order,
+    packages: [
+      {
+        package_id: 7,
+        name: '03-W20793-1',
+        weight: 190.34,
+        location: 'A-04',
+        is_loaded: load.loaded
+      }
+    ]
   })
   const posted: string[] = []
 
@@ -42,19 +51,6 @@ const mockLoad = async (page: Page, start: string) => {
         : []
     })
   })
-  await page.route(`${API_URL}/wrapping/orders/ORD-2/packages/`, route =>
-    route.fulfill({
-      json: [
-        {
-          package_id: 7,
-          name: '03-W20793-1',
-          weight: 190.34,
-          location: 'A-04',
-          is_loaded: load.loaded
-        }
-      ]
-    })
-  )
   await page.route(`${API_URL}/shipping/**`, route => {
     const { pathname } = new URL(route.request().url())
     if (route.request().method() !== 'POST') return route.fallback()
@@ -94,6 +90,29 @@ test('Loading ticks a package onto the truck and the Load reads Loaded', async (
   await expect(page.getByRole('checkbox', { name: '03-W20793-1 loaded' })).toBeChecked()
   await expect(page.getByText('Loaded').first()).toBeVisible()
   expect(posted).toEqual(['loads/126/packages-loaded/'])
+})
+
+test('a package tick shows before the server answers, and comes off when it refuses', async ({
+  page
+}) => {
+  await mockLoad(page, 'not_started')
+  // Held until the tick is checked on screen, then refused.
+  let refuse = () => {}
+  const held = new Promise<void>(resolve => (refuse = resolve))
+  await page.route(`${API_URL}/shipping/loads/126/packages-loaded/`, async route => {
+    await held
+    await route.fulfill({ status: 400, json: { detail: 'Not on this Load.' } })
+  })
+  await page.goto(`/loading?day=${DAY}`)
+  await signIn(page)
+
+  const tick = page.getByRole('checkbox', { name: '03-W20793-1 loaded' })
+  await tick.click()
+  await expect(tick).toBeChecked()
+  refuse()
+
+  await expect(tick).not.toBeChecked()
+  await expect(page.getByText('The package was not marked')).toBeVisible()
 })
 
 test('a Load on the road leaves the Loading window, so none of its orders can be ticked', async ({
@@ -500,9 +519,6 @@ test('Loading says how much of an order is ready, so Loading is not read as stuc
         }
       ]
     })
-  )
-  await page.route(`${API_URL}/wrapping/orders/ORD-2/packages/`, route =>
-    route.fulfill({ json: [] })
   )
   await page.goto(`/loading?day=${DAY}`)
   await signIn(page)
