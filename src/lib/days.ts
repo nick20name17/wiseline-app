@@ -2,28 +2,32 @@
  * A production day is a plain `YYYY-MM-DD` with no time and no zone. Reading one in local time moves
  * it a day backwards for anybody west of Greenwich, so every date here is formatted in UTC.
  */
-const format = (iso: string, options: Intl.DateTimeFormatOptions) => {
+const utc = (options: Intl.DateTimeFormatOptions) =>
+  // Built once: constructing a formatter costs about a hundred times what formatting with one does,
+  // and the Scheduled tab formats a date per row.
+  new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' })
+
+const format = (iso: string, formatter: Intl.DateTimeFormat) => {
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
-  return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(
-    new Date(Date.UTC(year, month - 1, day))
-  )
+  return formatter.format(new Date(Date.UTC(year, month - 1, day)))
 }
 
+const DATE = utc({ weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+const LONG_DATE = utc({ weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
+const DAY_LABEL = utc({ weekday: 'short', month: 'short', day: 'numeric' })
+const STAMP = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+
 /** `Tue, May 7, 2024` — wherever a date stands on its own. */
-export const formatDate = (iso: string | null) =>
-  iso ? format(iso, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+export const formatDate = (iso: string | null) => (iso ? format(iso, DATE) : '—')
 
 /** `Tue, July 14, 2026` — the board's confirmations spell the month out. */
-export const formatLongDate = (iso: string) =>
-  format(iso, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
+export const formatLongDate = (iso: string) => format(iso, LONG_DATE)
 
 /** `May 7, 2026, 3:04 PM` — a moment something happened, in the viewer's own zone. */
-export const formatStamp = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''
+export const formatStamp = (iso: string | null) => (iso ? STAMP.format(new Date(iso)) : '')
 
 /** `Tue, May 7` — for the day strip, where every day is obviously this year. */
-export const formatDayLabel = (iso: string) =>
-  format(iso, { weekday: 'short', month: 'short', day: 'numeric' })
+export const formatDayLabel = (iso: string) => format(iso, DAY_LABEL)
 
 /** The day the board opens on, in the same `YYYY-MM-DD` shape the API speaks. */
 export const toIsoDay = (date: Date) =>

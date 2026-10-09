@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, type ReactNode } from 'react'
+import { createContext, use, useLayoutEffect, type ReactNode } from 'react'
 
 /**
  * What a page adds to the app header: the rest of its breadcrumb, and its own search box.
@@ -13,22 +13,23 @@ export type PageHeader = {
   search?: ReactNode
 }
 
-export const PageHeaderContext = createContext<{
-  header: PageHeader
-  setHeader: (header: PageHeader) => void
-}>({ header: {}, setHeader: () => {} })
+// Two contexts: pages only publish, and one reading the value would re-render on every header it
+// published itself.
+export const PageHeaderContext = createContext<PageHeader>({})
+export const SetPageHeaderContext = createContext<(header: PageHeader) => void>(() => {})
 
-export const usePageHeaderValue = () => use(PageHeaderContext).header
+export const usePageHeaderValue = () => use(PageHeaderContext)
 
 /**
  * Publish this page's header pieces. Keyed on `trail`, so pass a `search` node that owns its own
  * state — it is published once per trail change and is not re-read on every render.
  */
 export const usePageHeader = (header: PageHeader) => {
-  const { setHeader } = use(PageHeaderContext)
+  const setHeader = use(SetPageHeaderContext)
   const trail = header.trail?.join('/') ?? ''
 
-  useEffect(() => {
+  // Before paint, so the page's first frame already has its breadcrumb and search.
+  useLayoutEffect(() => {
     setHeader(header)
     return () => setHeader({})
     // The search node is rebuilt every render; the trail is what actually changes.

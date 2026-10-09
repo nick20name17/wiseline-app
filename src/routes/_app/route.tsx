@@ -8,7 +8,8 @@ import { sessionStore } from '@/lib/session-store'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
-// Until the user and their Shipping role are known, the gated links stay out rather than flicker in.
+// Until the user and their Shipping role are known, the gated links are drawn as placeholders rather
+// than flickering in.
 const hiddenPages = (role: string | undefined, shippingRole: string | null | undefined) => {
   const manager = !!role && isManagerRole(role)
   const pages = role && shippingRole !== undefined ? shippingPages(role, shippingRole) : null
@@ -21,8 +22,8 @@ const hiddenPages = (role: string | undefined, shippingRole: string | null | und
 }
 
 const AppLayout = () => {
-  const { data: me } = useQuery(meQuery)
-  const { data: shippingRole } = useQuery({
+  const { data: me, isPending: findingMe } = useQuery(meQuery)
+  const { data: shippingRole, isPending: findingShippingRole } = useQuery({
     ...shippingRoleQuery(me ?? { id: 0, role: '' }),
     enabled: !!me
   })
@@ -31,7 +32,9 @@ const AppLayout = () => {
   return (
     <SidebarProvider>
       <PageHeaderProvider>
-        <AppSidebar hidden={hidden} />
+        {/* A disabled query stays pending, so the role is waited on only once there is a user. A
+            failed request is not pending, so the placeholders give way to the links it allows. */}
+        <AppSidebar hidden={hidden} pending={findingMe || (!!me && findingShippingRole)} />
         {/* `min-w-0` here and below: a flex item defaults to `min-width: auto`, so a table wider than
           the pane would push the whole layout sideways instead of scrolling within its own box. */}
         <SidebarInset className='min-w-0'>

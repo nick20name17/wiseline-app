@@ -1,6 +1,8 @@
 import { useBoard } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
+import { SpacerRows } from '@/components/table/spacer-rows'
+import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -25,14 +27,14 @@ import {
   type BoardLineItem,
   type BoardOrder
 } from '../api'
-import { partDays, partKey, partLines, partState } from '../lib/parts'
+import { partDays, partKey, partLines, partState, splitOf } from '../lib/parts'
 import { AllocatedStockDialog } from './allocated-stock-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
 import { OrderNoteDialog } from './order-note-dialog'
 import { ScheduleDialog } from './schedule-dialog'
 import { ScheduledDayTabs } from './scheduled-day-tabs'
-import { ScheduledRow } from './scheduled-row'
+import { ScheduledRow, type Part } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
 import { useOrderNotes } from './use-line-note-state'
@@ -47,8 +49,13 @@ type ScheduledTabProps = {
   machine?: MachineTab
 }
 
-/** One production day of one order — what a row stands for. */
-type Part = { order: BoardOrder; day: string }
+/** A copy of the set with `key` in or out, as a checkbox says it should be. */
+const withKey = (set: ReadonlySet<string>, key: string, present: boolean) => {
+  const next = new Set(set)
+  if (present) next.add(key)
+  else next.delete(key)
+  return next
+}
 
 type ReschedulePartDialogProps = {
   part: Part | null
@@ -97,7 +104,7 @@ const ReschedulePartDialog = ({
               departmentId,
               productionDate,
               // Only the part being moved: the other half of a split order keeps its own day.
-              originItems: partLines(part.order, part.day).map(item => item.id)
+              originItems: part.lines.map(item => item.id)
             },
             {
               onSuccess: () => {
@@ -161,6 +168,54 @@ const ReschedulePartDialog = ({
   )
 }
 
+/**
+ * The tab lists parts, not orders: a day tab shows the part sitting on it, and «All Scheduled
+ * Orders» every part — so a split order appears once per day it has work on. Production day first,
+ * then priority, the hierarchy where 1 sits on top, then the order number; an order with no
+ * priority sorts below every one that has one.
+ */
+const partsOf = (
+  orders: BoardOrder[],
+  departmentId: number | undefined,
+  day: string | null
+): Part[] => {
+  // Read once per order rather than twice per comparison.
+  const rankOf = new Map(
+    orders.map(order => [
+      order,
+      departmentStateOf(order, departmentId)?.priority?.position ?? Number.MAX_SAFE_INTEGER
+    ])
+  )
+  const rank = (order: BoardOrder) => rankOf.get(order) ?? Number.MAX_SAFE_INTEGER
+
+  return orders
+    .flatMap(order => {
+      const split = splitOf(order)
+      return partDays(order, departmentId)
+        .filter(candidate => day === null || candidate === day)
+        .map((candidate): Part => {
+          const lines = partLines(order, candidate)
+          return {
+            order,
+            day: candidate,
+            key: partKey(order.id, candidate),
+            lines,
+            state: partState(order, candidate, departmentId),
+            split,
+            // Only the orders that are late are red on an overdue day p1 (293,555): a line of this
+            // part past its day and not yet wrapped.
+            overdue: lines.some(item => item.item?.over_due)
+          }
+        })
+    })
+    .sort(
+      (a, b) =>
+        a.day.localeCompare(b.day) ||
+        rank(a.order) - rank(b.order) ||
+        a.order.invoice.localeCompare(b.order.invoice)
+    )
+}
+
 export const ScheduledTab = ({ search, departmentId, initialDay, machine }: ScheduledTabProps) => {
   // `undefined` until somebody picks a tab; «All Scheduled Orders» is `null` and is chosen, not
   // landed on.
@@ -219,39 +274,35 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
         .join(' · ')
     })
   })
-  const rank = (order: BoardOrder) =>
-    departmentStateOf(order, departmentId)?.priority?.position ?? Number.MAX_SAFE_INTEGER
-
-  /**
-   * The tab lists parts, not orders: a day tab shows the part sitting on it, and «All Scheduled
-   * Orders» every part — so a split order appears once per day it has work on. Production day first,
-   * then priority, the hierarchy where 1 sits on top, then the order number; an order with no
-   * priority sorts below every one that has one.
-   */
-  const parts: Part[] = orders
-    .flatMap(order =>
-      partDays(order, departmentId)
-        .filter(candidate => day === null || candidate === day)
-        .map(candidate => ({ order, day: candidate }))
-    )
-    .sort(
-      (a, b) =>
-        a.day.localeCompare(b.day) ||
-        rank(a.order) - rank(b.order) ||
-        a.order.invoice.localeCompare(b.order.invoice)
-    )
+  const parts = partsOf(orders, departmentId, day)
+  // Three hundred parts is too many rows to keep in the page at once; only those on screen are.
+  const { tableRef, items, measure, before, after } = useWindowRows(
+    parts.length,
+    index => parts[index]?.key ?? String(index)
+  )
 
   // A part ticks on its own: one day of a split order goes out without the others.
-  const selected = parts.filter(part => selectedIds.has(partKey(part.order.id, part.day)))
+  const selected = parts.filter(part => selectedIds.has(part.key))
   // A release is all stock orders or all customer orders; the first tick decides which.
   const selectionKind = selected.length
     ? isStockOrder(selected[0]!.order)
       ? 'stock'
       : 'customer'
     : null
-  const canRelease =
-    selected.length > 0 &&
-    selected.every(part => partState(part.order, part.day, departmentId).reviewed)
+  const canRelease = selected.length > 0 && selected.every(part => part.state.reviewed)
+
+  // Defined once for every row, taking the row's key, so a click re-renders only the rows it changes.
+  const toggleExpanded = (key: string) => setExpandedIds(current => toggled(current, key))
+  // Export takes Release with it, and unticking Release takes Export with it.
+  const select = (key: string, checked: boolean) => {
+    setSelectedIds(current => withKey(current, key, checked))
+    if (!checked) setExportIds(current => withKey(current, key, false))
+  }
+  const exportPart = (key: string, checked: boolean) => {
+    if (checked) setSelectedIds(current => withKey(current, key, true))
+    setExportIds(current => withKey(current, key, checked))
+  }
+  const openLineNotes = (item: BoardLineItem, readOnly: boolean) => setNoteLine({ item, readOnly })
 
   // A list that never arrived is not an empty one.
   if (isError && !page)
@@ -304,9 +355,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
               ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
               : []
           const days = selected.flatMap(dayOf)
-          const exportDays = selected
-            .filter(part => exportIds.has(partKey(part.order.id, part.day)))
-            .flatMap(dayOf)
+          const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
           if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
         }}
       />
@@ -330,7 +379,10 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
           {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
-          <Table className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}>
+          <Table
+            ref={tableRef}
+            className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
+          >
             <colgroup>
               <col className='w-12' />
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
@@ -344,53 +396,55 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
                 {columns.headers}
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isPending ? (
+            {isPending ? (
+              <TableBody>
                 <TableSkeletonRows columns={10} />
-              ) : (
-                parts.map(part => {
-                  const { order } = part
-                  const key = partKey(order.id, part.day)
-                  const stock = isStockOrder(order)
-                  // Only the orders that are late are red on an overdue day p1 (293,555): a line
-                  // of this part past its day and not yet wrapped.
-                  const late = partLines(order, part.day).some(item => item.item?.over_due)
-
+              </TableBody>
+            ) : (
+              <>
+                <SpacerRows height={before} />
+                {items.map(item => {
+                  const part = parts[item.index]
+                  if (!part) return null
+                  const { key } = part
+                  const stock = isStockOrder(part.order)
                   return (
-                    <ScheduledRow
-                      key={key}
-                      order={order}
-                      day={part.day}
-                      departmentId={departmentId}
-                      expanded={expandedIds.has(key)}
-                      selected={selectedIds.has(key)}
-                      exporting={exportIds.has(key)}
-                      locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
-                      overdue={late}
-                      noteState={noteState(order)}
-                      onToggleExpanded={() => setExpandedIds(current => toggled(current, key))}
-                      onToggleSelected={() => {
-                        if (selectedIds.has(key))
-                          setExportIds(current => {
-                            const next = new Set(current)
-                            next.delete(key)
-                            return next
-                          })
-                        setSelectedIds(current => toggled(current, key))
-                      }}
-                      onToggleExport={() => {
-                        if (!exportIds.has(key))
-                          setSelectedIds(current => new Set(current).add(key))
-                        setExportIds(current => toggled(current, key))
-                      }}
-                      onReschedule={() => setRescheduling(part)}
-                      onOpenOrderNotes={() => setNoteOrder(order)}
-                      onOpenLineNotes={(item, readOnly) => setNoteLine({ item, readOnly })}
-                    />
+                    // One body per part, measured whole, so a part opened into its line items keeps
+                    // the rows below it in place. It carries what `TableBody` would, bar the last
+                    // row's rule, which only the last part drops — it would double the card's edge.
+                    <tbody
+                      key={item.key}
+                      data-index={item.index}
+                      ref={measure}
+                      className={cn(
+                        '[&_td:first-child]:font-medium',
+                        item.index === parts.length - 1 && '[&>tr:last-child]:border-0'
+                      )}
+                    >
+                      {/* The banding reads every other row by its place among its siblings; a hidden
+                          row in front of every second part keeps the stripes where they were. */}
+                      {item.index % 2 ? <tr hidden /> : null}
+                      <ScheduledRow
+                        part={part}
+                        departmentId={departmentId}
+                        expanded={expandedIds.has(key)}
+                        selected={selectedIds.has(key)}
+                        exporting={exportIds.has(key)}
+                        locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
+                        noteState={noteState(part.order)}
+                        onToggleExpanded={toggleExpanded}
+                        onSelect={select}
+                        onExport={exportPart}
+                        onReschedule={setRescheduling}
+                        onOpenOrderNotes={setNoteOrder}
+                        onOpenLineNotes={openLineNotes}
+                      />
+                    </tbody>
                   )
-                })
-              )}
-            </TableBody>
+                })}
+                <SpacerRows height={after} />
+              </>
+            )}
           </Table>
         </div>
       )}

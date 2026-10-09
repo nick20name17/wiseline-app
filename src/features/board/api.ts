@@ -825,9 +825,9 @@ export const useSetOrderNoteRead = () =>
   useMutation({
     mutationFn: ({ order, read }: { order: string; read: boolean }) =>
       authApi.post(`orders/${order}/note/${read ? 'read' : 'unread'}/`).json(),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    }
+    // The check lives on the note alone; refetching the board for it re-streamed every order list.
+    onSuccess: (_, __, ___, { client }) =>
+      void client.invalidateQueries({ queryKey: [...boardKeys.all, 'order-notes'] })
   })
 
 /** The thread and the dot that summarises it in the table, which are two different queries. */
@@ -895,9 +895,8 @@ export const useScheduleOrders = (onSuccess: () => void) =>
           }
         })
         .json(),
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all }),
     onSuccess: onSuccess
   })
 
@@ -920,9 +919,8 @@ export const useSplitOrder = (onSuccess: () => void) =>
         })
         .json()
     },
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all }),
     onSuccess: onSuccess
   })
 
@@ -944,9 +942,8 @@ export const useBypassProduction = (onSuccess: () => void) =>
         ids.map(id => authApi.post(`sales-orders/${id}/departments/${departmentId}/bypass/`).json())
       )
     },
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all }),
     onSuccess: onSuccess
   })
 
@@ -1054,9 +1051,10 @@ export const useSetPriority = (orderId: string) =>
       patchCachedOrder(client, order.id, cached =>
         withPriority(cached, departmentId, departmentStateOf(order, departmentId)?.priority ?? null)
       ),
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    }
+    // The lists are already patched, so this only settles their order; nothing else on the board
+    // reads a priority, and nothing waits for it.
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.orders() })
   })
 
 /**
@@ -1120,8 +1118,9 @@ export const useSetReviewed = () =>
       patchCachedOrder(client, input.order.id, cached =>
         withReviewed(cached, { ...input, reviewed: !input.reviewed })
       ),
+    // Reviewed is a flag on the order, so only the order lists hold it.
     onSettled: (_, __, ___, ____, { client }) =>
-      void client.invalidateQueries({ queryKey: boardKeys.all })
+      void client.invalidateQueries({ queryKey: boardKeys.orders() })
   })
 
 const releaseResultSchema = z.object({
@@ -1180,9 +1179,8 @@ export const useReleaseOrders = (
         throw error
       }
     },
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all }),
     onSuccess: result =>
       onSuccess({
         released: result.released.length,
@@ -1212,9 +1210,8 @@ export const useUnscheduleOrder = (onSuccess: () => void) =>
           searchParams: productionDate ? { production_date: productionDate } : {}
         })
         .json(),
-    onSettled: async (_, __, ___, ____, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
-    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      void client.invalidateQueries({ queryKey: boardKeys.all }),
     onSuccess
   })
 
@@ -1452,8 +1449,8 @@ export const useCreateStockOrder = (onSuccess: (order: string) => void) =>
       z
         .object({ order: z.string() })
         .parse(await authApi.post('stock-orders/', { json: { lines } }).json()),
-    onSuccess: async (created, _, __, { client }) => {
-      await client.invalidateQueries({ queryKey: boardKeys.all })
+    onSuccess: (created, _, __, { client }) => {
+      void client.invalidateQueries({ queryKey: boardKeys.all })
       onSuccess(created.order)
     }
   })

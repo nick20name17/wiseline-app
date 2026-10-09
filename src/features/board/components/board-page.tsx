@@ -13,6 +13,7 @@ import { CoilsTab } from './coils-tab'
 import { CompletedTab } from './completed-tab'
 import { DeptBar } from './dept-bar'
 import { MachineStrip } from './machine-strip'
+import { MachineStripSkeleton } from './board-skeleton'
 import { PackagingTab } from './packaging-tab'
 import { QueueTab } from './queue-tab'
 import { RollformingProductionTab } from './rollforming-production-tab'
@@ -63,7 +64,7 @@ export const BoardPage = ({
   })
 
   // The machine tab outlives the working tab, as a second row does on the board p2 (542,280).
-  const { data: allMachines } = useQuery({
+  const { data: allMachines, isPending: machinesPending } = useQuery({
     ...machinesQuery(board.name, departmentId),
     enabled: board.machineTabs
   })
@@ -147,6 +148,9 @@ export const BoardPage = ({
             if (view === 'slit') onViewChange(slitFrom)
           }}
         />
+      ) : showStrip && machinesPending ? (
+        // The row's room is kept while the machines load, so the tab below does not drop into it.
+        <MachineStripSkeleton />
       ) : null}
 
       {view === 'unscheduled' ? (

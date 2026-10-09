@@ -70,6 +70,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   const noteState = useLineNoteState((rows ?? []).map(row => row.origin_item))
   // The row names its priority but not its colour, and the colour is how the list is read.
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const priorityOf = new Map(priorities?.map(entry => [entry.name, entry]))
   const columns = useColumnOrder(board.tables.wrapping)
 
   if (order) {
@@ -208,7 +209,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                             {row.priority ? (
                               <PriorityPill
                                 priority={
-                                  priorities?.find(priority => priority.name === row.priority) ?? {
+                                  priorityOf.get(row.priority) ?? {
                                     id: 0,
                                     name: row.priority,
                                     color: null,

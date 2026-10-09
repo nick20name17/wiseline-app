@@ -28,7 +28,7 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useDeferredValue, useRef, useState, type ReactNode } from 'react'
 import {
   coilFoldersQuery,
   coilFiltersQuery,
@@ -50,17 +50,24 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
 const NOTE_SAVE_MS = 600
 
-// Gauge too: the floor names a coil by colour and gauge, «black 28».
-const matches = (lot: CoilLot, term: string) =>
-  `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.gauge ?? ''} ${lot.lot_number ?? ''}`
-    .toLowerCase()
-    .includes(term)
-
 // The board reads by colour, then product, then coil #.
 const byColorProductCoil = (a: CoilLot, b: CoilLot) =>
   (a.color ?? '').localeCompare(b.color ?? '') ||
   (a.product_id ?? '').localeCompare(b.product_id ?? '') ||
   (a.lot_number ?? '').localeCompare(b.lot_number ?? '')
+
+/** A lot with the text a search is matched against. */
+type IndexedLot = { lot: CoilLot; text: string }
+
+/**
+ * Sorted and lowercased once per list rather than on every keystroke: a search only filters, which
+ * keeps the order. Gauge is in the text too — the floor names a coil by colour and gauge, «black 28».
+ */
+const indexLots = (lots: CoilLot[]): IndexedLot[] =>
+  lots.toSorted(byColorProductCoil).map(lot => ({
+    lot,
+    text: `${lot.product_id ?? ''} ${lot.color ?? ''} ${lot.gauge ?? ''} ${lot.lot_number ?? ''}`.toLowerCase()
+  }))
 
 /** The two lists the board keeps: the coils standing in this department, and the plant's whole stock. */
 type CoilScope = 'trim' | 'all'
@@ -487,9 +494,9 @@ const nothingListed = (trim: boolean, filter: CoilFilter | null, worker: boolean
   }
 }
 
-const searched = (lots: CoilLot[], term: string) => {
+const searched = (lots: IndexedLot[], term: string) => {
   const search = term.trim().toLowerCase()
-  return lots.filter(lot => !search || matches(lot, search)).sort(byColorProductCoil)
+  return lots.flatMap(({ lot, text }) => (!search || text.includes(search) ? [lot] : []))
 }
 
 type Moving = { group: CoilGroup; to: Department }
@@ -541,6 +548,8 @@ type CoilsTabProps = {
 export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
   const [term, setTerm] = useState('')
+  // The input keeps up with the typing; the list catches up when there is time for it.
+  const deferredTerm = useDeferredValue(term)
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
@@ -562,6 +571,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const allLots = useQuery({ ...coilLotsQuery, enabled: !trim })
   const { data: lots, isPending: lotsPending } = trim ? trimLots : allLots
   const listed = lots ?? []
+  const indexed = indexLots(listed)
   // Read for the badge and the empty-state wording; an empty Trim list is worded by it, so nothing
   // is called empty until it is in.
   const { data: filters, isLoading: filterLoading } = useQuery({
@@ -574,7 +584,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     ...coilFoldersQuery(departmentId),
     enabled: trim && departmentId !== undefined
   })
-  const inFolder = trim && folder ? listed.filter(lot => lot.folder_id === folder) : listed
+  const inFolder = trim && folder ? indexed.filter(({ lot }) => lot.folder_id === folder) : indexed
   const place = useSetCoilProductLocation()
   const slinet = useSetCoilSlinet()
 
@@ -594,9 +604,9 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     onSlinet: (lot, checked) => slinet.mutate({ lotId: lot.id, inSlinet: checked })
   }
 
-  const shown = searched(inFolder, term)
+  const shown = searched(inFolder, deferredTerm)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, folder, term, pageSize].join('|')
+  const view = [scoped, folder, deferredTerm, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
@@ -604,7 +614,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
   // A folder tab left open hides the coil being searched for, and nothing on screen says so.
-  const elsewhere = !!folder && !!term.trim() && !shown.length ? searched(listed, term).length : 0
+  const elsewhere =
+    !!folder && !!deferredTerm.trim() && !shown.length ? searched(indexed, deferredTerm).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -729,10 +740,10 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
-            key={term.trim() ? 'searching' : 'listing'}
+            key={deferredTerm.trim() ? 'searching' : 'listing'}
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
-            searching={!!term.trim()}
+            searching={!!deferredTerm.trim()}
             onTickGroup={tick}
             {...handlers}
           />
