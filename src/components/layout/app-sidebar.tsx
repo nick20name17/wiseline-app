@@ -7,9 +7,10 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
+  SidebarMenuSkeleton
 } from '@/components/ui/sidebar'
-import { Link, useMatchRoute } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { Grid2x2, Layers, PackageCheck, QrCode, Settings, Truck, Waypoints } from 'lucide-react'
 
 const NAV_GROUPS = [
@@ -38,54 +39,68 @@ const NAV_GROUPS = [
   }
 ] as const
 
-/** `hidden` names the pages this user may not open, so their links are not offered. */
-export const AppSidebar = ({ hidden }: { hidden: ReadonlySet<string> }) => {
-  const matchRoute = useMatchRoute()
-
-  return (
-    <Sidebar collapsible='icon'>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size='lg' render={<Link to='/' />}>
-              <img src='/icon-512.png' alt='' className='size-8 flex-none' />
-              <div className='grid flex-1 text-left leading-tight'>
-                <span className='truncate font-heading font-semibold'>Wiseline</span>
-                <span className='truncate text-xs tracking-widest text-muted-foreground uppercase'>
-                  Production
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
-        {NAV_GROUPS.map(group => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items
-                  .filter(item => !hidden.has(item.to))
-                  .map(item => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton
-                        // Fuzzy, so Settings stays lit on its sub-pages.
-                        isActive={!!matchRoute({ to: item.to, fuzzy: true })}
-                        tooltip={item.label}
-                        render={<Link to={item.to} />}
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
-    </Sidebar>
-  )
+type AppSidebarProps = {
+  /** The pages this user may not open, so their links are not offered. */
+  hidden: ReadonlySet<string>
+  /**
+   * Who the user is is still loading. `hidden` then holds every gated page, and each is drawn as a
+   * placeholder row of its own height rather than left out and pushed in once the role arrives.
+   */
+  pending?: boolean
 }
+
+// Lit by the link itself: `useMatchRoute` would re-render the whole sidebar on every search change.
+// Non-exact, so Settings stays lit on its sub-pages; search-blind, as a board's tab lives in it.
+const ACTIVE = { 'data-active': '' }
+const ACTIVE_OPTIONS = { includeSearch: false }
+
+export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => (
+  <Sidebar collapsible='icon'>
+    <SidebarHeader>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size='lg' render={<Link to='/' />}>
+            <img src='/icon-512.png' alt='' className='size-8 flex-none' />
+            <div className='grid flex-1 text-left leading-tight'>
+              <span className='truncate font-heading font-semibold'>Wiseline</span>
+              <span className='truncate text-xs tracking-widest text-muted-foreground uppercase'>
+                Production
+              </span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarHeader>
+
+    <SidebarContent>
+      {NAV_GROUPS.map(group => (
+        <SidebarGroup key={group.label}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {group.items.map(item =>
+                !hidden.has(item.to) ? (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton
+                      tooltip={item.label}
+                      render={
+                        <Link to={item.to} activeProps={ACTIVE} activeOptions={ACTIVE_OPTIONS} />
+                      }
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : pending ? (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuSkeleton showIcon />
+                  </SidebarMenuItem>
+                ) : null
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
+    </SidebarContent>
+  </Sidebar>
+)
