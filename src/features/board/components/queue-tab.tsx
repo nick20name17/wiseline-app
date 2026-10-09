@@ -309,10 +309,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                         priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
                         movable={movable}
                         onInMachine={
-                          viewOnly ||
-                          departmentId === undefined ||
-                          machineId === undefined ||
-                          inMachine.isPending
+                          viewOnly || departmentId === undefined || machineId === undefined
                             ? null
                             : (picked, checked) =>
                                 inMachine.mutate({

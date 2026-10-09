@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Check, Lock, Undo2 } from 'lucide-react'
 
@@ -26,12 +25,8 @@ type OrderNoteDialogProps = {
   /** The order the note hangs off, by its EBMS autoid and its number; `null` closes the dialog. */
   order: { id: string; invoice: string } | null
   notes: Record<string, OrderNote> | undefined
-  isPending: boolean
-  /**
-   * Marks the note dealt with, or takes that back; `onDone` runs once it is saved. Without it the note
-   * is only read.
-   */
-  onSetRead?: (order: string, read: boolean, onDone?: () => void) => void
+  /** Marks the note dealt with, or takes that back. Without it the note is only read. */
+  onSetRead?: (order: string, read: boolean) => void
   onOpenChange: (open: boolean) => void
 }
 
@@ -52,7 +47,6 @@ const initials = (author: string | null) =>
 export const OrderNoteDialog = ({
   order: current,
   notes,
-  isPending,
   onSetRead,
   onOpenChange
 }: OrderNoteDialogProps) => {
@@ -98,26 +92,22 @@ export const OrderNoteDialog = ({
             // Stays open: the note turning red again is the confirmation that the check was taken back.
             <Button
               variant='outline'
-              disabled={isPending || !order}
+              disabled={!order}
               onClick={() => order && onSetRead(order.id, false)}
             >
-              {isPending ? (
-                <Spinner data-icon='inline-start' />
-              ) : (
-                <Undo2 data-icon='inline-start' />
-              )}
+              <Undo2 data-icon='inline-start' />
               Undo dealt with
             </Button>
           ) : (
             <Button
-              disabled={!note?.has_note || isPending || !order}
-              onClick={() => order && onSetRead(order.id, true, () => onOpenChange(false))}
+              disabled={!note?.has_note || !order}
+              onClick={() => {
+                if (!order) return
+                onSetRead(order.id, true)
+                onOpenChange(false)
+              }}
             >
-              {isPending ? (
-                <Spinner data-icon='inline-start' />
-              ) : (
-                <Check data-icon='inline-start' />
-              )}
+              <Check data-icon='inline-start' />
               Mark dealt with
             </Button>
           )}

@@ -391,7 +391,7 @@ export const ScheduledLineItems = ({
                             <Checkbox
                               aria-label={`Vent ${item.id_inven ?? item.id}`}
                               checked={item.item?.vented ?? false}
-                              disabled={!editable || update.isPending}
+                              disabled={!editable}
                               onCheckedChange={checked => edit(item, { vented: checked === true })}
                             />
                           )}
@@ -413,9 +413,6 @@ export const ScheduledLineItems = ({
                                     variant='outline'
                                     className='w-full justify-between'
                                     aria-label={`Machine for ${item.id_inven ?? item.id}`}
-                                    // One save at a time: a second pick while the first is in flight
-                                    // could land before it and be overwritten.
-                                    disabled={update.isPending}
                                   />
                                 }
                               >

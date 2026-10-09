@@ -404,15 +404,12 @@ const WrapLines = ({
               }
             : null
         }
-        isPending={updateLine.isPending}
         onOpenChange={open => !open && setStocking(null)}
-        onEnter={value =>
-          stocking?.item_id != null &&
-          updateLine.mutate(
-            { itemId: stocking.item_id, edit: { pull_from_stock: value } },
-            { onSuccess: () => setStocking(null) }
-          )
-        }
+        onEnter={value => {
+          if (stocking?.item_id == null) return
+          updateLine.mutate({ itemId: stocking.item_id, edit: { pull_from_stock: value } })
+          setStocking(null)
+        }}
       />
     </>
   )

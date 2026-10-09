@@ -5,7 +5,11 @@ import { HTTPError, NetworkError, TimeoutError } from 'ky'
 
 declare module '@tanstack/react-query' {
   interface Register {
-    mutationMeta: { skipErrorToast?: boolean; errorTitle?: string }
+    mutationMeta: {
+      skipErrorToast?: boolean
+      // A function when what did not happen depends on why: a refusal reads differently from no answer.
+      errorTitle?: string | ((error: unknown) => string)
+    }
     queryMeta: { skipErrorToast?: boolean }
   }
 }
@@ -43,9 +47,11 @@ export const queryClient = new QueryClient({
       // reason goes under it; only a caller that says something else entirely sets `skipErrorToast`.
       const meta = mutation.meta
       if (meta?.skipErrorToast) return
+      const title =
+        typeof meta?.errorTitle === 'function' ? meta.errorTitle(error) : meta?.errorTitle
       toast.add(
-        meta?.errorTitle
-          ? { type: 'error', title: meta.errorTitle, description: getErrorMessage(error) }
+        title
+          ? { type: 'error', title, description: getErrorMessage(error) }
           : { type: 'error', title: getErrorMessage(error) }
       )
     }

@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { Spinner } from '@/components/ui/spinner'
 import { useRetained } from '@/lib/use-retained'
 import { Delete, X } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
@@ -23,7 +22,6 @@ type KeypadDialogProps = {
    */
   decimal?: boolean
   unit?: string
-  isPending?: boolean
   onOpenChange: (open: boolean) => void
   onEnter: (value: number) => void
 }
@@ -37,7 +35,6 @@ export const KeypadDialog = ({
   target: current,
   decimal = false,
   unit = 'pcs.',
-  isPending,
   onOpenChange,
   onEnter
 }: KeypadDialogProps) => {
@@ -56,7 +53,7 @@ export const KeypadDialog = ({
       key === '+' || key === '-' ? key : key === '.' && value.includes('.') ? value : value + key
     )
 
-  const enter = () => next !== null && !isPending && onEnter(next)
+  const enter = () => next !== null && onEnter(next)
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -130,10 +127,10 @@ export const KeypadDialog = ({
           <Button
             size='lg'
             className={decimal ? 'col-span-2 h-12' : 'h-12'}
-            disabled={next === null || isPending}
+            disabled={next === null}
             onClick={enter}
           >
-            {isPending ? <Spinner /> : 'Enter'}
+            Enter
           </Button>
         </div>
       </DialogContent>

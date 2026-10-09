@@ -17,12 +17,7 @@ export const OrderNoteDialog = ({ order, notes, onOpenChange }: OrderNoteDialogP
     <NoteDialog
       order={order}
       notes={notes}
-      isPending={mutation.isPending}
-      onSetRead={
-        viewOnly
-          ? undefined
-          : (id, read, onDone) => mutation.mutate({ order: id, read }, { onSuccess: onDone })
-      }
+      onSetRead={viewOnly ? undefined : (id, read) => mutation.mutate({ order: id, read })}
       onOpenChange={onOpenChange}
     />
   )

@@ -378,7 +378,9 @@ export const CompletedOrderDialog = ({
                 {data.completed_at
                   ? `Completed ${formatStamp(data.completed_at)}`
                   : order?.status === 'rolled'
-                    ? 'Done — completes once Wrapping gives every package a location'
+                    ? order.complete_error
+                      ? `EBMS refused: ${order.complete_error}`
+                      : 'Done — completes once Wrapping gives every package a location'
                     : 'Completion time not recorded'}
               </p>
             </>
