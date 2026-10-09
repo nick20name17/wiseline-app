@@ -178,6 +178,7 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
 export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => {
   const { data, isPending, isError, error, refetch } = useQuery(queueQuery(departmentId, machineId))
   const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const priorityOf = new Map(priorities?.map(entry => [entry.id, entry]))
   const viewOnly = useViewOnly()
   const reorder = useReorderQueue()
   const inMachine = useSetCurrentCoil()
@@ -305,7 +306,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                       <QueueLine
                         key={row.key}
                         row={row}
-                        priority={priorities?.find(found => found.id === row.priority?.id) ?? null}
+                        priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
                         movable={movable}
                         onInMachine={
                           viewOnly ||
