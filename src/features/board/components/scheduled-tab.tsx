@@ -1,0 +1,483 @@
+import { useBoard } from '../lib/board-context'
+import { formatDate, formatLongDate, today } from '@/lib/days'
+import { useColumnOrder } from '@/components/table/column-order'
+import { SpacerRows } from '@/components/table/spacer-rows'
+import { useWindowRows } from '@/components/table/use-window-rows'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { toast } from '@/components/ui/toast'
+import { toggled } from '@/lib/sets'
+import { useRetained } from '@/lib/use-retained'
+import { cn } from 'cn'
+import { useQuery } from '@tanstack/react-query'
+import { CalendarClock, SearchX } from 'lucide-react'
+import { useState } from 'react'
+import {
+  countsQuery,
+  departmentStateOf,
+  isStockOrder,
+  isPartial,
+  scheduledOrdersQuery,
+  useReleaseOrders,
+  useSplitOrder,
+  useUnscheduleOrder,
+  workWeekQuery,
+  type BoardLineItem,
+  type BoardOrder
+} from '../api'
+import { partDays, partKey, partLines, partState, splitOf } from '../lib/parts'
+import { AllocatedStockDialog } from './allocated-stock-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { LineNotesDialog } from './line-notes-dialog'
+import { OrderNoteDialog } from './order-note-dialog'
+import { ScheduleDialog } from './schedule-dialog'
+import { ScheduledDayTabs } from './scheduled-day-tabs'
+import { ScheduledRow, type Part } from './scheduled-row'
+import { ScheduledToolbar } from './scheduled-toolbar'
+import { MachineCapacitiesDialog } from './machine-capacities-dialog'
+import { useOrderNotes } from './use-line-note-state'
+import { onMachine, type MachineTab } from '../lib/machines'
+
+type ScheduledTabProps = {
+  search: string | undefined
+  departmentId: number | undefined
+  /** The day the Calendar sent the board to; without one the tab lands on the first work day. */
+  initialDay?: string
+  /** Rollforming's machine tab; none on a board without them. */
+  machine?: MachineTab
+}
+
+/** A copy of the set with `key` in or out, as a checkbox says it should be. */
+const withKey = (set: ReadonlySet<string>, key: string, present: boolean) => {
+  const next = new Set(set)
+  if (present) next.add(key)
+  else next.delete(key)
+  return next
+}
+
+type ReschedulePartDialogProps = {
+  part: Part | null
+  departmentId: number | undefined
+  onClose: () => void
+  /** The part now sits on another day, and the board follows it there. */
+  onMoved: (day: string) => void
+}
+
+/** Moving one part to another day, or sending the order back to Unscheduled from the same place. */
+const ReschedulePartDialog = ({
+  part,
+  departmentId,
+  onClose,
+  onMoved
+}: ReschedulePartDialogProps) => {
+  const [shown, releaseShown] = useRetained(part)
+  const [unscheduling, setUnscheduling] = useState<Part | null>(null)
+  const [unscheduled, releaseUnscheduled] = useRetained(unscheduling)
+  // Moving a scheduled part to another day is the same call as scheduling it in the first place.
+  const reschedule = useSplitOrder(onClose)
+  const unschedule = useUnscheduleOrder(() => setUnscheduling(null))
+  // An order on one day goes back whole; one spread over several gives back only the row's day.
+  const oneDayOf = (target: Part) =>
+    partDays(target.order, departmentId).length > 1 ? target.day : undefined
+  const unscheduledDay = unscheduled ? oneDayOf(unscheduled) : undefined
+
+  return (
+    <>
+      <ScheduleDialog
+        open={!!part}
+        onOpenChange={open => !open && onClose()}
+        onOpenChangeComplete={releaseShown}
+        title={`Reschedule order ${shown?.order.invoice ?? ''}`}
+        description={`Pick any ${useBoard().dayWord}. Rescheduling resets Manager edits.`}
+        actionLabel='Reschedule'
+        departmentId={departmentId}
+        initialDay={shown?.day ?? null}
+        isPending={reschedule.isPending}
+        onPick={productionDate =>
+          part &&
+          departmentId &&
+          reschedule.mutate(
+            {
+              order: part.order,
+              departmentId,
+              productionDate,
+              // Only the part being moved: the other half of a split order keeps its own day.
+              originItems: part.lines.map(item => item.id)
+            },
+            {
+              onSuccess: () => {
+                toast.add({
+                  type: 'success',
+                  title: `Rescheduled to ${formatLongDate(productionDate)} — Manager edits reset`
+                })
+                // The board follows the part to the day it now sits on.
+                onMoved(productionDate)
+              }
+            }
+          )
+        }
+        onUnschedule={() => {
+          if (!part) return
+          setUnscheduling(part)
+          onClose()
+        }}
+      />
+
+      {/* A split order gives back only the row's day; the rest keeps its days, and the order its
+          Priority and Reviewed while any of it is still scheduled. */}
+      <ConfirmDialog
+        open={!!unscheduling}
+        onOpenChange={open => !open && setUnscheduling(null)}
+        onOpenChangeComplete={releaseUnscheduled}
+        title={
+          unscheduledDay
+            ? `Unschedule order ${unscheduled?.order.invoice ?? ''} on ${formatDate(unscheduledDay)}?`
+            : `Unschedule order ${unscheduled?.order.invoice ?? ''}?`
+        }
+        destructive
+        description={
+          unscheduledDay
+            ? `Moves this day's line items back to Unscheduled and resets their Manager edits (machines, # From Stock). The line items on the order's other days stay scheduled.`
+            : 'Moves it back to Unscheduled and resets all Manager edits (Priority, Reviewed, machines, # From Stock).'
+        }
+        cancelLabel='Cancel'
+        confirmLabel='Confirm'
+        isPending={unschedule.isPending}
+        onConfirm={() => {
+          const salesOrderId = unscheduling?.order.sales_order?.id
+          if (!unscheduling || salesOrderId === undefined || !departmentId) return
+          const { invoice } = unscheduling.order
+          const productionDate = unscheduledDay
+          unschedule.mutate(
+            { salesOrderId, departmentId, productionDate },
+            {
+              onSuccess: () =>
+                toast.add({
+                  type: 'success',
+                  title: productionDate
+                    ? `Order ${invoice} unscheduled from ${formatDate(productionDate)} — Manager edits reset`
+                    : `Order ${invoice} unscheduled — Manager edits reset`
+                })
+            }
+          )
+        }}
+      />
+    </>
+  )
+}
+
+/**
+ * The tab lists parts, not orders: a day tab shows the part sitting on it, and «All Scheduled
+ * Orders» every part — so a split order appears once per day it has work on. Production day first,
+ * then priority, the hierarchy where 1 sits on top, then the order number; an order with no
+ * priority sorts below every one that has one.
+ */
+const partsOf = (
+  orders: BoardOrder[],
+  departmentId: number | undefined,
+  day: string | null
+): Part[] => {
+  // Read once per order rather than twice per comparison.
+  const rankOf = new Map(
+    orders.map(order => [
+      order,
+      departmentStateOf(order, departmentId)?.priority?.position ?? Number.MAX_SAFE_INTEGER
+    ])
+  )
+  const rank = (order: BoardOrder) => rankOf.get(order) ?? Number.MAX_SAFE_INTEGER
+
+  return orders
+    .flatMap(order => {
+      const split = splitOf(order)
+      return partDays(order, departmentId)
+        .filter(candidate => day === null || candidate === day)
+        .map((candidate): Part => {
+          const lines = partLines(order, candidate)
+          return {
+            order,
+            day: candidate,
+            key: partKey(order.id, candidate),
+            lines,
+            state: partState(order, candidate, departmentId),
+            split,
+            // Only the orders that are late are red on an overdue day p1 (293,555): a line of this
+            // part past its day and not yet wrapped.
+            overdue: lines.some(item => item.item?.over_due)
+          }
+        })
+    })
+    .sort(
+      (a, b) =>
+        a.day.localeCompare(b.day) ||
+        rank(a.order) - rank(b.order) ||
+        a.order.invoice.localeCompare(b.order.invoice)
+    )
+}
+
+export const ScheduledTab = ({ search, departmentId, initialDay, machine }: ScheduledTabProps) => {
+  // `undefined` until somebody picks a tab; «All Scheduled Orders» is `null` and is chosen, not
+  // landed on.
+  const [chosenDay, setChosenDay] = useState<string | null | undefined>(initialDay)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  // Export takes Release with it; Release alone leaves Export be p2 (542,607).
+  const [exportIds, setExportIds] = useState<Set<string>>(() => new Set())
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
+  const [stockOpen, setStockOpen] = useState(false)
+  const [rescheduling, setRescheduling] = useState<Part | null>(null)
+  const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)
+  const [noteLine, setNoteLine] = useState<{ item: BoardLineItem; readOnly: boolean } | null>(null)
+
+  // The board opens on the first day of the window the tabs show, which the day strip decides — a day
+  // the shop is shut is not one it lists.
+  const { data: window } = useQuery(workWeekQuery(departmentId, today()))
+  const day = chosenDay === undefined ? (window?.[0]?.date ?? today()) : chosenDay
+  const changeDay = (next: string | null) => {
+    setChosenDay(next)
+    setSelectedIds(new Set())
+  }
+
+  const board = useBoard()
+  const {
+    data: page,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(scheduledOrdersQuery(board.name, search))
+  const columns = useColumnOrder(board.tables.scheduled)
+  const orders = onMachine(page?.results ?? [], machine)
+  // «All Scheduled Orders» counts everything on the tab, whatever day or search is showing.
+  const { data: counts } = useQuery(countsQuery(departmentId))
+  const everything = counts?.scheduled
+
+  // Asked once the list is whole, not again for every page as it streams in.
+  const whole = !isPartial(page)
+  const { notes, noteState } = useOrderNotes(whole ? orders : [])
+
+  const release = useReleaseOrders(({ released, exported, cutlists }) => {
+    setSelectedIds(new Set())
+    setExportIds(new Set())
+    if (!released) return
+    toast.add({
+      type: 'success',
+      title: [
+        `Released ${released} order${released === 1 ? '' : 's'}`,
+        exported ? `${exported} exported` : null,
+        board.makes && !board.coils
+          ? `${cutlists} cutlist${cutlists === 1 ? '' : 's'} generated`
+          : null
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    })
+  })
+  const parts = partsOf(orders, departmentId, day)
+  // Three hundred parts is too many rows to keep in the page at once; only those on screen are.
+  const { tableRef, items, measure, before, after } = useWindowRows(
+    parts.length,
+    index => parts[index]?.key ?? String(index)
+  )
+
+  // A part ticks on its own: one day of a split order goes out without the others.
+  const selected = parts.filter(part => selectedIds.has(part.key))
+  // A release is all stock orders or all customer orders; the first tick decides which.
+  const selectionKind = selected.length
+    ? isStockOrder(selected[0]!.order)
+      ? 'stock'
+      : 'customer'
+    : null
+  const canRelease = selected.length > 0 && selected.every(part => part.state.reviewed)
+
+  // Defined once for every row, taking the row's key, so a click re-renders only the rows it changes.
+  const toggleExpanded = (key: string) => setExpandedIds(current => toggled(current, key))
+  // Export takes Release with it, and unticking Release takes Export with it.
+  const select = (key: string, checked: boolean) => {
+    setSelectedIds(current => withKey(current, key, checked))
+    if (!checked) setExportIds(current => withKey(current, key, false))
+  }
+  const exportPart = (key: string, checked: boolean) => {
+    if (checked) setSelectedIds(current => withKey(current, key, true))
+    setExportIds(current => withKey(current, key, checked))
+  }
+  const openLineNotes = (item: BoardLineItem, readOnly: boolean) => setNoteLine({ item, readOnly })
+
+  // A list that never arrived is not an empty one.
+  if (isError && !page)
+    return (
+      <QueryError
+        title='The scheduled orders did not load'
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    )
+
+  // Nothing scheduled at all points back at Unscheduled; empty day tabs would say nothing.
+  // The count takes Open orders only, so an order the list does hold still keeps the table up.
+  if (everything === 0 && !isPending && !orders.length)
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant='icon'>
+            <CalendarClock />
+          </EmptyMedia>
+          <EmptyTitle>Nothing scheduled</EmptyTitle>
+          <EmptyDescription>
+            Schedule orders from the Unscheduled tab to see them here by {board.dayWord}.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+
+  return (
+    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+      <ScheduledDayTabs
+        departmentId={departmentId}
+        day={day}
+        total={everything ?? 0}
+        onDayChange={changeDay}
+        onOpenCapacities={setCapacitiesDay}
+      />
+
+      <ScheduledToolbar
+        total={parts.length}
+        day={day}
+        selectedCount={selected.length}
+        selectionKind={selectionKind}
+        canRelease={canRelease}
+        isReleasing={release.isPending}
+        onAllocatedStock={() => setStockOpen(true)}
+        onRelease={() => {
+          const dayOf = (part: Part) =>
+            part.order.sales_order
+              ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
+              : []
+          const days = selected.flatMap(dayOf)
+          const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
+          if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
+        }}
+      />
+
+      {!isPending && whole && !parts.length ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <SearchX />
+            </EmptyMedia>
+            <EmptyTitle>No matching orders</EmptyTitle>
+            <EmptyDescription>
+              {day
+                ? `No orders scheduled for ${formatDate(day)} match your search.`
+                : 'No scheduled orders match your search.'}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+          {/* The fixed columns add up to less than the minimum width, so the customer name always has
+              room left over — crush it to nothing and two headers print on top of each other. */}
+          {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
+          <Table
+            ref={tableRef}
+            className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
+          >
+            <colgroup>
+              <col className='w-12' />
+              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+              <col className='w-15' />
+              {columns.cols}
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead />
+                <TableHead />
+                {columns.headers}
+              </TableRow>
+            </TableHeader>
+            {isPending ? (
+              <TableBody>
+                <TableSkeletonRows columns={10} />
+              </TableBody>
+            ) : (
+              <>
+                <SpacerRows height={before} />
+                {items.map(item => {
+                  const part = parts[item.index]
+                  if (!part) return null
+                  const { key } = part
+                  const stock = isStockOrder(part.order)
+                  return (
+                    // One body per part, measured whole, so a part opened into its line items keeps
+                    // the rows below it in place. It carries what `TableBody` would, bar the last
+                    // row's rule, which only the last part drops — it would double the card's edge.
+                    <tbody
+                      key={item.key}
+                      data-index={item.index}
+                      ref={measure}
+                      className={cn(
+                        '[&_td:first-child]:font-medium',
+                        item.index === parts.length - 1 && '[&>tr:last-child]:border-0'
+                      )}
+                    >
+                      {/* The banding reads every other row by its place among its siblings; a hidden
+                          row in front of every second part keeps the stripes where they were. */}
+                      {item.index % 2 ? <tr hidden /> : null}
+                      <ScheduledRow
+                        part={part}
+                        departmentId={departmentId}
+                        expanded={expandedIds.has(key)}
+                        selected={selectedIds.has(key)}
+                        exporting={exportIds.has(key)}
+                        locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
+                        noteState={noteState(part.order)}
+                        onToggleExpanded={toggleExpanded}
+                        onSelect={select}
+                        onExport={exportPart}
+                        onReschedule={setRescheduling}
+                        onOpenOrderNotes={setNoteOrder}
+                        onOpenLineNotes={openLineNotes}
+                      />
+                    </tbody>
+                  )
+                })}
+                <SpacerRows height={after} />
+              </>
+            )}
+          </Table>
+        </div>
+      )}
+
+      <ReschedulePartDialog
+        part={rescheduling}
+        departmentId={departmentId}
+        onClose={() => setRescheduling(null)}
+        onMoved={changeDay}
+      />
+
+      <MachineCapacitiesDialog
+        departmentId={departmentId}
+        day={capacitiesDay}
+        onOpenChange={open => !open && setCapacitiesDay(null)}
+      />
+      <AllocatedStockDialog
+        departmentId={departmentId}
+        open={stockOpen}
+        onOpenChange={setStockOpen}
+      />
+
+      <OrderNoteDialog
+        order={noteOrder}
+        notes={notes}
+        onOpenChange={open => !open && setNoteOrder(null)}
+      />
+      <LineNotesDialog
+        originItem={noteLine?.item.id ?? null}
+        productId={noteLine?.item.id_inven ?? ''}
+        readOnly={noteLine?.readOnly}
+        onOpenChange={open => !open && setNoteLine(null)}
+      />
+    </div>
+  )
+}

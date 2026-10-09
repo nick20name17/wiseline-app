@@ -1,11 +1,190 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "ignorePatterns": ["**/dist", "src/routeTree.gen.ts"],
+  "plugins": ["react", "typescript", "oxc", "unicorn", "import", "jsx-a11y", "vitest"],
+  "jsPlugins": ["@shadcn/lint", "eslint-plugin-playwright"],
   "options": {
     "typeAware": true
   },
+  "ignorePatterns": ["src/routeTree.gen.ts"],
   "rules": {
-    "react/rules-of-hooks": "error"
-  }
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "typescript/switch-exhaustiveness-check": "warn",
+    "typescript/consistent-type-imports": "warn",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "warn",
+    "shadcn/no-restyle": [
+      "error",
+      {
+        "allow": ["layout"]
+      }
+    ],
+    "shadcn/no-raw-colors": "warn",
+    "shadcn/no-arbitrary-values": "warn",
+    "shadcn/no-inline-styles": "warn",
+    "shadcn/no-unknown-classes": "warn",
+    "shadcn/require-static-classes": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["src/app/**", "src/routes/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/features/*/*",
+                  "@/features/*/**",
+                  "**/features/*/*",
+                  "**/features/*/**"
+                ],
+                "message": "Import a feature only through its public API: @/features/<name>."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/**", "src/lib/**", "src/api/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**", "**/features/**"],
+                "message": "Shared layers (components, lib, api) must not depend on features."
+              },
+              {
+                "group": ["@/routes/**", "@/app/**", "**/routes/**", "**/app/**"],
+                "message": "Shared layers must not import from routes or app."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/*/*.ts", "src/features/*/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**", "**/features/**"],
+                "message": "Features must not depend on each other; inside a feature use relative paths, shared code goes to @/lib or @/components."
+              },
+              {
+                "group": [
+                  "@/routes/**",
+                  "@/app/**",
+                  "@/routeTree.gen",
+                  "**/routes/**",
+                  "**/app/**",
+                  "**/routeTree.gen"
+                ],
+                "message": "Features must not import from routes or app."
+              },
+              {
+                "group": ["../*", "../*/**"],
+                "message": "Relative paths must stay inside the feature; use @/ to import shared code."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/*/*/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**", "**/features/**"],
+                "message": "Features must not depend on each other; inside a feature use relative paths, shared code goes to @/lib or @/components."
+              },
+              {
+                "group": [
+                  "@/routes/**",
+                  "@/app/**",
+                  "@/routeTree.gen",
+                  "**/routes/**",
+                  "**/app/**",
+                  "**/routeTree.gen"
+                ],
+                "message": "Features must not import from routes or app."
+              },
+              {
+                "group": ["../../*", "../../*/**"],
+                "message": "Relative paths must stay inside the feature; use @/ to import shared code."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/routes/**", "src/components/ui/**"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": ["src/components/ui/**"],
+      "rules": {
+        "shadcn/no-restyle": "off",
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/require-static-classes": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
+      }
+    },
+    {
+      "files": ["e2e/**"],
+      "rules": {
+        "playwright/missing-playwright-await": "error",
+        "playwright/no-focused-test": "error",
+        "playwright/no-skipped-test": "error",
+        "playwright/no-wait-for-timeout": "error",
+        "playwright/no-element-handle": "error",
+        "playwright/no-eval": "error",
+        "playwright/no-force-option": "warn",
+        "playwright/no-networkidle": "error",
+        "playwright/no-page-pause": "error",
+        "playwright/no-useless-await": "warn",
+        "playwright/no-useless-not": "warn",
+        "playwright/prefer-web-first-assertions": "error",
+        "playwright/valid-expect": "error",
+        "playwright/expect-expect": "error",
+        "playwright/no-conditional-in-test": "warn"
+      }
+    },
+    {
+      "files": ["src/**/*.test.ts"],
+      "rules": {
+        "vitest/no-focused-tests": "error",
+        "vitest/no-disabled-tests": "error",
+        "vitest/no-identical-title": "error",
+        "vitest/valid-title": "error",
+        "vitest/valid-expect": "error",
+        "vitest/expect-expect": "error",
+        "vitest/no-conditional-in-test": "warn",
+        "vitest/prefer-to-be": "warn"
+      }
+    }
+  ]
 }

@@ -1,114 +1,96 @@
-/**
- * Two design systems in one document, kept apart on purpose.
- *
- * Tailwind and shadcn dress everything this project *adds*. The fifteen screens ported from the HTML
- * prototype are dressed by the prototype's own stylesheets, lifted verbatim and scoped to
- * `[data-page="…"]` — they have to stay pixel-identical, and the parity gate says whether they are.
- *
- * The two do not fight, for two reasons worth knowing before editing this file:
- *
- *  - Tailwind puts everything it emits in cascade layers. Unlayered rules beat layered ones whatever
- *    their specificity, and the prototype's CSS is unlayered — so preflight cannot reach into a
- *    ported page.
- *  - The token names collide by design (`--accent`, `--border`, `--primary` mean different colours in
- *    each), but shadcn declares them on `:root` and the prototype declares them on the page element.
- *    The nearer declaration wins for everything inside the page.
- *
- * There is a third way they can fight, and the layer rule does not settle it: a ported class that
- * happens to spell a Tailwind utility. Tailwind reads class names out of the source it scans, so
- * `<table class="grid">` made it emit a real `display: grid` — and the prototype's `.grid` declares no
- * `display` for an unlayered rule to win with. `<thead>` and `<tbody>` became blocks and laid
- * themselves out as two separate tables. Two things keep that from happening again:
- *
- *  - Ported markup is not scanned. Its class names are the prototype's, not ours, and by the decision
- *    above it never needs a utility of its own. That alone covers every name only it uses — `filter`,
- *    for one.
- *  - `.grid` is the single name the prototype and this project genuinely share, across all fifteen
- *    pages: we write it on our own flex/grid containers, so it is emitted whatever we scan. It is
- *    reverted inside a ported page below.
- *
- * The shadcn palette below is the prototype's palette, so a shadcn dialog opened over a ported screen
- * is the same blue, the same borders and the same corner radius as everything around it.
- */
 @import 'tailwindcss';
-@source not './features';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-/* `revert` and not a fixed value: the prototype writes `grid` on both `<table>` and `<div>`, and each
-   has to go back to what the browser gives it, not to one display the other cannot use. */
-[data-page] .grid {
-  display: revert;
-}
-
-/* Preflight does reach a ported page, for the same reason, and in two places:
-
-   `font: inherit` on form elements hands them the page's whole font. The prototype asks for that one
-   declaration at a time, on the controls that want it — `font-family: inherit` appears thirty-odd times
-   in one page's stylesheet — and leaves the rest on the browser's own button font. Reverting the
-   shorthand puts both back: buttons it styles still inherit, buttons it does not go back to Arial
-   13.333px, and the line-height that came along with the shorthand stops making every control a couple
-   of pixels too tall.
-
-   `display: block` on replaced elements turns an inline icon into a line of its own. The prototype
-   writes its icons inline inside a label and lets them sit on the text baseline, so a day tab grew a
-   third line and a date wrapped under its own icon.
-
-   Both kept to one element of specificity, so any prototype rule still outranks them. */
-[data-page] :is(button, input, select, textarea, optgroup) {
-  font: revert;
-}
-
-[data-page] :is(img, svg, video, canvas, audio, iframe, embed, object) {
-  display: revert;
-  vertical-align: revert;
-}
-
-/* And in a third place: `font-size: inherit; font-weight: inherit` on the headings. The prototype styles
-   the size of every heading it uses and never the weight, so it is relying on the browser's own bold —
-   an empty state's `<h3>` came out at body weight. Found on Rollforming's Scheduled tab, where the same
-   text was under budget at 1440 and over it at 390. */
-[data-page] :is(h1, h2, h3, h4, h5, h6) {
-  font-size: revert;
-  font-weight: revert;
-}
-
 @custom-variant dark (&:is(.dark *));
 
+/* Inter's Latin faces only, from @fontsource-variable/inter/wght.css: the app is English, and the
+   Latin file is preloaded from index.html under the same URL, so it is fetched once. */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* Arial stretched to Inter's metrics, so the swap to Inter barely moves a line. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+
 @theme inline {
+  --font-sans: 'Inter Variable', 'Inter Fallback', sans-serif;
   --font-heading: var(--font-sans);
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-caution: var(--caution);
+  --color-bypass: var(--bypass);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -119,174 +101,299 @@
 }
 
 :root {
-  /* Straight from the prototype's `:root`: surfaces, ink, the one accent blue, and its radii. */
-  --background: #f5f6f8;
-  --foreground: #14181f;
-  --card: #ffffff;
-  --card-foreground: #14181f;
-  --popover: #ffffff;
-  --popover-foreground: #14181f;
-  --primary: #3b5bdb;
-  --primary-foreground: #ffffff;
-  --secondary: #f2f4f7;
-  --secondary-foreground: #14181f;
-  --muted: #f2f4f7;
-  --muted-foreground: #475467;
-  --accent: #eef1fe;
-  --accent-foreground: #3b5bdb;
-  --destructive: #c4362f;
-  --border: #e7eaef;
-  --input: #d6dbe2;
-  --ring: #3b5bdb;
-  --chart-1: #3b5bdb;
-  --chart-2: #0f7a54;
-  --chart-3: #b5760a;
-  --chart-4: #c4362f;
-  --chart-5: #475467;
-  /* the prototype's `--r-md`; its `--r-sm` and `--r-lg` fall out of Tailwind's scale around it */
-  --radius: 0.5625rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #14181f;
-  --sidebar-primary: #3b5bdb;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef1fe;
-  --sidebar-accent-foreground: #3b5bdb;
-  --sidebar-border: #e7eaef;
-  --sidebar-ring: #3b5bdb;
-}
+  @apply scheme-light;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --radius: 0.5rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+
+  /* Wiseline indigo, carried over from the production floor prototype. */
+  --primary: oklch(0.526 0.199 268);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  /* The board's signal colours, in its own order of escalation: dealt with, under way, stepped
+     around. Amber says work is moving, orange says a remake is owed or a location is locked, purple
+     says the order skipped production. */
+  --success: oklch(0.596 0.145 152.2);
+  --warning: oklch(0.639 0.129 82.4);
+  --caution: oklch(0.652 0.151 52.3);
+  --bypass: oklch(0.56 0.17 300);
+
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: var(--primary);
+
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+
+  --sidebar: oklch(0.991 0.002 248);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  /* The active and hovered nav item is a wash of the brand indigo, not a neutral grey. */
+  --sidebar-accent: oklch(0.96 0.018 276);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: oklch(0.936 0.007 261);
+  --sidebar-ring: var(--primary);
+}
+
+.dark {
+  @apply scheme-dark;
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+
+  --primary: oklch(0.6 0.155 267.7);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.71 0.152 152.2);
+  --warning: oklch(0.75 0.129 82.4);
+  --caution: oklch(0.74 0.151 52.3);
+  --bypass: oklch(0.72 0.15 300);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--primary);
+
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+
+  --sidebar: oklch(0.185 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: color-mix(in oklab, var(--primary) 22%, var(--sidebar));
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--primary);
+}
+
+/* The prototype's login backdrop: a primary-tinted glow fading into the page. */
+@utility bg-primary-glow {
+  background-image: radial-gradient(
+    circle at 50% -10%,
+    color-mix(in oklab, var(--primary) 12%, var(--background)),
+    var(--background) 55%
+  );
+}
+
+/**
+ * A scroll container clips everything drawn outside its box, and a focus ring is drawn outside the
+ * control it belongs to — so a field flush against the edge of a scrolling panel loses its ring on
+ * that side. This gives the ring room back without moving the content: the padding makes the room,
+ * the matching negative margin takes the space back out of the layout.
+ *
+ * Put it on any element that scrolls and holds something focusable. The width covers the 3px ring
+ * plus the focus border every control in the sheet draws.
+ *
+ * `content-box`, so the padding sits outside a height set on it: `min-h-56` is then 56 in the layout
+ * too, and a 56-tall placeholder inside it fits exactly instead of overshooting the floor by the
+ * padding — the sheet would otherwise shrink when the answer replaces the placeholder.
+ */
+@utility scrollport {
+  box-sizing: content-box;
+  margin: calc(var(--spacing) * -1.5);
+  padding: calc(var(--spacing) * 1.5);
+}
+
+/**
+ * A report prints on its own sheet.
+ *
+ * Only the capacity report's own Print button prints report-only — an ordinary Ctrl+P anywhere else
+ * must still print the page somebody is looking at. That is why this keys off the report being on
+ * screen rather than off a class somebody has to remember to set and unset.
+ */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.5in;
+  }
+
+  /* Everything that is not the sheet steps out of the way, backdrop included. The sheet may sit
+     straight under <body> too, which `:has()` alone would miss: it never matches an element itself. */
+  body:has([data-print-report]) > *:not([data-print-report], :has([data-print-report])) {
+    display: none !important;
+  }
+  [data-slot='dialog-overlay'] {
+    display: none !important;
+  }
+
+  /* The open dialog locks the page's scroll, which on paper clips the sheet to one screen. */
+  body:has([data-print-report]) {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /*
+   * On paper the dialog is not a dialog: no centring, no frame, the page's own width.
+   *
+   * The centring is a `translate`, and resetting that property by name does not survive the build —
+   * it is folded into `transform` and lost, leaving the sheet half a page to the left. So the offset
+   * is taken out at its source, the two custom properties the utility feeds it from.
+   */
+  [data-print-report] {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    --tw-translate-x: 0 !important;
+    --tw-translate-y: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Controls, and anything that only explains the screen, have no business on paper. */
+  [data-print-hide],
+  [data-slot='dialog-close'] {
+    display: none !important;
+  }
+
+  /* A scroll box means nothing on a page: let the rows run on. */
+  [data-print-report] [data-print-expand] {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* The cards are the report's structure, so their fills have to reach the paper. */
+  [data-print-report] * {
+    print-color-adjust: exact;
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-  button:not(:disabled),
-  [role='button']:not(:disabled) {
-    cursor: pointer;
-  }
+
   html {
-    @apply font-sans;
+    @apply scrollbar-gutter-stable font-sans;
+    interpolate-size: allow-keywords;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Tailwind's preflight leaves buttons on the arrow cursor; every button here is a real
+     click target, so the hand belongs on all of them rather than on each call site. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    @apply cursor-pointer;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-balance;
+  }
+
+  p,
+  li {
+    @apply text-pretty;
+  }
+
+  input[type='number'] {
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    @apply m-0 appearance-none;
+  }
+
+  /* covers the component library's enter/exit keyframes too, which no `motion-safe:` reaches */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-/* -- The ported prototype pages ----------------------------------------------------------------
-   Each page's stylesheet is imported by its own route and scoped to `[data-page]`. What is left here
-   is what sits above a page and so cannot be scoped to one. */
-
-html,
-body,
-#root {
-  height: 100%;
+/* Chrome's autofill rectangle ignores the field's radius, so it is clipped away and the tint is
+   re-applied by whatever owns the shape. Unlayered: the field's own background utility would win
+   from @layer utilities whatever the specificity here. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
 }
 
-/* The prototype resets these on `*`, but its reset is scoped to the page — the document is above it. */
-body {
-  margin: 0;
+[data-slot='input-group']:has(input:-webkit-autofill),
+[data-slot='input-group']:has(input:autofill) {
+  background-color: color-mix(in oklab, var(--primary) 12%, var(--background));
 }
 
-[data-page] {
-  min-height: 100%;
+input[data-slot='input']:-webkit-autofill,
+input[data-slot='input']:autofill {
+  box-shadow: inset 0 0 0 1000px color-mix(in oklab, var(--primary) 12%, var(--background));
 }
 
-/* Movable columns (N-166). The prototype declares these on `th.col-move` with no page scope, and every
-   department's grid now uses the same mechanism, so they live here rather than being copied into each
-   page's sheet. The colours are read off the page the grid is on, so a page that sets neither still
-   gets the cursor and the opacity. */
-th.col-move {
-  cursor: grab;
-  user-select: none;
-}
-
-th.col-move:hover {
-  color: var(--text);
-}
-
-th.col-move:active {
-  cursor: grabbing;
-}
-
-th.col-dragging {
-  opacity: 0.45;
-}
-
-th.col-drop-target {
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-/* The sheet of stock cards prints the same whether it was selected on the Stock Cards page or in the
-   dialog Trim hosts, so these rules key on the print host rather than on which page it sits inside — the
-   page's own copy of them can only see its own page. `!important` answers the page's own `!important`,
-   and the id is what outranks it: the host is a child of `#root` that the page's rule would hide. */
-/* The page's own rule for this is scoped to that page, and the sheet also prints from Trim's dialog, so
-   the hiding lives here where it can see both. `!important` answers the page's own, and the id is what
-   outranks it. */
-#print-sheet {
-  display: none;
-}
-
-@media print {
-  #root.is-printing-cards > *:not(#print-sheet) {
-    display: none !important;
+/* The floor's workstations are touch screens on desktops, so a viewport size says nothing; any
+   coarse pointer gets targets a finger can hit. Unlayered so it wins over each control's size
+   utility, without hand-editing the component library. */
+@media (any-pointer: coarse) {
+  [data-slot='checkbox'] {
+    width: 1.5rem;
+    height: 1.5rem;
   }
 
-  #root.is-printing-cards > #print-sheet {
-    display: block !important;
+  [data-slot='checkbox-indicator'] > svg {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
-  /* the grid is on the wrapper inside, since the sheet itself has to stay the prototype's own child */
-  #root.is-printing-cards > #print-sheet > .wl-print-cards {
-    display: grid;
-    grid-template-columns: repeat(2, 3.25in);
-    gap: 0.1in;
-    justify-content: center;
-  }
-
-  /* #206: 2 × 4 to a letter sheet, and never a card split across the fold */
-  #root.is-printing-cards > #print-sheet > .wl-print-cards > * {
-    break-inside: avoid;
-  }
-
-  #root.is-printing-cards > #print-sheet > .wl-print-cards > *:nth-child(8n + 1) {
-    break-before: page;
-  }
-
-  #root.is-printing-cards > #print-sheet > .wl-print-cards > *:first-child {
-    break-before: auto;
+  [data-slot='button'] {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 }

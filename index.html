@@ -1,33 +1,74 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wiseline PM</title>
-    <script>
-      ;(function () {
-        try {
-          var t = localStorage.getItem('ui-theme') || 'system'
-          var dark =
-            t === 'dark' ||
-            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-          document.documentElement.classList.toggle('dark', dark)
-        } catch (e) {}
-      })()
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
+    <meta
+      name="description"
+      content="Wiseline PM — production scheduling and order tracking across Trim, Rollforming and Shipping."
     />
+    <title>Wiseline PM</title>
+    <meta name="theme-color" content="#ffffff" />
+    <!-- The Latin face every screen opens with, fetched alongside the script rather than after the
+      CSS asks for it. The same file as src/index.css's, so Vite emits it under one URL. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"
+    />
+    <!-- The app shell's geometry and light-theme colours (16rem sidebar, 52px header), drawn before
+      the script runs so the app mounts into the frame it was already showing. -->
+    <style>
+      .shell {
+        display: flex;
+        min-height: 100svh;
+      }
+      .shell[hidden] {
+        display: none;
+      }
+      .shell > aside {
+        box-sizing: border-box;
+        flex: none;
+        width: 16rem;
+        border-right: 1px solid oklch(0.922 0 0);
+        background: oklch(0.991 0.002 248);
+      }
+      .shell > div {
+        flex: 1;
+      }
+      .shell > div > header {
+        box-sizing: border-box;
+        height: 52px;
+        border-bottom: 1px solid oklch(0.922 0 0);
+      }
+      @media (max-width: 767px) {
+        .shell > aside {
+          display: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <!-- qrcodejs 1.0.0, vendored from the CDN copy the prototype pins: the Stock Cards page has to
-         draw the same code, and a classic script is the only thing this library publishes -->
-    <script src="/qrcode.min.js"></script>
+    <!-- React's createRoot replaces everything inside #root. -->
+    <div id="root">
+      <div class="shell" hidden>
+        <aside></aside>
+        <div><header></header></div>
+      </div>
+      <!-- Only a signed-in visitor to an app page gets the shell; the sign-in pages have no sidebar
+        or header, so they stay blank rather than flash a frame they do not have. -->
+      <script>
+        if (
+          localStorage.getItem('session') &&
+          !/^\/(login|forgot-password|password-reset)(\/|$)/.test(location.pathname)
+        )
+          document.currentScript.previousElementSibling.hidden = false
+      </script>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

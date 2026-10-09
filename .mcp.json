@@ -2,18 +2,11 @@
   "mcpServers": {
     "playwright": {
       "command": "bunx",
-      "args": ["@playwright/mcp@latest"]
+      "args": ["@playwright/mcp@0.0.80"]
     },
     "context7": {
       "command": "bunx",
-      "args": ["@upstash/context7-mcp"]
-    },
-    "review": {
-      "type": "http",
-      "url": "https://mcp-v2.up.railway.app/mcp",
-      "headers": {
-        "Authorization": "Bearer ${REVIEW_MCP_TOKEN}"
-      }
+      "args": ["@upstash/context7-mcp@4.0.7"]
     }
   }
 }

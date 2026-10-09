@@ -6,6 +6,10 @@
       {
         "files": ["src/routes/**"],
         "rules": ["react-doctor/only-export-components"]
+      },
+      {
+        "files": ["src/lib/session-store.ts"],
+        "rules": ["react-doctor/auth-token-in-web-storage"]
       }
     ]
   }

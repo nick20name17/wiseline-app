@@ -1,0 +1,386 @@
+import { NoteButton, type NoteState } from '@/components/note-button'
+import { OrderNoteDialog } from '@/components/order-note-dialog'
+import { PriorityPill } from '@/components/priority-pill'
+import { PrioritySelect } from '@/components/priority-select'
+import { QueryError } from '@/components/query-error'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Spinner } from '@/components/ui/spinner'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
+import { formatDate, formatLongDate } from '@/lib/days'
+import { toggled } from '@/lib/sets'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
+import { CalendarDays, ChevronRight, MapPin, Truck } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { toast } from '@/components/ui/toast'
+import {
+  UNSCHEDULED_PAGE,
+  notesOf,
+  orderPackagesQuery,
+  prioritiesQuery,
+  shippingDepartmentQuery,
+  unscheduledQuery,
+  useSetOrderNoteRead,
+  useSetShippingPriority,
+  type UnscheduledOrder
+} from '../api'
+import { formatLength, formatWeight, mapUrl } from '../lib/format'
+import { OrderLines, ReadyCount } from './order-readiness'
+import { ScheduleDialog } from './schedule-dialog'
+import { ShipDateFilter, type ShipDates } from './ship-date-filter'
+
+const COLUMNS = 15
+
+/** An order's packages, where they stand and what they weigh. */
+const OrderPackages = ({ order }: { order: string }) => {
+  const { data: packages, isPending } = useQuery(orderPackagesQuery(order))
+  if (isPending) return <p className='px-3 py-3 text-sm text-muted-foreground'>Loading packages…</p>
+  if (!packages?.length)
+    return <p className='px-3 py-3 text-sm text-muted-foreground'>No packages made yet.</p>
+  return (
+    <ul className='divide-y divide-border'>
+      {packages.map(pkg => (
+        <li key={pkg.package_id} className='flex items-center gap-4 px-3 py-2 text-sm'>
+          <span className='w-40 font-mono'>{pkg.name ?? pkg.package_id}</span>
+          <span className='w-32 font-mono text-muted-foreground'>{pkg.location ?? '—'}</span>
+          <span className='font-mono'>{formatWeight(pkg.weight)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+type PriorityCellProps = { order: UnscheduledOrder; departmentId: number | undefined }
+
+/** The order's priority in Shipping, set without losing the ticks p3 (560,202). */
+const PriorityCell = ({ order, departmentId }: PriorityCellProps) => {
+  const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const mutation = useSetShippingPriority(order.order)
+  // The row carries no colour; the department's list does.
+  const current = order.priority && {
+    ...order.priority,
+    color: priorities?.find(priority => priority.id === order.priority?.id)?.color ?? null
+  }
+
+  if (departmentId === undefined) return <PriorityPill priority={current} />
+
+  return (
+    <PrioritySelect
+      priorities={priorities}
+      current={current}
+      onChange={priority => mutation.mutate({ departmentId, priority })}
+    />
+  )
+}
+
+type UnscheduledTabProps = {
+  search: string | undefined
+  shipDates: ShipDates
+  onShipDatesChange: (next: ShipDates) => void
+  onScheduled: (shipDate: string) => void
+}
+
+/**
+ * The delivery orders still without a ship date and a truck p3 (605,182). Ticking some opens the
+ * Schedule window; selections survive expanding, searching and the map p3 (560,202).
+ */
+export const UnscheduledTab = ({
+  search,
+  shipDates,
+  onShipDatesChange,
+  onScheduled
+}: UnscheduledTabProps) => {
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery(unscheduledQuery({ search: search ?? '', ...shipDates }))
+  const count = data?.pages[0]?.count ?? 0
+  // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
+  const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
+  const [scheduling, setScheduling] = useState(false)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
+  const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
+  const orders = data?.pages.flatMap(page => page.results) ?? []
+  const picked = [...selected.values()]
+  const { data: department } = useQuery(shippingDepartmentQuery)
+  // The salesman's notes come on the rows, checked off here as on the boards p3 (592,338).
+  const notes = notesOf(orders)
+  const setRead = useSetOrderNoteRead()
+  const noteState = ({ note }: UnscheduledOrder): NoteState => {
+    if (!note?.has_note) return 'none'
+    return note.read ? 'read' : 'unread'
+  }
+
+  if (isError && !data)
+    return (
+      <QueryError
+        title='The orders to ship did not load'
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    )
+
+  return (
+    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+      <div className='flex items-center gap-2.5'>
+        <span className='text-sm text-muted-foreground'>
+          {picked.length ? (
+            <>
+              <b className='font-semibold text-foreground'>{picked.length}</b> selected
+            </>
+          ) : (
+            <>
+              <b className='font-semibold text-foreground'>{count}</b> orders to ship
+            </>
+          )}
+        </span>
+        <ShipDateFilter {...shipDates} onChange={onShipDatesChange} />
+        <Button className='ml-auto' disabled={!picked.length} onClick={() => setScheduling(true)}>
+          <CalendarDays data-icon='inline-start' />
+          Schedule{picked.length ? ` (${picked.length})` : ''}
+        </Button>
+      </div>
+
+      {!isPending && !orders.length ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <Truck />
+            </EmptyMedia>
+            <EmptyTitle>Nothing to ship</EmptyTitle>
+            <EmptyDescription>
+              {search
+                ? `Nothing matches “${search}”.`
+                : shipDates.shipFrom || shipDates.shipTo
+                  ? 'No delivery waits for a truck on these ship dates.'
+                  : 'Every delivery has a ship date and a truck.'}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+          {/* Sized to the widest value plus the cell's 32px padding — a date with a two-digit day, a
+              five-figure weight — so only the free text truncates. The fixed columns take 1776px; the
+              floor leaves the Customer room to read. */}
+          <Table className='min-w-498 table-fixed'>
+            <colgroup>
+              <col className='w-10' />
+              <col className='w-10' />
+              <col className='w-44' />
+              <col className='w-44' />
+              <col className='w-28' />
+              <col />
+              <col className='w-56' />
+              <col className='w-40' />
+              <col className='w-16' />
+              <col className='w-40' />
+              <col className='w-44' />
+              <col className='w-24' />
+              <col className='w-36' />
+              <col className='w-32' />
+              <col className='w-20' />
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead />
+                <TableHead />
+                <TableHead>Entry</TableHead>
+                <TableHead>Ship</TableHead>
+                <TableHead>Order #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>Map</TableHead>
+                <TableHead>Weight</TableHead>
+                <TableHead>Longest Length</TableHead>
+                <TableHead>Ship Via</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Ready</TableHead>
+                <TableHead>Notes</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isPending ? (
+                <TableSkeletonRows columns={COLUMNS} />
+              ) : (
+                orders.map(order => {
+                  const open = expanded.has(order.order)
+                  const name = order.order_number ?? order.order
+                  return (
+                    <Fragment key={order.order}>
+                      <TableRow data-state={selected.has(order.order) ? 'selected' : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            aria-label={`Select order ${order.order_number ?? order.order}`}
+                            checked={selected.has(order.order)}
+                            onCheckedChange={() =>
+                              setSelected(current => {
+                                const next = new Map(current)
+                                if (!next.delete(order.order)) next.set(order.order, order)
+                                return next
+                              })
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {/* Opening an order leaves the ticks as they are p3 (560,202). */}
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            aria-label={`${open ? 'Collapse' : 'Expand'} order ${name}`}
+                            aria-expanded={open}
+                            onClick={() => setExpanded(current => toggled(current, order.order))}
+                          >
+                            <ChevronRight
+                              className={cn(
+                                'text-muted-foreground transition-transform',
+                                open && 'rotate-90'
+                              )}
+                            />
+                          </Button>
+                        </TableCell>
+                        <TableCell>{formatDate(order.entry_date)}</TableCell>
+                        <TableCell>
+                          {/* Past its ship date and not delivered p3 (605,628). */}
+                          <span
+                            className={cn(order.is_overdue && 'font-medium text-destructive')}
+                            title={order.is_overdue ? 'Overdue' : undefined}
+                          >
+                            {formatDate(order.ship_date)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='font-mono font-medium'>
+                            {order.order_number ?? order.order}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate'>{order.customer ?? '—'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {order.address ?? '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {order.city ?? '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {order.address ? (
+                            <a
+                              href={mapUrl(order)}
+                              target='_blank'
+                              rel='noreferrer'
+                              aria-label={`Map of ${order.order_number ?? order.order}`}
+                              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                            >
+                              <MapPin />
+                            </a>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <span className='font-mono'>{formatWeight(order.weight)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className='font-mono'>{formatLength(order.longest_length)}</span>
+                        </TableCell>
+                        <TableCell>{order.ship_via ?? '—'}</TableCell>
+                        <TableCell>
+                          <PriorityCell order={order} departmentId={department?.id} />
+                        </TableCell>
+                        <TableCell>
+                          <ReadyCount order={order.order} readiness={order} />
+                        </TableCell>
+                        <TableCell>
+                          <NoteButton
+                            state={noteState(order)}
+                            label={`Order notes for ${name}`}
+                            onClick={() => setNoteOrder(order)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {open ? (
+                        <TableRow>
+                          <TableCell colSpan={COLUMNS}>
+                            {/* What can go now and what is still being made, above what is packed
+                                (round 10, C1). Held at the left edge: the table is wider than the
+                                screen, and anything past it would need a sideways scroll to read. */}
+                            <div className='sticky left-0 flex max-w-5xl flex-col gap-3 border-l-2 border-primary/40 bg-muted/30 p-3'>
+                              <section className='rounded-lg border border-border bg-card'>
+                                <h3 className='border-b border-border px-3 py-2 text-sm font-medium'>
+                                  Lines
+                                </h3>
+                                <OrderLines order={order.order} />
+                              </section>
+                              <section className='rounded-lg border border-border bg-card'>
+                                <h3 className='border-b border-border px-3 py-2 text-sm font-medium'>
+                                  Packages
+                                </h3>
+                                <OrderPackages order={order.order} />
+                              </section>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </Fragment>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {hasNextPage ? (
+        <Button
+          variant='outline'
+          className='self-center'
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        >
+          {isFetchingNextPage ? <Spinner data-icon='inline-start' /> : null}
+          Show {Math.min(UNSCHEDULED_PAGE, count - orders.length)} more of {count - orders.length}
+        </Button>
+      ) : null}
+
+      <OrderNoteDialog
+        order={
+          noteOrder && { id: noteOrder.order, invoice: noteOrder.order_number ?? noteOrder.order }
+        }
+        notes={notes}
+        onSetRead={(id, read) => setRead.mutate({ order: id, read })}
+        onOpenChange={open => !open && setNoteOrder(null)}
+      />
+
+      <ScheduleDialog
+        verb='Schedule'
+        selection={{ orders: picked.map(order => order.order), pickupIds: [] }}
+        open={scheduling}
+        onOpenChange={setScheduling}
+        onApplied={shipDate => {
+          setSelected(new Map())
+          toast.add({ type: 'success', title: `Scheduled to ship ${formatLongDate(shipDate)}` })
+          onScheduled(shipDate)
+        }}
+      />
+    </div>
+  )
+}

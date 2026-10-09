@@ -12,24 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Env
-.env
-.env.*
-!.env.example
-
-# Skill artifacts
-.agents/
-
-# Playwright
-/test-results
-/playwright-report
-/blob-report
-/playwright/.cache
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -38,6 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Both sides of the parity gate are regenerated from the prototype and the port; committing the
-# baseline cost 120 MB of screenshots and one 800k-line JSON per capture.
-parity/
+# Env
+.env
+.env.*
+!.env.example
+
+# Reference material, not source
+docs
+.claude/settings.local.json
+
+# Playwright MCP snapshots from live checks
+.playwright-mcp

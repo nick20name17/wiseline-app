@@ -1,6 +1,19 @@
 {
-  "inputNeededNotifEnabled": true,
-  "showMessageTimestamps": true,
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Browser__computer",
+      "mcp__Claude_Browser__browser_batch",
+      "mcp__Claude_Browser__javascript_tool",
+      "mcp__Claude_Browser__form_input"
+    ]
+  },
+
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "The user has authorized creating, updating and deleting records through the Wiseline backend API (api.wiseline.app) from the browser pane while testing the Trim board. Endpoints that write straight into EBMS stay off-limits: coil adjust/deplete, manufacturing batches (stock order batch, stock manufacturing) and Order Complete."
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -10,7 +23,7 @@
             "type": "command",
             "statusMessage": "Formatting & linting changed file...",
             "timeout": 30,
-            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in *.ts|*.tsx) cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null || exit 0; node_modules/.bin/oxfmt \"$f\" >/dev/null 2>&1; node_modules/.bin/oxlint --fix \"$f\" >/dev/null 2>&1;; esac; exit 0"
+            "command": "command -v jq >/dev/null || exit 0; f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null || exit 0; case \"$f\" in *.ts|*.tsx|*.js|*.mjs|*.cjs) node_modules/.bin/oxfmt \"$f\" >/dev/null 2>&1; node_modules/.bin/oxlint --fix \"$f\" >/dev/null 2>&1;; *.json|*.jsonc|*.md|*.css|*.html|*.yml|*.yaml) node_modules/.bin/oxfmt \"$f\" >/dev/null 2>&1;; esac; exit 0"
           }
         ]
       }
@@ -20,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "statusMessage": "Checking project (types + lint + doctor + tests)...",
+            "statusMessage": "Checking project (format + lint + types + doctor)...",
             "timeout": 180,
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-check.sh\""
           }

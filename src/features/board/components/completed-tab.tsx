@@ -1,0 +1,168 @@
+import { formatLongDate } from '@/lib/days'
+import { useColumnOrder } from '@/components/table/column-order'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { QueryError } from '@/components/query-error'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { useQuery } from '@tanstack/react-query'
+import { History } from 'lucide-react'
+import { useState } from 'react'
+import { completedOrdersQuery, type CompletedOrder } from '../api'
+import { useBoard } from '../lib/board-context'
+import { formatStamp } from '../lib/format'
+import { CompletedOrderDialog } from './completed-order-dialog'
+
+const Waiting = () => (
+  <span
+    className='text-warning'
+    title='Done at the machine; waiting for the Wrapping Worker to give every package a location'
+  >
+    waiting...
+  </span>
+)
+
+// Located, but EBMS would not complete it: no Wrapping Worker can move it on, so it says why.
+const Refused = ({ error }: { error: string }) => (
+  <span className='text-destructive' title={error}>
+    EBMS refused
+  </span>
+)
+
+type CompletedTabProps = {
+  departmentId: number | undefined
+}
+
+/**
+ * What this department has finished, newest first, for as long as the server keeps it. Nothing here
+ * is worked on — a row is opened to answer a question about an order that has already gone.
+ */
+export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
+  const { tables, pack, packsAtMachine } = useBoard()
+  const [opened, setOpened] = useState<CompletedOrder | null>(null)
+  // The header search is the open orders' business: the history is read by opening a row.
+  const {
+    data: page,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery(completedOrdersQuery(departmentId))
+  const orders = page?.results ?? []
+  const columns = useColumnOrder(tables.completed)
+
+  return (
+    <div className='flex min-w-0 flex-1 flex-col gap-4'>
+      {isError && !page ? (
+        <QueryError
+          title='The completed orders did not load'
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      ) : !isPending && !orders.length ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <History />
+            </EmptyMedia>
+            <EmptyTitle>No completed orders</EmptyTitle>
+            <EmptyDescription>
+              {packsAtMachine
+                ? 'Orders land here once they are rolled, and complete once Wrapping locates every package.'
+                : `Orders you finish ${pack.station.toLowerCase()} and mark complete land here.`}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+          <Table className='min-w-5xl table-fixed'>
+            <colgroup>{columns.cols}</colgroup>
+            <TableHeader>
+              <TableRow>{columns.headers}</TableRow>
+            </TableHeader>
+            <TableBody>
+              {isPending ? (
+                <TableSkeletonRows columns={4} />
+              ) : (
+                orders.map(order => (
+                  // The whole row opens it: there is one thing to do with a finished order.
+                  <TableRow
+                    key={order.order}
+                    aria-label={`Open ${order.order_number ?? order.order}`}
+                    onClick={() => setOpened(order)}
+                  >
+                    {columns.cells({
+                      ship: (
+                        <TableCell>
+                          <span className='text-muted-foreground'>
+                            {order.ship_date ? formatLongDate(order.ship_date) : 'N/A'}
+                          </span>
+                        </TableCell>
+                      ),
+                      prod: (
+                        <TableCell>
+                          <span className='text-muted-foreground'>
+                            {order.production_date ? formatLongDate(order.production_date) : '—'}
+                          </span>
+                        </TableCell>
+                      ),
+                      completed: (
+                        <TableCell>
+                          {order.completed_at ? (
+                            formatStamp(order.completed_at)
+                          ) : order.status === 'rolled' ? (
+                            order.complete_error ? (
+                              <Refused error={order.complete_error} />
+                            ) : (
+                              <Waiting />
+                            )
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                      ),
+                      order: (
+                        <TableCell>
+                          <span className='font-mono'>{order.order_number ?? order.order}</span>
+                        </TableCell>
+                      ),
+                      customer: (
+                        <TableCell>
+                          <span className='truncate'>
+                            {order.is_stock ? 'Stock' : (order.customer ?? '—')}
+                          </span>
+                        </TableCell>
+                      ),
+                      location: (
+                        <TableCell>
+                          <span className='truncate'>
+                            <span className='font-mono'>{order.trim_location.join(', ')}</span>
+                            {/* Done but not located: the locations so far, and more to come. A refused
+                                one is located already; Completed says why it stays. */}
+                            {order.status === 'rolled' && !order.complete_error ? (
+                              <>
+                                {order.trim_location.length ? ', ' : null}
+                                <Waiting />
+                              </>
+                            ) : order.trim_location.length ? null : (
+                              '—'
+                            )}
+                          </span>
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <CompletedOrderDialog
+        departmentId={departmentId}
+        order={opened}
+        onOpenChange={open => !open && setOpened(null)}
+      />
+    </div>
+  )
+}
