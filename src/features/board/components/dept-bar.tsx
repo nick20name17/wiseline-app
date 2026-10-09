@@ -47,14 +47,19 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
                   // holds its place while the list loads, rather than shunting the tabs beside it.
                   <span
                     className={cn(
-                      'ml-0.5 rounded-full px-1.5 font-mono text-xs',
+                      'ml-0.5 inline-grid justify-items-center rounded-full px-1.5 font-mono text-xs',
                       tab === view
                         ? 'bg-primary/10 text-primary'
                         : 'bg-muted text-muted-foreground',
                       counts[tab] === undefined && 'opacity-0'
                     )}
                   >
-                    {counts[tab] ?? 0}
+                    <span className='col-start-1 row-start-1'>{counts[tab]}</span>
+                    {/* Three digits wide whatever the figure, the size the board's lists run to, so
+                        neither the placeholder nor a figure of one or two digits moves the tabs. */}
+                    <span aria-hidden className='invisible col-start-1 row-start-1'>
+                      000
+                    </span>
                   </span>
                 ) : null}
               </TabsTrigger>

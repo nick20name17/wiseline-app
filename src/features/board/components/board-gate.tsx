@@ -1,6 +1,5 @@
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
 import { departmentRole } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
 import { Lock } from 'lucide-react'
@@ -9,6 +8,7 @@ import { departmentRoleQuery, useBoardDepartment } from '../api'
 import { BOARDS, type BoardCode } from '../lib/boards'
 import { BoardContext, ViewOnlyContext } from '../lib/board-context'
 import { BoardPage } from './board-page'
+import { BoardSkeleton } from './board-skeleton'
 
 type BoardGateProps = Omit<ComponentProps<typeof BoardPage>, 'departmentId' | 'role'> & {
   /** Whose board this is. */
@@ -51,7 +51,7 @@ export const BoardGate = ({ code, userRole, userId, ...page }: BoardGateProps) =
 
   // A disabled query stays pending, so «still deciding» is asked of the step actually running.
   if (findingDepartment || (department && assignment.isPending))
-    return <Skeleton className='h-64' />
+    return <BoardSkeleton machineTabs={board.machineTabs} />
   if (!department)
     return (
       <NoAccess
