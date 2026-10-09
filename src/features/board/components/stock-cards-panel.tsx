@@ -27,7 +27,7 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { ImageOff, Pencil, Plus, Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useDeferredValue, useState, type ReactNode } from 'react'
 import { cn } from 'cn'
 import {
   stockCardsQuery,
@@ -193,6 +193,104 @@ const CardWidth = ({ card }: { card: StockCard }) =>
     <p className='text-xs text-muted-foreground'>Width: —</p>
   )
 
+type StockCardTileProps = {
+  card: StockCard
+  selected: boolean
+  onToggle: (id: number) => void
+  onEdit: (card: StockCard) => void
+  onDelete: (card: StockCard) => void
+  onOrder: (card: StockCard) => void
+}
+
+/** One card's face — its own component, so a keystroke or a tick skips the cards it leaves as they were. */
+const StockCardTile = ({
+  card,
+  selected,
+  onToggle,
+  onEdit,
+  onDelete,
+  onOrder
+}: StockCardTileProps) => (
+  <div className='flex flex-col gap-3 rounded-lg border border-border p-3'>
+    <div className='flex items-center justify-between gap-3'>
+      <div className='flex items-center gap-2'>
+        <Checkbox
+          id={`print-${card.id}`}
+          aria-label={`Select ${card.product_id} for printing`}
+          checked={selected}
+          onCheckedChange={() => onToggle(card.id)}
+        />
+        <Label htmlFor={`print-${card.id}`}>Print Select</Label>
+      </div>
+      <span className='flex items-center gap-1'>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label={`Edit ${card.product_id}`}
+          onClick={() => onEdit(card)}
+        >
+          <Pencil />
+        </Button>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label={`Delete ${card.product_id}`}
+          onClick={() => onDelete(card)}
+        >
+          <Trash2 />
+        </Button>
+      </span>
+    </div>
+
+    <div className='flex gap-3'>
+      <div className='flex w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white'>
+        {card.image_url ? (
+          <img
+            src={card.image_url}
+            alt={`Profile sketch of ${card.product_id}`}
+            className='max-h-28 object-contain'
+          />
+        ) : (
+          <ImageOff className='size-5 text-muted-foreground' aria-label='No image' />
+        )}
+      </div>
+
+      <div className='flex min-w-0 flex-1 flex-col gap-2'>
+        <div className='flex items-start gap-3'>
+          <div className='min-w-0 flex-1'>
+            <p className='font-mono text-sm font-medium'>{card.product_id}</p>
+            <CardWidth card={card} />
+          </div>
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={`Create a stock order for ${card.product_id}`}
+            title='Scan (or click) to create a stock order'
+            onClick={() => onOrder(card)}
+          >
+            <QrCode />
+          </Button>
+        </div>
+        <p className='truncate text-xs font-medium uppercase'>{card.description ?? '—'}</p>
+        <p className='text-xs text-muted-foreground'>
+          {card.color ?? '—'} · {card.gauge === null ? '—' : `${card.gauge} ga`}
+        </p>
+      </div>
+    </div>
+
+    <div className='grid grid-cols-2 gap-3'>
+      <div>
+        <p className='text-xs tracking-wider text-muted-foreground uppercase'>Stock minimum</p>
+        <p className='font-mono text-lg'>{card.stock_minimum ?? '—'}</p>
+      </div>
+      <div>
+        <p className='text-xs tracking-wider text-muted-foreground uppercase'>Order qty</p>
+        <p className='font-mono text-lg'>{card.order_qty ?? '—'}</p>
+      </div>
+    </div>
+  </div>
+)
+
 type StockCardsPanelProps = {
   /** The cards are asked for only while the panel is on show. */
   enabled: boolean
@@ -219,7 +317,8 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
   const { data: cards, isPending } = useQuery({ ...stockCardsQuery, enabled })
   const remove = useDeleteStockCard()
 
-  const term = search.trim().toLowerCase()
+  // The input keeps up with the typing; the grid catches up when there is time for it.
+  const term = useDeferredValue(search).trim().toLowerCase()
   const shown = cards?.filter(card => matches(card, { term, color, gauge })) ?? []
   const colors = valuesOf(cards?.map(card => card.color) ?? [])
   const gauges = valuesOf(cards?.map(card => card.gauge) ?? [], (a, b) => Number(a) - Number(b))
@@ -303,93 +402,15 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
         ) : shown.length ? (
           <div className={cn('grid gap-3', columns)}>
             {shown.map(card => (
-              <div
+              <StockCardTile
                 key={card.id}
-                className='flex flex-col gap-3 rounded-lg border border-border p-3'
-              >
-                <div className='flex items-center justify-between gap-3'>
-                  <div className='flex items-center gap-2'>
-                    <Checkbox
-                      id={`print-${card.id}`}
-                      aria-label={`Select ${card.product_id} for printing`}
-                      checked={selected.has(card.id)}
-                      onCheckedChange={() => toggle(card.id)}
-                    />
-                    <Label htmlFor={`print-${card.id}`}>Print Select</Label>
-                  </div>
-                  <span className='flex items-center gap-1'>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      aria-label={`Edit ${card.product_id}`}
-                      onClick={() => setCardForm(card)}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      aria-label={`Delete ${card.product_id}`}
-                      onClick={() => setDeleting(card)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </span>
-                </div>
-
-                <div className='flex gap-3'>
-                  <div className='flex w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white'>
-                    {card.image_url ? (
-                      <img
-                        src={card.image_url}
-                        alt={`Profile sketch of ${card.product_id}`}
-                        className='max-h-28 object-contain'
-                      />
-                    ) : (
-                      <ImageOff className='size-5 text-muted-foreground' aria-label='No image' />
-                    )}
-                  </div>
-
-                  <div className='flex min-w-0 flex-1 flex-col gap-2'>
-                    <div className='flex items-start gap-3'>
-                      <div className='min-w-0 flex-1'>
-                        <p className='font-mono text-sm font-medium'>{card.product_id}</p>
-                        <CardWidth card={card} />
-                      </div>
-                      <Button
-                        variant='outline'
-                        size='icon'
-                        aria-label={`Create a stock order for ${card.product_id}`}
-                        title='Scan (or click) to create a stock order'
-                        onClick={() => setOrdering(card)}
-                      >
-                        <QrCode />
-                      </Button>
-                    </div>
-                    <p className='truncate text-xs font-medium uppercase'>
-                      {card.description ?? '—'}
-                    </p>
-                    <p className='text-xs text-muted-foreground'>
-                      {card.color ?? '—'} · {card.gauge === null ? '—' : `${card.gauge} ga`}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='grid grid-cols-2 gap-3'>
-                  <div>
-                    <p className='text-xs tracking-wider text-muted-foreground uppercase'>
-                      Stock minimum
-                    </p>
-                    <p className='font-mono text-lg'>{card.stock_minimum ?? '—'}</p>
-                  </div>
-                  <div>
-                    <p className='text-xs tracking-wider text-muted-foreground uppercase'>
-                      Order qty
-                    </p>
-                    <p className='font-mono text-lg'>{card.order_qty ?? '—'}</p>
-                  </div>
-                </div>
-              </div>
+                card={card}
+                selected={selected.has(card.id)}
+                onToggle={toggle}
+                onEdit={setCardForm}
+                onDelete={setDeleting}
+                onOrder={setOrdering}
+              />
             ))}
           </div>
         ) : cards?.length ? (
