@@ -45,7 +45,7 @@ import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
 const NOTE_SAVE_MS = 600

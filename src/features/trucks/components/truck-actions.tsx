@@ -1,46 +1,20 @@
-import { Button } from '@/components/ui/button'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import type { Truck } from '../api'
-import { DeleteTruckDialog } from './delete-truck-dialog'
+import { RowActions } from '@/components/row-actions'
+import { useDeleteTruck, type Truck } from '../api'
 import { UpdateTruckDialog } from './truck-dialog'
 
-type TruckActionsProps = {
-  truck: Truck
-}
-
-export const TruckActions = ({ truck }: TruckActionsProps) => {
-  const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
+export const TruckActions = ({ truck }: { truck: Truck }) => {
+  const deletion = useDeleteTruck()
 
   return (
-    <div className='flex justify-end gap-1 text-muted-foreground'>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Edit ${truck.name}`}
-        onClick={() => setDialog('update')}
-      >
-        <Pencil />
-      </Button>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Delete ${truck.name}`}
-        onClick={() => setDialog('delete')}
-      >
-        <Trash2 />
-      </Button>
-
-      <UpdateTruckDialog
-        truck={truck}
-        open={dialog === 'update'}
-        onOpenChange={open => setDialog(open ? 'update' : null)}
-      />
-      <DeleteTruckDialog
-        truck={truck}
-        open={dialog === 'delete'}
-        onOpenChange={open => setDialog(open ? 'delete' : null)}
-      />
-    </div>
+    <RowActions
+      name={truck.name}
+      edit={dialog => <UpdateTruckDialog truck={truck} {...dialog} />}
+      remove={{
+        title: `Delete truck ${truck.name}?`,
+        description: 'The truck and its loads are removed. This cannot be undone.',
+        isPending: deletion.isPending,
+        onConfirm: () => deletion.mutateAsync(truck.id)
+      }}
+    />
   )
 }

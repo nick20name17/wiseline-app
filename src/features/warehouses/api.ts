@@ -65,11 +65,9 @@ export const useUpsertWarehouse = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteWarehouse = (onSuccess: () => void) =>
+export const useDeleteWarehouse = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`warehouses/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: warehousesKeys.all })
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) =>
+      client.invalidateQueries({ queryKey: warehousesKeys.all })
   })

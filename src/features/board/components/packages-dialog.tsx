@@ -23,7 +23,7 @@ import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { reprintLabel } from '../lib/package-label'
 import { usePackageLabel } from './use-package-label'
 

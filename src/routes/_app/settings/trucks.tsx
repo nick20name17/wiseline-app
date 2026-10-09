@@ -1,4 +1,5 @@
-import { TrucksPage, trucksSearchSchema } from '@/features/trucks'
+import { searchOnlySchema } from '@/lib/search-term'
+import { TrucksPage } from '@/features/trucks'
 import { createFileRoute } from '@tanstack/react-router'
 
 const TrucksRoute = () => {
@@ -15,6 +16,6 @@ const TrucksRoute = () => {
 
 export const Route = createFileRoute('/_app/settings/trucks')({
   staticData: { crumb: 'Trucks' },
-  validateSearch: trucksSearchSchema,
+  validateSearch: searchOnlySchema,
   component: TrucksRoute
 })

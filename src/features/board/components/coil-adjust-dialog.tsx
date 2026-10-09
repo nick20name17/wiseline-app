@@ -29,7 +29,7 @@ import {
   poundsPerFoot,
   thicknessFromFeet
 } from '../lib/coils'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 const DEPLETE = 'deplete_and_delete'
 

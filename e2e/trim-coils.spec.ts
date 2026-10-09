@@ -113,7 +113,7 @@ test('moving a product from Rollforming to Trim asks first', async ({ page }) =>
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
   await page.getByRole('checkbox', { name: 'Trim holds CB4828B' }).click()
 
-  const dialog = page.getByRole('dialog')
+  const dialog = page.getByRole('alertdialog')
   await expect(
     dialog.getByText(
       'Have you checked with the Rollforming department to ensure that it is ok to move CB4828B to the Trim department?'
@@ -186,7 +186,7 @@ test('a product is put in a department in one call, its coils with it', async ({
 
   await expect(page.getByRole('checkbox', { name: 'Rollforming holds CB4828B' })).toBeChecked()
   await page.getByRole('checkbox', { name: 'Trim holds CB4828B' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Yes' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Yes' }).click()
   await expect
     .poll(() => moved)
     .toEqual([{ path: '/coils/products/CB4828B/location/', body: { in_trim: true } }])

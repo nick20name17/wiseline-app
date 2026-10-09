@@ -52,11 +52,8 @@ export const useUpsertTruck = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteTruck = (onSuccess: () => void) =>
+export const useDeleteTruck = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: trucksKeys.all })
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: trucksKeys.all })
   })

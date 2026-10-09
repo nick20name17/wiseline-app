@@ -97,13 +97,11 @@ export const useUpsertPriority = (onSuccess: () => void) =>
     }
   })
 
-export const useDeletePriority = (onSuccess: () => void) =>
+export const useDeletePriority = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`priorities/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: prioritiesKeys.all })
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) =>
+      client.invalidateQueries({ queryKey: prioritiesKeys.all })
   })
 
 type PriorityOrder = {

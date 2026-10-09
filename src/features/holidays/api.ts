@@ -49,11 +49,8 @@ export const useUpsertHoliday = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteHoliday = (onSuccess: () => void) =>
+export const useDeleteHoliday = () =>
   useMutation({
     mutationFn: (id: number) => authApi.delete(`holidays/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries()
-      onSuccess()
-    }
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries()
   })

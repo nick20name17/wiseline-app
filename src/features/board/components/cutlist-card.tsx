@@ -13,7 +13,7 @@ import {
 import { useViewOnly } from '../lib/board-context'
 import { completeBlocker, type CutlistGroup } from '../lib/cutlists'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
 import { PriorityPill } from '@/components/priority-pill'
 import { RemakePill } from './reman-badge'

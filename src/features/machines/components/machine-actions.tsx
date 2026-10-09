@@ -1,46 +1,23 @@
-import { Button } from '@/components/ui/button'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import type { Machine } from '../api'
-import { DeleteMachineDialog } from './delete-machine-dialog'
+import { RowActions } from '@/components/row-actions'
+import { useDeleteMachine, type Machine } from '../api'
 import { UpdateMachineDialog } from './machine-dialog'
 
-type MachineActionsProps = {
-  machine: Machine
-}
-
-export const MachineActions = ({ machine }: MachineActionsProps) => {
-  const [dialog, setDialog] = useState<'update' | 'delete' | null>(null)
+export const MachineActions = ({ machine }: { machine: Machine }) => {
+  // The schema lets the name be null, though the database always has one.
+  const name = machine.name ?? `#${machine.id}`
+  const deletion = useDeleteMachine()
 
   return (
-    <div className='flex justify-end gap-1 text-muted-foreground'>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Edit ${machine.name}`}
-        onClick={() => setDialog('update')}
-      >
-        <Pencil />
-      </Button>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        aria-label={`Delete ${machine.name}`}
-        onClick={() => setDialog('delete')}
-      >
-        <Trash2 />
-      </Button>
-
-      <UpdateMachineDialog
-        machine={machine}
-        open={dialog === 'update'}
-        onOpenChange={open => setDialog(open ? 'update' : null)}
-      />
-      <DeleteMachineDialog
-        machine={machine}
-        open={dialog === 'delete'}
-        onOpenChange={open => setDialog(open ? 'delete' : null)}
-      />
-    </div>
+    <RowActions
+      name={name}
+      edit={dialog => <UpdateMachineDialog machine={machine} {...dialog} />}
+      remove={{
+        title: `Delete machine ${name}?`,
+        description:
+          'Its tab goes with it, and the line items routed to it are left without a machine. This cannot be undone.',
+        isPending: deletion.isPending,
+        onConfirm: () => deletion.mutateAsync(machine.id)
+      }}
+    />
   )
 }

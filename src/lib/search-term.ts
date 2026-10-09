@@ -8,3 +8,6 @@ export const searchTerm = z.catch(
   z.optional(z.pipe(z.union([z.string(), z.number()]), z.transform(String))),
   undefined
 )
+
+/** A page whose only search param is the term. A stray `?search=` shows everything, not a 4xx. */
+export const searchOnlySchema = z.object({ search: searchTerm })

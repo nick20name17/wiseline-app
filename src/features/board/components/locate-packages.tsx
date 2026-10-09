@@ -23,7 +23,7 @@ import {
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
 import { lineName, overWeight, packageContents } from '../lib/wrapping'
-import { ConfirmDialog } from './confirm-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LocationDialog } from './location-dialog'
 
 type LocatePackagesProps = {
