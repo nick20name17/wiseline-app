@@ -55,7 +55,8 @@ export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
         isPending={remove.isPending}
         onConfirm={() =>
           remove.onConfirm().then(
-            () => setDialog(null),
+            // Only the delete dialog: the edit one may have been opened while the request was out.
+            () => setDialog(open => (open === 'delete' ? null : open)),
             () => {}
           )
         }
