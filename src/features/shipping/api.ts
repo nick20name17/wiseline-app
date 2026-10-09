@@ -64,6 +64,9 @@ const unscheduledOrderSchema = z.object({
   customer: z._default(z.nullable(z.string()), null),
   address: z._default(z.nullable(z.string()), null),
   city: z._default(z.nullable(z.string()), null),
+  state: z._default(z.nullable(z.string()), null),
+  zip: z._default(z.nullable(z.string()), null),
+  country: z._default(z.nullable(z.string()), null),
   entry_date: z._default(z.nullable(z.string()), null),
   ship_date: z._default(z.nullable(z.string()), null),
   weight: z._default(z.number(), 0),
@@ -507,7 +510,9 @@ const stopSchema = z.object({
   name: z._default(z.nullable(z.string()), null),
   address: z._default(z.nullable(z.string()), null),
   city: z._default(z.nullable(z.string()), null),
-  state: z._default(z.nullable(z.string()), null)
+  state: z._default(z.nullable(z.string()), null),
+  zip: z._default(z.nullable(z.string()), null),
+  country: z._default(z.nullable(z.string()), null)
 })
 
 export type Stop = z.infer<typeof stopSchema>

@@ -12,16 +12,26 @@ export const formatLength = (inches: number | null) => {
   return `${feet}'${rest}" (${inches}")`
 }
 
+// Street and town alone match places anywhere — Google sends «3464 Concession 3, Harrow» to wherever
+// the viewer is — so the province, postal code and country go along whenever EBMS has them.
+type Place = {
+  address: string | null
+  city: string | null
+  state?: string | null
+  zip?: string | null
+  country?: string | null
+}
+
+// EBMS pads its text fields with spaces, so a blank one would otherwise add an empty part.
+const placeOf = ({ address, city, state, zip, country }: Place) =>
+  [address, city, state, zip, country]
+    .map(part => part?.trim())
+    .filter(Boolean)
+    .join(', ')
+
 /** The address on Google Maps — «Click this to view the address on a map» p3 (603,222). */
-export const mapUrl = (address: string | null, city: string | null) =>
-  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    [address, city].filter(Boolean).join(', ')
-  )}`
-
-type Place = { address: string | null; city: string | null; state?: string | null }
-
-const placeOf = ({ address, city, state }: Place) =>
-  [address, city, state].filter(Boolean).join(', ')
+export const mapUrl = (place: Place) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeOf(place))}`
 
 /**
  * The run on Google Maps, stop by stop from the warehouse — «shows that route on the map» p3 (617,441).

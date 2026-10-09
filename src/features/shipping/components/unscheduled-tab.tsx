@@ -175,20 +175,22 @@ export const UnscheduledTab = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns take 1592px; the floor leaves the Customer room to read. */}
-          <Table className='min-w-452 table-fixed'>
+          {/* Sized to the widest value plus the cell's 32px padding — a date with a two-digit day, a
+              five-figure weight — so only the free text truncates. The fixed columns take 1776px; the
+              floor leaves the Customer room to read. */}
+          <Table className='min-w-498 table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />
-              <col className='w-36' />
-              <col className='w-36' />
+              <col className='w-44' />
+              <col className='w-44' />
               <col className='w-28' />
               <col />
               <col className='w-56' />
-              <col className='w-32' />
-              <col className='w-14' />
-              <col className='w-28' />
-              <col className='w-36' />
+              <col className='w-40' />
+              <col className='w-16' />
+              <col className='w-40' />
+              <col className='w-44' />
               <col className='w-24' />
               <col className='w-36' />
               <col className='w-32' />
@@ -284,7 +286,7 @@ export const UnscheduledTab = ({
                         <TableCell>
                           {order.address ? (
                             <a
-                              href={mapUrl(order.address, order.city)}
+                              href={mapUrl(order)}
                               target='_blank'
                               rel='noreferrer'
                               aria-label={`Map of ${order.order_number ?? order.order}`}

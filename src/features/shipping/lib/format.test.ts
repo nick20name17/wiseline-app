@@ -13,8 +13,19 @@ describe('shipping formats', () => {
     expect(formatWeight(null)).toBe('—')
   })
 
-  it('searches the address and the city on the map', () => {
-    expect(mapUrl('567 George St', 'Woodstock')).toBe(
+  it('searches the whole address on the map', () => {
+    expect(
+      mapUrl({
+        address: '3464 Concession 3',
+        city: 'Harrow',
+        state: 'ON',
+        zip: 'N0R 1G0',
+        country: '   '
+      })
+    ).toBe(
+      'https://www.google.com/maps/search/?api=1&query=3464%20Concession%203%2C%20Harrow%2C%20ON%2C%20N0R%201G0'
+    )
+    expect(mapUrl({ address: '567 George St', city: 'Woodstock' })).toBe(
       'https://www.google.com/maps/search/?api=1&query=567%20George%20St%2C%20Woodstock'
     )
   })
@@ -22,13 +33,19 @@ describe('shipping formats', () => {
   it('runs the directions from the warehouse through every stop', () => {
     const url = new URL(
       routeUrl([
-        { address: '1 Yard Rd', city: 'Aylmer', state: 'ON' },
+        {
+          address: '1 Yard Rd',
+          city: 'Aylmer',
+          state: 'ON',
+          zip: 'N5H 2R5',
+          country: 'CANADA  '
+        },
         { address: '45 Yarmouth Road', city: 'St Thomas', state: 'ON' },
         { address: null, city: 'London', state: null },
         { address: '567 George St', city: 'Woodstock' }
       ])!
     )
-    expect(url.searchParams.get('origin')).toBe('1 Yard Rd, Aylmer, ON')
+    expect(url.searchParams.get('origin')).toBe('1 Yard Rd, Aylmer, ON, N5H 2R5, CANADA')
     expect(url.searchParams.get('waypoints')).toBe('45 Yarmouth Road, St Thomas, ON|London')
     expect(url.searchParams.get('destination')).toBe('567 George St, Woodstock')
     expect(routeUrl([{ address: '1 Yard Rd', city: 'Aylmer' }])).toBeNull()
