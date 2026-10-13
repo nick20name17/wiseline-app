@@ -547,6 +547,12 @@
   [data-slot='select-trigger'][data-size='sm'] {
     min-height: calc(var(--spacing) * 9);
   }
+  /* The group grows to a finger's height; its field fills it, so a tap on the group's edge still
+     lands in the field. */
+  [data-slot='input-group-control'] {
+    align-self: stretch;
+    height: auto;
+  }
   /* A list's options and a strip's tabs are picked by the same finger. */
   :is(
     [data-slot='dropdown-menu-item'],
@@ -561,10 +567,6 @@
   }
   [data-slot='tabs-list'] {
     height: auto;
-  }
-  /* The box stays a box; the ring a finger can land on around it grows to 40 square. */
-  :is([data-slot='checkbox'], [data-slot='switch'])::after {
-    inset: -0.75rem;
   }
 }
 
@@ -746,6 +748,17 @@ input[data-slot='input']:autofill {
   [data-slot='checkbox-indicator'] > svg {
     width: 1.125rem;
     height: 1.125rem;
+  }
+
+  /* The box stays a box; the ring a finger can land on around it grows to 48 square. A table cell
+     clips its overflow for truncation, which would cut the ring back to the box — so a cell that
+     holds the box alone lets it out; one with text beside the box keeps truncating it. */
+  :is([data-slot='checkbox'], [data-slot='switch'])::after {
+    inset: -0.75rem;
+  }
+  /* Base UI keeps a hidden native input beside the box. */
+  td:has(> [data-slot='checkbox']):not(:has(> :not([data-slot='checkbox'], input[aria-hidden]))) {
+    overflow: visible;
   }
 
   [data-slot='button'] {

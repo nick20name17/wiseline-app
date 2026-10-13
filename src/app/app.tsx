@@ -1,3 +1,4 @@
+import { DisabledReasons } from '@/components/disabled-reasons'
 import { Toaster } from '@/components/ui/toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { queryClient } from '@/lib/query-client'
@@ -9,6 +10,7 @@ export const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster>
+        <DisabledReasons />
         <RouterProvider router={router} />
       </Toaster>
     </TooltipProvider>

@@ -13,7 +13,7 @@ export type OverflowAction = {
   icon: LucideIcon
   onClick: () => void
   disabled?: boolean
-  /** Why it is disabled, or what it does, where a pointer can hover for it. */
+  /** Why it is disabled, or what it does: hovered for with a pointer, tapped for with a finger. */
   title?: string
 }
 
@@ -50,7 +50,12 @@ export const OverflowActions = ({ actions, label = 'More actions' }: OverflowAct
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='min-w-52'>
         {actions.map(action => (
-          <DropdownMenuItem key={action.label} disabled={action.disabled} onClick={action.onClick}>
+          <DropdownMenuItem
+            key={action.label}
+            disabled={action.disabled}
+            title={action.title}
+            onClick={action.onClick}
+          >
             <action.icon />
             {action.label}
           </DropdownMenuItem>
