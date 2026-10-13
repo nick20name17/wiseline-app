@@ -33,11 +33,15 @@ const MachineRow = ({ machine, unit }: MachineRowProps) => {
         : machine.daily_max_pieces
 
   return (
-    <li className='flex items-center gap-2.5 border-b border-border px-4 py-2.5 last:border-b-0'>
-      <span className='font-medium'>{machine.name ?? '—'}</span>
-      {machine.kind === GATEWAY_KIND ? <Badge variant='muted'>Gateway</Badge> : null}
+    // A phone has no room for the capacity beside the name, so it takes a line under it; the name
+    // keeps the width it needs rather than breaking letter by letter.
+    <li className='flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-border px-4 py-2.5 last:border-b-0'>
+      <span className='flex min-w-0 flex-1 flex-wrap items-center gap-2.5'>
+        <span className='font-medium break-words'>{machine.name ?? '—'}</span>
+        {machine.kind === GATEWAY_KIND ? <Badge variant='muted'>Gateway</Badge> : null}
+      </span>
       <span
-        className='mr-3 ml-auto inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground'
+        className='inline-flex shrink-0 items-center gap-1.5 font-mono text-xs whitespace-nowrap text-muted-foreground max-sm:order-last max-sm:basis-full sm:mr-3'
         title='Daily capacity'
       >
         <Gauge className='size-3' />
@@ -57,7 +61,7 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       <div
-        className='flex items-center gap-2 bg-muted/50 px-4 py-3 data-open:border-b data-open:border-border'
+        className='flex flex-wrap items-center gap-2 bg-muted/50 px-4 py-3 data-open:border-b data-open:border-border'
         data-open={open || undefined}
       >
         {/* The title spans the free width, so the header toggles from almost anywhere, as in the
@@ -72,11 +76,15 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
           <span className='font-mono text-xs text-muted-foreground'>{section.machines.length}</span>
         </button>
 
-        {section.department ? <MaxPackageDialog department={section.department} /> : null}
-        {section.code === COIL_SUPPLIERS_DEPARTMENT ? <CoilSuppliersDialog /> : null}
-        {section.department?.code === DAILY_CAPACITY_DEPARTMENT ? (
-          <DailyCapacityDialog department={section.department} />
-        ) : null}
+        {/* A phone has no room beside the title, so the department's settings drop to a line of
+            their own under it. */}
+        <div className='flex flex-wrap gap-2 empty:hidden max-md:order-last max-md:w-full'>
+          {section.department ? <MaxPackageDialog department={section.department} /> : null}
+          {section.code === COIL_SUPPLIERS_DEPARTMENT ? <CoilSuppliersDialog /> : null}
+          {section.department?.code === DAILY_CAPACITY_DEPARTMENT ? (
+            <DailyCapacityDialog department={section.department} />
+          ) : null}
+        </div>
         <Button
           variant='ghost'
           size='icon-sm'

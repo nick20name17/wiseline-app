@@ -1,4 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useActiveInView } from '@/hooks/use-active-in-view'
 import { Link, useLocation } from '@tanstack/react-router'
 
 const SETTINGS_TABS = [
@@ -19,6 +20,7 @@ type SettingsTabsProps = {
 
 export const SettingsTabs = ({ hidden }: SettingsTabsProps) => {
   const pathname = useLocation({ select: location => location.pathname })
+  const scroller = useActiveInView<HTMLDivElement>(pathname)
 
   return (
     // The rule runs the full width and the active tab's underline sits on it.
@@ -26,7 +28,10 @@ export const SettingsTabs = ({ hidden }: SettingsTabsProps) => {
       <Tabs value={pathname}>
         {/* The scroll sits on a wrapper rather than on the list, so the first and last tab keep
             their focus ring where the strip has to scroll. */}
-        <div className='scrollport overflow-x-auto'>
+        <div
+          ref={scroller}
+          className='scrollport overflow-x-auto overscroll-x-contain max-md:scrollbar-none'
+        >
           <TabsList variant='line'>
             {SETTINGS_TABS.filter(tab => !hidden.has(tab.to)).map(tab => (
               <TabsTrigger

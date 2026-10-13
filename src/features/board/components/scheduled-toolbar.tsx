@@ -1,4 +1,6 @@
 import { formatDate } from '@/lib/days'
+import { OverflowActions } from '@/components/overflow-actions'
+import { SelectionBar } from '@/components/selection-bar'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ArrowRight, Database } from 'lucide-react'
@@ -49,36 +51,32 @@ export const ScheduledToolbar = ({
       </span>
 
       {makes && !viewOnly ? (
-        <div className='ml-auto flex flex-wrap items-center gap-2'>
-          {/* A release is all stock orders or all customer orders, never a mix. */}
-          {selectionKind ? (
-            <span className='text-xs text-muted-foreground'>
-              {selectionKind === 'stock' ? 'Customer' : 'Stock'} orders locked (type exclusion)
-            </span>
-          ) : null}
-
+        <div className='ml-auto flex flex-wrap items-center justify-end gap-2 max-md:w-full max-md:flex-nowrap'>
           {stockCards ? (
-            <Button variant='outline' onClick={onAllocatedStock}>
-              <Database data-icon='inline-start' />
-              Allocated Stock
-            </Button>
+            <OverflowActions
+              actions={[{ label: 'Allocated Stock', icon: Database, onClick: onAllocatedStock }]}
+            />
           ) : null}
-          <Button
-            disabled={!canRelease || isReleasing}
-            title={
+          <SelectionBar
+            active={selectedCount > 0}
+            note={
+              // A release is all stock orders or all customer orders, never a mix.
               selectedCount && !canRelease
                 ? 'All selected orders must be Reviewed to release'
-                : 'Release selected orders to production'
+                : selectionKind
+                  ? `${selectionKind === 'stock' ? 'Customer' : 'Stock'} orders locked (type exclusion)`
+                  : null
             }
-            onClick={onRelease}
           >
-            {isReleasing ? (
-              <Spinner data-icon='inline-start' />
-            ) : (
-              <ArrowRight data-icon='inline-start' />
-            )}
-            Release to production{selectedCount ? ` (${selectedCount})` : ''}
-          </Button>
+            <Button disabled={!canRelease || isReleasing} onClick={onRelease}>
+              {isReleasing ? (
+                <Spinner data-icon='inline-start' />
+              ) : (
+                <ArrowRight data-icon='inline-start' />
+              )}
+              Release to production{selectedCount ? ` (${selectedCount})` : ''}
+            </Button>
+          </SelectionBar>
         </div>
       ) : null}
     </div>

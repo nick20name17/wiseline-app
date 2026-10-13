@@ -1,3 +1,5 @@
+import { OverflowActions } from '@/components/overflow-actions'
+import { SelectionBar } from '@/components/selection-bar'
 import { Button } from '@/components/ui/button'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { CalendarDays, FastForward, Plus, QrCode } from 'lucide-react'
@@ -42,17 +44,17 @@ export const UnscheduledToolbar = ({
       </span>
 
       {viewOnly ? null : (
-        <div className='ml-auto flex flex-wrap items-center gap-2'>
+        <div className='ml-auto flex flex-wrap items-center justify-end gap-2 max-md:w-full max-md:flex-nowrap'>
           {stockCards ? (
-            <>
-              <Button variant='outline' onClick={onStockCards}>
-                <QrCode data-icon='inline-start' />
-                Stock Cards
-              </Button>
-              <Button variant='outline' onClick={onCreateStockOrder}>
-                <Plus data-icon='inline-start' />
-                Create stock order
-              </Button>
+            <OverflowActions
+              actions={[
+                { label: 'Stock Cards', icon: QrCode, onClick: onStockCards },
+                { label: 'Create stock order', icon: Plus, onClick: onCreateStockOrder }
+              ]}
+            />
+          ) : null}
+          <SelectionBar active={selectedCount > 0}>
+            {stockCards ? (
               <Button
                 variant='outline'
                 disabled={!ready || !selectedCount}
@@ -60,14 +62,17 @@ export const UnscheduledToolbar = ({
                 onClick={onBypass}
               >
                 <FastForward data-icon='inline-start' />
-                Bypass Production{selectedCount ? ` (${selectedCount})` : ''}
+                {/* A phone shares the row out three ways; the short word fits a third. */}
+                <span className='md:hidden'>Bypass</span>
+                <span className='max-md:hidden'>Bypass Production</span>
+                {selectedCount ? ` (${selectedCount})` : ''}
               </Button>
-            </>
-          ) : null}
-          <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
-            <CalendarDays data-icon='inline-start' />
-            Schedule{selectedCount ? ` (${selectedCount})` : ''}
-          </Button>
+            ) : null}
+            <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
+              <CalendarDays data-icon='inline-start' />
+              Schedule{selectedCount ? ` (${selectedCount})` : ''}
+            </Button>
+          </SelectionBar>
         </div>
       )}
     </div>

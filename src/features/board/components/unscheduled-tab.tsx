@@ -142,6 +142,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
               column takes room of its own: 1108px fixed, which would leave the customer nothing. */}
           <Table
             ref={tableRef}
+            data-cards
             className={cn('table-fixed', board.coils ? 'min-w-7xl' : 'min-w-5xl')}
           >
             <colgroup>

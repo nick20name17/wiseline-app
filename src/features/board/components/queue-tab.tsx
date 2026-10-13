@@ -60,6 +60,8 @@ type QueueLineProps = {
 const hasCoil = (row: QueueRow) =>
   !!row.supplier && !!row.coil_number && row.coil_icon !== 'waiting_to_slit'
 
+const NEEDS_COIL = 'Needs a Supplier and Coil Number first'
+
 const Locked = ({ value, locked }: { value: string | null; locked: boolean }) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className='truncate font-mono'>{value ?? 'Undefined'}</span>
@@ -95,30 +97,31 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
       className={cn(movable && 'cursor-grab', isDragging && 'relative z-10 cursor-grabbing')}
       {...listeners}
     >
-      <TableCell>
+      {/* On a card the grip sits in the corner by the thumb, sized for one. */}
+      <TableCell card='trail'>
         {movable ? (
           <button
             ref={setActivatorNodeRef}
             type='button'
             aria-label={`Move ${rowName(row)}`}
-            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:p-3'
             {...attributes}
           >
-            <GripVertical className='size-3.5' />
+            <GripVertical className='size-3.5 pointer-coarse:size-4' />
           </button>
         ) : null}
       </TableCell>
-      <TableCell>
+      <TableCell card='title'>
         <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
       </TableCell>
-      <TableCell>{row.profile ?? '—'}</TableCell>
-      <TableCell>
+      <TableCell label='Profile'>{row.profile ?? '—'}</TableCell>
+      <TableCell label='L/F'>
         <span className='font-mono'>{formatCount(row.linear_feet)}</span>
       </TableCell>
-      <TableCell>
+      <TableCell label='Weight'>
         <span className='font-mono'>{formatCount(row.weight)}</span>
       </TableCell>
-      <TableCell>
+      <TableCell label='Priority'>
         {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
         {priority ? (
           <PriorityPill priority={priority} />
@@ -126,32 +129,38 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
           <span className='text-muted-foreground'>—</span>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell label='Supplier'>
         <Locked value={row.supplier} locked={row.coil_fields_locked} />
       </TableCell>
-      <TableCell>
+      <TableCell label='Coil Number'>
         <Locked value={row.coil_number} locked={row.coil_fields_locked} />
       </TableCell>
-      <TableCell>
+      <TableCell label='Slit Line'>
         {row.coil_icon === 'waiting_to_slit' ? (
           <Scissors className='size-3.5 text-warning' aria-label='Waiting for the Slit Line' />
         ) : row.coil_icon === 'slit' ? (
           <Scissors className='size-3.5 text-success' aria-label='Slit' />
         ) : null}
       </TableCell>
-      <TableCell>
-        <Checkbox
-          aria-label={`${rowName(row)} is in the machine`}
-          title={hasCoil(row) ? undefined : 'Needs a Supplier and Coil Number first'}
-          checked={row.current}
-          disabled={!onInMachine || !hasCoil(row)}
-          // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
-          onPointerDown={event => event.stopPropagation()}
-          onKeyDown={event => event.stopPropagation()}
-          onCheckedChange={checked => onInMachine?.(row, checked)}
-        />
+      <TableCell label='In Machine'>
+        <span className='inline-flex items-center gap-2'>
+          <Checkbox
+            aria-label={`${rowName(row)} is in the machine`}
+            title={hasCoil(row) ? undefined : NEEDS_COIL}
+            checked={row.current}
+            disabled={!onInMachine || !hasCoil(row)}
+            // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
+            onPointerDown={event => event.stopPropagation()}
+            onKeyDown={event => event.stopPropagation()}
+            onCheckedChange={checked => onInMachine?.(row, checked)}
+          />
+          {/* The box's title, for a finger that cannot hover for it. */}
+          {onInMachine && !hasCoil(row) ? (
+            <span className='text-xs text-muted-foreground pointer-fine:hidden'>{NEEDS_COIL}</span>
+          ) : null}
+        </span>
       </TableCell>
-      <TableCell>
+      <TableCell label='Orders' card='full'>
         <span className='truncate text-xs text-muted-foreground'>
           {/* A line split by coil is on this row for some of its units p2 (679,416). */}
           {[
@@ -247,86 +256,94 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
     )
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        modifiers={[restrictToVerticalAxis]}
-        accessibility={{ announcements }}
-        onDragEnd={handleDragEnd}
-      >
-        <Table className='min-w-320 table-fixed'>
-          <colgroup>
-            <col className='w-10' />
-            <col className='w-48' />
-            <col className='w-40' />
-            <col className='w-24' />
-            <col className='w-24' />
-            <col className='w-28' />
-            <col className='w-36' />
-            <col className='w-36' />
-            <col className='w-20' />
-            <col className='w-24' />
-            <col />
-          </colgroup>
-          <TableHeader>
-            <TableRow>
-              <TableHead />
-              <TableHead>Material</TableHead>
-              <TableHead>Profile</TableHead>
-              <TableHead>L/F</TableHead>
-              <TableHead>Weight</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Supplier</TableHead>
-              <TableHead>Coil Number</TableHead>
-              <TableHead>Slit Line</TableHead>
-              <TableHead>In Machine</TableHead>
-              <TableHead>Orders</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isPending ? (
-              <TableSkeletonRows columns={COLUMNS} />
-            ) : (
-              days.map(day => (
-                <Fragment key={day.date ?? 'undated'}>
-                  <TableRow data-divider>
-                    <TableCell colSpan={COLUMNS}>
-                      <span className='text-xs font-semibold tracking-wider uppercase'>
-                        {day.date ? formatLongDate(day.date) : '—'}
-                        {day.date === today() ? ' · today' : ''}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                  <SortableContext
-                    items={day.items.map(row => row.key)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {day.items.map(row => (
-                      <QueueLine
-                        key={row.key}
-                        row={row}
-                        priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
-                        movable={movable}
-                        onInMachine={
-                          viewOnly || departmentId === undefined || machineId === undefined
-                            ? null
-                            : (picked, checked) =>
-                                inMachine.mutate({
-                                  departmentId,
-                                  flowId: machineId,
-                                  key: checked ? picked.key : null
-                                })
-                        }
-                      />
-                    ))}
-                  </SortableContext>
-                </Fragment>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </DndContext>
+    <div className='flex flex-col gap-2'>
+      {/* A finger has no grab cursor to say the rows move. */}
+      {movable ? (
+        <p className='text-xs text-muted-foreground pointer-fine:hidden'>
+          Hold a row, then drag it to move it within its day.
+        </p>
+      ) : null}
+      <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          accessibility={{ announcements }}
+          onDragEnd={handleDragEnd}
+        >
+          <Table data-cards className='min-w-320 table-fixed'>
+            <colgroup>
+              <col className='w-10' />
+              <col className='w-48' />
+              <col className='w-40' />
+              <col className='w-24' />
+              <col className='w-24' />
+              <col className='w-28' />
+              <col className='w-36' />
+              <col className='w-36' />
+              <col className='w-20' />
+              <col className='w-24' />
+              <col />
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead />
+                <TableHead>Material</TableHead>
+                <TableHead>Profile</TableHead>
+                <TableHead>L/F</TableHead>
+                <TableHead>Weight</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Coil Number</TableHead>
+                <TableHead>Slit Line</TableHead>
+                <TableHead>In Machine</TableHead>
+                <TableHead>Orders</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isPending ? (
+                <TableSkeletonRows columns={COLUMNS} />
+              ) : (
+                days.map(day => (
+                  <Fragment key={day.date ?? 'undated'}>
+                    <TableRow data-divider>
+                      <TableCell colSpan={COLUMNS}>
+                        <span className='text-xs font-semibold tracking-wider uppercase'>
+                          {day.date ? formatLongDate(day.date) : '—'}
+                          {day.date === today() ? ' · today' : ''}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    <SortableContext
+                      items={day.items.map(row => row.key)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {day.items.map(row => (
+                        <QueueLine
+                          key={row.key}
+                          row={row}
+                          priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
+                          movable={movable}
+                          onInMachine={
+                            viewOnly || departmentId === undefined || machineId === undefined
+                              ? null
+                              : (picked, checked) =>
+                                  inMachine.mutate({
+                                    departmentId,
+                                    flowId: machineId,
+                                    key: checked ? picked.key : null
+                                  })
+                          }
+                        />
+                      ))}
+                    </SortableContext>
+                  </Fragment>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </DndContext>
+      </div>
     </div>
   )
 }

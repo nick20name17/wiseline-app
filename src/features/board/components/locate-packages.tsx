@@ -76,10 +76,11 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <span className='flex items-center gap-3'>
+      <span className='flex flex-wrap items-center gap-3'>
         <Button variant='outline' onClick={onBack}>
           <ArrowLeft data-icon='inline-start' />
-          Back to Wrapping
+          <span className='md:hidden'>Back</span>
+          <span className='max-md:hidden'>Back to Wrapping</span>
         </Button>
         <span className='font-mono font-medium'>{number}</span>
         <span className='ml-auto font-mono text-sm text-muted-foreground'>
@@ -91,7 +92,7 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
         <Skeleton className='h-40' />
       ) : packages?.length ? (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table>
+          <Table data-cards>
             <TableHeader>
               <TableRow>
                 <TableHead>Package</TableHead>
@@ -103,20 +104,20 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
             <TableBody>
               {packages.map(parcel => (
                 <TableRow key={parcel.package_id}>
-                  <TableCell>
+                  <TableCell card='title'>
                     <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Contents' card='full'>
                     <span className='text-muted-foreground'>
                       {packageContents(parcel.contents, names)}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Weight'>
                     <span className='font-mono'>
                       {parcel.weight === null ? '—' : `${parcel.weight} lb`}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Location'>
                     {parcel.location !== null ? (
                       <span className='font-mono'>{parcel.location}</span>
                     ) : viewOnly ? (

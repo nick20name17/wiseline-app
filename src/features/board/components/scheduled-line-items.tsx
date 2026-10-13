@@ -204,7 +204,7 @@ export const ScheduledLineItems = ({
           actions the board leaves here are gone and the rows are a record. */}
       {/* Once released the coil buttons give way to the packages the floor makes p2 (541,647). */}
       {released && board.coils ? (
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
           <span className='text-sm font-medium'>Released order</span>
           <Button variant='outline' className='ml-auto' onClick={() => setSeeing(true)}>
             <PackageSearch data-icon='inline-start' />
@@ -213,8 +213,8 @@ export const ScheduledLineItems = ({
         </div>
       ) : null}
       {released || viewOnly ? null : (
-        <div className='flex items-center gap-3'>
-          <span className='text-sm font-medium'>
+        <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
+          <span className='text-sm font-medium max-md:w-full'>
             {board.makes ? 'Reviewing order' : 'Scheduled order'}
           </span>
           {/* Gone once released p2 (541,647). */}
@@ -263,7 +263,7 @@ export const ScheduledLineItems = ({
       )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
-        <Table className='min-w-4xl table-fixed'>
+        <Table data-cards className='min-w-4xl table-fixed'>
           <colgroup>
             <col className='w-10' />
             {columns.cols}
@@ -319,7 +319,7 @@ export const ScheduledLineItems = ({
                     data-locked={otherDay || undefined}
                     data-divider={(board.coils && newProduct(rows, index)) || undefined}
                   >
-                    <TableCell>
+                    <TableCell card='lead'>
                       {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
                       {board.coils && editable && status !== 'stock' ? (
                         <Checkbox

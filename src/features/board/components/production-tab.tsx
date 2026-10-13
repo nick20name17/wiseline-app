@@ -277,11 +277,17 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      <div className='flex items-center gap-3 border-b border-border'>
-        <Tabs className='min-w-0 flex-1' value={station} onValueChange={setStation}>
+      {/* On a phone the buttons share a row of their own above the stations, in equal parts, so the
+          strip keeps the whole width and still sits on the rule. */}
+      <div className='flex items-center gap-3 border-b border-border max-md:flex-wrap'>
+        <Tabs
+          className='min-w-0 flex-1 max-md:order-last max-md:basis-full'
+          value={station}
+          onValueChange={setStation}
+        >
           {/* The scroll sits on a wrapper rather than on the list, so the first and last station
               keep their focus ring where the strip has to scroll. */}
-          <div className='scrollport overflow-x-auto'>
+          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
             <TabsList variant='line' className='h-9'>
               {/* The gateway every list passes through first, set apart from the machines after it. */}
               <TabsTrigger value={SLINET} tone='gateway'>
@@ -299,22 +305,31 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
           </div>
         </Tabs>
 
-        {/* p1 (1004,289): on every station, for pieces made against no order. */}
-        {viewOnly ? null : (
-          <Button variant='outline' className='mb-1.5' onClick={() => setManufacturing(true)}>
-            <Factory data-icon='inline-start' />
-            Stock Manufacturing
+        <div className='flex gap-2 max-md:w-full md:contents'>
+          {/* p1 (1004,289): on every station, for pieces made against no order. */}
+          {viewOnly ? null : (
+            <Button
+              variant='outline'
+              className='max-md:flex-1 md:mb-1.5'
+              onClick={() => setManufacturing(true)}
+            >
+              <Factory data-icon='inline-start' />
+              <span className='md:hidden'>Stock Mfg</span>
+              <span className='max-md:hidden'>Stock Manufacturing</span>
+            </Button>
+          )}
+
+          {isWrapping && !viewOnly ? (
+            <ScanPackageDialog className='max-md:flex-1 md:mb-1.5' />
+          ) : null}
+
+          {/* The worker reaches the coils from where he is standing — the same list the Coils tab
+              shows, under the Manager's filter. */}
+          <Button variant='outline' className='max-md:flex-1 md:mb-1.5' onClick={onOpenCoils}>
+            <Database data-icon='inline-start' />
+            Coils
           </Button>
-        )}
-
-        {isWrapping && !viewOnly ? <ScanPackageDialog /> : null}
-
-        {/* The worker reaches the coils from where he is standing — the same list the Coils tab
-            shows, under the Manager's filter. */}
-        <Button variant='outline' className='mb-1.5' onClick={onOpenCoils}>
-          <Database data-icon='inline-start' />
-          Coils
-        </Button>
+        </div>
       </div>
 
       {isWrapping ? (
@@ -324,11 +339,12 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
           {/* Every station carries its own Active / Completed switch, and a completed list renders in
           the format the worker used — same card, same columns. */}
           <Tabs value={done ? 'done' : 'active'} onValueChange={value => setDone(value === 'done')}>
-            <TabsList className='h-10'>
+            <TabsList className='h-10 max-md:w-full'>
               <TabsTrigger value='active'>Active {word}</TabsTrigger>
               <TabsTrigger value='done'>
                 <History data-icon='inline-start' />
-                Completed {word} · past 90 days
+                Completed {word}
+                <span className='max-md:hidden'> · past 90 days</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>

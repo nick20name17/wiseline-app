@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -74,12 +74,13 @@ export const AllocatedStockDialog = ({
 
         {/* The floor is the placeholder's own height: the dialog is centred, so a box that grew from
             nothing into the answer would move the whole sheet under the pointer. */}
-        <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : rows?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table className='table-fixed'>
+              <Table data-cards className='table-fixed'>
                 <colgroup>{columns.cols}</colgroup>
                 <TableHeader>
                   <TableRow>{columns.headers}</TableRow>

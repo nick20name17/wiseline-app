@@ -161,6 +161,13 @@ type LotCellsProps = {
   onSlinet: (lot: CoilLot, checked: boolean) => void
 }
 
+const SLINET_SHUT = 'Needs the coil in Trim and a Coil Thickness'
+
+/** Why a box is shut, in words where a finger cannot hover for the title that says it. */
+const TouchHint = ({ children }: { children: ReactNode }) => (
+  <span className='text-xs text-muted-foreground pointer-fine:hidden'>{children}</span>
+)
+
 const FIGURES: { key: CoilFigure; label: string }[] = [
   { key: 'coil_thickness', label: 'Coil Thickness' },
   { key: 'linear_feet', label: 'Linear Feet' },
@@ -177,13 +184,13 @@ const LotCells = ({ lot, onAdjust, onSlinet }: LotCellsProps) => {
 
   return (
     <>
-      <TableCell>
+      <TableCell card='title'>
         <span className='font-mono'>{lot.lot_number ?? '—'}</span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
           other two out, with the cursor in the one clicked. */}
       {FIGURES.map(({ key, label }) => (
-        <TableCell key={key}>
+        <TableCell key={key} label={label}>
           {viewOnly ? (
             <span className='font-mono'>{figure(lot[key])}</span>
           ) : (
@@ -198,11 +205,11 @@ const LotCells = ({ lot, onAdjust, onSlinet }: LotCellsProps) => {
           )}
         </TableCell>
       ))}
-      <TableCell>
+      <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
         <span
-          className='inline-flex'
-          title={slinetShut ? 'Needs the coil in Trim and a Coil Thickness' : undefined}
+          className='inline-flex items-center gap-2'
+          title={slinetShut ? SLINET_SHUT : undefined}
         >
           <Checkbox
             aria-label={`Slinet holds coil ${coilName(lot)}`}
@@ -210,9 +217,10 @@ const LotCells = ({ lot, onAdjust, onSlinet }: LotCellsProps) => {
             disabled={viewOnly || slinetShut}
             onCheckedChange={checked => onSlinet(lot, checked)}
           />
+          {slinetShut && !viewOnly ? <TouchHint>{SLINET_SHUT}</TouchHint> : null}
         </span>
       </TableCell>
-      <TableCell>
+      <TableCell label='Note' card='full'>
         <NoteCell lot={lot} />
       </TableCell>
     </>
@@ -246,6 +254,8 @@ const LotColumns = () => (
 
 type CellHandlers = Omit<LotCellsProps, 'lot'>
 
+const MOUNTED = 'A coil of this product is mounted in the Slinet — take it off first'
+
 type GroupLocationProps = {
   group: CoilGroup
   department: Department
@@ -267,18 +277,14 @@ const GroupLocation = ({ group, department, onTick }: GroupLocationProps) => {
 
   return (
     // The hint sits on a wrapper: a disabled control never shows its own.
-    <span
-      className='inline-flex'
-      title={
-        shut ? 'A coil of this product is mounted in the Slinet — take it off first' : undefined
-      }
-    >
+    <span className='inline-flex items-center gap-2' title={shut ? MOUNTED : undefined}>
       <Checkbox
         aria-label={`${DEPARTMENT_LABEL[department]} holds ${group.productId ?? 'these coils'}`}
         checked={checked}
         disabled={viewOnly || shut || !group.productId}
         onCheckedChange={next => onTick(group, department, next)}
       />
+      {shut && !viewOnly ? <TouchHint>{MOUNTED}</TouchHint> : null}
     </span>
   )
 }
@@ -307,7 +313,7 @@ const ProductGrid = ({
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table className='table-fixed'>
+      <Table data-cards className='table-fixed'>
         <colgroup>
           <col className='w-12' />
           {columns.cols}
@@ -341,7 +347,7 @@ const ProductGrid = ({
                       toggle(group.key)
                     }}
                   >
-                    <TableCell>
+                    <TableCell card='trail'>
                       <Button
                         variant='ghost'
                         size='icon-sm'
@@ -410,7 +416,7 @@ const ProductGrid = ({
                       <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
-                            <Table className='table-fixed [&_th]:whitespace-normal'>
+                            <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
                               <colgroup>
                                 <LotColumns />
                               </colgroup>
@@ -624,8 +630,13 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   )
 
   const scopeTabs = worker ? null : (
-    <Tabs value={scope} onValueChange={value => setScope(value as CoilScope)}>
-      <TabsList className='h-10'>
+    // A phone gives the switch what the filter button leaves of the row, so the two meet.
+    <Tabs
+      className='max-md:min-w-0 max-md:flex-1'
+      value={scope}
+      onValueChange={value => setScope(value as CoilScope)}
+    >
+      <TabsList className='h-10 max-md:w-full'>
         <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
         <TabsTrigger
           value='all'
@@ -650,7 +661,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   if (!loading && !listed.length)
     return (
       <div className='flex flex-1 flex-col gap-4'>
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-3'>
           {scopeTabs}
           {filterButton}
         </div>
@@ -677,7 +688,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         >
           {/* A department has dozens of folders; they scroll on their own line rather than widen the
               page under the sidebar. */}
-          <div className='scrollport overflow-x-auto'>
+          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
             <TabsList variant='line'>
               <TabsTrigger value='all'>All folders</TabsTrigger>
               {folders.map(entry => (
@@ -706,7 +717,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
         {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
 
-        <InputGroup className='ml-auto w-80'>
+        <InputGroup className='w-full md:ml-auto md:w-80'>
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>

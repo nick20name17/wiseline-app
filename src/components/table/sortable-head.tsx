@@ -1,4 +1,4 @@
-import { TableHead } from '@/components/ui/table'
+import { TableHead, type TableCellCard } from '@/components/ui/table'
 import { useSortable } from '@dnd-kit/sortable'
 
 export type Column = {
@@ -9,6 +9,8 @@ export type Column = {
   width?: string
   /** The column is obvious from its cells, so its heading is for screen readers only. */
   hideLabel?: boolean
+  /** Where its cells go when the table is laid out as cards; a labelled field unless set. */
+  card?: TableCellCard
 }
 
 export const SortableHead = ({ column }: { column: Column }) => {

@@ -1,18 +1,7 @@
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { Spinner } from '@/components/ui/spinner'
 import {
   Table,
   TableBody,
@@ -22,21 +11,19 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
-import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { MapPin, Pencil, Search, Trash2 } from 'lucide-react'
+import { MapPin, Search } from 'lucide-react'
 import { useRef, useState } from 'react'
 import {
   allLocationTypesQuery,
   departmentsQuery,
   locationsQuery,
-  useDeleteLocation,
-  warehousePickerQuery,
-  type Location
+  warehousePickerQuery
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
-import { CreateLocationDialog, UpdateLocationDialog } from './location-dialog'
+import { LocationActions } from './location-actions'
+import { CreateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -62,11 +49,6 @@ export const LocationsPage = ({
   const { data: types } = useQuery(allLocationTypesQuery)
   const { data: departments } = useQuery(departmentsQuery)
 
-  const [editing, setEditing] = useState<Location | null>(null)
-  const [removing, setRemoving] = useState<Location | null>(null)
-  const [removed, releaseRemoved] = useRetained(removing)
-  const remove = useDeleteLocation(() => setRemoving(null))
-
   const [term, setTerm] = useState(search ?? '')
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -88,9 +70,10 @@ export const LocationsPage = ({
     <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
 
-      <div className='flex items-center justify-between gap-3.5'>
-        <div className='flex items-center gap-3'>
-          <InputGroup className='w-60'>
+      <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
+        {/* On a phone the add button spans the top line and the search takes the full line below it. */}
+        <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
+          <InputGroup className='sm:max-w-60'>
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -104,7 +87,7 @@ export const LocationsPage = ({
           </InputGroup>
 
           {locations.length ? (
-            <p className='text-sm text-muted-foreground'>
+            <p className='shrink-0 text-sm text-muted-foreground'>
               {locations.length} {locations.length === 1 ? 'location' : 'locations'}
               {active ? ` in ${active.name}` : ''}
             </p>
@@ -128,7 +111,7 @@ export const LocationsPage = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-6xl table-fixed'>
+          <Table data-cards className='min-w-6xl table-fixed'>
             <colgroup>
               <col className='w-40' />
               <col className='w-48' />
@@ -158,50 +141,33 @@ export const LocationsPage = ({
               ) : (
                 locations.map(location => (
                   <TableRow key={location.id}>
-                    <TableCell>
+                    <TableCell card='title'>
                       <span className='font-mono'>{location.code ?? '—'}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell label='Warehouse'>
                       {warehouses?.find(warehouse => warehouse.id === location.warehouse_id)
                         ?.name ?? '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell label='Location Type'>
                       {types?.find(type => type.id === location.location_type_id)?.name ?? '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell label='Max Weight'>
                       <span className='font-mono'>{location.weight ?? '—'}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell label='Multi Order'>
                       {location.multi_order ? (
                         <Badge variant='soft'>{location.max_orders ?? 'Any'}</Badge>
                       ) : (
                         <span className='text-muted-foreground'>—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell label='Description' card='full'>
                       <span className='truncate text-muted-foreground'>
                         {location.description ?? '—'}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <span className='flex justify-end gap-1 text-muted-foreground'>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          aria-label={`Edit ${location.code}`}
-                          onClick={() => setEditing(location)}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          aria-label={`Delete ${location.code}`}
-                          onClick={() => setRemoving(location)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </span>
+                    <TableCell card='trail'>
+                      <LocationActions location={location} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -210,40 +176,6 @@ export const LocationsPage = ({
           </Table>
         </div>
       )}
-
-      {editing ? (
-        <UpdateLocationDialog
-          location={editing}
-          open
-          onOpenChange={open => !open && setEditing(null)}
-        />
-      ) : null}
-
-      <AlertDialog
-        open={!!removing}
-        onOpenChange={open => !open && setRemoving(null)}
-        onOpenChangeComplete={releaseRemoved}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete location {removed?.code}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anything standing on it loses where it is. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
-            <Button
-              variant='destructive'
-              disabled={remove.isPending}
-              onClick={() => removing && remove.mutate(removing.id)}
-            >
-              {remove.isPending ? <Spinner data-icon='inline-start' /> : null}
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </section>
   )
 }

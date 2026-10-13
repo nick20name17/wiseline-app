@@ -21,7 +21,7 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
           widest cell, so they hold still between the skeleton, the data and every search. */}
-      <Table className='min-w-4xl table-fixed'>
+      <Table data-cards className='min-w-4xl table-fixed'>
         {/* Description takes the leftover width, since it is the one field that runs long. */}
         <colgroup>
           <col className='w-56' />
@@ -48,19 +48,19 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
           ) : (
             warehouses.map(warehouse => (
               <TableRow key={warehouse.id}>
-                <TableCell>{warehouse.name ?? '—'}</TableCell>
-                <TableCell>{warehouse.address ?? '—'}</TableCell>
-                <TableCell>
+                <TableCell card='title'>{warehouse.name ?? '—'}</TableCell>
+                <TableCell label='Address'>{warehouse.address ?? '—'}</TableCell>
+                <TableCell label='Description'>
                   <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell label='Default'>
                   {warehouse.is_default ? (
                     <Badge variant='soft'>Default</Badge>
                   ) : (
                     <span className='text-muted-foreground'>—</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell card='trail'>
                   <WarehouseActions warehouse={warehouse} />
                 </TableCell>
               </TableRow>

@@ -30,9 +30,10 @@ export const TrucksPage = ({ search, onSearchChange }: TrucksPageProps) => {
 
   return (
     <section className='flex flex-1 flex-col gap-4'>
-      <div className='flex items-center justify-between gap-3.5'>
-        <div className='flex items-center gap-3'>
-          <InputGroup className='w-60'>
+      <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
+        {/* On a phone the add button spans the top line and the search takes the full line below it. */}
+        <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
+          <InputGroup className='sm:max-w-60'>
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -46,7 +47,7 @@ export const TrucksPage = ({ search, onSearchChange }: TrucksPageProps) => {
           </InputGroup>
 
           {trucks?.length ? (
-            <p className='text-sm text-muted-foreground'>
+            <p className='shrink-0 text-sm text-muted-foreground'>
               {trucks.length} {trucks.length === 1 ? 'truck' : 'trucks'}
             </p>
           ) : null}

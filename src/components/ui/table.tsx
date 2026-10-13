@@ -92,10 +92,28 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
+/**
+ * How a cell reads when a table lays its rows out as cards (`data-cards`, below `lg`): `title` heads
+ * the card, `subtitle` sits under it, `lead` and `trail` hold the row's controls at its corners, `full`
+ * takes the card's width and `hidden` is left off. Any other cell is a labelled field.
+ */
+type TableCellCard = 'title' | 'subtitle' | 'lead' | 'trail' | 'full' | 'hidden'
+
+/** The column a cell is in, for the label and the place it takes on a card. */
+const TableColumnContext = React.createContext<{ label: string; card?: TableCellCard } | null>(null)
+
+function TableCell({
+  className,
+  label,
+  card,
+  ...props
+}: React.ComponentProps<'td'> & { label?: string; card?: TableCellCard }) {
+  const column = React.use(TableColumnContext)
   return (
     <td
       data-slot='table-cell'
+      data-label={label ?? column?.label}
+      data-card={card ?? column?.card}
       className={cn(
         'overflow-hidden px-4 py-1 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
         className
@@ -115,4 +133,15 @@ function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) 
   )
 }
 
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption }
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+  TableColumnContext,
+  type TableCellCard
+}

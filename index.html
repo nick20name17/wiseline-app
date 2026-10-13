@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `viewport-fit=cover` paints under the notch and home indicator, which the shell pads back out
+      of with `env(safe-area-inset-*)`; `resizes-content` has Android's keyboard shrink the page the
+      way iOS does, so a drawer's footer rides above it. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta
       name="description"
       content="Wiseline PM — production scheduling and order tracking across Trim, Rollforming and Shipping."
@@ -20,8 +26,9 @@
       crossorigin
       href="/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"
     />
-    <!-- The app shell's geometry and light-theme colours (16rem sidebar, 52px header), drawn before
-      the script runs so the app mounts into the frame it was already showing. -->
+    <!-- The app shell's geometry and light-theme colours (16rem sidebar, a 3rem rail on a tablet, none on
+      a phone; 52px header), drawn before the script runs so the app mounts into the frame it was
+      already showing. -->
     <style>
       .shell {
         display: flex;
@@ -44,6 +51,11 @@
         box-sizing: border-box;
         height: 52px;
         border-bottom: 1px solid oklch(0.922 0 0);
+      }
+      @media (max-width: 1279px) {
+        .shell > aside {
+          width: 3rem;
+        }
       }
       @media (max-width: 767px) {
         .shell > aside {

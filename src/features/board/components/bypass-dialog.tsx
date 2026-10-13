@@ -1,14 +1,4 @@
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { BoardOrder } from '../api'
 
 type BypassDialogProps = {
@@ -26,25 +16,14 @@ export const BypassDialog = ({
   isPending,
   onConfirm
 }: BypassDialogProps) => (
-  <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>
-          Bypass Production —{' '}
-          {orders.length === 1 ? `order ${orders[0]?.invoice}` : `${orders.length} orders`}?
-        </AlertDialogTitle>
-        <AlertDialogDescription>
-          Are you sure you want this order(s) to bypass all the production tabs and go straight to
-          the wrapping stage?
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel render={<Button variant='outline' />}>No</AlertDialogCancel>
-        <Button disabled={isPending} onClick={onConfirm}>
-          {isPending ? <Spinner data-icon='inline-start' /> : null}
-          Yes, Bypass Production
-        </Button>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+  <ConfirmDialog
+    open={open}
+    onOpenChange={onOpenChange}
+    title={`Bypass Production — ${orders.length === 1 ? `order ${orders[0]?.invoice}` : `${orders.length} orders`}?`}
+    description='Are you sure you want this order(s) to bypass all the production tabs and go straight to the wrapping stage?'
+    confirmLabel='Yes, Bypass Production'
+    cancelLabel='No'
+    isPending={isPending}
+    onConfirm={onConfirm}
+  />
 )

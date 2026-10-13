@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useQuery } from '@tanstack/react-query'
@@ -79,7 +79,7 @@ export const LineNotesDialog = ({
         </DialogHeader>
 
         {/* The floor keeps the thread from opening short and then growing under the pointer. */}
-        <div className='scrollport max-h-80 min-h-40 space-y-4 overflow-y-auto'>
+        <div className='scrollport min-h-40 space-y-4 md:max-h-80 md:overflow-y-auto'>
           {isPending ? (
             <p className='py-6 text-center text-sm text-muted-foreground'>Loading…</p>
           ) : thread?.notes.length ? (
@@ -88,8 +88,9 @@ export const LineNotesDialog = ({
                 <Avatar className='size-8'>
                   <AvatarFallback>{note.author?.initials ?? '—'}</AvatarFallback>
                 </Avatar>
-                <div className='flex-1 space-y-1'>
-                  <div className='flex items-center gap-2'>
+                <div className='min-w-0 flex-1 space-y-1'>
+                  {/* A phone puts the email and the time under the name. */}
+                  <div className='flex items-center gap-2 max-md:flex-wrap'>
                     {note.read ? null : (
                       <span aria-hidden className='size-1.5 rounded-full bg-destructive' />
                     )}

@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -118,8 +118,8 @@ export const RemanufactureDialog = ({
         </DialogHeader>
 
         <div className='flex flex-col gap-3'>
-          <div className='flex items-center gap-3'>
-            <Label className='w-40' htmlFor='reman-quantity'>
+          <div className='flex items-center gap-3 max-sm:flex-wrap'>
+            <Label className='w-40 max-sm:w-full' htmlFor='reman-quantity'>
               Pieces to remake
             </Label>
             {/* p1 (677,470), (871,615): the figure is keyed in on the floor's keypad. */}
@@ -139,8 +139,8 @@ export const RemanufactureDialog = ({
             </span>
           </div>
 
-          <div className='flex items-center gap-3'>
-            <Label className='w-40' htmlFor='reman-stock'>
+          <div className='flex items-center gap-3 max-sm:flex-wrap'>
+            <Label className='w-40 max-sm:w-full' htmlFor='reman-stock'>
               Of those, from stock
             </Label>
             {/* The board lets the Stock figure be changed with the request, from zero up to the

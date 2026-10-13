@@ -129,7 +129,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
 
   if (row.can_wrap && allowed > 0)
     return (
-      <span className='flex items-center gap-2'>
+      <span className='flex flex-wrap items-center gap-2'>
         <Input
           className='w-20'
           type='number'
@@ -158,6 +158,12 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
         >
           {staged ? 'Clear' : 'Auto fill'}
         </Button>
+        {/* Why Auto fill is shut is its hover title on a desk; a touch screen has no hover. */}
+        {!staged && otherProduct ? (
+          <span className='hidden w-full text-xs text-muted-foreground pointer-coarse:block'>
+            Another Product ID is in this package
+          </span>
+        ) : null}
       </span>
     )
 
@@ -235,7 +241,7 @@ const WrapLines = ({
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
         {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it.
             Rollforming's fixed columns, Supplier / Coil Number among them, take 1312px. */}
-        <Table className={cn('table-fixed', board.coils ? 'min-w-360' : 'min-w-300')}>
+        <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-360' : 'min-w-300')}>
           <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
@@ -327,7 +333,7 @@ const WrapLines = ({
                       </TableCell>
                     ),
                     coil: (
-                      <TableCell>
+                      <TableCell card='full'>
                         <CoilCell
                           row={row}
                           item={coils?.get(row.origin_item)}
@@ -340,7 +346,7 @@ const WrapLines = ({
                       </TableCell>
                     ),
                     wrapping: (
-                      <TableCell>
+                      <TableCell card='full'>
                         <WrapCell
                           row={row}
                           allowed={allowed}
@@ -432,7 +438,7 @@ type PackageWeightProps = {
  * lines rather than typed, so the floor has nothing to weigh.
  */
 const PackageWeight = ({ weight, limit, overPackage, overLocation, slot }: PackageWeightProps) => (
-  <span className='flex items-center gap-2'>
+  <span className='flex flex-wrap items-center gap-2'>
     <span className='text-xs tracking-wider text-muted-foreground uppercase'>Package weight</span>
     <output
       aria-label='Package weight'
@@ -493,6 +499,15 @@ const CompleteOrderButton = ({
   )
   // Completing early leaves lines short; EBMS hears only of what went into packages.
   const short = completion?.outstanding.length ?? 0
+  const shut = completion?.can_complete
+    ? undefined
+    : completion?.reason
+      ? completion.reason
+      : owesReman
+        ? 'Waiting on a remanufacture — available once the machine marks it Bent'
+        : makes
+          ? 'Available once Left To Wrap is zero on every line'
+          : 'Available once the first package is created'
 
   const complete = useCompleteOrder(() => {
     setCompleting(false)
@@ -509,22 +524,18 @@ const CompleteOrderButton = ({
       <Button
         className='ml-auto'
         disabled={!completion?.can_complete}
-        title={
-          completion?.can_complete
-            ? undefined
-            : completion?.reason
-              ? completion.reason
-              : owesReman
-                ? 'Waiting on a remanufacture — available once the machine marks it Bent'
-                : makes
-                  ? 'Available once Left To Wrap is zero on every line'
-                  : 'Available once the first package is created'
-        }
+        title={shut}
         onClick={() => setCompleting(true)}
       >
         <Check data-icon='inline-start' />
         Order complete
       </Button>
+      {/* The reason is the button's hover title on a desk; a touch screen reads it under the bar. */}
+      {shut ? (
+        <span className='order-last hidden w-full text-right text-xs text-muted-foreground pointer-coarse:block'>
+          {shut}
+        </span>
+      ) : null}
       <ConfirmDialog
         open={completing}
         onOpenChange={setCompleting}
@@ -672,10 +683,11 @@ export const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
   const wrapped = rows.reduce((total, row) => total + row.wrapped, 0)
 
   return (
-    <span className='flex items-center gap-3'>
+    <span className='flex flex-wrap items-center gap-3'>
       <Button variant='outline' onClick={onBack}>
         <ArrowLeft data-icon='inline-start' />
-        Back to {pack.station}
+        <span className='md:hidden'>Back</span>
+        <span className='max-md:hidden'>Back to {pack.station}</span>
       </Button>
       <span className='font-mono font-medium'>{number}</span>
       {orderOverdue(rows) ? (
@@ -712,7 +724,8 @@ const Fact = ({ label, value, mono }: { label: string; value: string | null; mon
 const OrderFacts = ({ number, order, locations, onRemove }: OrderFactsProps) => {
   const board = useBoard()
   return (
-    <dl className='flex flex-wrap gap-x-8 gap-y-2 text-sm'>
+    // A phone's row fits two or three facts at uneven widths; two columns keep them in line.
+    <dl className='grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:flex sm:flex-wrap sm:gap-x-8'>
       <Fact label='Order #' value={number} mono />
       <Fact label='Priority' value={order.priority} />
       {/* A stock order has no customer behind it, so none of the EBMS order info. */}
@@ -724,7 +737,7 @@ const OrderFacts = ({ number, order, locations, onRemove }: OrderFactsProps) => 
           <Fact label='Ship Date' value={order.ship_date && formatDate(order.ship_date)} />
         </>
       )}
-      <div className='flex flex-col gap-0.5'>
+      <div className='col-span-2 flex flex-col gap-0.5'>
         <dt className='text-xs tracking-wider text-muted-foreground uppercase'>
           {board.name} Location
         </dt>

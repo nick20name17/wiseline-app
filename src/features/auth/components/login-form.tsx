@@ -35,7 +35,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
   return (
     <AuthCard title='Sign in' description='Access the production floor dashboard'>
-      <form onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
+      <form noValidate onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
         <FieldGroup>
           <FieldGroup>
             <Field data-invalid={errors.email ? true : undefined}>
@@ -82,7 +82,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
           <Link
             to='/forgot-password'
-            className='text-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
+            className='text-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline max-md:py-2'
           >
             Forgot your password?
           </Link>

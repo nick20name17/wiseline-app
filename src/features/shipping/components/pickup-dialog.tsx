@@ -5,10 +5,11 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
@@ -104,13 +105,13 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
         </div>
       </FieldGroup>
 
-      <div className='mt-6 flex justify-end gap-2'>
+      <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
         <Button type='submit' disabled={create.isPending}>
           {create.isPending ? <Spinner data-icon='inline-start' /> : null}
           Add pickup
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   )
 }

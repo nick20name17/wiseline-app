@@ -52,7 +52,7 @@ export const PrioritiesPage = ({
     <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
 
-      <div className='flex items-center gap-3.5'>
+      <div className='flex items-center gap-3.5 max-md:flex-wrap'>
         {priorities.length ? (
           <p className='text-sm text-muted-foreground'>
             <span className='font-semibold text-foreground'>{priorities.length}</span>{' '}

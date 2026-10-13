@@ -12,7 +12,7 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { cn } from 'cn'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarClock, SearchX } from 'lucide-react'
+import { CalendarClock, CalendarX, SearchX } from 'lucide-react'
 import { useState } from 'react'
 import {
   countsQuery,
@@ -363,14 +363,16 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
       {!isPending && whole && !parts.length ? (
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <SearchX />
-            </EmptyMedia>
-            <EmptyTitle>No matching orders</EmptyTitle>
+            <EmptyMedia variant='icon'>{search ? <SearchX /> : <CalendarX />}</EmptyMedia>
+            <EmptyTitle>{search ? 'No matching orders' : 'Nothing scheduled'}</EmptyTitle>
             <EmptyDescription>
-              {day
-                ? `No orders scheduled for ${formatDate(day)} match your search.`
-                : 'No scheduled orders match your search.'}
+              {search
+                ? day
+                  ? `No orders scheduled for ${formatDate(day)} match your search.`
+                  : 'No scheduled orders match your search.'
+                : day
+                  ? `No orders are scheduled for ${formatDate(day)}.`
+                  : 'No orders are scheduled.'}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -381,6 +383,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
           <Table
             ref={tableRef}
+            data-cards
             className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
           >
             <colgroup>

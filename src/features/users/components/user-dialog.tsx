@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
@@ -54,7 +54,7 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
       noValidate
     >
       <FieldGroup>
-        <div className='grid grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
           <Field data-invalid={invalid(errors.first_name)}>
             <RequiredLabel htmlFor='user-first-name'>First Name</RequiredLabel>
             <InputGroup>

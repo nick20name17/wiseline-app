@@ -3,6 +3,7 @@ import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Spinner } from '@/components/ui/spinner'
 import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +30,8 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
   const leave = useLeftWarehouse()
   const deliver = useDelivered()
   const complete = useCompleteLoad()
+  // Pressed in a cab, often at arm's length: a phone gets the taller buttons.
+  const size = useIsMobile() ? 'lg' : 'default'
 
   return (
     <section className='flex min-w-0 flex-1 flex-col gap-4'>
@@ -56,6 +59,7 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
             action={
               load.status === 'loaded' ? (
                 <Button
+                  size={size}
                   disabled={leave.isPending && leave.variables === load.load_id}
                   onClick={() => leave.mutate(load.load_id)}
                 >
@@ -66,6 +70,7 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
                 </Button>
               ) : load.status === 'delivered' ? (
                 <Button
+                  size={size}
                   disabled={complete.isPending && complete.variables === load.load_id}
                   onClick={() => complete.mutate(load.load_id)}
                 >
@@ -84,6 +89,7 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
                   load.status === 'en_route' && order.status !== 'delivered' ? (
                     <Button
                       variant='outline'
+                      size={size}
                       disabled={deliver.isPending && deliver.variables?.[0] === order.assignment_id}
                       onClick={() => deliver.mutate([order.assignment_id])}
                     >

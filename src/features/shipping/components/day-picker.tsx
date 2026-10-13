@@ -22,13 +22,16 @@ type DayPickerProps = {
  * its date and not delivered reads red, in the calendar and among the shortcuts beside it p3 (593,591).
  */
 export const DayPicker = ({ day, onDayChange, markOverdue = false }: DayPickerProps) => {
-  const { data: overdue = [] } = useQuery({ ...overdueDaysQuery, enabled: markOverdue })
+  const { data = [] } = useQuery({ ...overdueDaysQuery, enabled: markOverdue })
+  // A disabled query still hands back what Dispatch cached.
+  const overdue = markOverdue ? data : []
   const step = (days: number) => onDayChange(toIsoDay(addDays(fromIsoDay(day), days)))
   const late = overdue.includes(day)
   // ISO days sort as strings; the server's order is not promised.
   const shortcuts = overdue.toSorted().slice(-SHOWN_OVERDUE)
 
   return (
+    // On a phone the date stretches between its arrows across the row.
     <div className='flex flex-wrap items-center gap-2'>
       <Button variant='outline' size='icon' aria-label='Previous day' onClick={() => step(-1)}>
         <ChevronLeft />
@@ -38,13 +41,23 @@ export const DayPicker = ({ day, onDayChange, markOverdue = false }: DayPickerPr
         onChange={date => onDayChange(toIsoDay(date))}
         format={date => formatLongDate(toIsoDay(date))}
         flagged={overdue.map(fromIsoDay)}
+        className='max-md:flex-1'
       />
       <Button variant='outline' size='icon' aria-label='Next day' onClick={() => step(1)}>
         <ChevronRight />
       </Button>
-      {late ? <Badge variant='destructive'>Overdue</Badge> : null}
+      {/* The picked shortcut already reads red; a phone would give the badge a line of its own. */}
+      {late ? (
+        <Badge
+          variant='destructive'
+          className={shortcuts.includes(day) ? 'max-md:hidden' : undefined}
+        >
+          Overdue
+        </Badge>
+      ) : null}
       {shortcuts.length ? (
-        <span className='ml-2 flex flex-wrap items-center gap-1.5 text-sm'>
+        // A phone gives the late days their own line rather than a ragged tail of the stepper's.
+        <span className='flex flex-wrap items-center gap-1.5 text-sm max-md:basis-full md:ml-2'>
           <span className='text-destructive'>
             Overdue{overdue.length > shortcuts.length ? ` (${overdue.length} days)` : ''}:
           </span>

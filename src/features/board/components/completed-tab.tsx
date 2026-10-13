@@ -25,6 +25,8 @@ const Waiting = () => (
 const Refused = ({ error }: { error: string }) => (
   <span className='text-destructive' title={error}>
     EBMS refused
+    {/* A touch screen has no hover for the title, and the why is the point. */}
+    <span className='hidden pointer-coarse:inline'>: {error}</span>
   </span>
 )
 
@@ -74,7 +76,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-5xl table-fixed'>
+          <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>{columns.cols}</colgroup>
             <TableHeader>
               <TableRow>{columns.headers}</TableRow>

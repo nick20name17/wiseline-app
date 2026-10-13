@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -103,7 +103,7 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
           : 'Line items'}
       </h3>
       <div className='overflow-hidden rounded-lg border border-border'>
-        <Table>
+        <Table data-cards>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
           </TableHeader>
@@ -212,7 +212,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
         <p className='text-sm text-muted-foreground'>No packages recorded.</p>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border'>
-          <Table>
+          <Table data-cards>
             <TableHeader>
               <TableRow>
                 <TableHead className='w-10'>
@@ -225,7 +225,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
             <TableBody>
               {packages.map(parcel => (
                 <TableRow key={parcel.package_id}>
-                  <TableCell>
+                  <TableCell card='lead'>
                     <Checkbox
                       aria-label={`Move package ${parcel.name ?? parcel.package_id}`}
                       checked={picked.has(parcel.package_id)}
@@ -252,7 +252,7 @@ const PackagesSection = ({ packages, lines, picked, onToggle }: PackagesSectionP
                       </TableCell>
                     )
                   })}
-                  <TableCell>
+                  <TableCell card='full'>
                     {viewOnly ? null : (
                       <span className='flex justify-end'>
                         <Button
@@ -332,7 +332,8 @@ export const CompletedOrderDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport flex max-h-104 min-h-56 flex-col gap-4 overflow-y-auto'>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport flex min-h-56 flex-col gap-4 md:max-h-104 md:overflow-y-auto'>
           {isPending || !data ? (
             <Skeleton className='h-56' />
           ) : (

@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -57,7 +57,7 @@ const SupplierList = () => {
           <p className='text-xs text-muted-foreground'>
             {suppliers.length} of {count} {count === 1 ? 'supplier' : 'suppliers'}
           </p>
-          <ul className='max-h-80 overflow-y-auto rounded-lg border border-border'>
+          <ul className='rounded-lg border border-border md:max-h-80 md:overflow-y-auto'>
             {suppliers.map(({ supplier, name }) => (
               <li
                 key={supplier}

@@ -28,7 +28,7 @@ export const DepartmentChips = ({ value, onChange }: DepartmentChipsProps) => {
             aria-pressed={on}
             onClick={() => toggle(department)}
             className={cn(
-              'rounded-full border px-3 py-1.5 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+              'rounded-full border px-3 py-1.5 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-md:min-h-10',
               on
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-input text-foreground hover:bg-muted'

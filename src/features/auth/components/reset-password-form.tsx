@@ -47,7 +47,7 @@ export const ResetPasswordForm = ({ uid64, token }: ResetPasswordFormProps) => {
 
   return (
     <AuthCard title='Set a new password' description='Choose a password you have not used before'>
-      <form onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
+      <form noValidate onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
         <FieldGroup>
           <FieldGroup>
             <Field data-invalid={errors.password ? true : undefined}>
@@ -94,7 +94,7 @@ export const ResetPasswordForm = ({ uid64, token }: ResetPasswordFormProps) => {
 
           <Link
             to='/forgot-password'
-            className='text-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
+            className='text-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline max-md:py-2'
           >
             Request a new link
           </Link>

@@ -30,6 +30,7 @@ import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
 import { StatusPill } from './status-pill'
 import { BenchHeader } from './wrap-order'
+import { SelectionBar } from '@/components/selection-bar'
 
 type StockWrapProps = {
   departmentId: number | undefined
@@ -77,7 +78,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
       <BenchHeader number={number} rows={rows} onBack={onBack} />
 
       <div className='overflow-x-auto rounded-lg border border-border bg-card shadow-xs'>
-        <Table>
+        <Table data-cards>
           <TableHeader>
             <TableRow>
               <TableHead className='w-12'>
@@ -103,7 +104,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
             ) : (
               lines?.map(line => (
                 <TableRow key={line.origin_item}>
-                  <TableCell>
+                  <TableCell card='lead'>
                     {/* A row with its batch shows it; the box waits for a Wrapped figure. */}
                     {line.manufactured ? (
                       <Factory
@@ -119,13 +120,13 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                       />
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Qty Ordered'>
                     <Figure value={line.qty_ordered} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Left To Wrap'>
                     <Figure value={line.left_to_wrap} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Wrapped'>
                     {line.manufactured ? (
                       <span className='text-muted-foreground'>—</span>
                     ) : viewOnly ? (
@@ -141,7 +142,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                       </Button>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Qty Manufactured'>
                     {line.qty_manufactured === null ? (
                       <span className='text-muted-foreground'>—</span>
                     ) : (
@@ -150,18 +151,18 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Status'>
                     <StatusPill status={itemStatus(line.status)} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell card='title'>
                     <span className='font-mono'>{line.product_id ?? '—'}</span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell card='subtitle'>
                     <span className='truncate text-muted-foreground'>
                       {line.description ?? '—'}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label='Length'>
                     <span
                       className={cn(
                         'font-mono',
@@ -179,14 +180,16 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
       </div>
 
       {viewOnly ? null : (
-        <div className='flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
+        <div className='flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
           <span className='text-sm text-muted-foreground'>
             Stock order — no packages or locations. Tick the rows you are done wrapping.
           </span>
-          <Button disabled={!picked.length} onClick={() => setConfirming(true)}>
-            <Factory data-icon='inline-start' />
-            Create Manufacturing Batch{picked.length ? ` (${picked.length})` : ''}
-          </Button>
+          <SelectionBar active={picked.length > 0}>
+            <Button disabled={!picked.length} onClick={() => setConfirming(true)}>
+              <Factory data-icon='inline-start' />
+              Create Manufacturing Batch{picked.length ? ` (${picked.length})` : ''}
+            </Button>
+          </SelectionBar>
         </div>
       )}
 

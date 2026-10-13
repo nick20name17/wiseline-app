@@ -27,18 +27,26 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
 
   return (
     <li className='border-t border-border px-3 py-2'>
-      <div className='flex items-center gap-3 text-sm'>
-        <span className='w-28 font-mono font-medium'>{order.order_number ?? '—'}</span>
-        <span className='min-w-0 flex-1 truncate'>{order.customer ?? '—'}</span>
-        <span className='text-xs text-muted-foreground'>{statusLabel(order.status) ?? ''}</span>
+      {/* On a phone the customer takes a line of its own under the order and its status. */}
+      <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-sm'>
+        <span className='w-28 font-mono font-medium max-md:w-auto'>
+          {order.order_number ?? '—'}
+        </span>
+        <span className='min-w-0 flex-1 truncate max-md:order-last max-md:basis-full'>
+          {order.customer ?? '—'}
+        </span>
+        <span className='text-xs text-muted-foreground max-md:ml-auto'>
+          {statusLabel(order.status) ?? ''}
+        </span>
         {/* Loaded waits for every line, packaged or not yet (round 10, C3): this says what is left. */}
         <ReadyCount order={order.order} readiness={order} />
       </div>
       {order.packages.length ? (
-        <ul className='mt-2 flex flex-wrap gap-2'>
+        // One package a line on a phone, each a full-width target for a gloved thumb.
+        <ul className='mt-2 flex flex-wrap gap-2 max-md:flex-col'>
           {order.packages.map(pack => (
             <li key={pack.package_id}>
-              <label className='flex cursor-pointer items-center gap-2 rounded-md border border-border px-2 py-1 text-sm'>
+              <label className='flex cursor-pointer items-center gap-2 rounded-md border border-border px-2 py-1 text-sm max-md:min-h-11 max-md:px-3'>
                 <Checkbox
                   aria-label={`${pack.name ?? pack.package_id} loaded`}
                   checked={pack.is_loaded}
@@ -51,7 +59,7 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
                   }
                 />
                 <span className='font-mono'>{pack.name ?? pack.package_id}</span>
-                <span className='text-xs text-muted-foreground'>
+                <span className='text-xs text-muted-foreground max-md:ml-auto'>
                   {pack.location ?? '—'} · {formatWeight(pack.weight)}
                 </span>
               </label>

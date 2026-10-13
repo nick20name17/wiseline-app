@@ -4,9 +4,10 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -221,7 +222,7 @@ const CoilAssignForm = ({
         </Field>
 
         {supplier && folderTabs.length ? (
-          <div className='scrollport overflow-x-auto'>
+          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
             <Tabs
               value={folder ?? 'match'}
               onValueChange={value => {
@@ -306,13 +307,13 @@ const CoilAssignForm = ({
         ) : null}
       </FieldGroup>
 
-      <div className='mt-6 flex justify-end gap-2'>
+      <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
         <Button type='submit' disabled={pending || incomplete}>
           {pending ? <Spinner data-icon='inline-start' /> : null}
           {SUBMIT[action]}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   )
 }

@@ -1,13 +1,4 @@
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Switch } from '@/components/ui/switch'
 import { useState } from 'react'
 import { formatDate } from '@/lib/days'
@@ -69,28 +60,19 @@ export const ReviewedToggle = ({
         )}
       </span>
 
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Turn off Reviewed?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Order {order.invoice} on {formatDate(day)} will no longer be selectable for release.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
-            <Button
-              disabled={mutation.isPending}
-              onClick={() => {
-                set(false)
-                setConfirming(false)
-              }}
-            >
-              Confirm
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title='Turn off Reviewed?'
+        description={`Order ${order.invoice} on ${formatDate(day)} will no longer be selectable for release.`}
+        confirmLabel='Confirm'
+        cancelLabel='Cancel'
+        disabled={mutation.isPending}
+        onConfirm={() => {
+          set(false)
+          setConfirming(false)
+        }}
+      />
     </>
   )
 }

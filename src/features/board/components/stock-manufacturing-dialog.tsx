@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -94,7 +94,7 @@ export const StockManufacturingDialog = ({
           </TabsList>
         </Tabs>
 
-        <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
+        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {view === 'new' ? (
             // Labels over the boxes, as Create stock order has them: the lines are a form being
             // written, not a table of records.
@@ -126,7 +126,7 @@ export const StockManufacturingDialog = ({
               ))}
             </div>
           ) : batches?.length ? (
-            <Table>
+            <Table data-cards>
               <TableHeader>
                 <TableRow>
                   <TableHead>Sent</TableHead>
@@ -138,16 +138,16 @@ export const StockManufacturingDialog = ({
               <TableBody>
                 {batches.map(batch => (
                   <TableRow key={batch.id}>
-                    <TableCell>
+                    <TableCell card='subtitle'>
                       <span className='font-mono text-xs'>
                         {batch.created_at ? formatStamp(batch.created_at) : '—'}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell card='title'>
                       <span className='font-mono'>{batch.ebms_batch ?? '—'}</span>
                     </TableCell>
-                    <TableCell>{batch.order ?? 'Stock Manufacturing'}</TableCell>
-                    <TableCell>
+                    <TableCell label='From'>{batch.order ?? 'Stock Manufacturing'}</TableCell>
+                    <TableCell label='Items' card='full'>
                       <span className='text-muted-foreground'>
                         {batch.lines
                           .map(line => `${line.quantity} × ${line.product_id}`)

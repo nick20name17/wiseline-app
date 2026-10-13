@@ -11,7 +11,7 @@ import { ScheduleDialog } from './schedule-dialog'
 
 // One box for every card in the strip, placeholders included: equal widths are what stop the strip
 // re-wrapping — and the page below it moving — when the days arrive.
-const TILE = 'h-11 w-40 rounded-md border px-2 py-1 leading-tight'
+const TILE = 'h-11 w-40 md:max-xl:w-full rounded-md border px-2 py-1 leading-tight'
 
 type DayPillProps = {
   entry: DayStripEntry
@@ -56,7 +56,7 @@ type PinnedDayProps = {
 
 /** The day pinned beside the five: clicking it picks another in its place, the cross takes it off. */
 const PinnedDay = ({ entry, onChange, onRemove }: PinnedDayProps) => (
-  <div className='relative'>
+  <div className='relative max-md:order-first'>
     <button
       type='button'
       className={cn(
@@ -99,11 +99,12 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
   const stripDays = new Set(days?.map(entry => entry.date))
 
   return (
-    // `items-stretch`: the day picker is as tall as the pills beside it, as it is on the board.
-    <div className='flex flex-wrap items-stretch gap-1.5'>
+    // `items-stretch`: the day picker is as tall as the pills beside it, as it is on the board. A
+    // tablet's row holds four of the six; three to a row shares out its width evenly instead.
+    <div className='strip-scroll flex items-stretch gap-1.5 md:flex-wrap md:max-xl:grid md:max-xl:grid-cols-3'>
       {isPending
         ? Array.from({ length: WORK_WEEK_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-11 w-40' />
+            <Skeleton key={index} className='h-11 w-40 md:max-xl:w-full' />
           ))
         : days?.map(entry => (
             <DayPill key={entry.date} entry={entry} isToday={entry.date === start} />
@@ -112,9 +113,13 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
       {/* One box for a day off the strip: the picker until a day is pinned, then that day, which is
           clicked to pick another. Either is a box in the strip, the same height and width. */}
       {/* A pinned day whose figures did not come back falls back to the picker, never a placeholder
-          that stays. */}
+          that stays. A phone's strip scrolls, so there it leads rather than waits past the week. */}
       {peek === null || (!peekEntry && !peekLoading) ? (
-        <Button variant='dashed' className='h-11 w-40' onClick={() => setPickerOpen(true)}>
+        <Button
+          variant='dashed'
+          className='h-11 w-40 max-md:order-first md:max-xl:w-full'
+          onClick={() => setPickerOpen(true)}
+        >
           <CalendarDays data-icon='inline-start' />
           Pick a day
         </Button>
@@ -125,7 +130,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
           onRemove={() => setPeek(null)}
         />
       ) : (
-        <Skeleton className='h-11 w-40' />
+        <Skeleton className='h-11 w-40 max-md:order-first md:max-xl:w-full' />
       )}
 
       {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may

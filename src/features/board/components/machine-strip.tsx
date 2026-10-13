@@ -1,4 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useActiveInView } from '@/hooks/use-active-in-view'
 import type { Machine } from '../api'
 import type { MachineTab } from '../lib/machines'
 
@@ -21,21 +22,24 @@ export const MachineStrip = ({
   withNone,
   withSlit,
   onChange
-}: MachineStripProps) => (
-  <div className='scrollport overflow-x-auto'>
-    <Tabs
-      value={String(value)}
-      onValueChange={next => onChange(next === 'none' || next === 'slit' ? next : Number(next))}
-    >
-      <TabsList variant='line'>
-        {machines.map(machine => (
-          <TabsTrigger key={machine.id} value={String(machine.id)}>
-            {machine.name?.trim() || `Machine ${machine.id}`}
-          </TabsTrigger>
-        ))}
-        {withNone ? <TabsTrigger value='none'>No machine</TabsTrigger> : null}
-        {withSlit ? <TabsTrigger value='slit'>Slit Line</TabsTrigger> : null}
-      </TabsList>
-    </Tabs>
-  </div>
-)
+}: MachineStripProps) => {
+  const scroller = useActiveInView<HTMLDivElement>(value)
+  return (
+    <div ref={scroller} className='scrollport overflow-x-auto max-md:scrollbar-none'>
+      <Tabs
+        value={String(value)}
+        onValueChange={next => onChange(next === 'none' || next === 'slit' ? next : Number(next))}
+      >
+        <TabsList variant='line'>
+          {machines.map(machine => (
+            <TabsTrigger key={machine.id} value={String(machine.id)}>
+              {machine.name?.trim() || `Machine ${machine.id}`}
+            </TabsTrigger>
+          ))}
+          {withNone ? <TabsTrigger value='none'>No machine</TabsTrigger> : null}
+          {withSlit ? <TabsTrigger value='slit'>Slit Line</TabsTrigger> : null}
+        </TabsList>
+      </Tabs>
+    </div>
+  )
+}

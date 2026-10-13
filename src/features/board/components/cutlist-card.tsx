@@ -124,10 +124,18 @@ export const CutlistCard = ({
           </span>
         ) : null}
 
-        {/* The list's own actions do not open or close it. */}
-        <span data-card-actions className='ml-auto flex cursor-auto items-center gap-3'>
+        {/* The list's own actions do not open or close it. A phone gives them a row of their own, in
+            equal parts, under the list's name. */}
+        <span
+          data-card-actions
+          className='ml-auto flex cursor-auto items-center gap-3 max-md:basis-full max-md:flex-wrap max-md:gap-2'
+        >
           {isSlinet && !done && !viewOnly ? (
-            <Button variant='outline' onClick={() => onOpenCoils(cutlist)}>
+            <Button
+              variant='outline'
+              className='max-md:flex-1'
+              onClick={() => onOpenCoils(cutlist)}
+            >
               <Database data-icon='inline-start' />
               Cutlist Coils
             </Button>
@@ -144,19 +152,32 @@ export const CutlistCard = ({
               </span>
             </>
           ) : viewOnly ? null : (
-            <Button
-              disabled={!cutlist.is_complete}
-              title={cutlist.is_complete ? undefined : 'Available once every row is Complete'}
-              onClick={() => setFinishing(true)}
-            >
-              Done
-            </Button>
+            <>
+              {/* A disabled button's title never shows under a finger, so a touch screen says it. */}
+              {cutlist.is_complete ? null : (
+                <span className='text-xs text-muted-foreground max-md:order-last max-md:basis-full max-md:text-center pointer-fine:hidden'>
+                  Once every row is Complete
+                </span>
+              )}
+              <Button
+                className='max-md:flex-1'
+                disabled={!cutlist.is_complete}
+                title={cutlist.is_complete ? undefined : 'Available once every row is Complete'}
+                onClick={() => setFinishing(true)}
+              >
+                Done
+              </Button>
+            </>
           )}
         </span>
       </div>
 
       {expanded ? (
         <div className='border-t border-border'>
+          {/* What holds Complete back, said where a finger cannot hover for the checkbox's title. */}
+          {blocked && !viewOnly ? (
+            <p className='px-3 pt-2 text-xs text-muted-foreground pointer-fine:hidden'>{blocked}</p>
+          ) : null}
           <CutlistRows
             rows={cutlist.rows}
             isSlinet={isSlinet}

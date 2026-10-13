@@ -3,6 +3,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from 'cn'
 import { History } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useActiveInView } from '@/hooks/use-active-in-view'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { VIEW_LABELS } from '../lib/views'
 import type { BoardView } from '../lib/boards'
 
@@ -26,6 +28,10 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
   // keeps it out of the working tabs because it is history rather than work.
   const strip = views.filter(tab => tab !== 'completed')
 
+  const scroller = useActiveInView<HTMLDivElement>(view)
+  // A phone gives the strip the row: the buttons beside it keep only their icons.
+  const mobile = useIsMobile()
+
   return (
     // The rule runs the full width, and the active tab's underline sits on it.
     <div className='flex items-end gap-3 border-b border-border'>
@@ -36,7 +42,7 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
       >
         {/* The scroll sits on a wrapper rather than on the list, so the first and last tab keep
           their focus ring where the strip has to scroll. */}
-        <div className='scrollport overflow-x-auto'>
+        <div ref={scroller} className='scrollport overflow-x-auto max-md:scrollbar-none'>
           <TabsList variant='line' className='h-9'>
             {/* A tab a role has no business with is not there at all, rather than there and dead. */}
             {strip.map(tab => (
@@ -74,12 +80,20 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
       {views.includes('completed') ? (
         <Button
           variant='outline'
+          size={mobile ? 'icon' : 'default'}
+          aria-label={mobile ? 'Completed orders' : undefined}
           className='mb-1.5'
           data-active={view === 'completed' ? true : undefined}
           onClick={() => onNavigate('completed')}
         >
-          <History data-icon='inline-start' />
-          Completed orders · past 90 days
+          <History data-icon={mobile ? undefined : 'inline-start'} />
+          {/* A tablet leaves the tabs beside it too little room for the whole name. */}
+          {mobile ? null : (
+            <>
+              <span className='xl:hidden'>Completed</span>
+              <span className='max-xl:hidden'>Completed orders · past 90 days</span>
+            </>
+          )}
         </Button>
       ) : null}
     </div>

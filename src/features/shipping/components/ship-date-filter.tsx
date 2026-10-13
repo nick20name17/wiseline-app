@@ -2,11 +2,15 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { formatDate, fromIsoDay, toIsoDay } from '@/lib/days'
+import { cn } from 'cn'
 import { CalendarIcon, X } from 'lucide-react'
 
 export type ShipDates = { shipFrom?: string; shipTo?: string }
 
-type ShipDateFilterProps = ShipDates & { onChange: (next: ShipDates) => void }
+type ShipDateFilterProps = ShipDates & {
+  onChange: (next: ShipDates) => void
+  className?: string
+}
 
 const labelOf = ({ shipFrom, shipTo }: ShipDates) => {
   if (shipFrom && shipTo)
@@ -19,10 +23,10 @@ const labelOf = ({ shipFrom, shipTo }: ShipDates) => {
 }
 
 /** Unscheduled narrowed to EBMS ship dates, both ends included (round 10, C2). */
-export const ShipDateFilter = ({ shipFrom, shipTo, onChange }: ShipDateFilterProps) => (
-  <div className='flex items-center gap-1'>
+export const ShipDateFilter = ({ shipFrom, shipTo, onChange, className }: ShipDateFilterProps) => (
+  <div className={cn('flex items-center gap-1', className)}>
     <Popover>
-      <PopoverTrigger render={<Button variant='outline' />}>
+      <PopoverTrigger render={<Button variant='outline' className='flex-1' />}>
         <CalendarIcon data-icon='inline-start' />
         {labelOf({ shipFrom, shipTo })}
       </PopoverTrigger>

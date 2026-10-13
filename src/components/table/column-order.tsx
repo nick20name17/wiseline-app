@@ -1,3 +1,4 @@
+import { TableColumnContext } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { columnOrderStore, withNewColumns } from '@/lib/column-order'
 import { closestCenter, DndContext, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core'
@@ -5,7 +6,7 @@ import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, SortableContext } from '@dnd-kit/sortable'
 import { dragAnnouncements, useDragSensors } from './drag'
 import { SortableHead, type Column } from './sortable-head'
-import { Fragment, useSyncExternalStore, type ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 
 /** A table whose columns move: the key its order is saved under, and its columns as declared. */
 export type ColumnTable = { table: string; columns: Column[] }
@@ -23,10 +24,21 @@ export const useColumnCells = ({ table, columns }: ColumnTable) => {
   const saved = useSyncExternalStore(store.subscribe, store.get)
   const declared = columns.map(column => column.key)
   const order = saved ? withNewColumns(saved, declared) : declared
+  const byKey = new Map(columns.map(column => [column.key, column]))
 
-  /** A row's data cells, in this person's order. A key the row leaves out renders nothing. */
+  /**
+   * A row's data cells, in this person's order. A key the row leaves out renders nothing. Each cell
+   * knows its column, so a card can label it.
+   */
   const cells = (row: Record<string, ReactNode>) =>
-    order.map(key => (key in row ? <Fragment key={key}>{row[key]}</Fragment> : null))
+    order.map(key => {
+      const column = byKey.get(key)
+      return key in row && column ? (
+        <TableColumnContext key={key} value={column}>
+          {row[key]}
+        </TableColumnContext>
+      ) : null
+    })
 
   return { order, cells }
 }

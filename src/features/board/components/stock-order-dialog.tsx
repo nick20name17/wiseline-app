@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -15,6 +15,10 @@ import { Trash2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { stockCardsQuery, useCreateStockOrder, useScanStockCard } from '../api'
+
+// A box's label on a phone, where the line is a card and the header row above it is gone. Only for
+// the eye: each box carries its own aria-label, row number included.
+const FIELD_LABEL = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase md:hidden'
 
 // `described` marks a description typed by hand, which a later Product ID must not overwrite.
 type Row = {
@@ -192,9 +196,11 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
         </DialogHeader>
 
         {/* Labels over the boxes, not a table head: the grid is a form, and a banded header row
-            would read as a table of records rather than as lines being written. */}
-        <div className='scrollport max-h-80 space-y-2 overflow-y-auto'>
-          <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+            would read as a table of records rather than as lines being written. A phone has no
+            width for a line across, so each line is a small card with its labels on its boxes; the
+            wrappers step out of the way (`contents`) from md up. The drawer scrolls as one there. */}
+        <div className='scrollport space-y-2 md:max-h-80 md:overflow-y-auto'>
+          <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-md:hidden'>
             <span className='w-24'>Qty</span>
             <span className='w-44'>Product ID</span>
             <span className='flex-1'>Description</span>
@@ -203,43 +209,69 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
           </div>
 
           {rows.map((row, index) => (
-            <div key={row.id} className='flex items-center gap-3'>
-              <Input
-                className='w-24'
-                type='number'
-                min={1}
-                inputMode='numeric'
-                aria-label={`Quantity, row ${index + 1}`}
-                placeholder='0'
-                value={row.qty}
-                onChange={event => edit(row.id, { qty: event.target.value })}
-              />
-              <Input
-                className='w-44'
-                aria-label={`Product ID, row ${index + 1}`}
-                placeholder='TSWB262'
-                value={row.productId}
-                onChange={event => edit(row.id, { productId: event.target.value })}
-              />
-              <Input
-                className='flex-1'
-                aria-label={`Description, row ${index + 1}`}
-                placeholder='From EBMS unless typed'
-                value={row.description}
-                onChange={event =>
-                  edit(row.id, { description: event.target.value, described: !!event.target.value })
-                }
-              />
-              <Input
-                className='w-24'
-                type='number'
-                min={1}
-                inputMode='decimal'
-                aria-label={`Length, row ${index + 1}`}
-                placeholder='120'
-                value={row.length}
-                onChange={event => edit(row.id, { length: event.target.value })}
-              />
+            <div
+              key={row.id}
+              className='flex items-center gap-3 max-md:flex-wrap max-md:items-end max-md:gap-2 max-md:rounded-lg max-md:border max-md:border-border max-md:p-3'
+            >
+              <div className='flex flex-col gap-1 max-md:flex-1 md:contents'>
+                <span aria-hidden className={FIELD_LABEL}>
+                  Qty
+                </span>
+                <Input
+                  className='w-24 max-md:w-full'
+                  type='number'
+                  min={1}
+                  inputMode='numeric'
+                  aria-label={`Quantity, row ${index + 1}`}
+                  placeholder='0'
+                  value={row.qty}
+                  onChange={event => edit(row.id, { qty: event.target.value })}
+                />
+              </div>
+              <div className='flex flex-col gap-1 max-md:order-1 max-md:basis-full md:contents'>
+                <span aria-hidden className={FIELD_LABEL}>
+                  Product ID
+                </span>
+                <Input
+                  className='w-44 max-md:w-full'
+                  aria-label={`Product ID, row ${index + 1}`}
+                  placeholder='TSWB262'
+                  value={row.productId}
+                  onChange={event => edit(row.id, { productId: event.target.value })}
+                />
+              </div>
+              <div className='flex flex-col gap-1 max-md:order-1 max-md:basis-full md:contents'>
+                <span aria-hidden className={FIELD_LABEL}>
+                  Description
+                </span>
+                <Input
+                  className='flex-1'
+                  aria-label={`Description, row ${index + 1}`}
+                  placeholder='From EBMS unless typed'
+                  value={row.description}
+                  onChange={event =>
+                    edit(row.id, {
+                      description: event.target.value,
+                      described: !!event.target.value
+                    })
+                  }
+                />
+              </div>
+              <div className='flex flex-col gap-1 max-md:flex-1 md:contents'>
+                <span aria-hidden className={FIELD_LABEL}>
+                  Length (in.)
+                </span>
+                <Input
+                  className='w-24 max-md:w-full'
+                  type='number'
+                  min={1}
+                  inputMode='decimal'
+                  aria-label={`Length, row ${index + 1}`}
+                  placeholder='120'
+                  value={row.length}
+                  onChange={event => edit(row.id, { length: event.target.value })}
+                />
+              </div>
               {/* The trailing blank row is the grow-row — there is nothing to delete there. */}
               {index < rows.length - 1 ? (
                 <Button
@@ -251,7 +283,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                   <Trash2 />
                 </Button>
               ) : (
-                <span className='w-8' />
+                <span className='w-8 max-md:hidden' />
               )}
             </div>
           ))}

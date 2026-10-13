@@ -67,7 +67,7 @@ export const ReadyCount = ({ order, readiness, className }: ReadyCountProps) => 
       >
         {all ? 'All ready' : `${readiness.lines_ready} of ${readiness.lines_total} ready`}
       </PopoverTrigger>
-      <PopoverContent align='end' className='w-96 max-w-screen'>
+      <PopoverContent align='end' className='w-96 max-w-(--available-width)'>
         <OrderLines order={order} />
       </PopoverContent>
     </Popover>

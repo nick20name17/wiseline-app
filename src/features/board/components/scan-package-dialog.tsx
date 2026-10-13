@@ -6,10 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from 'cn'
 import { CircleCheck, CircleX, ScanBarcode, TriangleAlert } from 'lucide-react'
 import { useRef, useState, type FormEvent, type RefObject } from 'react'
@@ -52,7 +53,7 @@ const ScanForm = ({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }
   }
 
   return (
-    <form onSubmit={submit} className='flex flex-col gap-4'>
+    <form noValidate onSubmit={submit} className='flex flex-col gap-4'>
       <Field>
         <FieldLabel htmlFor='package-barcode'>Package barcode</FieldLabel>
         <div className='flex gap-2'>
@@ -78,13 +79,34 @@ const ScanForm = ({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }
 }
 
 /** p1 (835,528): a label scanned after its package was deleted says so. */
-export const ScanPackageDialog = () => {
+type ScanPackageDialogProps = {
+  className?: string
+  /** Beside a tab strip a phone gives the button only its icon, so the tabs keep the width. */
+  iconOnPhone?: boolean
+}
+
+export const ScanPackageDialog = ({ className, iconOnPhone = false }: ScanPackageDialogProps) => {
   const inputRef = useRef<HTMLInputElement>(null)
+  const icon = useIsMobile() && iconOnPhone
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant='outline' className='mb-1.5' />}>
-        <ScanBarcode data-icon='inline-start' />
-        Scan package
+      <DialogTrigger
+        render={
+          <Button
+            variant='outline'
+            size={icon ? 'icon' : 'default'}
+            aria-label={icon ? 'Scan package' : undefined}
+            className={className}
+          />
+        }
+      >
+        <ScanBarcode data-icon={icon ? undefined : 'inline-start'} />
+        {icon ? null : (
+          <>
+            <span className='md:hidden'>Scan</span>
+            <span className='max-md:hidden'>Scan package</span>
+          </>
+        )}
       </DialogTrigger>
       <DialogContent className='sm:max-w-md' initialFocus={inputRef}>
         <DialogHeader>

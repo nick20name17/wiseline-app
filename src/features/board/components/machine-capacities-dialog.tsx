@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
@@ -43,7 +43,8 @@ type FigureProps = {
  * «(n - Stock)» notes line up down the column without the slash being dragged from its own number.
  */
 const Figure = ({ value, max, over = false, fromStock = 0, unrouted }: FigureProps) => (
-  <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold'>
+  // A phone has no room for two fixed tracks beside the names, so there the note wraps under them.
+  <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold max-sm:w-auto max-sm:flex-wrap'>
     {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
     <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
       {whole(value)}
@@ -77,7 +78,7 @@ const Row = ({
     <th
       scope='row'
       className={cn(
-        'w-2/5 rounded-l-lg border border-r-0 border-input px-3.5 py-2 text-left text-sm font-semibold',
+        'w-2/5 rounded-l-lg border border-r-0 border-input px-3.5 py-2 text-left text-sm font-semibold max-sm:px-2.5',
         isDay ? 'bg-card' : 'bg-muted'
       )}
     >
@@ -90,7 +91,7 @@ const Row = ({
 const Cell = ({ isDay, children }: { isDay?: boolean; children: React.ReactNode }) => (
   <td
     className={cn(
-      'border-y border-input px-3.5 py-2 text-left whitespace-nowrap last:rounded-r-lg last:border-r',
+      'border-y border-input px-3.5 py-2 text-left whitespace-nowrap last:rounded-r-lg last:border-r max-sm:px-2.5 max-sm:whitespace-normal',
       isDay ? 'bg-card' : 'bg-muted'
     )}
   >
@@ -146,8 +147,9 @@ export const MachineCapacitiesDialog = ({
 
         {/* A department with a long machine list should not push Print off the screen. The floor
             is the placeholder's own height, so Print stays where it was rather than
-            dropping down the sheet once the figures arrive. */}
-        <div data-print-expand className='scrollport max-h-96 min-h-64 overflow-y-auto'>
+            dropping down the sheet once the figures arrive. A phone's drawer scrolls as one; a box
+            scrolling inside it would fight the swipe. */}
+        <div data-print-expand className='scrollport min-h-64 md:max-h-96 md:overflow-y-auto'>
           {isPending || !data ? (
             <Skeleton className='h-64' />
           ) : (
@@ -217,8 +219,20 @@ export const MachineCapacitiesDialog = ({
           )}
         </div>
 
+        {/* The day row's title says what is unrouted; a finger cannot hover for it. */}
+        {data && unrouted ? (
+          <p data-print-hide className='text-xs text-warning pointer-fine:hidden'>
+            {whole(unroutedMeasure)} {feet ? 'ft' : 'bends'} ({unroutedPieces} pcs) scheduled but
+            not routed to a machine yet
+          </p>
+        ) : null}
+
         <div data-print-hide className='flex justify-center'>
-          <Button disabled={isPending || !data} onClick={() => window.print()}>
+          <Button
+            className='max-md:w-full'
+            disabled={isPending || !data}
+            onClick={() => window.print()}
+          >
             <Printer data-icon='inline-start' />
             Print
           </Button>

@@ -1,22 +1,12 @@
 import { useBoard, useViewOnly } from '../lib/board-context'
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -129,35 +119,42 @@ export const LocationDialog = ({
             setWarehouse(null)
           }}
         >
-          <TabsList variant='line'>
-            {inBoardOrder(departments).map(department => (
-              <TabsTrigger key={department.id} value={String(department.id)}>
-                {department.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* A phone swipes the departments it has no room for; the wrapper keeps the end tabs'
+              focus rings clear of the scroll. */}
+          <div className='overflow-x-auto max-md:scrollbar-none'>
+            <TabsList variant='line'>
+              {inBoardOrder(departments).map(department => (
+                <TabsTrigger key={department.id} value={String(department.id)}>
+                  {department.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </Tabs>
 
         {warehouses.length > 1 ? (
           <Tabs value={inWarehouse} onValueChange={value => setWarehouse(String(value))}>
-            <TabsList>
-              {warehouses.map(name => (
-                <TabsTrigger key={name} value={name}>
-                  {name || 'No warehouse'}
-                  {name === defaultName ? (
-                    <span className='text-xs text-muted-foreground'>default</span>
-                  ) : null}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className='overflow-x-auto max-md:scrollbar-none'>
+              <TabsList>
+                {warehouses.map(name => (
+                  <TabsTrigger key={name} value={name}>
+                    {name || 'No warehouse'}
+                    {name === defaultName ? (
+                      <span className='text-xs text-muted-foreground'>default</span>
+                    ) : null}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </Tabs>
         ) : null}
 
-        <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : listed.length ? (
-            <div className='grid grid-cols-4 gap-2 sm:grid-cols-6'>
+            <div className='grid grid-cols-3 gap-2 sm:grid-cols-6'>
               {listed.map(slot => {
                 const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
                 const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
@@ -189,6 +186,12 @@ export const LocationDialog = ({
                         {slot.orders_on_it}/{slot.max_orders ?? '∞'}
                       </span>
                     ) : null}
+                    {/* The weight on the cell is its hover title on a desk; a touch screen has no
+                        hover, and the weight is what a cell is picked by. */}
+                    <span className='hidden text-xs break-words opacity-75 pointer-coarse:block'>
+                      {slot.used_weight}
+                      {slot.max_weight === null ? '' : `/${slot.max_weight}`} lb
+                    </span>
                   </button>
                 )
               })}
@@ -261,8 +264,9 @@ export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
             ? 'Locked — full, do not add more packages here'
             : 'Click to remove this location'
         }
+        // On a phone a finger hits around the chip.
         className={cn(
-          'rounded-full border px-2.5 py-0.5 font-mono text-xs font-medium hover:brightness-95',
+          'relative rounded-full border px-2.5 py-0.5 font-mono text-xs font-medium hover:brightness-95 max-md:after:absolute max-md:after:-inset-y-2.5',
           tintOf(over, spot.orange)
         )}
         onClick={() => onRemove(spot)}
@@ -308,28 +312,19 @@ export const RemoveLocationDialog = ({
 
   if (blocked)
     return (
-      <AlertDialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Location required</AlertDialogTitle>
-            <AlertDialogDescription>
-              An order with existing packages needs to have at least 1 location, please select a
-              location to continue.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
-            <Button
-              onClick={() => {
-                onOpenChange(false)
-                onReplace()
-              }}
-            >
-              Select new location
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!current}
+        onOpenChange={onOpenChange}
+        onOpenChangeComplete={release}
+        title='Location required'
+        description='An order with existing packages needs to have at least 1 location, please select a location to continue.'
+        confirmLabel='Select new location'
+        cancelLabel='Cancel'
+        onConfirm={() => {
+          onOpenChange(false)
+          onReplace()
+        }}
+      />
     )
 
   return (

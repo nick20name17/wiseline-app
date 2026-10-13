@@ -41,11 +41,12 @@ export const TableSkeletonRows = ({ columns }: TableSkeletonRowsProps) => {
   return Array.from({ length: rows }, (_, row) => (
     <TableRow key={row} ref={row === 0 ? firstRow : undefined}>
       {Array.from({ length: columns }, (_, column) => (
-        <TableCell key={column}>
+        // As a card, the first field stands in for the row's title.
+        <TableCell key={column} card={column === 0 ? 'title' : undefined}>
           <Skeleton className='h-4 w-full' />
         </TableCell>
       ))}
-      <TableCell>
+      <TableCell card='trail'>
         {/* Sized and placed like the buttons they stand in for, so nothing moves when the rows
             arrive. */}
         <div className='flex justify-end gap-1'>

@@ -1,4 +1,4 @@
-import { buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { SearchX } from 'lucide-react'
 
@@ -12,9 +12,9 @@ export const RouteNotFound = () => {
       <p className='max-w-prose text-sm text-muted-foreground'>
         The page you are looking for does not exist or has moved.
       </p>
-      <Link to='/' className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+      <Button variant='outline' size='sm' nativeButton={false} render={<Link to='/' />}>
         Go home
-      </Link>
+      </Button>
     </div>
   )
 }
