@@ -21,7 +21,7 @@ export const HolidaysTable = ({ holidays, isPending, onSaved }: HolidaysTablePro
   <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
     {/* `table-fixed` plus the widths size the columns from the layout, so they hold still between
         the skeleton, the data and every year. */}
-    <Table className='min-w-2xl table-fixed'>
+    <Table data-cards className='min-w-2xl table-fixed'>
       <colgroup>
         <col className='w-56' />
         <col className='w-80' />
@@ -42,9 +42,9 @@ export const HolidaysTable = ({ holidays, isPending, onSaved }: HolidaysTablePro
         ) : (
           holidays.map(holiday => (
             <TableRow key={holiday.id}>
-              <TableCell>{formatDate(holiday.date)}</TableCell>
-              <TableCell>{holiday.name}</TableCell>
-              <TableCell>
+              <TableCell card='subtitle'>{formatDate(holiday.date)}</TableCell>
+              <TableCell card='title'>{holiday.name}</TableCell>
+              <TableCell card='trail'>
                 <HolidayActions holiday={holiday} onSaved={onSaved} />
               </TableCell>
             </TableRow>

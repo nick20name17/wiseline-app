@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
@@ -198,7 +198,7 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
           )}
         </Field>
 
-        <div className='grid grid-cols-2 gap-3'>
+        <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
           <Field>
             <FieldLabel htmlFor='card-min'>Stock minimum</FieldLabel>
             <Input

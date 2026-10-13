@@ -27,7 +27,7 @@ const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
   if (!departments.length) return <span className='text-muted-foreground'>—</span>
 
   return (
-    <div className='flex gap-1'>
+    <div className='flex gap-1 max-lg:flex-wrap'>
       {departments.map(department => (
         <Badge key={department} variant='muted'>
           {department}
@@ -51,7 +51,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
   <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
     {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. */}
-    <Table className='min-w-4xl table-fixed'>
+    <Table data-cards className='min-w-4xl table-fixed'>
       {/* Departments take the leftover width, since a user can hold several. */}
       <colgroup>
         <col className='w-64' />
@@ -77,16 +77,18 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
         ) : (
           users.map(user => (
             <TableRow key={user.id}>
-              <TableCell>{fullName(user) || '—'}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
+              <TableCell card='title'>{fullName(user) || '—'}</TableCell>
+              <TableCell label='Email' card='subtitle' className='max-lg:break-all'>
+                {user.email}
+              </TableCell>
+              <TableCell label='Role'>
                 {/* The tint is per role, so <Badge> cannot carry it; the shape matches one. */}
                 <span className={cn(ROLE_BADGE, roleTint(user.role))}>{roleLabel(user.role)}</span>
               </TableCell>
-              <TableCell>
+              <TableCell label='Departments'>
                 <DepartmentsCell user={user} />
               </TableCell>
-              <TableCell>
+              <TableCell card='trail'>
                 <UserActions user={user} />
               </TableCell>
             </TableRow>

@@ -125,14 +125,15 @@ const ProductionDateCell = ({
   return (
     // The marks follow the date so every row's date starts at the same edge, and never shrink: the cell
     // runs out of room before they do.
-    <span className='flex items-center gap-1.5'>
+    <span className='flex flex-wrap items-center gap-1.5'>
       {fixed ? (
         <span className={cn(overdue ? 'text-destructive' : 'text-muted-foreground')}>
           {formatDate(day)}
         </span>
       ) : (
         <Button variant='outline' title={`Change ${dayWord} (pre-release)`} onClick={onReschedule}>
-          <Calendar data-icon='inline-start' />
+          {/* A phone's half-width card column holds the date or the icon, not both; the outline still says it is a button. */}
+          <Calendar data-icon='inline-start' className='max-sm:hidden' />
           {formatDate(day)}
         </Button>
       )}
@@ -187,7 +188,7 @@ export const ScheduledRow = ({
         data-state={selected ? 'selected' : undefined}
         onClick={toggleExpanded}
       >
-        <TableCell onClick={stopRowClick}>
+        <TableCell card='lead' onClick={stopRowClick}>
           {/* Only a department that makes what it packs reviews and releases it p3 (1103,281). */}
           {board.makes && !viewOnly ? (
             <SelectCell
@@ -200,7 +201,7 @@ export const ScheduledRow = ({
             />
           ) : null}
         </TableCell>
-        <TableCell onClick={stopRowClick}>
+        <TableCell card='trail' onClick={stopRowClick}>
           <Button
             variant='ghost'
             size='icon-sm'

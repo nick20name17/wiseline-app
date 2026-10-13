@@ -67,7 +67,7 @@ export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
       >
         <RemakePill done={!owed}>{qty}</RemakePill>
       </PopoverTrigger>
-      <PopoverContent align='start' className='w-96'>
+      <PopoverContent align='start' className='w-96 max-w-(--available-width)'>
         <PopoverHeader>
           <PopoverTitle>Remanufacture history</PopoverTitle>
         </PopoverHeader>

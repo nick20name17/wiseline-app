@@ -7,7 +7,7 @@ const LoginRoute = () => {
   const navigate = useNavigate()
 
   return (
-    <div className='grid min-h-svh place-items-center bg-background bg-primary-glow p-6'>
+    <div className='grid min-h-svh place-items-center bg-background bg-primary-glow px-safe-6 pt-6 pb-safe-6'>
       <LoginForm onSuccess={() => navigate({ to: safeRedirectPath(redirectTo), replace: true })} />
     </div>
   )

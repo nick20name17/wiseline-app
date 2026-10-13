@@ -35,7 +35,11 @@ export const UserMenu = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label='Account'>
+      {/* On a phone a finger hits around the avatar. */}
+      <DropdownMenuTrigger
+        aria-label='Account'
+        className='relative max-md:after:absolute max-md:after:-inset-1.5'
+      >
         <Avatar>
           <AvatarFallback variant='primary'>{initials}</AvatarFallback>
         </Avatar>

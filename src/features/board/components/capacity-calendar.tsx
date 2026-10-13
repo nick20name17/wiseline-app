@@ -1,6 +1,7 @@
 import { dayLoadHint, dayUsed } from '../lib/format'
 import { toIsoDay, today } from '@/lib/days'
 import { Calendar } from '@/components/ui/calendar'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { getDaysInMonth, startOfMonth } from 'date-fns'
@@ -42,70 +43,84 @@ export const CapacityCalendar = ({
   const closed = (iso: string) => budgets.get(iso)?.is_work_day === false
   const { data: overdue } = useQuery(overdueQuery(departmentId))
   const overdueDays = new Set(overdue?.days)
+  const mobile = useIsMobile()
+
+  const hintOf = (iso: string) => {
+    const budget = budgets.get(iso)
+    return [
+      overdueDays.has(iso) ? 'Overdue orders' : null,
+      !anyDay && iso < today() ? 'Past date' : null,
+      closed(iso) ? (budget?.holiday ?? 'Not a work day') : null,
+      budget ? dayLoadHint(budget) : undefined
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+  const selectedHint = selected ? hintOf(toIsoDay(selected)) : ''
 
   return (
-    <Calendar
-      mode='single'
-      className='w-full'
-      // The cell has to hold two lines, so it is bigger than the sheet's default; an inline custom
-      // property is the only thing that outranks the class the component sets it with.
-      style={{ '--cell-size': 'calc(var(--spacing) * 12)' } as CSSProperties}
-      month={month}
-      onMonthChange={onMonthChange}
-      selected={selected}
-      onSelect={onSelect}
-      disabled={date => {
-        const iso = toIsoDay(date)
-        return !anyDay && (iso < today() || closed(iso))
-      }}
-      components={{
-        // A plain button, not the shared one: the cell carries two lines — the date and the day's
-        // budget — which no button size describes.
-        DayButton: ({ day, modifiers, className, children, ...props }) => {
-          const iso = toIsoDay(day.date)
-          const budget = budgets.get(iso)
-          const load = budget ? dayLoadHint(budget) : undefined
-          const past = !anyDay && iso < today()
-          const late = overdueDays.has(iso)
-          const hint = [
-            late ? 'Overdue orders' : null,
-            past ? 'Past date' : null,
-            closed(iso) ? (budget?.holiday ?? 'Not a work day') : null,
-            load
-          ]
-            .filter(Boolean)
-            .join(' · ')
+    <div className='flex flex-col gap-1'>
+      <Calendar
+        mode='single'
+        className='w-full'
+        // The cell has to hold two lines, so it is bigger than the sheet's default; an inline custom
+        // property is the only thing that outranks the class the component sets it with.
+        // A phone's drawer is a few pixels short of seven 12-unit columns.
+        style={{ '--cell-size': `calc(var(--spacing) * ${mobile ? 11 : 12})` } as CSSProperties}
+        month={month}
+        onMonthChange={onMonthChange}
+        selected={selected}
+        onSelect={onSelect}
+        disabled={date => {
+          const iso = toIsoDay(date)
+          return !anyDay && (iso < today() || closed(iso))
+        }}
+        components={{
+          // A plain button, not the shared one: the cell carries two lines — the date and the day's
+          // budget — which no button size describes.
+          DayButton: ({ day, modifiers, className, children, ...props }) => {
+            const iso = toIsoDay(day.date)
+            const budget = budgets.get(iso)
+            const late = overdueDays.has(iso)
+            const hint = hintOf(iso)
 
-          return (
-            <button
-              type='button'
-              data-day={day.date.toLocaleDateString()}
-              title={hint || undefined}
-              className={cn(
-                'relative flex size-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md pb-3 text-sm leading-none transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40',
-                // "The date that has the overdue order should be highlighted in red" p1 (326,574).
-                late && 'bg-destructive/10 text-destructive',
-                modifiers.selected && 'bg-primary text-primary-foreground hover:bg-primary',
-                className
-              )}
-              {...props}
-            >
-              {children}
-              {/* Out of the flow on purpose: in the layout the sheet gives a day cell, a four-digit
-                  budget would otherwise widen its column and pull the whole grid out of shape. */}
-              <span
+            return (
+              <button
+                type='button'
+                data-day={day.date.toLocaleDateString()}
+                title={hint || undefined}
                 className={cn(
-                  'pointer-events-none absolute inset-x-0 bottom-1 truncate text-center font-mono text-xs tracking-tighter',
-                  modifiers.selected ? 'text-primary-foreground' : 'text-muted-foreground',
-                  budget?.over_capacity && !modifiers.selected && 'text-destructive'
+                  'relative flex size-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md pb-3 text-sm leading-none transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40',
+                  // "The date that has the overdue order should be highlighted in red" p1 (326,574).
+                  late && 'bg-destructive/10 text-destructive',
+                  modifiers.selected && 'bg-primary text-primary-foreground hover:bg-primary',
+                  className
                 )}
+                {...props}
               >
-                {budget ? dayUsed(budget) : ''}
-              </span>
-            </button>
-          )
-        }
-      }}
-    />
+                {children}
+                {/* Out of the flow on purpose: in the layout the sheet gives a day cell, a four-digit
+                  budget would otherwise widen its column and pull the whole grid out of shape. */}
+                <span
+                  className={cn(
+                    'pointer-events-none absolute inset-x-0 bottom-1 truncate text-center font-mono text-xs tracking-tighter',
+                    modifiers.selected ? 'text-primary-foreground' : 'text-muted-foreground',
+                    budget?.over_capacity && !modifiers.selected && 'text-destructive'
+                  )}
+                >
+                  {budget ? dayUsed(budget) : ''}
+                </span>
+              </button>
+            )
+          }
+        }}
+      />
+      {/* The day's hint is a hover title on a desk; a touch screen reads the picked day's here. */}
+      {selectedHint ? (
+        <p className='hidden px-2 text-center text-xs text-muted-foreground pointer-coarse:block'>
+          {selectedHint}
+        </p>
+      ) : null}
+    </div>
   )
 }

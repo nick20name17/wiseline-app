@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { useRetained } from '@/lib/use-retained'
 import { Check, Lock, Undo2 } from 'lucide-react'
 
@@ -83,7 +83,7 @@ export const OrderNoteDialog = ({
           <p className='py-6 text-center text-sm text-muted-foreground'>No note on this order.</p>
         )}
 
-        <DialogFooter className='items-center sm:justify-between'>
+        <DialogFooter className='md:items-center md:justify-between'>
           <span className='flex items-center gap-1.5 text-xs text-muted-foreground'>
             <Lock className='size-3.5' />
             {onSetRead ? 'Read-only — acknowledge it here.' : 'Read-only.'}

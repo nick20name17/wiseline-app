@@ -103,7 +103,7 @@ const SortableRow = ({ priority, rank, department, disabled, readOnly }: Sortabl
       className={cn(!disabled && 'cursor-grab', isDragging && 'relative z-10 cursor-grabbing')}
       {...listeners}
     >
-      <TableCell>
+      <TableCell card='lead'>
         {/* The keyboard's way in: Space picks the row up, the arrows move it. It is never
               natively disabled while a move saves: that would drop the focus it holds after a
               keyboard drop. */}
@@ -113,17 +113,17 @@ const SortableRow = ({ priority, rank, department, disabled, readOnly }: Sortabl
             type='button'
             data-grip
             aria-label={`Move ${priority.name}`}
-            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
+            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50 pointer-coarse:-m-3 pointer-coarse:p-3'
             {...attributes}
           >
             <GripVertical className='size-3.5' />
           </button>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell label='Hierarchy'>
         <span className='font-mono'>{rank}</span>
       </TableCell>
-      <TableCell>
+      <TableCell label='Colour'>
         <span className='inline-flex items-center gap-2'>
           <span
             aria-hidden
@@ -136,11 +136,13 @@ const SortableRow = ({ priority, rank, department, disabled, readOnly }: Sortabl
           <span className='font-mono text-xs text-muted-foreground'>{priority.color ?? '—'}</span>
         </span>
       </TableCell>
-      <TableCell>
+      <TableCell card='title'>
         <span className='font-medium'>{priority.name}</span>
       </TableCell>
-      {department === undefined ? null : <TableCell>{department}</TableCell>}
-      <TableCell>{readOnly ? null : <PriorityActions priority={priority} />}</TableCell>
+      {department === undefined ? null : <TableCell label='Department'>{department}</TableCell>}
+      <TableCell card='trail'>
+        {readOnly ? null : <PriorityActions priority={priority} />}
+      </TableCell>
     </TableRow>
   )
 }
@@ -205,7 +207,7 @@ export const PrioritiesTable = ({
         accessibility={{ announcements }}
         onDragEnd={handleDragEnd}
       >
-        <Table className='min-w-3xl table-fixed'>
+        <Table data-cards className='min-w-3xl table-fixed'>
           <colgroup>
             <col className='w-10' />
             <col className='w-24' />

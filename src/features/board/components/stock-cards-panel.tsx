@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -40,6 +40,7 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StockCardDialog } from './stock-card-dialog'
 import { StockCardLabels } from './stock-card-labels'
+import { SelectionBar } from '@/components/selection-bar'
 
 type CardOrderFormProps = {
   card: StockCard
@@ -159,7 +160,10 @@ type FilterSelectProps = {
 
 const FilterSelect = ({ label, all, values, value, onChange, format }: FilterSelectProps) => (
   <Select value={value} onValueChange={onChange}>
-    <SelectTrigger aria-label={label} className='w-36 shrink-0'>
+    <SelectTrigger
+      aria-label={label}
+      className='w-36 shrink-0 max-md:w-auto max-md:min-w-0 max-md:flex-1'
+    >
       <SelectValue>
         {(current: string | null) => (current === null ? all : (format?.(current) ?? current))}
       </SelectValue>
@@ -271,7 +275,7 @@ const StockCardTile = ({
             <QrCode />
           </Button>
         </div>
-        <p className='truncate text-xs font-medium uppercase'>{card.description ?? '—'}</p>
+        <p className='line-clamp-2 text-xs font-medium uppercase'>{card.description ?? '—'}</p>
         <p className='text-xs text-muted-foreground'>
           {card.color ?? '—'} · {card.gauge === null ? '—' : `${card.gauge} ga`}
         </p>
@@ -330,7 +334,23 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
 
   const page = variant === 'page'
   // The page has the width for more cards a row than the sheet does.
-  const columns = page ? 'sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'sm:grid-cols-2'
+  const columns = page
+    ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+    : 'grid-cols-1 sm:grid-cols-2'
+
+  const printButton = (
+    <Button
+      disabled={!selected.size || print.isPending || printing !== null}
+      onClick={() => print.mutate([...selected])}
+    >
+      {print.isPending ? (
+        <Spinner data-icon='inline-start' />
+      ) : (
+        <Printer data-icon='inline-start' />
+      )}
+      Print selected{selected.size ? ` (${selected.size})` : ''}
+    </Button>
+  )
 
   const actionBar = actions(
     <>
@@ -338,29 +358,22 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
         <Plus data-icon='inline-start' />
         Create stock card
       </Button>
-      <Button
-        disabled={!selected.size || print.isPending || printing !== null}
-        onClick={() => print.mutate([...selected])}
-      >
-        {print.isPending ? (
-          <Spinner data-icon='inline-start' />
-        ) : (
-          <Printer data-icon='inline-start' />
-        )}
-        Print selected{selected.size ? ` (${selected.size})` : ''}
-      </Button>
+      {/* On the page the toolbar has scrolled away by the time the cards are ticked; a dialog's
+          footer already stays in reach. */}
+      {page ? <SelectionBar active={selected.size > 0}>{printButton}</SelectionBar> : printButton}
     </>
   )
 
   return (
     <>
       {page ? actionBar : null}
-      <div className='flex items-center gap-3'>
-        <span className='text-sm whitespace-nowrap text-muted-foreground'>
+      {/* A phone puts the search on a line of its own and the filters under it. */}
+      <div className='flex items-center gap-3 max-md:flex-wrap'>
+        <span className='text-sm whitespace-nowrap text-muted-foreground max-md:order-last max-md:basis-full'>
           <span className='font-medium text-foreground'>{shown.length}</span> of{' '}
           {cards?.length ?? 0} cards
         </span>
-        <InputGroup>
+        <InputGroup className='max-md:basis-full'>
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -392,7 +405,8 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
       {/* The placeholders and the empty states are all the floor's height, so the centred sheet does
             not jump when the answer lands. The placeholder rows stretch to share it rather than
             carrying heights of their own that would add up to something else. */}
-      <div className={cn(page ? 'min-h-56' : 'scrollport max-h-96 min-h-56 overflow-y-auto')}>
+      {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+      <div className={cn(page ? 'min-h-56' : 'scrollport min-h-56 md:max-h-96 md:overflow-y-auto')}>
         {isPending ? (
           <div className={cn('grid h-56 gap-3', columns)}>
             {Array.from({ length: 4 }, (_, index) => (

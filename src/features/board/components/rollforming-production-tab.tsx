@@ -76,7 +76,7 @@ const Coil = ({ value, item, mono = false }: CoilProps) => (
 const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
   <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
     <div className='overflow-hidden rounded-lg border border-border bg-card'>
-      <Table className='table-fixed'>
+      <Table data-cards className='table-fixed'>
         <colgroup>
           <col className='w-16' />
           <col className='w-32' />
@@ -104,36 +104,36 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
             const stock = isStockLine(line)
             return (
               <TableRow key={line.id}>
-                <TableCell>
+                <TableCell label='Qty'>
                   <span className='font-mono'>{line.quantity}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell card='title'>
                   <span className='font-mono'>{line.id_inven ?? '—'}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell card='subtitle'>
                   <span className='truncate text-muted-foreground'>
                     {line.item?.description ?? line.description ?? '—'}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell label='L"'>
                   <span className='font-mono'>
                     {line.length === null ? '—' : `${line.length}"`}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell label='Status'>
                   <StatusPill status={itemStatus(line.item?.status ?? null)} />
                 </TableCell>
-                <TableCell>
+                <TableCell label='Supplier'>
                   {stock ? '—' : <Coil value={line.item?.supplier ?? null} item={line.item} />}
                 </TableCell>
-                <TableCell>
+                <TableCell label='Coil Number'>
                   {stock ? (
                     '—'
                   ) : (
                     <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell label='Source'>
                   <Source icon={stock ? null : (line.item?.coil_icon ?? null)} />
                 </TableCell>
               </TableRow>
@@ -225,7 +225,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table className='min-w-400 table-fixed'>
+      <Table data-cards className='min-w-400 table-fixed'>
         <colgroup>
           <col className='w-10' />
           <col className='w-36' />
@@ -289,7 +289,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                         data-overdue={lines.some(line => line.item?.over_due) || undefined}
                         onClick={() => setPacking(key)}
                       >
-                        <TableCell onClick={event => event.stopPropagation()}>
+                        <TableCell card='trail' onClick={event => event.stopPropagation()}>
                           <Button
                             variant='ghost'
                             size='icon-sm'
@@ -302,8 +302,8 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             />
                           </Button>
                         </TableCell>
-                        <TableCell>{formatDate(date)}</TableCell>
-                        <TableCell>
+                        <TableCell label='Production Date'>{formatDate(date)}</TableCell>
+                        <TableCell card='title'>
                           <span className='flex items-center gap-1.5'>
                             <span className='font-mono font-medium'>{order.invoice}</span>
                             {onCoil ? (
@@ -314,13 +314,13 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             ) : null}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell card='subtitle'>
                           <span className='truncate'>{order.customer ?? '—'}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='PO'>
                           <span className='truncate'>{order.po_no ?? '—'}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Gauge / Color'>
                           <span className='truncate'>
                             {materialsOf({
                               ...order,
@@ -328,28 +328,28 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             }).join(', ') || '—'}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Profile'>
                           <span className='truncate'>{profiles.join(' / ') || '—'}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Salesman'>
                           <span className='truncate'>{order.salesman ?? '—'}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Priority'>
                           {state?.priority ? (
                             <PriorityPill priority={state.priority} />
                           ) : (
                             <span className='text-muted-foreground'>—</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Status'>
                           <StatusPill status={orderStatus(state?.status ?? null)} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Location'>
                           <span className='truncate font-mono'>
                             {order.locations.join(', ') || '—'}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Coil Number'>
                           <span className='flex items-center gap-1.5'>
                             <span
                               className={cn(
@@ -361,7 +361,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             </span>
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Source'>
                           <Source icon={sourceOf(lines)} />
                         </TableCell>
                       </TableRow>

@@ -1,17 +1,6 @@
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { Spinner } from '@/components/ui/spinner'
 import {
   Table,
   TableBody,
@@ -21,20 +10,14 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
-import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Search, Tags, Trash2 } from 'lucide-react'
+import { Search, Tags } from 'lucide-react'
 import { useRef, useState } from 'react'
-import {
-  departmentsQuery,
-  locationTypesQuery,
-  useDeleteLocationType,
-  warehousePickerQuery,
-  type LocationType
-} from '../api'
+import { departmentsQuery, locationTypesQuery, warehousePickerQuery } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
-import { CreateLocationTypeDialog, UpdateLocationTypeDialog } from './location-type-dialog'
+import { LocationTypeActions } from './location-actions'
+import { CreateLocationTypeDialog } from './location-type-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -59,11 +42,6 @@ export const LocationTypesPage = ({
   const { data: departments } = useQuery(departmentsQuery)
   const { data: warehouses } = useQuery(warehousePickerQuery)
 
-  const [editing, setEditing] = useState<LocationType | null>(null)
-  const [removing, setRemoving] = useState<LocationType | null>(null)
-  const [removed, releaseRemoved] = useRetained(removing)
-  const remove = useDeleteLocationType(() => setRemoving(null))
-
   const [term, setTerm] = useState(search ?? '')
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -82,9 +60,10 @@ export const LocationTypesPage = ({
     <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
 
-      <div className='flex items-center justify-between gap-3.5'>
-        <div className='flex items-center gap-3'>
-          <InputGroup className='w-60'>
+      <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
+        {/* On a phone the add button spans the top line and the search takes the full line below it. */}
+        <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
+          <InputGroup className='sm:max-w-60'>
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -98,7 +77,7 @@ export const LocationTypesPage = ({
           </InputGroup>
 
           {types.length ? (
-            <p className='text-sm text-muted-foreground'>
+            <p className='shrink-0 text-sm text-muted-foreground'>
               {types.length} {types.length === 1 ? 'location type' : 'location types'}
               {active ? ` in ${active.name}` : ''}
             </p>
@@ -124,7 +103,7 @@ export const LocationTypesPage = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-3xl table-fixed'>
+          <Table data-cards className='min-w-3xl table-fixed'>
             <colgroup>
               <col className='w-64' />
               <col className='w-56' />
@@ -151,40 +130,23 @@ export const LocationTypesPage = ({
               ) : (
                 types.map(type => (
                   <TableRow key={type.id}>
-                    <TableCell>{type.name ?? '—'}</TableCell>
-                    <TableCell>
+                    <TableCell card='title'>{type.name ?? '—'}</TableCell>
+                    <TableCell label='Warehouse'>
                       {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)?.name ??
                         '—'}
                     </TableCell>
                     {active ? null : (
-                      <TableCell>
+                      <TableCell label='Department'>
                         {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
                       </TableCell>
                     )}
-                    <TableCell>
+                    <TableCell label='Description' card='full'>
                       <span className='truncate text-muted-foreground'>
                         {type.description ?? '—'}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <span className='flex justify-end gap-1 text-muted-foreground'>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          aria-label={`Edit ${type.name}`}
-                          onClick={() => setEditing(type)}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          aria-label={`Delete ${type.name}`}
-                          onClick={() => setRemoving(type)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </span>
+                    <TableCell card='trail'>
+                      <LocationTypeActions locationType={type} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -193,42 +155,6 @@ export const LocationTypesPage = ({
           </Table>
         </div>
       )}
-
-      {editing ? (
-        <UpdateLocationTypeDialog
-          locationType={editing}
-          open
-          onOpenChange={open => !open && setEditing(null)}
-        />
-      ) : null}
-
-      <AlertDialog
-        open={!!removing}
-        onOpenChange={open => !open && setRemoving(null)}
-        onOpenChangeComplete={releaseRemoved}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete location type {removed?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {/* The API refuses while any location still points here, so say it first. */}
-              The locations under it would be left without a department, so the delete is refused
-              while any of them still exist.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel render={<Button variant='outline' />}>Cancel</AlertDialogCancel>
-            <Button
-              variant='destructive'
-              disabled={remove.isPending}
-              onClick={() => removing && remove.mutate(removing.id)}
-            >
-              {remove.isPending ? <Spinner data-icon='inline-start' /> : null}
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </section>
   )
 }

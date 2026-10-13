@@ -14,7 +14,7 @@ import { AuthCard } from './auth-card'
 const BackToSignIn = () => (
   <Link
     to='/login'
-    className='flex items-center justify-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
+    className='flex items-center justify-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline max-md:py-2'
   >
     <ArrowLeft className='size-3.5' />
     Back to sign in
@@ -56,7 +56,7 @@ export const ForgotPasswordForm = () => {
 
   return (
     <AuthCard title='Forgot password' description='Enter your email and we will send a reset link'>
-      <form onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
+      <form noValidate onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
         <FieldGroup>
           <Field data-invalid={errors.email ? true : undefined}>
             <FieldLabel htmlFor='email'>Email</FieldLabel>

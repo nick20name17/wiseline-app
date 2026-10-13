@@ -13,6 +13,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { SelectionBar } from '@/components/selection-bar'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
@@ -26,6 +27,8 @@ import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
 const COLUMNS = 10
+
+const ONE_PRODUCT = 'One Product ID at a time: it is slit off one coil'
 
 const EMPTY: Record<SlitStage, [string, string]> = {
   unscheduled: [
@@ -105,33 +108,40 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
           </Tabs>
         </div>
         {done || viewOnly ? null : (
-          <span className='ml-auto flex gap-2'>
-            <Button
-              variant='outline'
-              disabled={!chosen.length || cancel.isPending}
-              onClick={() =>
-                cancel.mutate(
-                  { originItems: chosen.map(row => row.origin_item), slit: false },
-                  { onSuccess: () => setPicked(new Set()) }
-                )
-              }
-            >
-              Take off the Slit Line
-            </Button>
-            <Button variant='outline' disabled={!chosen.length} onClick={() => setScheduling(true)}>
-              <CalendarClock data-icon='inline-start' />
-              {stage === 'scheduled' ? 'Reschedule' : 'Schedule'}
-              {chosen.length ? ` (${chosen.length})` : ''}
-            </Button>
-            <Button
-              disabled={!chosen.length || !oneProduct}
-              title={oneProduct ? undefined : 'One Product ID at a time: it is slit off one coil'}
-              onClick={() => setMarking(true)}
-            >
-              <Scissors data-icon='inline-start' />
-              Mark slit{chosen.length ? ` (${chosen.length})` : ''}
-            </Button>
-          </span>
+          <div className='ml-auto'>
+            <SelectionBar active={!!chosen.length} note={oneProduct ? null : ONE_PRODUCT}>
+              <Button
+                variant='outline'
+                disabled={!chosen.length || cancel.isPending}
+                onClick={() =>
+                  cancel.mutate(
+                    { originItems: chosen.map(row => row.origin_item), slit: false },
+                    { onSuccess: () => setPicked(new Set()) }
+                  )
+                }
+              >
+                <span className='md:hidden'>Take off</span>
+                <span className='max-md:hidden'>Take off the Slit Line</span>
+              </Button>
+              <Button
+                variant='outline'
+                disabled={!chosen.length}
+                onClick={() => setScheduling(true)}
+              >
+                <CalendarClock data-icon='inline-start' />
+                {stage === 'scheduled' ? 'Reschedule' : 'Schedule'}
+                {chosen.length ? ` (${chosen.length})` : ''}
+              </Button>
+              <Button
+                disabled={!chosen.length || !oneProduct}
+                title={oneProduct ? undefined : ONE_PRODUCT}
+                onClick={() => setMarking(true)}
+              >
+                <Scissors data-icon='inline-start' />
+                Mark slit{chosen.length ? ` (${chosen.length})` : ''}
+              </Button>
+            </SelectionBar>
+          </div>
         )}
       </div>
 
@@ -155,7 +165,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table className='min-w-5xl table-fixed'>
+          <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-36' />
@@ -203,7 +213,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                           key={row.origin_item}
                           data-state={picked.has(row.origin_item) ? 'selected' : undefined}
                         >
-                          <TableCell>
+                          <TableCell card='lead'>
                             {done ? (
                               <Scissors className='size-3.5 text-success' aria-label='Slit' />
                             ) : (
@@ -221,35 +231,37 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                               />
                             )}
                           </TableCell>
-                          <TableCell>{formatDate(row.production_date)}</TableCell>
-                          <TableCell>
+                          <TableCell label='Production Date'>
+                            {formatDate(row.production_date)}
+                          </TableCell>
+                          <TableCell card='title'>
                             <span className='font-mono font-medium'>
                               {row.invoice ?? row.order ?? '—'}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Requested By'>
                             <span className='truncate'>{row.requested_by ?? '—'}</span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Product ID'>
                             <span className='font-mono'>{product ?? '—'}</span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell card='subtitle'>
                             <span className='truncate text-muted-foreground'>
                               {row.description ?? '—'}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Qty'>
                             <span className='font-mono'>{row.quantity ?? '—'}</span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Supplier'>
                             <span className='truncate'>{row.supplier ?? 'Undefined'}</span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Coil Number'>
                             <span className='truncate font-mono'>
                               {row.coil_number ?? 'Undefined'}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell label='Notes'>
                             <NoteButton
                               state={noteState(row.origin_item)}
                               label={`Line notes for ${product ?? row.origin_item}`}

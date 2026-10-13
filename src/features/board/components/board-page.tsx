@@ -127,7 +127,7 @@ export const BoardPage = ({
               View only
             </Badge>
           ) : view === 'wrapping' || view === 'packaging' ? (
-            <ScanPackageDialog />
+            <ScanPackageDialog iconOnPhone className='mb-1.5' />
           ) : null
         }
       />

@@ -8,8 +8,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSkeleton
+  SidebarMenuSkeleton,
+  useSidebar
 } from '@/components/ui/sidebar'
+import { useIsWide } from '@/hooks/use-mobile'
 import { Link } from '@tanstack/react-router'
 import { Grid2x2, Layers, PackageCheck, QrCode, Settings, Truck, Waypoints } from 'lucide-react'
 
@@ -54,53 +56,69 @@ type AppSidebarProps = {
 const ACTIVE = { 'data-active': '' }
 const ACTIVE_OPTIONS = { includeSearch: false }
 
-export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => (
-  <Sidebar collapsible='icon'>
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size='lg' render={<Link to='/' />}>
-            <img src='/icon-512.png' alt='' className='size-8 flex-none' />
-            <div className='grid flex-1 text-left leading-tight'>
-              <span className='truncate font-heading font-semibold'>Wiseline</span>
-              <span className='truncate text-xs tracking-widest text-muted-foreground uppercase'>
-                Production
-              </span>
-            </div>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarHeader>
+export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
+  const { setOpen, setOpenMobile } = useSidebar()
+  const wide = useIsWide()
+  // A phone's sheet and a tablet's opened rail lie over the page; a link that goes there puts them
+  // away. A desk's sidebar stays as it is.
+  const putAway = () => {
+    setOpenMobile(false)
+    if (!wide) setOpen(false)
+  }
 
-    <SidebarContent>
-      {NAV_GROUPS.map(group => (
-        <SidebarGroup key={group.label}>
-          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {group.items.map(item =>
-                !hidden.has(item.to) ? (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      tooltip={item.label}
-                      render={
-                        <Link to={item.to} activeProps={ACTIVE} activeOptions={ACTIVE_OPTIONS} />
-                      }
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : pending ? (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuSkeleton showIcon />
-                  </SidebarMenuItem>
-                ) : null
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
-    </SidebarContent>
-  </Sidebar>
-)
+  return (
+    <Sidebar collapsible='icon'>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size='lg' render={<Link to='/' onClick={putAway} />}>
+              <img src='/icon-512.png' alt='' className='size-8 flex-none' />
+              <div className='grid flex-1 text-left leading-tight'>
+                <span className='truncate font-heading font-semibold'>Wiseline</span>
+                <span className='truncate text-xs tracking-widest text-muted-foreground uppercase'>
+                  Production
+                </span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {NAV_GROUPS.map(group => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map(item =>
+                  !hidden.has(item.to) ? (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuButton
+                        tooltip={item.label}
+                        render={
+                          <Link
+                            to={item.to}
+                            activeProps={ACTIVE}
+                            activeOptions={ACTIVE_OPTIONS}
+                            onClick={putAway}
+                          />
+                        }
+                      >
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ) : pending ? (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuSkeleton showIcon />
+                    </SidebarMenuItem>
+                  ) : null
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+    </Sidebar>
+  )
+}

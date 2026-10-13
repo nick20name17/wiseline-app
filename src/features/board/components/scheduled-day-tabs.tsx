@@ -18,7 +18,8 @@ import { ScheduleDialog } from './schedule-dialog'
 
 // Every card in the strip is the same box. Equal widths are what keep the rows from re-wrapping —
 // and the strip from changing height — when the placeholders are replaced by the days themselves.
-const TILE = 'relative h-13 w-44 rounded-md border border-border px-3 py-1 text-left leading-tight'
+const TILE =
+  'relative h-13 w-44 md:max-xl:w-full rounded-md border border-border px-3 py-1 text-left leading-tight'
 
 type ScheduledDayTabsProps = {
   departmentId: number | undefined
@@ -72,7 +73,7 @@ export const ScheduledDayTabs = ({
   )
 
   return (
-    <div className='flex flex-wrap items-stretch gap-1.5'>
+    <div className='strip-scroll flex items-stretch gap-1.5 md:flex-wrap md:max-xl:grid md:max-xl:tile-grid'>
       <button
         type='button'
         className={cn(
@@ -94,7 +95,7 @@ export const ScheduledDayTabs = ({
       {/* Red while any day carries overdue work, tab on the strip or not (p1 (293,540), (326,569)). */}
       <Button
         variant='outline'
-        className='h-13 w-44'
+        className='h-13 w-44 md:max-xl:w-full'
         title={
           anyOverdue
             ? `Jump to a ${board.dayWord} — some days have overdue orders`
@@ -111,7 +112,7 @@ export const ScheduledDayTabs = ({
 
       {isPending
         ? Array.from({ length: WORK_WEEK_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-13 w-44' />
+            <Skeleton key={index} className='h-13 w-44 md:max-xl:w-full' />
           ))
         : days.map(entry => {
             const isOverdue = overdueDays.has(entry.date)
@@ -128,8 +129,9 @@ export const ScheduledDayTabs = ({
                   type='button'
                   className={cn(
                     TILE,
-                    // The gear overlays the top-right corner, so the text stops short of it.
-                    'bg-background pr-9 whitespace-nowrap hover:border-input',
+                    // The gear overlays the top-right corner, so the text stops short of it — further
+                    // on a phone, where the gear grows to a finger's size.
+                    'bg-background pr-9 whitespace-nowrap hover:border-input max-md:pr-12',
                     active && 'border-primary bg-primary/10',
                     warn && 'border-destructive bg-destructive/5'
                   )}
@@ -172,9 +174,10 @@ export const ScheduledDayTabs = ({
                   ) : null}
                 </button>
                 {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
-                    a keyboard reaching it shows it too. A board with no machines has no report. */}
+                    a keyboard reaching it shows it too, and a finger, which cannot point, always
+                    sees it. A board with no machines has no report. */}
                 {board.makes ? (
-                  <span className='absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 focus-within:opacity-100'>
+                  <span className='absolute top-1/2 right-1.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/day:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100'>
                     <Button
                       variant='outline'
                       size='icon-sm'

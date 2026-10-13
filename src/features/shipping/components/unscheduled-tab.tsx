@@ -3,8 +3,9 @@ import { OrderNoteDialog } from '@/components/order-note-dialog'
 import { PriorityPill } from '@/components/priority-pill'
 import { PrioritySelect } from '@/components/priority-select'
 import { QueryError } from '@/components/query-error'
+import { SelectionBar } from '@/components/selection-bar'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -50,9 +51,14 @@ const OrderPackages = ({ order }: { order: string }) => {
   return (
     <ul className='divide-y divide-border'>
       {packages.map(pkg => (
-        <li key={pkg.package_id} className='flex items-center gap-4 px-3 py-2 text-sm'>
-          <span className='w-40 font-mono'>{pkg.name ?? pkg.package_id}</span>
-          <span className='w-32 font-mono text-muted-foreground'>{pkg.location ?? '—'}</span>
+        <li
+          key={pkg.package_id}
+          className='flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-sm'
+        >
+          <span className='w-40 font-mono max-md:w-auto'>{pkg.name ?? pkg.package_id}</span>
+          <span className='w-32 font-mono text-muted-foreground max-md:w-auto'>
+            {pkg.location ?? '—'}
+          </span>
           <span className='font-mono'>{formatWeight(pkg.weight)}</span>
         </li>
       ))}
@@ -138,7 +144,7 @@ export const UnscheduledTab = ({
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
-      <div className='flex items-center gap-2.5'>
+      <div className='flex flex-wrap items-center gap-2.5'>
         <span className='text-sm text-muted-foreground'>
           {picked.length ? (
             <>
@@ -150,11 +156,18 @@ export const UnscheduledTab = ({
             </>
           )}
         </span>
-        <ShipDateFilter {...shipDates} onChange={onShipDatesChange} />
-        <Button className='ml-auto' disabled={!picked.length} onClick={() => setScheduling(true)}>
-          <CalendarDays data-icon='inline-start' />
-          Schedule{picked.length ? ` (${picked.length})` : ''}
-        </Button>
+        {/* A phone gives the count its own line and halves the next one between the filter and Schedule. */}
+        <div className='flex items-center gap-2.5 max-md:w-full md:contents'>
+          <ShipDateFilter className='max-md:flex-1' {...shipDates} onChange={onShipDatesChange} />
+          <div className='ml-auto max-md:flex-1'>
+            <SelectionBar active={picked.length > 0}>
+              <Button disabled={!picked.length} onClick={() => setScheduling(true)}>
+                <CalendarDays data-icon='inline-start' />
+                Schedule{picked.length ? ` (${picked.length})` : ''}
+              </Button>
+            </SelectionBar>
+          </div>
+        </div>
       </div>
 
       {!isPending && !orders.length ? (
@@ -178,7 +191,7 @@ export const UnscheduledTab = ({
           {/* Sized to the widest value plus the cell's 32px padding — a date with a two-digit day, a
               five-figure weight — so only the free text truncates. The fixed columns take 1776px; the
               floor leaves the Customer room to read. */}
-          <Table className='min-w-498 table-fixed'>
+          <Table data-cards className='min-w-498 table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-10' />
@@ -225,7 +238,7 @@ export const UnscheduledTab = ({
                   return (
                     <Fragment key={order.order}>
                       <TableRow data-state={selected.has(order.order) ? 'selected' : undefined}>
-                        <TableCell>
+                        <TableCell card='lead'>
                           <Checkbox
                             aria-label={`Select order ${order.order_number ?? order.order}`}
                             checked={selected.has(order.order)}
@@ -238,7 +251,7 @@ export const UnscheduledTab = ({
                             }
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell card='trail'>
                           {/* Opening an order leaves the ticks as they are p3 (560,202). */}
                           <Button
                             variant='ghost'
@@ -255,8 +268,8 @@ export const UnscheduledTab = ({
                             />
                           </Button>
                         </TableCell>
-                        <TableCell>{formatDate(order.entry_date)}</TableCell>
-                        <TableCell>
+                        <TableCell label='Entry'>{formatDate(order.entry_date)}</TableCell>
+                        <TableCell label='Ship'>
                           {/* Past its ship date and not delivered p3 (605,628). */}
                           <span
                             className={cn(order.is_overdue && 'font-medium text-destructive')}
@@ -265,51 +278,58 @@ export const UnscheduledTab = ({
                             {formatDate(order.ship_date)}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell card='title'>
                           <span className='font-mono font-medium'>
                             {order.order_number ?? order.order}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <span className='truncate'>{order.customer ?? '—'}</span>
+                        <TableCell card='subtitle'>
+                          <span className='lg:truncate'>{order.customer ?? '—'}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className='truncate text-muted-foreground'>
+                        <TableCell label='Address'>
+                          <span className='text-muted-foreground lg:truncate'>
                             {order.address ?? '—'}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <span className='truncate text-muted-foreground'>
+                        <TableCell label='City'>
+                          <span className='text-muted-foreground lg:truncate'>
                             {order.city ?? '—'}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Map'>
                           {order.address ? (
-                            <a
-                              href={mapUrl(order)}
-                              target='_blank'
-                              rel='noreferrer'
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
                               aria-label={`Map of ${order.order_number ?? order.order}`}
-                              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                              nativeButton={false}
+                              render={
+                                <a
+                                  href={mapUrl(order)}
+                                  target='_blank'
+                                  rel='noreferrer'
+                                  aria-label={`Map of ${order.order_number ?? order.order}`}
+                                />
+                              }
                             >
                               <MapPin />
-                            </a>
+                            </Button>
                           ) : null}
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Weight'>
                           <span className='font-mono'>{formatWeight(order.weight)}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Longest Length'>
                           <span className='font-mono'>{formatLength(order.longest_length)}</span>
                         </TableCell>
-                        <TableCell>{order.ship_via ?? '—'}</TableCell>
-                        <TableCell>
+                        <TableCell label='Ship Via'>{order.ship_via ?? '—'}</TableCell>
+                        <TableCell label='Priority'>
                           <PriorityCell order={order} departmentId={department?.id} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Ready'>
                           <ReadyCount order={order.order} readiness={order} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell label='Notes'>
                           <NoteButton
                             state={noteState(order)}
                             label={`Order notes for ${name}`}

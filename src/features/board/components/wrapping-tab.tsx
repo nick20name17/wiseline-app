@@ -127,7 +127,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       {/* Wide enough for the fixed columns and a Description still worth reading. */}
-      <Table className='min-w-7xl table-fixed'>
+      <Table data-cards className='min-w-7xl table-fixed'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>

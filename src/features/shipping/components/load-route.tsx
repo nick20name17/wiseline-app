@@ -1,5 +1,5 @@
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
@@ -27,6 +27,18 @@ type Delivery = Stop & { route_id: number }
 const isDelivery = (stop: Stop): stop is Delivery => !stop.dispatch_point && stop.route_id !== null
 
 const place = (stop: Stop) => [stop.address, stop.city].filter(Boolean).join(', ') || '—'
+
+type PlaceProps = { name: string; stop: Stop; muted?: boolean }
+
+/** Who the stop is and where: side by side on a wide screen, the address under the name on a phone. */
+const Place = ({ name, stop, muted = true }: PlaceProps) => (
+  <span className='flex min-w-0 flex-1 gap-3 max-md:flex-col max-md:gap-0'>
+    <span className='min-w-0 flex-1 truncate'>{name}</span>
+    <span className={cn('min-w-0 flex-1 truncate', muted && 'text-muted-foreground')}>
+      {place(stop)}
+    </span>
+  </span>
+)
 
 type StopRowProps = { stop: Delivery; number: number; locked: boolean }
 
@@ -58,15 +70,15 @@ const StopRow = ({ stop, number, locked }: StopRowProps) => {
         ref={setActivatorNodeRef}
         type='button'
         aria-label={`Move ${stop.order_number ?? stop.name ?? 'stop'}`}
-        className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50'
+        // A finger needs more than the grip's own 14px to land on; the margin takes the room back.
+        className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50 pointer-coarse:-m-3 pointer-coarse:p-3'
         {...attributes}
       >
         <GripVertical className='size-3.5' />
       </button>
       <span className='w-6 font-mono text-muted-foreground'>{number}</span>
-      <span className='w-28 font-mono font-medium'>{stop.order_number ?? '—'}</span>
-      <span className='min-w-0 flex-1 truncate'>{stop.name ?? '—'}</span>
-      <span className='min-w-0 flex-1 truncate text-muted-foreground'>{place(stop)}</span>
+      <span className='w-28 font-mono font-medium max-md:w-auto'>{stop.order_number ?? '—'}</span>
+      <Place name={stop.name ?? '—'} stop={stop} />
     </li>
   )
 }
@@ -120,16 +132,21 @@ export const LoadRoute = ({ load }: { load: Load }) => {
         ) : null}
         <span className='ml-auto flex gap-2'>
           {map ? (
-            <a
-              href={map}
-              target='_blank'
-              rel='noreferrer'
-              aria-label={`View the route of ${load.name} on the map`}
-              className={buttonVariants({ variant: 'outline' })}
+            <Button
+              variant='outline'
+              nativeButton={false}
+              render={
+                <a
+                  href={map}
+                  target='_blank'
+                  rel='noreferrer'
+                  aria-label={`View the route of ${load.name} on the map`}
+                />
+              }
             >
               <MapIcon data-icon='inline-start' />
               View on map
-            </a>
+            </Button>
           ) : null}
           {locked ? null : (
             <Button
@@ -157,8 +174,7 @@ export const LoadRoute = ({ load }: { load: Load }) => {
             >
               <Warehouse className='size-3.5' />
               <span className='w-6' />
-              <span className='min-w-0 flex-1 truncate'>{stop.name ?? 'Warehouse'}</span>
-              <span className='min-w-0 flex-1 truncate'>{place(stop)}</span>
+              <Place name={stop.name ?? 'Warehouse'} stop={stop} muted={false} />
             </li>
           ))}
           <DndContext

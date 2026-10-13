@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { useQuery } from '@tanstack/react-query'
 import { getDaysInMonth, startOfMonth } from 'date-fns'
@@ -83,7 +83,7 @@ const Picker = ({
 
       <DialogFooter>
         {onUnschedule ? (
-          <Button variant='outline' className='sm:mr-auto' onClick={onUnschedule}>
+          <Button variant='outline' className='md:mr-auto' onClick={onUnschedule}>
             <CalendarX data-icon='inline-start' />
             Unschedule
           </Button>

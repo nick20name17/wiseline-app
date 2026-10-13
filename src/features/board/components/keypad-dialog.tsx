@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { useRetained } from '@/lib/use-retained'
 import { Delete, X } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'

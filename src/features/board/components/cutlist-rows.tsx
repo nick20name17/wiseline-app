@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -505,13 +505,13 @@ export const CutlistRows = ({
                   ? 'Vented'
                   : (column.machine.name ?? `Machine ${column.machine.id}`)
             })),
-            { key: 'op', label: 'Operator Notes', width: 'w-44' }
+            { key: 'op', label: 'Operator Notes', width: 'w-44', card: 'full' as const }
           ]
         : // A bendlist row keeps what the bender reads at the machine; Qty Ordered, Stock, Machine
           // and Remanufacture open from the row, so the list fits without a sideways scroll.
           [
-            { key: 'pid', label: 'ID', width: 'w-32' },
-            { key: 'desc', label: 'Description' },
+            { key: 'pid', label: 'ID', width: 'w-32', card: 'title' as const },
+            { key: 'desc', label: 'Description', card: 'subtitle' as const },
             // On a remake list it says what is being remade, green once the Slinet has recut it
             // (p1 (608,446), (613,462), (686,501)).
             ...(remake ? [{ key: 'reman', label: 'Remanufacture', width: 'w-28' }] : []),
@@ -536,7 +536,9 @@ export const CutlistRows = ({
   return (
     <>
       {/* Headings wrap rather than widen their column: every column has to fit. */}
-      <Table className='table-fixed [&_th]:whitespace-normal'>
+      {/* Below `lg` each row is a card: a tablet at the machine is too narrow for every column, and
+          a sideways scroll would hide Complete. */}
+      <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>

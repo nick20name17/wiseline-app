@@ -4,10 +4,11 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldError, FieldGroup, FieldSet } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -151,13 +152,14 @@ const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) 
         </FieldSet>
       </FieldGroup>
 
-      <div className='mt-6 flex justify-end gap-2'>
+      {/* A phone stacks the answers full width, Save on top, as the drawer's own footers do. */}
+      <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
         <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
           {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
           Save
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   )
 }

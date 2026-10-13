@@ -1,6 +1,12 @@
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { Ellipsis, Pencil, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 type RowActionsProps = {
@@ -19,7 +25,10 @@ type RowActionsProps = {
   }
 }
 
-/** A settings table row's edit and delete buttons, with the dialogs they open. */
+/**
+ * A settings table row's edit and delete buttons, with the dialogs they open. On a card — a table
+ * below `lg` — the two fold into one menu in the card's corner.
+ */
 export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null)
 
@@ -28,6 +37,7 @@ export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
       <Button
         variant='ghost'
         size='icon-sm'
+        className='max-lg:hidden'
         aria-label={`Edit ${name}`}
         onClick={() => setDialog('edit')}
       >
@@ -36,11 +46,36 @@ export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
       <Button
         variant='ghost'
         size='icon-sm'
+        className='max-lg:hidden'
         aria-label={`Delete ${name}`}
         onClick={() => setDialog('delete')}
       >
         <Trash2 />
       </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon'
+              className='lg:hidden'
+              aria-label={`Actions for ${name}`}
+            />
+          }
+        >
+          <Ellipsis />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='min-w-40'>
+          <DropdownMenuItem onClick={() => setDialog('edit')}>
+            <Pencil />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem variant='destructive' onClick={() => setDialog('delete')}>
+            <Trash2 />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {edit({ open: dialog === 'edit', onOpenChange: open => setDialog(open ? 'edit' : null) })}
       <ConfirmDialog

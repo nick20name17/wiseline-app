@@ -116,7 +116,8 @@ export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
               <span className='text-sm text-muted-foreground'>
                 Limit {formatWeight(card.weight_limit)}
               </span>
-              <span className='ml-auto flex flex-wrap gap-2'>
+              {/* Four tiles a row would not fit a phone; two by two they keep their labels whole. */}
+              <span className='ml-auto flex flex-wrap gap-2 max-md:grid max-md:w-full max-md:grid-cols-2'>
                 {tilesOf(card).map(tile => (
                   <Box key={tile.label} tile={tile} />
                 ))}

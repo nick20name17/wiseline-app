@@ -101,7 +101,7 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table className='min-w-4xl table-fixed'>
+      <Table data-cards className='min-w-4xl table-fixed'>
         <colgroup>
           <col className='w-40' />
           <col className='w-36' />
@@ -155,32 +155,38 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
                       className={released ? 'cursor-pointer' : undefined}
                       onClick={released ? () => setOpened(order.order) : undefined}
                     >
-                      <TableCell>{formatDate(order.prep_date)}</TableCell>
-                      <TableCell>
+                      <TableCell label='Prep Date'>{formatDate(order.prep_date)}</TableCell>
+                      <TableCell card='title'>
                         <span className='font-mono font-medium'>
                           {order.order_number ?? order.order}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Priority'>
                         {priority ? (
                           <PriorityPill priority={priority} />
                         ) : (
                           <span className='text-muted-foreground'>—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell card='subtitle'>
                         <span className='truncate'>{order.customer ?? '—'}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Truck'>
                         {/* «If the order is not assigned to a Truck yet, then the column … would just stay
                             blank» p3 (1239,204). */}
                         <span className='font-mono text-muted-foreground'>{order.truck}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Ship Via'>
                         <span className='text-muted-foreground'>{order.ship_via ?? '—'}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Status'>
                         <StatusPill status={orderStatus(order.status)} />
+                        {/* Why the row does not open is its hover title on a desk. */}
+                        {released ? null : (
+                          <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
+                            Not on the bench yet
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   )

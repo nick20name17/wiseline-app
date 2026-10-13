@@ -61,7 +61,7 @@ export const OrderRow = ({
         data-state={selected ? 'selected' : undefined}
         onClick={onToggleExpanded}
       >
-        <TableCell onClick={stopRowClick}>
+        <TableCell card='lead' onClick={stopRowClick}>
           <Checkbox
             aria-label={`Select order ${order.invoice}`}
             checked={selected}
@@ -72,7 +72,7 @@ export const OrderRow = ({
             onCheckedChange={onToggleSelected}
           />
         </TableCell>
-        <TableCell onClick={stopRowClick}>
+        <TableCell card='trail' onClick={stopRowClick}>
           <Button
             variant='ghost'
             size='icon-sm'

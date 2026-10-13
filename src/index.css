@@ -217,6 +217,59 @@
   );
 }
 
+/*
+ * Room for a phone's notch, rounded corners and home indicator, which the page paints under
+ * (`viewport-fit=cover`). Each is the spacing step it replaces plus the inset, so off a phone — where
+ * every inset is 0 — it is that step and nothing more.
+ */
+@utility pb-safe-* {
+  padding-bottom: calc(var(--spacing) * --value(number) + env(safe-area-inset-bottom, 0px));
+}
+@utility -mb-safe-* {
+  margin-bottom: calc(-1 * (var(--spacing) * --value(number) + env(safe-area-inset-bottom, 0px)));
+}
+@utility -bottom-safe-* {
+  bottom: calc(-1 * (var(--spacing) * --value(number) + env(safe-area-inset-bottom, 0px)));
+}
+@utility px-safe-* {
+  padding-inline: max(
+    var(--spacing) * --value(number),
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
+}
+/*
+ * A row of fixed-size tiles that wraps on a wide screen. On a phone a wrapped row would stack into a
+ * column taller than the screen, so it scrolls sideways instead, edge to edge past the page's padding,
+ * each tile snapping to the start. Pair it with `md:flex-wrap`, which a utility here could not outrank.
+ */
+@utility strip-scroll {
+  @media (width < 48rem) {
+    margin-inline: calc(var(--spacing) * -3);
+    padding-inline: calc(var(--spacing) * 3);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: calc(var(--spacing) * 3);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    & > * {
+      flex-shrink: 0;
+      scroll-snap-align: start;
+    }
+  }
+}
+
+/* Tiles that share out a tablet's width in as many columns as fit, rather than leave a ragged gap. */
+@utility tile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing) * 40), 1fr));
+}
+
+/* A strip a finger swipes through: the bar would only cover the underline beneath it. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+}
+
 /**
  * A scroll container clips everything drawn outside its box, and a focus ring is drawn outside the
  * control it belongs to — so a field flush against the edge of a scrolling panel loses its ring on
@@ -234,6 +287,285 @@
   box-sizing: content-box;
   margin: calc(var(--spacing) * -1.5);
   padding: calc(var(--spacing) * 1.5);
+}
+
+/*
+ * A table marked `data-cards` lays each row out as a card below `lg`, where its columns would not
+ * fit: the same rows, cells and handlers, so a phone or a tablet loses nothing a desk has. Each cell
+ * is a field under its column's label (`data-label`); `data-card` on a cell gives it another place —
+ * see `TableCellCard` in ui/table.tsx. The header row has nothing left to head and steps out, and so
+ * do the column widths. Unlayered, so it outranks the table's own utilities.
+ */
+@media (width < 64rem) {
+  [data-slot='table-container']:has(> table[data-cards]) {
+    overflow-x: visible;
+  }
+  table[data-cards] {
+    display: block;
+    min-width: 0;
+    table-layout: auto;
+
+    & > colgroup,
+    & > thead {
+      display: none;
+    }
+    & > tbody {
+      display: block;
+    }
+    & > tbody > tr {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: calc(var(--spacing) * 2.5) calc(var(--spacing) * 4);
+      height: auto;
+      padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+
+      @media (width >= 40rem) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    /* A virtualised table's spacer, which is only ever its height. */
+    & > tbody > tr:not(:has(> td)) {
+      padding: 0;
+      border: 0;
+    }
+    /* A heading row between groups, such as a day's: a band, not a card. */
+    & > tbody > tr:has(> td[colspan]:only-child) {
+      padding-block: calc(var(--spacing) * 2);
+    }
+    /* A row opened into its own details: the nested block brings its own padding. */
+    & > tbody > tr:has(> td[colspan]:only-child > :is(div, table)) {
+      padding: 0;
+    }
+    /* A divider's rule is drawn by its cells, which on a card sit inside the row's padding; the row
+       draws it instead, edge to edge. */
+    & > tbody > tr[data-divider] {
+      border-top: 2px solid color-mix(in oklab, var(--foreground) 15%, transparent);
+      & > td {
+        border-top: 0;
+      }
+    }
+    & > tbody > tr > td {
+      display: block;
+      min-width: 0;
+      height: auto;
+      padding: 0;
+      white-space: normal;
+    }
+    /* A desk's ellipsis leans on a `title` a touch screen never shows; a field on a card has the
+       card's width to wrap in instead. A button keeps its one line. */
+    & > tbody > tr > td:not([colspan]) .truncate:not(button .truncate) {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    & > tbody > tr > td[data-label]::before {
+      content: attr(data-label);
+      /* Inline-block, so a struck-through row does not strike its labels too. */
+      display: inline-block;
+      width: 100%;
+      margin-bottom: calc(var(--spacing) * 0.5);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted-foreground);
+    }
+    &
+      > tbody
+      > tr
+      > td:is([data-card='title'], [data-card='subtitle'], [data-card='full'], [colspan]) {
+      grid-column: 1 / -1;
+    }
+    & > tbody > tr > td:is([data-card='title'], [data-card='subtitle']) {
+      order: -1;
+      min-height: calc(var(--spacing) * 7);
+      &::before {
+        display: none;
+      }
+    }
+    & > tbody > tr > td[data-card='title'] {
+      order: -2;
+      display: flex;
+      align-items: center;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+    & > tbody > tr > td[data-card='subtitle'] {
+      min-height: 0;
+      margin-top: calc(var(--spacing) * -2);
+      color: var(--muted-foreground);
+    }
+    /* The row's controls sit in the corners beside the title, which makes room for them. */
+    & > tbody > tr > td[data-card='lead'] {
+      position: absolute;
+      top: calc(var(--spacing) * 3);
+      left: calc(var(--spacing) * 4);
+      display: flex;
+      align-items: center;
+      min-height: calc(var(--spacing) * 7);
+    }
+    & > tbody > tr > td[data-card='trail'] {
+      position: absolute;
+      top: calc(var(--spacing) * 3);
+      right: calc(var(--spacing) * 2);
+    }
+    &
+      > tbody
+      > tr:has(> td[data-card='lead']:not(:empty))
+      > td:is([data-card='title'], [data-card='subtitle']) {
+      padding-left: calc(var(--spacing) * 7);
+    }
+    &
+      > tbody
+      > tr:has(> td[data-card='trail']:not(:empty))
+      > td:is([data-card='title'], [data-card='subtitle']) {
+      padding-right: calc(var(--spacing) * 9);
+    }
+    & > tbody > tr > td[data-card='hidden'] {
+      display: none;
+    }
+  }
+
+  /*
+   * A page's cards stand apart, each on its own surface, rather than as one long list; the frame
+   * around the table steps back. A margin rather than a gap: it is part of the row's box, so a
+   * virtualised body measures it, and the body is a formatting root so the last one stays inside.
+   * A table inside a row's details stays a list within its card.
+   */
+  :has(> [data-slot='table-container'] > table[data-cards]:not(td *)) {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  table[data-cards]:not(td *) {
+    margin-bottom: calc(var(--spacing) * -3);
+
+    & > tbody {
+      display: flow-root;
+    }
+    & > tbody > tr {
+      margin-bottom: calc(var(--spacing) * 3);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xs);
+    }
+    & > tbody > tr:not(:has(> td)) {
+      margin-bottom: 0;
+      box-shadow: none;
+    }
+    /* Stripes tell the lines of a list apart; separate cards need none. */
+    &
+      > tbody
+      > tr:nth-child(even):has(> td:not([colspan])):not(
+        [data-overdue],
+        [data-reman],
+        [data-state='selected'],
+        :hover,
+        :has([aria-expanded='true'])
+      ) {
+      background-color: var(--card);
+    }
+    /* A group's heading is a caption over its cards, not a card of its own. */
+    & > tbody > tr:has(> td[colspan]:only-child):not(:has(> td > :is(div, table))) {
+      margin-bottom: calc(var(--spacing) * 1);
+      padding-inline: calc(var(--spacing) * 1);
+      border: 0;
+      box-shadow: none;
+    }
+    /* A row opened into its details carries them on the same card. */
+    & > tbody > tr:has(+ tr > td[colspan]:only-child > :is(div, table)) {
+      margin-bottom: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+      box-shadow: none;
+    }
+    & > tbody > tr:has(> td[colspan]:only-child > :is(div, table)) {
+      border-top: 0;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+    /* Between cards a divider is a wider step, not a rule. */
+    & > tbody > tr[data-divider] {
+      margin-top: calc(var(--spacing) * 3);
+      border-top: 1px solid var(--border);
+    }
+  }
+}
+
+/* A card's surface sits under the layer of utilities, so a row's own tint — picked, late — still shows. */
+@layer components {
+  @media (width < 64rem) {
+    table[data-cards]:not(td *) > tbody > tr:has(> td):not(:has(> td[colspan]:only-child)),
+    table[data-cards]:not(td *) > tbody > tr:has(> td[colspan]:only-child > :is(div, table)) {
+      background-color: var(--card);
+    }
+  }
+}
+
+/* A phone's selection bar lies over the bottom of the page; the page scrolls its last rows clear. */
+@media (width < 48rem) {
+  main:has([data-selection-bar]) {
+    padding-bottom: calc(var(--spacing) * 20);
+  }
+}
+
+/*
+ * A finger needs more than the 32px a pointer gets by with, so on a phone every control grows to a
+ * thumb's target: the main sizes, icon buttons of any size included, to 40 — dense enough for the board's lists,
+ * with the spacing between controls making up the rest of Apple's 44 — the small ones to 36. Minimums
+ * rather than heights, so a control drawn taller stays so. A
+ * link-styled button is text in a line, a calendar's days share a fixed grid, and a button inside an
+ * input group takes the group's height — those keep theirs.
+ */
+@media (width < 48rem) {
+  /* By its variant: a button rendered as a dialog's or a popover's close takes that part's slot. */
+  :is(button, a)[data-variant][data-size]:not(
+      [data-variant='link'],
+      [data-slot='calendar'] *,
+      [data-slot='input-group'] *
+    ) {
+    min-height: calc(var(--spacing) * 10);
+
+    &[data-size^='icon'] {
+      min-width: calc(var(--spacing) * 10);
+    }
+    &:is([data-size='sm'], [data-size='xs']) {
+      min-height: calc(var(--spacing) * 9);
+    }
+  }
+  :is(
+    [data-slot='input'],
+    [data-slot='input-group'],
+    [data-slot='combobox-chips'],
+    [data-slot='select-trigger']:not([data-size='sm'])
+  ) {
+    min-height: calc(var(--spacing) * 10);
+  }
+  [data-slot='select-trigger'][data-size='sm'] {
+    min-height: calc(var(--spacing) * 9);
+  }
+  /* A list's options and a strip's tabs are picked by the same finger. */
+  :is(
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-radio-item'],
+    [data-slot='select-item'],
+    [data-slot='combobox-item'],
+    [data-slot='sidebar-menu-button'],
+    [data-slot='tabs-trigger']
+  ) {
+    min-height: calc(var(--spacing) * 10);
+  }
+  [data-slot='tabs-list'] {
+    height: auto;
+  }
+  /* The box stays a box; the ring a finger can land on around it grows to 40 square. */
+  :is([data-slot='checkbox'], [data-slot='switch'])::after {
+    inset: -0.75rem;
+  }
 }
 
 /**
@@ -308,6 +640,10 @@
   html {
     @apply scrollbar-gutter-stable font-sans;
     interpolate-size: allow-keywords;
+    /* A tap gets the control's own pressed state, not the browser's grey flash over it, and a phone
+       turned sideways keeps the type at the size it was set. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -319,6 +655,26 @@
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']) {
     @apply cursor-pointer;
+  }
+
+  /* A control fires on the tap rather than after the wait for a double-tap zoom, and holding a
+     finger on one does not select its label. Content text stays selectable: order numbers are
+     copied off the board. */
+  button,
+  a,
+  label,
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'] {
+    touch-action: manipulation;
+  }
+  button,
+  [role='button'],
+  [role='tab'] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   h1,

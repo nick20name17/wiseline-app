@@ -5,9 +5,10 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { formatDate, fromIsoDay, toIsoDay } from '@/lib/days'
@@ -96,7 +97,7 @@ export const ScheduleDialog = ({
             <Skeleton className='h-32' />
           ) : (
             // A fleet runs past the window, so the trucks scroll and Apply stays in reach.
-            <fieldset className='scrollport grid max-h-96 gap-2 overflow-y-auto sm:grid-cols-2'>
+            <fieldset className='scrollport grid gap-2 sm:grid-cols-2 md:max-h-96 md:overflow-y-auto'>
               <legend className='sr-only'>Truck</legend>
               {(panels ?? []).map(panel => {
                 const picked = panel.truck_id === truckId
@@ -133,6 +134,10 @@ export const ScheduleDialog = ({
                         ? formatWeight(panel.assigned_weight)
                         : formatWeight(panel.already_assigned_weight)}
                       {picked ? ' with these' : ' already on it'}
+                      {/* The title never shows under a finger. */}
+                      {picked && panel.over_weight_limit ? (
+                        <span className='hidden pointer-coarse:inline'> · over the limit</span>
+                      ) : null}
                     </span>
                   </label>
                 )
@@ -141,7 +146,7 @@ export const ScheduleDialog = ({
           )}
         </div>
 
-        <div className='mt-2 flex justify-end gap-2'>
+        <DialogFooter bare className='mt-2'>
           <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
           <Button
             disabled={!shipDate || truckId === null || apply.isPending}
@@ -152,7 +157,7 @@ export const ScheduleDialog = ({
             {apply.isPending ? <Spinner data-icon='inline-start' /> : null}
             Apply
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

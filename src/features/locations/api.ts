@@ -105,14 +105,12 @@ export const useUpsertLocationType = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteLocationType = (onSuccess: () => void) =>
+export const useDeleteLocationType = () =>
   useMutation({
     meta: { errorTitle: 'The type stayed' },
     mutationFn: (id: number) => authApi.delete(`location-types/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: locationsKeys.all })
-      onSuccess()
-    }
+    // Awaited, so the confirm closes on the refreshed list rather than on the deleted row.
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: locationsKeys.all })
   })
 
 const locationSchema = z.object({
@@ -181,12 +179,10 @@ export const useUpsertLocation = (onSuccess: () => void) =>
     }
   })
 
-export const useDeleteLocation = (onSuccess: () => void) =>
+export const useDeleteLocation = () =>
   useMutation({
     meta: { errorTitle: 'The location stayed' },
     mutationFn: (id: number) => authApi.delete(`locations/${id}/`),
-    onSuccess: async (_, __, ___, { client }) => {
-      await client.invalidateQueries({ queryKey: locationsKeys.all })
-      onSuccess()
-    }
+    // Awaited, so the confirm closes on the refreshed list rather than on the deleted row.
+    onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: locationsKeys.all })
   })

@@ -59,13 +59,13 @@ export const LineItems = ({
   return (
     <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {viewOnly ? null : (
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-x-3 gap-y-2'>
           <span className='flex items-center gap-1.5 text-sm font-medium'>
             <Split className='size-4' />
             Split order
           </span>
           {selectedLineIds.length ? (
-            <span className='text-xs text-muted-foreground'>
+            <span className='text-xs text-muted-foreground max-md:order-last max-md:w-full'>
               <b className='font-semibold text-foreground'>{selectedLineIds.length}</b> line item
               {selectedLineIds.length > 1 ? 's' : ''} picked — schedule them to their own day.
             </span>
@@ -83,7 +83,7 @@ export const LineItems = ({
       )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
-        <Table className='table-fixed'>
+        <Table data-cards className='table-fixed'>
           <colgroup>
             <col className='w-10' />
             {columns.cols}
@@ -106,7 +106,7 @@ export const LineItems = ({
                   data-locked={locked || undefined}
                   data-divider={(board.coils && newProduct(rows, index)) || undefined}
                 >
-                  <TableCell>
+                  <TableCell card='lead'>
                     {locked ? (
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
                     ) : (

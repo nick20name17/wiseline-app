@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -54,10 +54,10 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
+        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {entries.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table>
+              <Table data-cards>
                 <TableHeader>
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>
@@ -120,7 +120,8 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                   ))}
                 </TableBody>
                 {/* The figure the window was opened from, under the column it belongs to. */}
-                <TableFooter>
+                {/* Cards have no columns to put it under; a card of its own below them says it instead. */}
+                <TableFooter className='max-lg:hidden'>
                   <TableRow>
                     {columns.order.map(key =>
                       key === 'qty' ? (
@@ -134,6 +135,10 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                   </TableRow>
                 </TableFooter>
               </Table>
+              <p className='mt-3 flex justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium shadow-xs lg:hidden'>
+                Total
+                <span className='font-mono'>{group?.quantity ?? 0}</span>
+              </p>
             </div>
           ) : (
             <Empty className='min-h-40'>

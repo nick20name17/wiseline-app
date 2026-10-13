@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SelectionBar } from '@/components/selection-bar'
+import { useActiveInView } from '@/hooks/use-active-in-view'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -57,18 +59,20 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
   const all = waiting.length > 0 && waiting.every(order => picked.has(order.assignment_id))
   const chosen = waiting.filter(order => picked.has(order.assignment_id))
   const selectedWeight = chosen.reduce((total, order) => total + order.weight, 0)
+  const strip = useActiveInView<HTMLDivElement>(current ? tabKey(current) : null)
 
   if (isPending) return <Skeleton className='h-24' />
 
   return (
     <div className='flex flex-col gap-3 border-t border-border bg-muted/30 p-3'>
-      <div className='flex justify-end'>
+      {/* A phone's thumb finds a full-width button where a desk's eye finds the corner. */}
+      <div className='flex justify-end max-md:*:flex-1'>
         <PickupDialog card={card} shipDate={shipDate} />
       </div>
 
       {waiting.length ? (
         <section className='rounded-lg border border-border bg-card'>
-          <div className='flex items-center gap-3 px-3 py-2'>
+          <div className='flex flex-wrap items-center gap-3 px-3 py-2'>
             {/* «Select All … the order that have not been assigned to a load» p3 (594,325). */}
             <Checkbox
               aria-label={`Select every order on truck ${card.name} not on a Load`}
@@ -81,32 +85,42 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
             <span className='text-sm text-muted-foreground'>
               Selected {formatWeight(selectedWeight)}
             </span>
-            {/* Another day or truck for what is not on a Load yet p3 (591,341). */}
-            <Button
-              variant='outline'
-              className='ml-auto'
-              disabled={!chosen.length}
-              onClick={() => setRescheduling(true)}
-            >
-              <CalendarDays data-icon='inline-start' />
-              Reschedule
-            </Button>
-            <Button
-              disabled={!chosen.length || !current || !takesOrders(current) || add.isPending}
-              onClick={() =>
-                current &&
-                add.mutate(
-                  {
-                    assignmentIds: chosen.map(order => order.assignment_id),
-                    loadId: current.load_id
-                  },
-                  { onSuccess: () => setPicked(new Set()) }
-                )
-              }
-            >
-              {add.isPending ? <Spinner data-icon='inline-start' /> : null}
-              Add to {current?.name ?? 'Load'}
-            </Button>
+            <div className='ml-auto flex max-md:w-full'>
+              <SelectionBar
+                active={chosen.length > 0}
+                note={
+                  chosen.length > 0 && current && !takesOrders(current)
+                    ? `${current.name} is released; open another Load to add to.`
+                    : null
+                }
+              >
+                {/* Another day or truck for what is not on a Load yet p3 (591,341). */}
+                <Button
+                  variant='outline'
+                  disabled={!chosen.length}
+                  onClick={() => setRescheduling(true)}
+                >
+                  <CalendarDays data-icon='inline-start' />
+                  Reschedule
+                </Button>
+                <Button
+                  disabled={!chosen.length || !current || !takesOrders(current) || add.isPending}
+                  onClick={() =>
+                    current &&
+                    add.mutate(
+                      {
+                        assignmentIds: chosen.map(order => order.assignment_id),
+                        loadId: current.load_id
+                      },
+                      { onSuccess: () => setPicked(new Set()) }
+                    )
+                  }
+                >
+                  {add.isPending ? <Spinner data-icon='inline-start' /> : null}
+                  Add to {current?.name ?? 'Load'}
+                </Button>
+              </SelectionBar>
+            </div>
           </div>
           <ul>
             {waiting.map(order => (
@@ -136,7 +150,8 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
             value={current ? tabKey(current) : null}
             onValueChange={value => setTab(String(value))}
           >
-            <div className='px-3'>
+            {/* A truck's Loads run past a phone's width, so the strip swipes. */}
+            <div ref={strip} className='scrollbar-none overflow-x-auto px-3'>
               <TabsList variant='line'>
                 {loads.map(load => (
                   <TabsTrigger
@@ -181,7 +196,7 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
               )}
               {isLoad(current) && current.orders.length ? <LoadRoute load={current} /> : null}
               {isLoad(current) && current.orders.length && takesOrders(current) ? (
-                <div className='flex justify-end gap-2 border-t border-border px-3 py-2'>
+                <div className='flex flex-wrap justify-end gap-2 border-t border-border px-3 py-2'>
                   <Button
                     variant='outline'
                     disabled={remove.isPending}

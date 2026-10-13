@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
@@ -127,12 +127,12 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport max-h-96 min-h-56 overflow-y-auto'>
+        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : coils?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table>
+              <Table data-cards>
                 <TableHeader>
                   <TableRow>{columns.headers}</TableRow>
                 </TableHeader>

@@ -29,7 +29,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
   <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
     {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. */}
-    <Table className='min-w-2xl table-fixed'>
+    <Table data-cards className='min-w-2xl table-fixed'>
       {/* The actions column takes the leftover width, so the slack collects in front of its
           buttons instead of stretching Name into a void. */}
       <colgroup>
@@ -55,12 +55,12 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
         ) : (
           trucks.map(truck => (
             <TableRow key={truck.id}>
-              <TableCell>{truck.name}</TableCell>
-              <TableCell>
+              <TableCell card='title'>{truck.name}</TableCell>
+              <TableCell label='Plate'>
                 <span className='font-mono'>{truck.plate ?? '—'}</span>
               </TableCell>
-              <TableCell>{formatWeight(truck.max_weight)}</TableCell>
-              <TableCell>
+              <TableCell label='Max Weight'>{formatWeight(truck.max_weight)}</TableCell>
+              <TableCell card='trail'>
                 <TruckActions truck={truck} />
               </TableCell>
             </TableRow>

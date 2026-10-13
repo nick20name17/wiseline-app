@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowRight, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 import { addDays, addMonths, endOfMonth, getDaysInMonth, startOfMonth } from 'date-fns'
 import { useState } from 'react'
 import {
@@ -82,16 +82,21 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
     <div className='flex min-w-0 flex-col gap-4'>
       <div className='flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-xs'>
         <div className='flex items-center gap-2'>
-          <h2 className='font-heading text-lg font-semibold'>{monthLabel(month)}</h2>
-          <span className='ml-auto flex items-center gap-2'>
+          <h2 className='font-heading text-lg font-semibold whitespace-nowrap max-sm:text-base'>
+            {monthLabel(month)}
+          </h2>
+          {/* A narrow phone fits the longest month beside the arrows only with Today as an icon. */}
+          <span className='ml-auto flex items-center gap-2 max-sm:gap-1'>
             <Button
               variant='outline'
+              aria-label='Today'
               onClick={() => {
                 setMonth(startOfMonth(new Date()))
                 setSelected(start)
               }}
             >
-              Today
+              <CalendarCheck className='sm:hidden' />
+              <span className='max-sm:hidden'>Today</span>
             </Button>
             <Button
               variant='outline'
@@ -107,7 +112,9 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
           </span>
         </div>
 
-        <div className='grid grid-cols-7 gap-1.5'>
+        {/* A phone keeps the month whole, seven narrow columns: each day carries its figure only, and
+            the panel below says the rest of the day a tap picks. */}
+        <div className='grid grid-cols-7 gap-1 md:gap-1.5'>
           {WEEKDAYS.map(day => (
             <span
               key={day}
@@ -128,7 +135,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                 aria-label={[formatDate(day), holidayOn(day)].filter(Boolean).join(' · ')}
                 aria-pressed={day === selected}
                 className={cn(
-                  'h-20 rounded-md border border-border p-2 text-left align-top hover:border-input',
+                  'h-14 min-w-0 rounded-md border border-border p-1 text-left align-top hover:border-input md:h-20 md:p-2',
                   // A day off is drawn back rather than taken away, because work does land on one.
                   !isWorkDay(day) && 'bg-muted/40',
                   day === start && 'ring-2 ring-primary/60',
@@ -140,7 +147,7 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                   {Number(day.slice(-2))}
                 </span>
                 {holidayOn(day) ? (
-                  <span className='block truncate text-xs text-muted-foreground'>
+                  <span className='block truncate text-xs text-muted-foreground max-md:hidden'>
                     {holidayOn(day)}
                   </span>
                 ) : null}
@@ -148,11 +155,12 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                   <span
                     title={loadOn(day)}
                     className={cn(
-                      'mt-1 inline-block rounded-full px-1.5 py-0.5 font-mono text-xs',
+                      'mt-1 inline-block rounded-full px-1 py-0.5 font-mono text-xs md:px-1.5',
                       late.has(day) ? 'bg-destructive text-white' : 'bg-primary/10 text-primary'
                     )}
                   >
-                    {count} ord
+                    {count}
+                    <span className='max-md:hidden'> ord</span>
                   </span>
                 ) : null}
               </button>
@@ -175,6 +183,10 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                 : isWorkDay(selected)
                   ? ''
                   : ' · non-work day'}
+              {/* The load is the count's hover hint on a desk; a touch screen has no hover. */}
+              {loadOn(selected) ? (
+                <span className='hidden pointer-coarse:inline'> · {loadOn(selected)}</span>
+              ) : null}
             </span>
           </span>
 
@@ -198,11 +210,11 @@ export const CalendarTab = ({ departmentId, onOpenDay }: CalendarTabProps) => {
                 <li key={order.id} className='border-t border-border'>
                   <button
                     type='button'
-                    className='flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted/50'
+                    className='flex w-full items-center gap-x-3 gap-y-1 rounded-md px-2 py-2 text-left text-sm hover:bg-muted/50 max-md:flex-wrap'
                     onClick={() => onOpenDay(selected)}
                   >
                     <span className='font-mono'>{order.invoice}</span>
-                    <span className='truncate text-muted-foreground'>
+                    <span className='min-w-0 truncate text-muted-foreground'>
                       {order.customer ?? 'Stock'}
                     </span>
                     <span className='ml-auto flex items-center gap-2'>

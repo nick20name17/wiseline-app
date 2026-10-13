@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -73,12 +73,13 @@ export const PackagesDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport max-h-96 min-h-40 overflow-y-auto'>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-40' />
           ) : packages?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table>
+              <Table data-cards>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Package</TableHead>
@@ -93,23 +94,29 @@ export const PackagesDialog = ({
                 <TableBody>
                   {packages.map(parcel => (
                     <TableRow key={parcel.package_id}>
-                      <TableCell>
+                      <TableCell card='title'>
                         <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Contents' card='full'>
                         <span className='text-muted-foreground'>
                           {packageContents(parcel.contents, names)}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Weight'>
                         <span className='font-mono'>
                           {parcel.weight === null ? '—' : `${parcel.weight} lb`}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label='Location'>
                         <span className='font-mono'>{parcel.location ?? '—'}</span>
+                        {/* Why Delete is shut is its hover title on a desk. */}
+                        {parcel.is_loaded ? (
+                          <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
+                            Loaded onto a truck
+                          </span>
+                        ) : null}
                       </TableCell>
-                      <TableCell>
+                      <TableCell card='trail'>
                         {viewOnly ? null : (
                           <span className='flex justify-end gap-1'>
                             <Button

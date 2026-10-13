@@ -4,10 +4,11 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import {
   InputGroup,
@@ -65,13 +66,13 @@ const MaxPackageForm = ({ department, onSuccess }: MaxPackageFormProps) => {
         <FieldError errors={[errors.max_package_weight]} />
       </Field>
 
-      <div className='mt-6 flex justify-end gap-2'>
+      <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
         <Button type='submit' disabled={mutation.isPending || !form.formState.isDirty}>
           {mutation.isPending ? <Spinner data-icon='inline-start' /> : null}
           Save
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   )
 }

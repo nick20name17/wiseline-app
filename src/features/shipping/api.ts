@@ -685,7 +685,7 @@ export const shippingRoleQuery = (user: { id: number; role: string }) =>
     }
   })
 
-/** Shipping is a department of its own, with its own priorities (`client-questions.md` 7). */
+/** Shipping is a department of its own, with its own priorities: they are per department p1 (488,58). */
 export const shippingDepartmentQuery = queryOptions({
   ...departmentsQuery,
   select: departments => departments.find(department => department.code === 'shipping') ?? null

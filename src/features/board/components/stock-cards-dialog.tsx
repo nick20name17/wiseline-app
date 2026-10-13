@@ -6,7 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { StockCardsPanel } from './stock-cards-panel'
 
 type StockCardsDialogProps = {

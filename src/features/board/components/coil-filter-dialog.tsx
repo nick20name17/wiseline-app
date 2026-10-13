@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@/components/ui/dialog'
+} from '@/components/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
@@ -87,36 +87,38 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
       <div className='flex flex-col gap-3'>
         {BOUNDS.map(bound => (
           // One line each: the unit is given a box of its own so «ksi» does not push Apply All
-          // onto a row by itself.
-          <div key={bound.key} className='flex items-center gap-3'>
-            <Label className='w-24' htmlFor={`coil-${bound.key}-min`}>
+          // onto a row by itself. A phone has no room for the line: the range drops under its name.
+          <div key={bound.key} className='flex items-center gap-3 max-sm:flex-wrap'>
+            <Label className='w-24 max-sm:flex-1' htmlFor={`coil-${bound.key}-min`}>
               {bound.label}
             </Label>
-            <span className='text-sm text-muted-foreground'>Between</span>
-            <Input
-              id={`coil-${bound.key}-min`}
-              className='w-24'
-              type='number'
-              inputMode='decimal'
-              step={bound.step}
-              placeholder='0'
-              disabled={ranges[bound.key].all}
-              value={ranges[bound.key].min}
-              onChange={event => edit(bound.key, { min: event.target.value })}
-            />
-            <span className='text-sm text-muted-foreground'>&amp;</span>
-            <Input
-              className='w-24'
-              type='number'
-              inputMode='decimal'
-              step={bound.step}
-              aria-label={`${bound.label} upper bound`}
-              placeholder='No limit'
-              disabled={ranges[bound.key].all}
-              value={ranges[bound.key].max}
-              onChange={event => edit(bound.key, { max: event.target.value })}
-            />
-            <span className='w-8 text-sm text-muted-foreground'>{bound.unit}</span>
+            <span className='flex items-center gap-3 max-sm:order-last max-sm:w-full'>
+              <span className='text-sm text-muted-foreground'>Between</span>
+              <Input
+                id={`coil-${bound.key}-min`}
+                className='w-24 max-sm:w-auto max-sm:min-w-0 max-sm:flex-1'
+                type='number'
+                inputMode='decimal'
+                step={bound.step}
+                placeholder='0'
+                disabled={ranges[bound.key].all}
+                value={ranges[bound.key].min}
+                onChange={event => edit(bound.key, { min: event.target.value })}
+              />
+              <span className='text-sm text-muted-foreground'>&amp;</span>
+              <Input
+                className='w-24 max-sm:w-auto max-sm:min-w-0 max-sm:flex-1'
+                type='number'
+                inputMode='decimal'
+                step={bound.step}
+                aria-label={`${bound.label} upper bound`}
+                placeholder='No limit'
+                disabled={ranges[bound.key].all}
+                value={ranges[bound.key].max}
+                onChange={event => edit(bound.key, { max: event.target.value })}
+              />
+              <span className='w-8 text-sm text-muted-foreground'>{bound.unit}</span>
+            </span>
             <span className='ml-auto flex shrink-0 items-center gap-2 text-sm whitespace-nowrap'>
               <Checkbox
                 id={`coil-${bound.key}-all`}
@@ -133,7 +135,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
         {current ? (
           <Button
             variant='destructive'
-            className='mr-auto'
+            className='md:mr-auto'
             disabled={remove.isPending}
             onClick={() =>
               remove.mutate(current.id, {
