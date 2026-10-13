@@ -5,7 +5,7 @@ import { PrioritySelect } from '@/components/priority-select'
 import { QueryError } from '@/components/query-error'
 import { SelectionBar } from '@/components/selection-bar'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -298,22 +298,15 @@ export const UnscheduledTab = ({
                         </TableCell>
                         <TableCell label='Map'>
                           {order.address ? (
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
+                            <a
+                              href={mapUrl(order)}
+                              target='_blank'
+                              rel='noreferrer'
                               aria-label={`Map of ${order.order_number ?? order.order}`}
-                              nativeButton={false}
-                              render={
-                                <a
-                                  href={mapUrl(order)}
-                                  target='_blank'
-                                  rel='noreferrer'
-                                  aria-label={`Map of ${order.order_number ?? order.order}`}
-                                />
-                              }
+                              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                             >
                               <MapPin />
-                            </Button>
+                            </a>
                           ) : null}
                         </TableCell>
                         <TableCell label='Weight'>
