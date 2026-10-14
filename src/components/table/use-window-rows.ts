@@ -30,6 +30,8 @@ export const useWindowRows = (count: number, keyOf: (index: number) => string) =
     return () => observer.disconnect()
   }, [])
 
+  // Answered by 'use no memo' above: the compiler leaves this hook alone.
+  // oxlint-disable-next-line react/incompatible-library
   const virtualizer = useWindowVirtualizer({
     count,
     estimateSize: () => ROW_ESTIMATE,
