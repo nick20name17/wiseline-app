@@ -217,7 +217,9 @@ const CoilAssignForm = ({
           <FieldDescription>
             {coilLocked
               ? 'Set by the Manager — locked.'
-              : 'Type it, or pick a Lot Number from a coil below.'}
+              : supplier
+                ? 'Type it, or pick a Lot Number from a coil below.'
+                : 'Pick a Supplier first.'}
           </FieldDescription>
         </Field>
 

@@ -110,6 +110,7 @@ test('a line gets a Supplier and a Coil Number picked from its coil’s lots', a
   const dialog = page.getByRole('dialog', { name: 'Select Supplier / Coil Number' })
   // A Coil Number waits on a Supplier p2 (709,459).
   await expect(dialog.getByLabel('Coil Number')).toBeDisabled()
+  await expect(dialog.getByText('Pick a Supplier first.')).toBeVisible()
   await dialog.getByLabel('Supplier').click()
   await page.getByRole('option', { name: 'COLSTE' }).click()
   await dialog.getByRole('button', { name: /CS8250/ }).click()
