@@ -1,0 +1,26 @@
+import * as z from 'zod/mini'
+import { searchTerm } from '@/lib/search-term'
+import { BOARD_VIEWS } from './boards'
+
+/**
+ * The tabs are one search param rather than routes: they share a selection, a search term and a scroll
+ * position, and moving between them is changing a tab rather than leaving the page.
+ *
+ * Everything is `catch`-wrapped so a hand-typed URL lands on the default tab instead of a 4xx; a tab
+ * the department or the role does not have is moved off by the page.
+ */
+export const boardSearchSchema = z.object({
+  view: z.catch(z.enum(BOARD_VIEWS), 'unscheduled'),
+  search: searchTerm
+})
+
+export type BoardSearch = z.infer<typeof boardSearchSchema>
+
+/** Whether any of a row's fields holds the header search; no search keeps every row. */
+export const matchesSearch = (
+  search: string | undefined,
+  ...fields: (string | null | undefined)[]
+) => {
+  const term = search?.trim().toLowerCase()
+  return !term || fields.some(field => field?.toLowerCase().includes(term))
+}

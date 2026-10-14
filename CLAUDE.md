@@ -1,89 +1,32 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## What this is
-
-A React port of the HTML prototype in `../wiseline-demo`, headed for the new review portal. It has to be
-**indistinguishable** from the prototype, not merely similar — 48 existing review comments have to land
-on the same elements afterwards.
-
-**Read [PORT.md](./PORT.md) before touching anything.** It has the gates, the tooling that copies CSS and
-seed data across, the decisions already made and why, and what is left.
-
-`../wiseline-demo` is reference only — never commit there.
-
-Two rules that are easy to break by accident:
-
-- Ported markup keeps every `data-comment` and every class name verbatim. They are what the gates compare
-  and what the comment migration joins on.
-- Seed data is dumped from the prototype, never retyped. Entity ids are part of `data-comment` values.
-
 ## Interaction
 
-Be extremely concise; sacrifice grammar for concision.
+Be concise.
 
-## Code style
+## Comments
 
-Don't add comments that restate the code or describe the obvious. Only comment non-obvious "why", not "what".
-
-## Plans
-
-End each plan with a list of unresolved questions, if any. Keep them extremely concise.
-
-## Tests
-
-Don't write tests that merely restate the implementation — zero confidence value.
-
-## Commands
-
-Package manager is **bun**. Runtime tooling is Rust-based (oxlint/oxfmt), TS is `tsc -b`.
-
-- `bun run dev` — Vite dev server (mock backend auto-installs, see below)
-- `bun run build` — `tsc -b` then `vite build`
-- `bun run typecheck` — `tsc -b`
-- `bun run lint` / `bun run lint:fix` — oxlint (add `--type-aware` for the type-aware pass CI/hooks use)
-- `bun run format` / `bun run format:check` — oxfmt
-- `bun run doctor` — react-doctor
-- `bun run test` / `bun run test:watch` — vitest
-- `bun run parity:demo` / `parity:port` / `parity [key]` — the fidelity gates (see PORT.md)
-- Single test: `bun run test src/lib/single-flight.test.ts` or `bunx vitest run -t "name"`
-- `bun run test:e2e` / `test:e2e:ui` — Playwright
-
-A **Stop hook** (`.claude/hooks/stop-check.sh`) gates finishing on `tsc -b` + `oxlint --type-aware` + `react-doctor` + `vitest --changed`; a PostToolUse hook formats/lints every `.ts(x)` write. Don't hand-format to match — the hooks do it.
+Explain the why and non-obvious constraints; never restate the code.
 
 ## Architecture
 
-React 19 (React Compiler on — no manual `useMemo`/`useCallback`) SPA. TanStack Router, zod, Base UI +
-shadcn, Tailwind 4. `@/` → `src/`.
+Feature-based SPA. Dependencies point downward only:
 
-**Two design systems, kept apart.** Tailwind and shadcn dress everything this project adds; the ported
-screens are dressed by the prototype's own stylesheets, lifted verbatim into `src/styles/<page>.css` and
-scoped to `[data-page="…"]`. `src/index.css` explains why they do not fight. Do not introduce Tailwind
-classes into a ported screen.
+`src/app`, `src/routes` → `src/features/<name>` → `src/components`, `src/lib`, `src/api`
 
-**State is the prototype's.** `src/store/create-store.ts` mirrors its store; `src/store/shared/` holds the
-`wl_` keys it uses as cross-page contracts, typed and zod-validated. React Query is not used yet — there
-is no backend, and the store keys are what a real API will be fitted to.
+Within the shared layers: `api` → `lib`; `components` → `lib`; `lib` reaches back into `components` only for the imperative `ui/toast` API. No other upward or sideways imports.
 
-**Auth is not owned by React Query.** `src/api/auth/session-store.ts` is the source of truth: a `localStorage`-backed external store with cross-tab sync (`storage` event) and zod validation on read. Read it three ways:
+- `src/app` — router instance and provider tree; `main.tsx` only mounts it.
+- `src/routes` — TanStack Router file routes. Thin: validate search, guard, load, render a feature component.
+- `src/features/<name>` — one domain (`auth`, `board`, `shipping`): `api.ts`, `components/`, `lib/`.
+  `board` is a department's board — Trim, Rollforming and Accessories are configs of it (`lib/boards.ts`).
+- `src/components` — shared UI (`ui/` is shadcn, do not hand-edit styles), `theme/`, `router/` fallbacks.
+- `src/lib` — non-UI infrastructure: pure helpers, session store, query client.
+- `src/api` — HTTP client only; endpoints live in features.
 
-- Components: `useSession()` (`useSyncExternalStore`)
-- Route guards: `sessionStore.get()` directly in `beforeLoad` (synchronous — see `routes/_authenticated.tsx`, `routes/sign-in.tsx`)
-- Never mirror session into Query cache
+## Code
 
-**Two ky instances** (`src/api/index.ts`): `authClient` (no auth header, used only for token refresh to avoid a loop) and `api` (attaches bearer; on 401 refreshes once and retries). Refresh is wrapped in `singleFlight` so concurrent 401s share one refresh call; failure clears the session.
+- No compat layers, fallbacks or deprecated paths for internal refactors — delete the old path.
+- Use what the dependencies already do when it is simpler than writing it yourself.
 
-**Query error UX is centralized** in `src/lib/query-client.ts`: mutations always toast on error; queries toast only on background-refetch failure (when data already present); 4xx are not retried.
+## Git
 
-**Routing** is file-based under `src/routes/`. `routeTree.gen.ts` is generated by the Vite plugin — never edit it. `_authenticated` = guarded layout; `-`-prefixed files (`-error.tsx`, `-not-found.tsx`) are non-route modules. Router context carries `queryClient`. Auto code-splitting is on.
-
-**Env** (`src/env.ts`) is zod-validated and fails fast at boot. `VITE_API_URL` must end in a trailing slash (ky resolves paths via `new URL`).
-
-## Conventions
-
-- New API module: colocate under `src/api/<feature>/` — `schema.ts` (zod), data fns using `api`, and `useX` hooks (Query/Mutation) in one place, mirroring `src/api/auth/`.
-- Validate all server responses with zod at the boundary (`.then(data => Schema.parse(data))`); never trust raw JSON.
-- Forms: react-hook-form + `zodResolver`, shadcn `Field*` primitives (see `routes/sign-in.tsx`).
-- Add shadcn UI via the `shadcn` skill/CLI into `src/components/ui/`; don't hand-write primitives.
-- Commits are conventional (commitlint enforced via husky commit-msg).
+Commits and PRs in English. PR body follows `.github/pull_request_template.md`, including when passing `--body` to `gh`: its headings, filled in, with the `<!-- -->` hints deleted — the PR body check fails otherwise.

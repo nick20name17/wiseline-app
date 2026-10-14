@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
-import { configDefaults, defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   resolve: {
@@ -19,15 +19,5 @@ export default defineConfig({
     react(),
     tailwindcss(),
     babel({ presets: [reactCompilerPreset()] })
-  ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    environmentOptions: { jsdom: { url: 'http://localhost' } },
-    env: { VITE_API_URL: 'http://localhost/api/' },
-    setupFiles: ['./src/test/setup.ts'],
-    restoreMocks: true,
-    css: false,
-    exclude: [...configDefaults.exclude, '**/e2e/**', 'create-top-secret/**']
-  }
+  ]
 })

@@ -8,6 +8,9 @@
   "semi": false,
   "trailingComma": "none",
   "arrowParens": "avoid",
-  "sortTailwindcss": { "functions": ["clsx", "cva", "cn", "twMerge"] },
-  "ignorePatterns": ["**/dist", "src/routeTree.gen.ts"]
+  "sortTailwindcss": {
+    "stylesheet": "src/index.css",
+    "functions": ["cn", "cva"]
+  },
+  "ignorePatterns": ["**/dist", "src/routeTree.gen.ts", ".claude/skills/**", "docs/**"]
 }
