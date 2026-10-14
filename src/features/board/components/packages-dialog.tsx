@@ -64,7 +64,7 @@ export const PackagesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent className='sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl'>
         <DialogHeader>
           <DialogTitle>Packages · Order {number}</DialogTitle>
           <DialogDescription>

@@ -16,7 +16,7 @@ const hiddenPages = (role: string | undefined, shippingRole: string | null | und
   const manager = !!role && isManagerRole(role)
   const pages = role && shippingRole !== undefined ? shippingPages(role, shippingRole) : null
   return new Set([
-    ...(manager ? [] : ['/settings', '/stock-cards']),
+    ...(manager ? [] : ['/settings']),
     ...(pages?.shipping ? [] : ['/shipping']),
     ...(pages?.loading ? [] : ['/loading']),
     ...(pages?.driver ? [] : ['/driver'])

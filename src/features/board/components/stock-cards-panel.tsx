@@ -28,7 +28,6 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { ImageOff, Pencil, Plus, Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
 import { useDeferredValue, useState, type ReactNode } from 'react'
-import { cn } from 'cn'
 import {
   stockCardsQuery,
   useCreateStockOrder,
@@ -40,7 +39,6 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StockCardDialog } from './stock-card-dialog'
 import { StockCardLabels } from './stock-card-labels'
-import { SelectionBar } from '@/components/selection-bar'
 
 type CardOrderFormProps = {
   card: StockCard
@@ -298,9 +296,7 @@ const StockCardTile = ({
 type StockCardsPanelProps = {
   /** The cards are asked for only while the panel is on show. */
   enabled: boolean
-  /** In a dialog the grid scrolls inside the sheet; on the page it runs down the page. */
-  variant: 'dialog' | 'page'
-  /** Where Create and Print Selected go: the dialog's footer, or the page's toolbar. */
+  /** Where Create and Print Selected go: the dialog's footer. */
   actions: (buttons: ReactNode) => ReactNode
 }
 
@@ -309,7 +305,7 @@ type StockCardsPanelProps = {
  * shows its face as printed Screen (81,388) — sketch, product, width, description — plus the colour
  * and gauge the panel filters by.
  */
-export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelProps) => {
+export const StockCardsPanel = ({ enabled, actions }: StockCardsPanelProps) => {
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [search, setSearch] = useState('')
   const [color, setColor] = useState<string | null>(null)
@@ -332,12 +328,6 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
 
   const toggle = (id: number) => setSelected(current => toggled(current, id))
 
-  const page = variant === 'page'
-  // The page has the width for more cards a row than the sheet does.
-  const columns = page
-    ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-    : 'grid-cols-1 sm:grid-cols-2'
-
   const printButton = (
     <Button
       disabled={!selected.size || print.isPending || printing !== null}
@@ -358,15 +348,12 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
         <Plus data-icon='inline-start' />
         Create stock card
       </Button>
-      {/* On the page the toolbar has scrolled away by the time the cards are ticked; a dialog's
-          footer already stays in reach. */}
-      {page ? <SelectionBar active={selected.size > 0}>{printButton}</SelectionBar> : printButton}
+      {printButton}
     </>
   )
 
   return (
     <>
-      {page ? actionBar : null}
       {/* A phone puts the search on a line of its own and the filters under it. */}
       <div className='flex items-center gap-3 max-md:flex-wrap'>
         <span className='text-sm whitespace-nowrap text-muted-foreground max-md:order-last max-md:basis-full'>
@@ -406,15 +393,15 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
             not jump when the answer lands. The placeholder rows stretch to share it rather than
             carrying heights of their own that would add up to something else. */}
       {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-      <div className={cn(page ? 'min-h-56' : 'scrollport min-h-56 md:max-h-96 md:overflow-y-auto')}>
+      <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
         {isPending ? (
-          <div className={cn('grid h-56 gap-3', columns)}>
+          <div className='grid h-56 grid-cols-1 gap-3 sm:grid-cols-2'>
             {Array.from({ length: 4 }, (_, index) => (
               <Skeleton key={index} />
             ))}
           </div>
         ) : shown.length ? (
-          <div className={cn('grid gap-3', columns)}>
+          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
             {shown.map(card => (
               <StockCardTile
                 key={card.id}
@@ -460,7 +447,7 @@ export const StockCardsPanel = ({ enabled, variant, actions }: StockCardsPanelPr
         )}
       </div>
 
-      {page ? null : actionBar}
+      {actionBar}
 
       <StockCardDialog target={cardForm} onOpenChange={open => !open && setCardForm(null)} />
 

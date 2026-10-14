@@ -25,7 +25,10 @@ const departmentSchema = z.object({
   code: z._default(z.string(), ''),
   position: z._default(z.nullable(z.number()), null),
   // lb; `null` is no ceiling. A package over it asks for an override p1 (940,365).
-  max_package_weight: z._default(z.nullable(z.number()), null)
+  max_package_weight: z._default(z.nullable(z.number()), null),
+  // Trim: a job spans several carts and its packages move between them, so locations are held by
+  // the job (`jobLocationsQuery`) rather than by each package.
+  job_locations: z._default(z.boolean(), false)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -289,6 +292,8 @@ const boardKeys = {
     [...boardKeys.all, 'manufacturing-batches', departmentId] as const,
   orderPackages: (order: string) => [...boardKeys.wrapping(), 'packages', order] as const,
   orderLocations: (order: string) => [...boardKeys.wrapping(), 'order-locations', order] as const,
+  jobLocations: (departmentId: number, order: string) =>
+    [...boardKeys.wrapping(), 'job-locations', departmentId, order] as const,
   orderComplete: (departmentId: number, order: string) =>
     [...boardKeys.wrapping(), 'complete', departmentId, order] as const,
   remanufacturings: () => [...boardKeys.all, 'remanufacturings'] as const,
@@ -571,25 +576,49 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
       )
   })
 
-const locationSchema = z.object({
+const locationTypeSchema = z.object({
   id: z.number(),
-  code: z._default(z.nullable(z.string()), null)
+  name: z._default(z.nullable(z.string()), null),
+  position: z._default(z.nullable(z.number()), null)
 })
 
-type BoardLocation = z.infer<typeof locationSchema>
+export type LocationType = z.infer<typeof locationTypeSchema>
 
 /**
- * Where a wrapped order is sitting. Location codes are unique across the whole app, so the label
- * carries no warehouse — the code alone says where to go.
+ * Each location's type, which Select Location lays its columns out by. The availability list behind
+ * it names only the warehouse, so the type comes from Settings' own lists. Under `['locations']`, so
+ * an edit in Settings refreshes it.
  */
-export const locationsQuery = queryOptions({
-  queryKey: ['locations', 'all'] as const,
-  queryFn: async () =>
-    z
-      .object({ count: z.number(), results: z.array(locationSchema) })
-      .parse(await authApi.get('locations/', { searchParams: { limit: 500 } }).json()),
-  select: (page: { results: BoardLocation[] }) =>
-    new Map(page.results.map(location => [location.id, location.code]))
+export const locationTypesQuery = queryOptions({
+  queryKey: ['locations', 'type-of'] as const,
+  queryFn: async () => {
+    const [locations, types] = await Promise.all([
+      authApi.get('locations/', { searchParams: { limit: 500 } }).json(),
+      authApi.get('location-types/all/').json()
+    ])
+    const byId = new Map(
+      z
+        .array(locationTypeSchema)
+        .parse(types)
+        .map(type => [type.id, type])
+    )
+    const typeOf = new Map<number, LocationType>()
+    for (const location of z
+      .object({
+        results: z.array(
+          z.object({
+            id: z.number(),
+            location_type_id: z._default(z.nullable(z.number()), null)
+          })
+        )
+      })
+      .parse(locations).results) {
+      const type =
+        location.location_type_id === null ? undefined : byId.get(location.location_type_id)
+      if (type) typeOf.set(location.id, type)
+    }
+    return typeOf
+  }
 })
 
 const allocatedStockSchema = z.array(
@@ -1679,6 +1708,9 @@ const cutlistRowSchema = z.object({
   complete: z._default(z.boolean(), false),
   operator_notes: z._default(z.nullable(z.string()), null),
   is_standard_length: z._default(z.boolean(), true),
+  // Set on a remake's own row beside the line's: its sources read the remake's quantity, stock and
+  // step, and its Complete moves the remake rather than the line.
+  remanufacturing_id: z._default(z.nullable(z.number()), null),
   sources: z.catch(z.array(cutlistSourceSchema), [])
 })
 
@@ -1787,6 +1819,7 @@ export const useUpdateCutlistRow = () =>
  */
 export const useFinishCutlist = () =>
   useMutation({
+    meta: { errorTitle: 'The list was not marked Done' },
     mutationFn: (cutlistId: number) => authApi.post(`cutlists/${cutlistId}/done/`).json(),
     onSettled: (_, __, ___, ____, { client }) =>
       Promise.all([
@@ -2049,33 +2082,45 @@ export const useUpdateCoilLot = () =>
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
+/** Where a coil stands. Send only what changed: the server moves one department at a time. */
+export type CoilLocation = { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
+
 /**
- * A coil product checked into Trim or Rollforming: every lot of it, and every lot EBMS adds to it
- * later. The rules — one department at a time, Rollforming refused while a lot is in the Slinet,
- * leaving Trim takes its lots off the Slinet — are the server's.
+ * One coil into or out of Trim, Rollforming or the Slinet — coils of one product stand wherever they
+ * physically are. The rules (one department at a time, the Slinet needs Trim and a Coil Thickness,
+ * Rollforming refused while in the Slinet, leaving Trim leaves the Slinet) are the server's, and its
+ * refusal is what the toast says.
+ */
+export const useSetCoilLocation = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil stayed where it was' },
+    mutationFn: ({ lotId, location }: { lotId: string; location: CoilLocation }) =>
+      authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
+  })
+
+/**
+ * Every coil of a product with coil left, moved in one go — a shortcut over the per-coil boxes. All
+ * or none: one coil in the Slinet refuses Rollforming for the lot. A coil EBMS adds later starts with
+ * no location.
  */
 export const useSetCoilProductLocation = () =>
   useMutation({
     meta: { errorTitle: 'The coils stayed where they were' },
-    mutationFn: ({
+    mutationFn: async ({
       productId,
       location
     }: {
       productId: string
-      location: { in_trim?: boolean; in_rollforming?: boolean }
+      location: Omit<CoilLocation, 'in_slinet'>
     }) =>
-      authApi
-        .post(`coils/products/${encodeURIComponent(productId)}/location/`, { json: location })
-        .json(),
-    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
-  })
-
-/** One coil mounted on the Slinet or taken off it: the Slinet holds a coil, not a product. */
-export const useSetCoilSlinet = () =>
-  useMutation({
-    meta: { errorTitle: 'The coil stayed where it was' },
-    mutationFn: ({ lotId, inSlinet }: { lotId: string; inSlinet: boolean }) =>
-      authApi.post(`coils/lots/${lotId}/location/`, { json: { in_slinet: inSlinet } }).json(),
+      z
+        .object({ lots: z._default(z.number(), 0) })
+        .parse(
+          await authApi
+            .post(`coils/products/${encodeURIComponent(productId)}/location/`, { json: location })
+            .json()
+        ),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
@@ -2438,6 +2483,67 @@ export const useRemoveOrderLocation = () =>
       client.invalidateQueries({ queryKey: boardKeys.wrapping() })
   })
 
+const jobLocationSchema = z.object({
+  location_id: z.number(),
+  name: z._default(z.nullable(z.string()), null),
+  added_at: z._default(z.nullable(z.string()), null)
+})
+
+export type JobLocation = z.infer<typeof jobLocationSchema>
+
+const jobLocationsPath = (order: string) => `wrapping/orders/${order}/job-locations/`
+
+/** The locations a job holds in a department with job locations, as they were added. */
+export const jobLocationsQuery = (departmentId: number | undefined, order: string | null) =>
+  queryOptions({
+    queryKey: boardKeys.jobLocations(departmentId ?? 0, order ?? ''),
+    enabled: departmentId !== undefined && !!order,
+    queryFn: async () =>
+      z
+        .array(jobLocationSchema)
+        .parse(
+          await authApi
+            .get(jobLocationsPath(order!), { searchParams: { department_id: departmentId! } })
+            .json()
+        )
+  })
+
+type JobLocationEdit = { order: string; departmentId: number; locationId: number }
+
+// A job's location fills it for other orders and shows in Completed Orders, so the whole board refreshes.
+
+/** One more location for the job: never replaces another, and moves no package. */
+export const useAddJobLocation = () =>
+  useMutation({
+    meta: { errorTitle: 'The location was not added' },
+    mutationFn: async ({ order, departmentId, locationId }: JobLocationEdit) =>
+      z.array(jobLocationSchema).parse(
+        await authApi
+          .post(jobLocationsPath(order), {
+            json: { department: departmentId, location_id: locationId }
+          })
+          .json()
+      ),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
+/** Takes one location off the job; the others stay. Allowed after completion too. */
+export const useRemoveJobLocation = () =>
+  useMutation({
+    meta: { errorTitle: 'The location stayed' },
+    mutationFn: async ({ order, departmentId, locationId }: JobLocationEdit) =>
+      z.array(jobLocationSchema).parse(
+        await authApi
+          .delete(`${jobLocationsPath(order)}${locationId}/`, {
+            searchParams: { department_id: departmentId }
+          })
+          .json()
+      ),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
 /** The packages made for an order still at the bench — See Packages. */
 export const orderPackagesQuery = (order: string | null, enabled: boolean) =>
   queryOptions({
@@ -2794,7 +2900,15 @@ export const useCompleteOrder = (onSuccess: () => void) =>
           searchParams: { department_id: departmentId }
         })
         .json(),
-    onSuccess,
+    onSuccess: (_, { order, departmentId }, __, { client }) => {
+      // The bench goes back to the list straight away, and the list's refetch is slow: left to it,
+      // the completed order sat there until the answer came.
+      client.setQueriesData<WrappingRow[]>(
+        { queryKey: [...boardKeys.wrapping(), departmentId] },
+        rows => rows?.filter(row => row.order !== order)
+      )
+      onSuccess()
+    },
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
@@ -2812,7 +2926,16 @@ const remanufacturingSchema = z.object({
   is_cut: z._default(z.boolean(), false),
   is_bent: z._default(z.boolean(), false),
   requested_by: z._default(z.nullable(z.string()), null),
-  requested_at: z._default(z.nullable(z.string()), null)
+  requested_at: z._default(z.nullable(z.string()), null),
+  // Who did each step, on which machine and when; cleared if the row is un-ticked.
+  cut_by: z._default(z.nullable(z.string()), null),
+  cut_machine: z._default(z.nullable(z.string()), null),
+  cut_at: z._default(z.nullable(z.string()), null),
+  bent_by: z._default(z.nullable(z.string()), null),
+  bent_machine: z._default(z.nullable(z.string()), null),
+  bent_at: z._default(z.nullable(z.string()), null),
+  // The line's own bendlist row the remake rides on, when it has no row of its own there.
+  bend_row_id: z._default(z.nullable(z.number()), null)
 })
 
 export type Remanufacturing = z.infer<typeof remanufacturingSchema>
@@ -2851,9 +2974,10 @@ export const remanufacturingsQuery = (departmentId: number | undefined) =>
 export type RemanufactureSource = 'wrapping' | 'machine'
 
 /**
- * Ask for part of a line item to be remade. The request spins off its own cutlist and bendlist,
- * inheriting the original's production date, gauge/colour, priority and machine, and carrying only
- * the remanufacture quantity.
+ * Ask for part of a line item to be remade. The remake stays on the line's lists while they are open —
+ * a row of its own beside the line's, or riding on the line's own bend row when asked from the machine
+ * before it is bent — and gets a list of its own only where the line's is Done. Either way the lists
+ * change, so the whole board refetches.
  */
 export const useRequestRemanufacture = (onSuccess: () => void) =>
   useMutation({

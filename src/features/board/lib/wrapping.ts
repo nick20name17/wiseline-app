@@ -1,6 +1,13 @@
 import { today } from '@/lib/days'
 import { matchesSearch } from './search'
-import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
+import type {
+  LocationSlot,
+  LocationType,
+  OrderLocation,
+  Package,
+  Remanufacturing,
+  WrappingRow
+} from '../api'
 
 /**
  * The header search on Wrapping. Every released day is listed at once, so the search runs over all of
@@ -36,11 +43,10 @@ export const remakeRoom = (qtyOrdered: number, remans: Remanufacturing[]) =>
   Math.max(0, qtyOrdered - remanOwed(remans))
 
 /**
- * How a line under remanufacture is highlighted: `owed` while a remake is out, `done` once every one
- * is back. A line nothing was ever remade on is left plain.
+ * A line is highlighted whole only while a remake is still owed. Once every one is back its badge
+ * turns green and the row stays plain: a green row read as a selected one.
  */
-export const remanState = (remans: Remanufacturing[]) =>
-  !remans.length ? undefined : remanOwed(remans) ? 'owed' : 'done'
+export const remanState = (remans: Remanufacturing[]) => (remanOwed(remans) ? 'owed' : undefined)
 
 /**
  * What a package weighs: every staged piece at its line's weight. `null` once any line's weight is
@@ -173,18 +179,60 @@ export const applyKeypad = (current: number, typed: string, max: number) => {
 export const decimalKeypad = (typed: string) =>
   /^(\d+\.?\d*|\.\d+)$/.test(typed) ? Number(typed) : null
 
-/**
- * The warehouses a set of locations stands in, the default one first — «the one that opens first when
- * selecting a location» p1 (543,104) — and the rest by name.
- */
-export const warehousesOf = (slots: LocationSlot[], defaultName: string | null) =>
-  [...new Set(slots.map(slot => slot.warehouse ?? ''))].toSorted(
-    (a, b) => Number(b === defaultName) - Number(a === defaultName) || a.localeCompare(b)
-  )
+/** A column of Select Location: one location type and its locations, in the server's order. */
+export type LocationColumn = {
+  key: string
+  name: string
+  warehouse: string | null
+  slots: LocationSlot[]
+  position: number
+  isDefault: boolean
+}
 
-/** The warehouse the server marks as the default, among the ones these locations stand in. */
-export const defaultWarehouseOf = (slots: LocationSlot[]) =>
-  slots.find(slot => slot.warehouse_is_default)?.warehouse ?? null
+/**
+ * Select Location's columns, one per location type. Types in the default warehouse — «the one that
+ * opens first» p1 (543,104) — lead, then by their position in Settings and name. A location whose
+ * type is not known goes under its warehouse instead.
+ */
+export const locationColumns = (
+  slots: LocationSlot[],
+  typeOf: ReadonlyMap<number, LocationType> | undefined
+) => {
+  const columns = new Map<string, LocationColumn>()
+  for (const slot of slots) {
+    const type = typeOf?.get(slot.location_id)
+    const key = type ? `type-${type.id}` : `warehouse-${slot.warehouse ?? ''}`
+    const column = columns.get(key) ?? {
+      key,
+      name: type?.name ?? slot.warehouse ?? 'Other',
+      warehouse: type ? slot.warehouse : null,
+      slots: [],
+      position: type?.position ?? Number.MAX_SAFE_INTEGER,
+      isDefault: slot.warehouse_is_default
+    }
+    column.slots.push(slot)
+    columns.set(key, column)
+  }
+  return [...columns.values()].toSorted(
+    (a, b) =>
+      Number(b.isDefault) - Number(a.isDefault) ||
+      a.position - b.position ||
+      a.name.localeCompare(b.name)
+  )
+}
+
+/**
+ * A location an order or job holds, as its chips and Select Location read it. A job's locations carry
+ * no weight or lock of their own, so those are optional.
+ */
+export type HeldLocation = {
+  location_id: number
+  name: string | null
+  orange?: boolean
+  current?: boolean
+  over?: boolean
+  remaining_weight?: number | null
+}
 
 /** How the floor names a line: its product, or the EBMS autoid of one that has none. */
 export const lineName = (row: { product_id: string | null; origin_item: string }) =>

@@ -12,19 +12,22 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Trash2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useEffectEvent, useState } from 'react'
-import { stockCardsQuery, useCreateStockOrder, useScanStockCard } from '../api'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useCreateStockOrder, useScanStockCard, type StockCardOption } from '../api'
+import { pickedProduct } from '../lib/product-pick'
+import { ProductPicker } from './product-picker'
 
 // A box's label on a phone, where the line is a card and the header row above it is gone. Only for
 // the eye: each box carries its own aria-label, row number included.
 const FIELD_LABEL = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase md:hidden'
 
-// `described` marks a description typed by hand, which a later Product ID must not overwrite.
+// `productId` is the text in the box and `product` the last pick; the line names a product only
+// while the two agree. `described` marks a description typed by hand, which a pick must not overwrite.
 type Row = {
   id: string
   qty: string
   productId: string
+  product: StockCardOption | null
   description: string
   described: boolean
   length: string
@@ -34,6 +37,7 @@ const blank = (): Row => ({
   id: crypto.randomUUID(),
   qty: '',
   productId: '',
+  product: null,
   description: '',
   described: false,
   length: ''
@@ -41,12 +45,28 @@ const blank = (): Row => ({
 
 const isBlank = (row: Row) => !row.qty && !row.productId && !row.description && !row.length
 
+const productOf = (row: Row) => pickedProduct(row.productId, row.product)
+
+// A line always ends the grid empty, to type or scan into, and never two of them.
+const withOneBlank = (rows: Row[]) => {
+  const next = [...rows]
+  while (next.length > 1 && isBlank(next.at(-1)!) && isBlank(next.at(-2)!)) next.pop()
+  if (!isBlank(next.at(-1)!)) next.push(blank())
+  return next
+}
+
 /**
  * A handheld QR scanner is a keyboard wedge: it types its payload in a burst and ends with Enter, so a
  * run of keystrokes under this far apart followed by Enter is a scan rather than somebody typing.
  */
 const SCAN_GAP_MS = 50
 const SCAN_MIN_LENGTH = 3
+
+/** A Stock Card's QR, as the server prints it: `WLSC|<product ID>|<order qty>`. */
+const readCard = (payload: string) => {
+  const [prefix, productId, qty] = payload.split('|')
+  return prefix === 'WLSC' && productId && qty && Number(qty) > 0 ? { productId, qty } : null
+}
 
 type StockOrderDialogProps = {
   open: boolean
@@ -60,7 +80,8 @@ type StockOrderDialogProps = {
  *
  * There is no «Add row» and no «Scan» button. Typing into the last line spawns the next one, and the
  * scanner is live the whole time the dialog is open: somebody holding a scanner in one hand should not
- * have to click anything with the other.
+ * have to click anything with the other. A Product ID is picked from EBMS's Trim products, never
+ * typed free: only Trim makes stock.
  */
 export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) => {
   const [rows, setRows] = useState<Row[]>(() => [blank()])
@@ -72,79 +93,96 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
     onOpenChange(false)
   })
   const scanCard = useScanStockCard()
-  // The only catalogue the API offers is the stock cards, so a typed Product ID fills its description
-  // from the card that carries it.
-  const { data: cards } = useQuery({ ...stockCardsQuery, enabled: open })
-  const describe = (productId: string) =>
-    cards?.find(card => card.product_id.toUpperCase() === productId.trim().toUpperCase())
-      ?.description ?? ''
+  // What the grid held before the keystroke that began the current burst, so a scan can take back
+  // what the wedge typed into whichever box had focus.
+  const rowsRef = useRef(rows)
+  useEffect(() => {
+    rowsRef.current = rows
+  }, [rows])
 
-  const edit = (id: string, patch: Partial<Row>) =>
-    setRows(current => {
-      const next = current.map(row =>
-        row.id !== id
-          ? row
-          : {
-              ...row,
-              ...patch,
-              ...(patch.productId === undefined || row.described
-                ? {}
-                : { description: describe(patch.productId) })
-            }
-      )
+  const edit = (id: string, patch: Partial<Row>) => {
+    // The message was about the grid as it was; an edit may have answered it, and Create says again.
+    setError('')
+    setRows(current =>
       // Typing into the last line is what grows the table.
-      const last = next.at(-1)
-      if (last && !isBlank(last)) next.push(blank())
-      return next
-    })
+      withOneBlank(
+        current.map(row => {
+          if (row.id !== id) return row
+          const next = { ...row, ...patch }
+          // Until one is typed, the description is the picked product's.
+          return next.described
+            ? next
+            : { ...next, description: productOf(next)?.description ?? '' }
+        })
+      )
+    )
+  }
 
-  const remove = (id: string) =>
+  const remove = (id: string) => {
+    setError('')
     setRows(current => {
       const next = current.filter(row => row.id !== id)
       return next.length ? next : [blank()]
     })
+  }
 
-  const applyScan = useEffectEvent((payload: string) =>
+  const applyScan = useEffectEvent((payload: string, before: Row[]) => {
+    // The burst landed in whichever box had focus; it goes, and so does the list it opened.
+    setRows(before)
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+
+    const printed = readCard(payload)
+    if (!printed) return toast.add({ type: 'error', title: 'That is not a Stock Card QR code' })
+
+    // The server confirms the card still exists and names the product; the quantity is the one
+    // printed on the card in hand.
     scanCard.mutate(payload, {
       onSuccess: card =>
         setRows(current => {
           const scanned: Row = {
             ...blank(),
-            qty: card.order_qty === null ? '' : String(card.order_qty),
+            qty: printed.qty,
             productId: card.product_id,
+            product: {
+              product_id: card.product_id,
+              description: card.description,
+              color: null,
+              gauge: null,
+              has_card: true
+            },
             description: card.description ?? ''
           }
-          const at = current.findIndex(isBlank)
-          const next =
-            at >= 0
-              ? current.map((row, index) => (index === at ? { ...scanned, id: row.id } : row))
+          const last = current.at(-1)
+          return withOneBlank(
+            last && isBlank(last)
+              ? [...current.slice(0, -1), { ...scanned, id: last.id }]
               : [...current, scanned]
-
-          // A scan into the middle can leave two blanks at the end; keep exactly one to type into.
-          while (
-            next.length > 1 &&
-            isBlank(next[next.length - 1]!) &&
-            isBlank(next[next.length - 2]!)
           )
-            next.pop()
-          if (!next.some(isBlank)) next.push(blank())
-          return next
         }),
-      onError: () => toast.add({ type: 'error', title: 'Unrecognised Stock Card — type the line' })
+      onError: () =>
+        toast.add({
+          type: 'error',
+          title: `No Stock Card for ${printed.productId} — pick the line`
+        })
     })
-  )
+  })
 
-  // The wedge types into whatever field has focus, which is why the burst is swallowed here rather
-  // than left in the row it landed in.
+  // The wedge types into whatever field has focus, which is why the burst is taken back out of the
+  // grid here rather than left in the row it landed in. Listened for in the capture phase, so the
+  // closing Enter never reaches a Product ID list and picks whatever it had highlighted.
   useEffect(() => {
     if (!open) return
 
     let buffer = ''
     let lastKey = 0
+    let before = rowsRef.current
 
     const onKeyDown = (event: KeyboardEvent) => {
       const now = Date.now()
-      if (now - lastKey > SCAN_GAP_MS) buffer = ''
+      if (now - lastKey > SCAN_GAP_MS) {
+        buffer = ''
+        before = rowsRef.current
+      }
       lastKey = now
 
       if (event.key === 'Enter') {
@@ -153,21 +191,27 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
         // The gap above already rules out human typing; this floor only excludes a stray keystroke.
         if (payload.length < SCAN_MIN_LENGTH) return
         event.preventDefault()
-        applyScan(payload)
+        event.stopPropagation()
+        applyScan(payload, before)
         return
       }
 
       if (event.key.length === 1) buffer += event.key
     }
 
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [open])
 
   const submit = () => {
     const filled = rows.filter(row => !isBlank(row))
     if (!filled.length) return setError('Add at least one line item.')
     if (filled.some(row => !row.productId.trim())) return setError('Every row needs a Product ID.')
+    const unknown = filled.filter(row => !productOf(row)).map(row => row.productId.trim())
+    if (unknown.length)
+      return setError(
+        `Pick each Product ID from the list — ${unknown.join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not a Trim product in EBMS.`
+      )
     if (filled.some(row => !(Number(row.qty) >= 1)))
       return setError('Every row needs a quantity of 1 or more.')
     if (filled.some(row => row.length && !(Number(row.length) > 0)))
@@ -176,7 +220,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
     setError('')
     create.mutate(
       filled.map(row => ({
-        product_id: row.productId.trim(),
+        product_id: productOf(row)!.product_id,
         quantity: Number(row.qty),
         // Left out, the line takes the product's own from EBMS.
         ...(row.description.trim() ? { description: row.description.trim() } : {}),
@@ -232,12 +276,17 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 <span aria-hidden className={FIELD_LABEL}>
                   Product ID
                 </span>
-                <Input
+                <ProductPicker
                   className='w-44 max-md:w-full'
-                  aria-label={`Product ID, row ${index + 1}`}
-                  placeholder='TSWB262'
-                  value={row.productId}
-                  onChange={event => edit(row.id, { productId: event.target.value })}
+                  label={`Product ID, row ${index + 1}`}
+                  placeholder='Search…'
+                  text={row.productId}
+                  onTextChange={productId => edit(row.id, { productId })}
+                  picked={row.product}
+                  onPick={product =>
+                    edit(row.id, product ? { product, productId: product.product_id } : { product })
+                  }
+                  invalid={!!error && !!row.productId.trim() && !productOf(row)}
                 />
               </div>
               <div className='flex flex-col gap-1 max-md:order-1 max-md:basis-full md:contents'>
@@ -247,7 +296,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 <Input
                   className='flex-1'
                   aria-label={`Description, row ${index + 1}`}
-                  placeholder='From EBMS unless typed'
+                  placeholder='The product’s own unless typed'
                   value={row.description}
                   onChange={event =>
                     edit(row.id, {

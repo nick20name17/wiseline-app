@@ -75,7 +75,13 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <BenchHeader number={number} rows={rows} onBack={onBack} />
+      {/* The Wrapping list counts a stock row's Wrapped as nothing; its own rows have the figure. */}
+      <BenchHeader
+        number={number}
+        rows={rows}
+        wrapped={lines?.reduce((total, line) => total + (line.wrapped ?? 0), 0)}
+        onBack={onBack}
+      />
 
       <div className='overflow-x-auto rounded-lg border border-border bg-card shadow-xs'>
         <Table data-cards>

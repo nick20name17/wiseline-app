@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useIsWide } from '@/hooks/use-mobile'
 import { Link } from '@tanstack/react-router'
-import { Grid2x2, Layers, PackageCheck, QrCode, Settings, Truck, Waypoints } from 'lucide-react'
+import { Grid2x2, Layers, PackageCheck, Settings, Truck, Waypoints } from 'lucide-react'
 
 const NAV_GROUPS = [
   {
@@ -34,10 +34,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'MANAGE',
-    items: [
-      { to: '/stock-cards', label: 'Stock Cards', icon: QrCode },
-      { to: '/settings', label: 'Settings', icon: Settings }
-    ]
+    items: [{ to: '/settings', label: 'Settings', icon: Settings }]
   }
 ] as const
 

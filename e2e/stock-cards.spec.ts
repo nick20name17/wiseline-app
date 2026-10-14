@@ -28,11 +28,13 @@ test('the Product ID is picked from EBMS by ID or description', async ({ page })
   await page.route(`${API_URL}/stock-cards/product/TSG8306/`, route =>
     route.fulfill({ json: { ...OPTIONS[0], width_from_orders: 8 } })
   )
-  await page.goto('/stock-cards')
+  // Only Trim makes stock, so its cards live on Trim's Unscheduled tab.
+  await page.goto('/trim?view=unscheduled')
   await signIn(page)
 
+  await page.getByRole('button', { name: 'Stock Cards' }).click()
   await page.getByRole('button', { name: 'Create stock card' }).click()
-  const dialog = page.getByRole('dialog')
+  const dialog = page.getByRole('dialog', { name: 'Create stock card' })
   await dialog.getByLabel('Product ID').fill('gable')
   await expect.poll(() => searched.at(-1)).toBe('gable')
 

@@ -19,12 +19,14 @@ import { Timer, Warehouse } from 'lucide-react'
 import { useState } from 'react'
 import {
   departmentsQuery,
+  locationTypesQuery,
+  useRemoveJobLocation,
   useRemoveOrderLocation,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation
 } from '../api'
-import { defaultWarehouseOf, overWeight, warehousesOf, type ShownLocation } from '../lib/wrapping'
+import { locationColumns, overWeight, type HeldLocation } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
@@ -35,90 +37,80 @@ const TINT = {
 }
 
 /** Over weight outranks locked: a full cell is the more urgent thing to see. */
-const tintOf = (over: boolean, locked: boolean) =>
+const tintOf = (over: boolean, locked: boolean | undefined) =>
   TINT[over ? 'over' : locked ? 'locked' : 'current']
 
-type LocationDialogProps = {
+const weightOf = (slot: LocationSlot) =>
+  `${slot.used_weight}${slot.max_weight === null ? '' : `/${slot.max_weight}`} lb`
+
+type LocationDialogProps<T extends HeldLocation> = {
   departmentId: number | undefined
   /** The order's autoid: a full cell it stands on already stays open to it. */
   order: string | null
   /** The order the package is for, as the floor reads it. */
   orderNumber: string
   /** Where the order already stands: its own cells are tinted, and clicking one removes it. */
-  orderLocations: OrderLocation[]
+  orderLocations: T[]
   /** What the package being built weighs, so a cell it would overload reads red before the print. */
   stagedWeight: number
+  /** The locations are the job's (Trim), not its packages': a pick adds one to the job. */
+  job?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   onPick: (location: LocationSlot) => void
   /** Clicking one of the order's own cells takes it off; without this it is picked like any other. */
-  onRemove?: (location: OrderLocation) => void
+  onRemove?: (location: T) => void
 }
 
 /**
- * Select Location: where the package about to be made will stand. A full location is shown and shut
- * rather than hidden — the Worker is looking for a place he can see from the floor. A cell is coloured
+ * Select Location. Every location of the department is in view at once, a column per location type,
+ * so the Worker scans for a free one rather than paging through types. A full location is shown and
+ * shut rather than hidden — he is looking for a place he can see from the floor. A cell is coloured
  * by what putting *this* order there would mean: its current cell, its earlier (locked) ones, and any
  * the staged package would push over weight.
  */
-export const LocationDialog = ({
+export const LocationDialog = <T extends HeldLocation>({
   departmentId,
   order,
   orderNumber,
   orderLocations,
   stagedWeight,
+  job = false,
   open,
   onOpenChange,
   onPick,
   onRemove
-}: LocationDialogProps) => {
+}: LocationDialogProps<T>) => {
   const board = useBoard()
   // Opens on this department's locations every time; another department's are one tab away.
   const [tab, setTab] = useState<number | null>(null)
-  const [warehouse, setWarehouse] = useState<string | null>(null)
   const shown = tab ?? departmentId
   const { data: departments } = useQuery(departmentsQuery)
   const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, order, open))
-  const defaultName = defaultWarehouseOf(slots ?? [])
-  // A department's locations can stand in several warehouses; the default one opens first.
-  const warehouses = warehousesOf(slots ?? [], defaultName)
-  // An order already standing somewhere opens where it stands, so its own cells are in view;
-  // otherwise the default warehouse opens first.
-  const standing = slots?.find(slot =>
-    orderLocations.some(spot => spot.current && spot.location_id === slot.location_id)
-  )
-  const inWarehouse = warehouse ?? standing?.warehouse ?? warehouses[0] ?? ''
-  const listed = (slots ?? []).filter(slot => (slot.warehouse ?? '') === inWarehouse)
+  const { data: typeOf } = useQuery({ ...locationTypesQuery, enabled: open })
+  const columns = locationColumns(slots ?? [], typeOf)
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      onOpenChangeComplete={next => {
-        if (next) return
-        setTab(null)
-        setWarehouse(null)
-      }}
+      onOpenChangeComplete={next => !next && setTab(null)}
     >
-      <DialogContent className='sm:max-w-2xl'>
+      {/* Wide enough for several location types side by side; more scroll sideways. */}
+      <DialogContent className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Select location · Order {orderNumber}</DialogTitle>
           <DialogDescription>
-            Defaults to {board.name} locations — click an available cell to put this package there.
-            Multi-Order cells show an order count (e.g. 2/4) and accept several orders up to their
-            cap or Max Weight; greyed cells are full or single-order and in use. Adding a 2nd
-            location oranges the earlier one.
-            {onRemove ? ' Click one of this order’s own cells to remove it.' : null}
+            {job
+              ? `Defaults to ${board.name} locations — click an available one to add it to this job; the job's other locations stay.`
+              : `Defaults to ${board.name} locations — click an available one to put this package there. Adding a 2nd location oranges the earlier one.`}{' '}
+            Multi-Order locations show an order count (e.g. 2/4) and accept several orders up to
+            their cap or Max Weight; greyed ones are full or single-order and in use.
+            {onRemove ? ' Click one of this order’s own locations to remove it.' : null}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs
-          value={String(shown ?? '')}
-          onValueChange={value => {
-            setTab(Number(value))
-            setWarehouse(null)
-          }}
-        >
+        <Tabs value={String(shown ?? '')} onValueChange={value => setTab(Number(value))}>
           {/* A phone swipes the departments it has no room for; the wrapper keeps the end tabs'
               focus rings clear of the scroll. */}
           <div className='overflow-x-auto max-md:scrollbar-none'>
@@ -132,69 +124,68 @@ export const LocationDialog = ({
           </div>
         </Tabs>
 
-        {warehouses.length > 1 ? (
-          <Tabs value={inWarehouse} onValueChange={value => setWarehouse(String(value))}>
-            <div className='overflow-x-auto max-md:scrollbar-none'>
-              <TabsList>
-                {warehouses.map(name => (
-                  <TabsTrigger key={name} value={name}>
-                    {name || 'No warehouse'}
-                    {name === defaultName ? (
-                      <span className='text-xs text-muted-foreground'>default</span>
-                    ) : null}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
-        ) : null}
-
-        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
+        {/* A phone's drawer scrolls as one, its columns stacked; a box scrolling inside it would
+            fight the swipe. */}
+        <div className='scrollport min-h-56 md:max-h-120 md:overflow-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
-          ) : listed.length ? (
-            <div className='grid grid-cols-3 gap-2 sm:grid-cols-6'>
-              {listed.map(slot => {
-                const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
-                const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
-                const over = overWeight(slot) || predictOver
-
-                return (
-                  <button
-                    key={slot.location_id}
-                    type='button'
-                    disabled={!mine && !slot.available}
-                    title={`${slot.name ?? slot.location_id} · ${slot.used_weight}${slot.max_weight === null ? '' : `/${slot.max_weight}`} lb · ${slot.orders_on_it}/${slot.max_orders ?? 1}${slot.multi_order ? ' orders (Multi-Order)' : ' order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
-                    className={cn(
-                      'rounded-md border border-border bg-background px-1 py-2 text-center font-mono text-sm leading-tight font-medium hover:border-input disabled:pointer-events-none disabled:bg-muted disabled:text-muted-foreground',
-                      mine
-                        ? tintOf(over, mine.orange)
-                        : slot.available && predictOver
-                          ? TINT.over
-                          : undefined
-                    )}
-                    onClick={() => {
-                      onOpenChange(false)
-                      if (mine && onRemove) onRemove(mine)
-                      else onPick(slot)
-                    }}
-                  >
-                    {slot.name ?? slot.location_id}
-                    {slot.multi_order ? (
-                      <span className='block text-xs opacity-75'>
-                        {slot.orders_on_it}/{slot.max_orders ?? '∞'}
+          ) : columns.length ? (
+            <div className='flex flex-col gap-4 md:flex-row md:gap-3'>
+              {columns.map(column => (
+                <section
+                  key={column.key}
+                  className='flex min-w-0 flex-col gap-1.5 md:flex-1 md:shrink-0 md:basis-44'
+                >
+                  {/* Stays over its rows while a long column scrolls. */}
+                  <h3 className='sticky top-0 z-10 flex flex-col bg-popover pb-1'>
+                    <span className='truncate text-xs font-semibold tracking-wider uppercase'>
+                      {column.name}
+                    </span>
+                    {column.warehouse ? (
+                      <span className='truncate text-xs text-muted-foreground'>
+                        {column.warehouse}
                       </span>
                     ) : null}
-                    {/* The weight on the cell is its hover title on a desk; a touch screen has no
-                        hover, and the weight is what a cell is picked by. */}
-                    <span className='hidden text-xs break-words opacity-75 pointer-coarse:block'>
-                      {slot.used_weight}
-                      {slot.max_weight === null ? '' : `/${slot.max_weight}`} lb
-                    </span>
-                  </button>
-                )
-              })}
+                  </h3>
+                  {column.slots.map(slot => {
+                    const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
+                    const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
+                    const over = overWeight(slot) || predictOver
+
+                    return (
+                      <button
+                        key={slot.location_id}
+                        type='button'
+                        disabled={!mine && !slot.available}
+                        title={`${slot.name ?? slot.location_id} · ${weightOf(slot)} · ${slot.orders_on_it}/${slot.max_orders ?? 1}${slot.multi_order ? ' orders (Multi-Order)' : ' order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
+                        className={cn(
+                          'flex items-baseline justify-between gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-left text-sm leading-tight hover:border-input disabled:pointer-events-none disabled:bg-muted disabled:text-muted-foreground',
+                          mine
+                            ? tintOf(over, mine.orange)
+                            : slot.available && predictOver
+                              ? TINT.over
+                              : undefined
+                        )}
+                        onClick={() => {
+                          onOpenChange(false)
+                          if (mine && onRemove) onRemove(mine)
+                          else onPick(slot)
+                        }}
+                      >
+                        <span className='truncate font-mono font-medium'>
+                          {slot.name ?? slot.location_id}
+                        </span>
+                        <span className='shrink-0 text-xs opacity-75'>
+                          {slot.multi_order
+                            ? `${slot.orders_on_it}/${slot.max_orders ?? '∞'} · `
+                            : null}
+                          {weightOf(slot)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </section>
+              ))}
             </div>
           ) : (
             <Empty className='min-h-56'>
@@ -226,20 +217,23 @@ export const LocationDialog = ({
   )
 }
 
-type LocationChipsProps = {
-  locations: ShownLocation[]
+type LocationChipsProps<T extends HeldLocation> = {
+  locations: T[]
   /** None where the locations are only read, as at the machine. */
-  onRemove?: (location: OrderLocation) => void
+  onRemove?: (location: T) => void
 }
 
 /** The locations an order stands on, each a chip that asks to take it off. */
-export const LocationChips = ({ locations, onRemove }: LocationChipsProps) => {
+export const LocationChips = <T extends HeldLocation>({
+  locations,
+  onRemove
+}: LocationChipsProps<T>) => {
   const viewOnly = useViewOnly()
   if (!locations.length)
     return <span className='text-xs text-muted-foreground'>No location assigned</span>
 
   return locations.map(spot => {
-    const over = !!spot.over || (spot.remaining_weight !== null && spot.remaining_weight < 0)
+    const over = !!spot.over || (spot.remaining_weight != null && spot.remaining_weight < 0)
 
     if (viewOnly || !onRemove)
       return (
@@ -345,6 +339,56 @@ export const RemoveLocationDialog = ({
           {
             onSuccess: () => {
               onRemoved?.(location)
+              onOpenChange(false)
+              toast.add({ type: 'success', title: `Location ${code} removed` })
+            }
+          }
+        )
+      }
+    />
+  )
+}
+
+type RemoveJobLocationDialogProps = {
+  order: string
+  departmentId: number | undefined
+  /** The one being taken off, or `null` when nothing is being asked. */
+  location: HeldLocation | null
+  onOpenChange: (open: boolean) => void
+}
+
+/**
+ * Taking one location off a job. Unlike a package's, a job may be left on none: its packages carry
+ * no location of their own to lose track of.
+ */
+export const RemoveJobLocationDialog = ({
+  order,
+  departmentId,
+  location: current,
+  onOpenChange
+}: RemoveJobLocationDialogProps) => {
+  const [location, release] = useRetained(current)
+  const remove = useRemoveJobLocation()
+  const code = location?.name ?? String(location?.location_id ?? '')
+
+  return (
+    <ConfirmDialog
+      open={!!current}
+      onOpenChange={onOpenChange}
+      onOpenChangeComplete={release}
+      title='Remove location'
+      description={`Are you sure you want to remove ${code} from this job? Its other locations stay.`}
+      confirmLabel='Yes'
+      destructive
+      cancelLabel='No'
+      isPending={remove.isPending}
+      onConfirm={() =>
+        location &&
+        departmentId !== undefined &&
+        remove.mutate(
+          { order, departmentId, locationId: location.location_id },
+          {
+            onSuccess: () => {
               onOpenChange(false)
               toast.add({ type: 'success', title: `Location ${code} removed` })
             }

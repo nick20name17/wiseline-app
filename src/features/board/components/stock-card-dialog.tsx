@@ -1,13 +1,5 @@
 import { Button } from '@/components/ui/button'
 import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList
-} from '@/components/ui/combobox'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,14 +12,12 @@ import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
-import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ImageUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRetained } from '@/lib/use-retained'
 import {
-  stockCardOptionsQuery,
   stockCardProductQuery,
   useSaveStockCard,
   useUploadStockCardImage,
@@ -35,6 +25,8 @@ import {
   type StockCardOption
 } from '../api'
 import { productFacts } from '../lib/format'
+import { pickedProduct } from '../lib/product-pick'
+import { ProductPicker } from './product-picker'
 
 // The upload is refused for anything else, so the picker does not offer it, and a dropped or pasted
 // file of another kind is turned away here.
@@ -46,61 +38,16 @@ type StockCardFormProps = {
   onClose: () => void
 }
 
-type ProductPickerProps = {
-  picked: StockCardOption | null
-  onPick: (product: StockCardOption | null) => void
-}
-
-/** The Product ID, picked from EBMS's active Trim products by ID or description. */
-const ProductPicker = ({ picked, onPick }: ProductPickerProps) => {
-  const [query, setQuery] = useState('')
-  const search = useDebouncedValue(query.trim(), 250)
-  const { data: options = [], isFetching } = useQuery(stockCardOptionsQuery(search))
-
-  return (
-    <Combobox
-      items={options}
-      // The server searches; the list shows what it answered.
-      filter={null}
-      value={picked}
-      onValueChange={onPick}
-      inputValue={query}
-      onInputValueChange={text => {
-        setQuery(text)
-        // Typing past a pick is a new search: the old pick no longer names what is in the box.
-        if (picked && text !== picked.product_id) onPick(null)
-      }}
-      itemToStringLabel={(option: StockCardOption) => option.product_id}
-      isItemEqualToValue={(a: StockCardOption, b: StockCardOption) => a.product_id === b.product_id}
-    >
-      <ComboboxInput id='card-pid' placeholder='Search ID or description…' />
-      <ComboboxContent>
-        <ComboboxEmpty>
-          {isFetching ? 'Searching…' : 'No active Trim product matches.'}
-        </ComboboxEmpty>
-        <ComboboxList>
-          {(option: StockCardOption) => (
-            <ComboboxItem key={option.product_id} value={option} disabled={option.has_card}>
-              <span className='w-28 shrink-0 font-mono'>{option.product_id}</span>
-              <span className='min-w-0 flex-1 truncate text-muted-foreground'>
-                {option.has_card ? 'Has a stock card' : (option.description ?? '—')}
-              </span>
-            </ComboboxItem>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  )
-}
-
 /**
  * Create enables once all five fields are filled (p1 (72,321)); Width is optional. The Product ID is
  * picked from EBMS, then looked up for the width its orders agree on p1 (71,307) — the server still
  * fills the description itself. The product is fixed once created.
  */
 const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
+  const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<StockCardOption | null>(null)
-  const productId = card?.product_id ?? picked?.product_id ?? ''
+  const chosen = pickedProduct(query, picked)
+  const productId = card?.product_id ?? chosen?.product_id ?? ''
   const [minimum, setMinimum] = useState(() => card?.stock_minimum?.toString() ?? '')
   const [orderQty, setOrderQty] = useState(() => card?.order_qty?.toString() ?? '')
   // `null` until the Manager touches the field: until then it shows the width past orders agree on,
@@ -180,14 +127,21 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
             </>
           ) : (
             <>
-              <ProductPicker picked={picked} onPick={setPicked} />
+              <ProductPicker
+                id='card-pid'
+                text={query}
+                onTextChange={setQuery}
+                picked={picked}
+                onPick={setPicked}
+                unavailable={option => (option.has_card ? 'Has a stock card' : null)}
+              />
               {found === null ? (
                 <FieldError>{productId} is no longer an active product in EBMS.</FieldError>
               ) : found?.has_card ? (
                 <FieldError>A stock card for {found.product_id} already exists.</FieldError>
-              ) : picked ? (
+              ) : chosen ? (
                 <FieldDescription>
-                  {[picked.description ?? '—', productFacts(picked)].filter(Boolean).join(' — ')}
+                  {[chosen.description ?? '—', productFacts(chosen)].filter(Boolean).join(' — ')}
                 </FieldDescription>
               ) : (
                 <FieldDescription>

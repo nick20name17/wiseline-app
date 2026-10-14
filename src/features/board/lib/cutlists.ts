@@ -1,4 +1,11 @@
-import type { Cutlist, CutlistRow, CutlistSource, Machine, ProductFile } from '../api'
+import type {
+  Cutlist,
+  CutlistRow,
+  CutlistSource,
+  Machine,
+  ProductFile,
+  Remanufacturing
+} from '../api'
 
 /**
  * One line of the table the worker reads: a width and a length, and every row the server holds for
@@ -10,6 +17,8 @@ import type { Cutlist, CutlistRow, CutlistSource, Machine, ProductFile } from '.
  */
 export type CutlistGroup = {
   key: string
+  /** The remake whose own row this is; `null` for the line's rows. */
+  remakeId: number | null
   width: number | null
   length: number | null
   rows: CutlistRow[]
@@ -92,17 +101,22 @@ export const machineQuantity = (group: CutlistGroup, machineId: number) =>
 /**
  * `byProduct` keeps a bendlist's products apart: the server gives each product of a size its own row,
  * with its own ID, Drawing and Complete p1 (653,304), where the Slinet cuts one size for them all.
+ *
+ * A remake's row stays a line of its own beside the line's of the same size: ticking it moves the
+ * remake, not the line, so the two cannot share one Complete.
  */
 export const groupRows = (rows: CutlistRow[], { byProduct = false } = {}): CutlistGroup[] => {
   const groups = new Map<string, CutlistGroup>()
 
   for (const row of rows) {
     const product = byProduct ? (row.sources[0]?.product_id ?? '') : ''
-    const key = `${row.width ?? ''}|${row.length ?? ''}|${product}`
+    const remake = row.remanufacturing_id
+    const key = `${row.width ?? ''}|${row.length ?? ''}|${product}|${remake ?? ''}`
     let group = groups.get(key)
     if (!group) {
       group = {
         key,
+        remakeId: remake,
         width: row.width,
         length: row.length,
         rows: [],
@@ -122,9 +136,13 @@ export const groupRows = (rows: CutlistRow[], { byProduct = false } = {}): Cutli
     group.sources.push(...row.sources)
   }
 
-  // "Primarily sorted by width and then length. The smallest width goes on top."
+  // "Primarily sorted by width and then length. The smallest width goes on top." A remake's row
+  // follows the line's of its size.
   return [...groups.values()].sort(
-    (a, b) => (a.width ?? 0) - (b.width ?? 0) || (a.length ?? 0) - (b.length ?? 0)
+    (a, b) =>
+      (a.width ?? 0) - (b.width ?? 0) ||
+      (a.length ?? 0) - (b.length ?? 0) ||
+      Number(a.remakeId !== null) - Number(b.remakeId !== null)
   )
 }
 
@@ -205,3 +223,50 @@ export const completeBlocker = ({
   isSlinet: boolean
   slinetStarted: boolean
 }) => (isSlinet || slinetStarted ? null : 'Available once the Slinet starts on this release')
+
+/**
+ * The remakes a row answers for: its own (a remake's row), its list's (a remake's list), and those
+ * riding on the line's own bend row — asked from the machine before the line was bent.
+ */
+export const remakesOf = (
+  group: CutlistGroup,
+  listRemake: Remanufacturing | null,
+  remakes: Iterable<Remanufacturing>
+) => {
+  const rowIds = new Set(group.rows.map(row => row.id))
+  const found = [...remakes].filter(
+    reman =>
+      reman.id === group.remakeId || (reman.bend_row_id !== null && rowIds.has(reman.bend_row_id))
+  )
+  return listRemake && !found.some(reman => reman.id === listRemake.id)
+    ? [listRemake, ...found]
+    : found
+}
+
+/**
+ * Why a bendlist row carrying a remake cannot be ticked yet: «available for bending only after the
+ * remanufactured piece is cut» (call of 2026-10-13). The server refuses it too.
+ */
+export const remakeHold = (isSlinet: boolean, remakes: Remanufacturing[]) =>
+  !isSlinet && remakes.some(reman => !reman.is_cut)
+    ? 'Available once the Slinet cuts the remake'
+    : null
+
+/** Why Done is not available yet, or `null` when it is. A remake's open row holds it as well. */
+export const doneBlocker = (cutlist: Cutlist) => {
+  if (cutlist.is_complete) return null
+  const open = cutlist.rows.filter(row => !row.complete)
+  return open.some(row => row.remanufacturing_id !== null)
+    ? 'Available once every row is Complete, the remake included'
+    : 'Available once every row is Complete'
+}
+
+// A line the Slinet has cut, at least: there is a piece to have spoiled.
+const CUT = new Set(['cut', 'bent', 'wrapped'])
+
+/**
+ * Why a remake cannot be asked for a line yet: nothing has been cut to spoil, so the Slinet's own row
+ * still covers it (Kevin, call of 2026-10-13). The server does not check this.
+ */
+export const remakeRequestBlocker = (status: string | null) =>
+  status && CUT.has(status) ? null : 'Available once the Slinet has cut this line'

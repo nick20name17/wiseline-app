@@ -44,7 +44,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-4xl'>
+      <DialogContent className='sm:max-w-4xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Orders using this size</DialogTitle>
           <DialogDescription>

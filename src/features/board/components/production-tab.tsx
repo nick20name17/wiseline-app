@@ -16,6 +16,7 @@ import {
   wrappingRowsQuery,
   type Cutlist,
   type Machine,
+  type Remanufacturing,
   type WrappingRow
 } from '../api'
 import {
@@ -37,6 +38,8 @@ import { WrappingTab } from './wrapping-tab'
 // The station that cuts the material, and the one that comes after every machine has bent it.
 const CUTTING = 'cutting'
 const WRAPPING = 'wrapping'
+
+const NO_REMAKES: ReadonlyMap<number, Remanufacturing> = new Map()
 
 const stockNote = (value: number) => (value ? ` (${value} of them from stock orders)` : '')
 
@@ -180,8 +183,8 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
     enabled: departmentId !== undefined && !!activeMachine
   })
   const lines = new Map(released?.map(line => [line.origin_item, line]))
-  // A remake list names the request it came from; the request says how far the remake has got.
-  const { data: remakes } = useQuery({
+  // A remake's list, row or riding bend row names the request; the request says how far it has got.
+  const { data: remakes = NO_REMAKES } = useQuery({
     ...remanufacturingsQuery(departmentId),
     select: page => new Map(page.results.map(reman => [reman.id, reman]))
   })
@@ -256,11 +259,7 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
             <CutlistCard
               key={cutlist.id}
               cutlist={cutlist}
-              remake={
-                cutlist.remanufacturing_id === null
-                  ? null
-                  : (remakes?.get(cutlist.remanufacturing_id) ?? null)
-              }
+              remakes={remakes}
               machines={benders}
               isSlinet={isSlinet}
               slinetStarted={!isSlinet && hasSlinetStarted(slinetList, slinetLoaded)}
@@ -277,82 +276,98 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
 
   return (
     <div className='flex flex-1 flex-col gap-4'>
-      {/* On a phone the buttons share a row of their own above the stations, in equal parts, so the
+      {/* From the station strip to the totals stays put while the lists scroll under it, so the
+          day's totals and the station switch are in reach at the bottom of a long list. A phone
+          has no height to spare for it. */}
+      <div className='flex flex-col gap-4 bg-background md:sticky md:top-13 md:z-5 md:-mx-6 md:px-6 md:pb-2'>
+        {/* On a phone the buttons share a row of their own above the stations, in equal parts, so the
           strip keeps the whole width and still sits on the rule. */}
-      <div className='flex items-center gap-3 border-b border-border max-md:flex-wrap'>
-        <Tabs
-          className='min-w-0 flex-1 max-md:order-last max-md:basis-full'
-          value={station}
-          onValueChange={setStation}
-        >
-          {/* The scroll sits on a wrapper rather than on the list, so the first and last station
+        <div className='flex items-center gap-3 border-b border-border max-md:flex-wrap'>
+          <Tabs
+            className='min-w-0 flex-1 max-md:order-last max-md:basis-full'
+            value={station}
+            onValueChange={setStation}
+          >
+            {/* The scroll sits on a wrapper rather than on the list, so the first and last station
               keep their focus ring where the strip has to scroll. */}
-          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
-            <TabsList variant='line' className='h-9'>
-              {/* The gateway every list passes through first, set apart from the machines after it. */}
-              <TabsTrigger value={SLINET} tone='gateway'>
-                Slinet
-              </TabsTrigger>
-              {benders.map(machine => (
-                <TabsTrigger key={machine.id} value={String(machine.id)}>
-                  {machine.name}
+            <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
+              <TabsList variant='line' className='h-9'>
+                {/* The gateway every list passes through first, set apart from the machines after it. */}
+                <TabsTrigger value={SLINET} tone='gateway'>
+                  Slinet
                 </TabsTrigger>
-              ))}
-              {/* The terminal station: no lists, no Active/Completed switch, no capacity. It is
+                {benders.map(machine => (
+                  <TabsTrigger key={machine.id} value={String(machine.id)}>
+                    {machine.name}
+                  </TabsTrigger>
+                ))}
+                {/* The terminal station: no lists, no Active/Completed switch, no capacity. It is
                   always there — every order ends at it, whether or not a machine is listed for it. */}
-              <TabsTrigger value={WRAPPING}>{wrapping?.name ?? 'Wrapping'}</TabsTrigger>
-            </TabsList>
-          </div>
-        </Tabs>
+                <TabsTrigger value={WRAPPING}>{wrapping?.name ?? 'Wrapping'}</TabsTrigger>
+              </TabsList>
+            </div>
+          </Tabs>
 
-        <div className='flex gap-2 max-md:w-full md:contents'>
-          {/* p1 (1004,289): on every station, for pieces made against no order. */}
-          {viewOnly ? null : (
-            <Button
-              variant='outline'
-              className='max-md:flex-1 md:mb-1.5'
-              onClick={() => setManufacturing(true)}
-            >
-              <Factory data-icon='inline-start' />
-              <span className='md:hidden'>Stock Mfg</span>
-              <span className='max-md:hidden'>Stock Manufacturing</span>
-            </Button>
-          )}
+          <div className='flex gap-2 max-md:w-full md:contents'>
+            {/* p1 (1004,289): on every station, for pieces made against no order. */}
+            {viewOnly ? null : (
+              <Button
+                variant='outline'
+                className='max-md:flex-1 md:mb-1.5'
+                onClick={() => setManufacturing(true)}
+              >
+                <Factory data-icon='inline-start' />
+                <span className='md:hidden'>Stock Mfg</span>
+                <span className='max-md:hidden'>Stock Manufacturing</span>
+              </Button>
+            )}
 
-          {isWrapping && !viewOnly ? (
-            <ScanPackageDialog className='max-md:flex-1 md:mb-1.5' />
-          ) : null}
+            {isWrapping && !viewOnly ? (
+              <ScanPackageDialog className='max-md:flex-1 md:mb-1.5' />
+            ) : null}
 
-          {/* The worker reaches the coils from where he is standing — the same list the Coils tab
+            {/* The worker reaches the coils from where he is standing — the same list the Coils tab
               shows, under the Manager's filter. */}
-          <Button variant='outline' className='max-md:flex-1 md:mb-1.5' onClick={onOpenCoils}>
-            <Database data-icon='inline-start' />
-            Coils
-          </Button>
+            <Button variant='outline' className='max-md:flex-1 md:mb-1.5' onClick={onOpenCoils}>
+              <Database data-icon='inline-start' />
+              Coils
+            </Button>
+          </div>
         </div>
+
+        {isWrapping ? null : (
+          <>
+            {/* Every station carries its own Active / Completed switch, and a completed list renders in
+          the format the worker used — same card, same columns. */}
+            <Tabs
+              value={done ? 'done' : 'active'}
+              onValueChange={value => setDone(value === 'done')}
+            >
+              <TabsList className='h-10 max-md:w-full'>
+                <TabsTrigger value='active'>Active {word}</TabsTrigger>
+                <TabsTrigger value='done'>
+                  <History data-icon='inline-start' />
+                  Completed {word}
+                  <span className='max-md:hidden'> · past 90 days</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {done ? null : (
+              <Totals
+                departmentId={departmentId}
+                machine={activeMachine}
+                slinetLists={slinetLists}
+              />
+            )}
+          </>
+        )}
       </div>
 
       {isWrapping ? (
         <WrappingTab search={search} departmentId={departmentId} />
       ) : (
         <>
-          {/* Every station carries its own Active / Completed switch, and a completed list renders in
-          the format the worker used — same card, same columns. */}
-          <Tabs value={done ? 'done' : 'active'} onValueChange={value => setDone(value === 'done')}>
-            <TabsList className='h-10 max-md:w-full'>
-              <TabsTrigger value='active'>Active {word}</TabsTrigger>
-              <TabsTrigger value='done'>
-                <History data-icon='inline-start' />
-                Completed {word}
-                <span className='max-md:hidden'> · past 90 days</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {done ? null : (
-            <Totals departmentId={departmentId} machine={activeMachine} slinetLists={slinetLists} />
-          )}
-
           {body()}
 
           <CutlistTotalDialog group={total} onOpenChange={open => !open && setTotal(null)} />
@@ -361,7 +376,6 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
             departmentId={departmentId}
             line={remaking}
             source='machine'
-            machineName={activeMachine?.name}
             onOpenChange={open => !open && setRemaking(null)}
           />
         </>
