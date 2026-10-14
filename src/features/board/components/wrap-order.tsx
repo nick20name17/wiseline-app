@@ -10,9 +10,11 @@ import { cn } from 'cn'
 import { ArrowLeft, Ban, Check, MapPin, PackageSearch, Printer, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import {
+  jobLocationsQuery,
   orderCompleteQuery,
   orderLocationsQuery,
   remanufacturingsQuery,
+  useAddJobLocation,
   useCompleteOrder,
   useCreatePackage,
   useFillInCoil,
@@ -41,7 +43,7 @@ import {
   wrapAllowed,
   lineName,
   type CellRoom,
-  type ShownLocation
+  type HeldLocation
 } from '../lib/wrapping'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { CoilCell, type CoilItem, type CopiedCoil } from './coil-cell'
@@ -49,7 +51,12 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
-import { LocationChips, LocationDialog, RemoveLocationDialog } from './location-dialog'
+import {
+  LocationChips,
+  LocationDialog,
+  RemoveJobLocationDialog,
+  RemoveLocationDialog
+} from './location-dialog'
 import { usePackageLabel } from './use-package-label'
 import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
@@ -566,8 +573,13 @@ type CreatePrintButtonProps = {
   number: string
   lines: { row: WrappingRow; quantity: number }[]
   target: { location_id: number; name: string | null } | null
-  /** Packed at the machine, with no location: Wrapping gives it one later p2 (1020,440). */
-  atMachine: boolean
+  /**
+   * Made with no location: at the machine Wrapping gives it one later p2 (1020,440), and a department
+   * with job locations keeps them on the job.
+   */
+  locationless: boolean
+  /** What the label says the package stands on: the target, or the job's locations. */
+  labelLocation: string | null
   /** `null` when a staged line does not say what it weighs; then no weight is sent. */
   weight: number | null
   overPackage: boolean
@@ -585,7 +597,8 @@ const CreatePrintButton = ({
   number,
   lines,
   target,
-  atMachine,
+  locationless,
+  labelLocation,
   weight,
   overPackage,
   overLocation,
@@ -607,7 +620,7 @@ const CreatePrintButton = ({
 
   const print = (override: boolean) =>
     departmentId &&
-    (target || atMachine) &&
+    (target || locationless) &&
     createPackage.mutate(
       {
         order,
@@ -632,7 +645,7 @@ const CreatePrintButton = ({
           label.print({
             name: created.name,
             orderNumber: number,
-            location: target?.name ?? null,
+            location: labelLocation,
             weight,
             contents: lines.map(line => ({
               product: lineName(line.row),
@@ -646,7 +659,7 @@ const CreatePrintButton = ({
   return (
     <>
       <Button
-        disabled={!lines.length || (!target && !atMachine) || createPackage.isPending}
+        disabled={!lines.length || (!target && !locationless) || createPackage.isPending}
         onClick={() => (overPackage || overLocation ? setConfirming(true) : print(false))}
       >
         <Printer data-icon='inline-start' />
@@ -675,12 +688,18 @@ const CreatePrintButton = ({
   )
 }
 
-type BenchHeaderProps = { number: string; rows: WrappingRow[]; onBack: () => void }
+type BenchHeaderProps = {
+  number: string
+  rows: WrappingRow[]
+  /** What is wrapped, when the bench knows better than the Wrapping list's rows. */
+  wrapped?: number
+  onBack: () => void
+}
 
-export const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
+export const BenchHeader = ({ number, rows, wrapped: known, onBack }: BenchHeaderProps) => {
   const { pack } = useBoard()
   const ordered = rows.reduce((total, row) => total + row.qty_ordered, 0)
-  const wrapped = rows.reduce((total, row) => total + row.wrapped, 0)
+  const wrapped = known ?? rows.reduce((total, row) => total + row.wrapped, 0)
 
   return (
     <span className='flex flex-wrap items-center gap-3'>
@@ -702,12 +721,12 @@ export const BenchHeader = ({ number, rows, onBack }: BenchHeaderProps) => {
   )
 }
 
-type OrderFactsProps = {
+type OrderFactsProps<T extends HeldLocation> = {
   number: string
   /** Any of the order's rows: the order info rides on every one. */
   order: WrappingRow
-  locations: ShownLocation[]
-  onRemove?: (location: OrderLocation) => void
+  locations: T[]
+  onRemove?: (location: T) => void
 }
 
 const Fact = ({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) => (
@@ -721,7 +740,12 @@ const Fact = ({ label, value, mono }: { label: string; value: string | null; mon
  * The order's own facts p1 (885,283), (885,389), and the only place its Trim Location is said: it
  * belongs to the order, not to each package.
  */
-const OrderFacts = ({ number, order, locations, onRemove }: OrderFactsProps) => {
+const OrderFacts = <T extends HeldLocation>({
+  number,
+  order,
+  locations,
+  onRemove
+}: OrderFactsProps<T>) => {
   const board = useBoard()
   return (
     // A phone's row fits two or three facts at uneven widths; two columns keep them in line.
@@ -769,20 +793,28 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
   // The operator's scratch pad, cleared by printing rather than kept anywhere.
   const [amounts, setAmounts] = useState<Record<string, string>>({})
   const [picked, setPicked] = useState<LocationSlot | null>(null)
-  // Select Location either aims the next package, or — when the last location is taken off — moves
-  // every package already made.
-  const [picking, setPicking] = useState<'package' | 'replace' | null>(null)
+  // Select Location either aims the next package, adds a location to the job, or — when the last
+  // location is taken off — moves every package already made.
+  const [picking, setPicking] = useState<'package' | 'job' | 'replace' | null>(null)
   const [removing, setRemoving] = useState<OrderLocation | null>(null)
+  const [removingJob, setRemovingJob] = useState<HeldLocation | null>(null)
   const [seeing, setSeeing] = useState(false)
 
   const { data: remans } = useQuery(remanufacturingsQuery(departmentId))
   const { data: department } = useBoardDepartment(board.code)
-  const { data: locations } = useQuery(orderLocationsQuery(order?.order ?? null))
+  // Trim: a job sits on several carts and its packages move between them, so its locations are the
+  // job's, added and removed one by one, and a package is made with none.
+  const jobMode = !!department?.job_locations
+  const { data: jobLocations } = useQuery(
+    jobLocationsQuery(departmentId, jobMode ? (order?.order ?? null) : null)
+  )
+  const { data: locations } = useQuery(orderLocationsQuery(jobMode ? null : (order?.order ?? null)))
   // This department's cells, for the weight already standing on the one the package is going to.
   const { data: slots } = useQuery(
-    wrappingLocationsQuery(departmentId, order?.order ?? null, !!order)
+    wrappingLocationsQuery(departmentId, order?.order ?? null, !!order && !jobMode)
   )
   const move = useMoveOrderPackages()
+  const addJob = useAddJobLocation()
   const viewOnly = useViewOnly()
 
   if (!order) return null
@@ -800,8 +832,9 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
     .map(row => ({ row, quantity: stagedOf(row) }))
     .filter(line => line.quantity > 0)
 
-  // At the machine a package is made with no location, whatever the order already stands on.
-  const { target, slot: targetSlot } = atMachine
+  // At the machine, and in a job-location department, a package is made with no location.
+  const locationless = atMachine || jobMode
+  const { target, slot: targetSlot } = locationless
     ? { target: null, slot: null }
     : packageTarget(picked, locations, slots)
   const weight = lines.length ? packageWeight(lines) : null
@@ -816,6 +849,19 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
   // Nothing to take off the server for a location no package has gone to yet.
   const removeLocation = (spot: OrderLocation) =>
     spot.location_id === pendingId ? setPicked(null) : setRemoving(spot)
+  const labelLocation = jobMode
+    ? (jobLocations ?? []).map(spot => spot.name ?? spot.location_id).join(', ') || null
+    : (target?.name ?? null)
+
+  const addJobLocation = (slot: LocationSlot) =>
+    departmentId !== undefined &&
+    addJob.mutate(
+      { order: order.order, departmentId, locationId: slot.location_id },
+      {
+        onSuccess: () =>
+          toast.add({ type: 'success', title: `Added ${slot.name ?? slot.location_id}` })
+      }
+    )
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
@@ -833,17 +879,35 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
         }
       />
 
-      <OrderFacts
-        number={number}
-        order={order}
-        locations={shownLocations}
-        onRemove={atMachine ? undefined : removeLocation}
-      />
+      {jobMode ? (
+        <OrderFacts
+          number={number}
+          order={order}
+          locations={jobLocations ?? []}
+          onRemove={setRemovingJob}
+        />
+      ) : (
+        <OrderFacts
+          number={number}
+          order={order}
+          locations={shownLocations}
+          onRemove={atMachine ? undefined : removeLocation}
+        />
+      )}
 
       <div className='flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-xs'>
         {viewOnly ? null : (
           <>
-            {atMachine ? null : (
+            {jobMode ? (
+              <Button
+                variant='outline'
+                disabled={addJob.isPending}
+                onClick={() => setPicking('job')}
+              >
+                <MapPin data-icon='inline-start' />
+                Add location
+              </Button>
+            ) : atMachine ? null : (
               <Button
                 variant='outline'
                 disabled={!lines.length}
@@ -860,7 +924,8 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
               number={number}
               lines={lines}
               target={target}
-              atMachine={atMachine}
+              locationless={locationless}
+              labelLocation={labelLocation}
               weight={weight}
               overPackage={overPackage}
               overLocation={overTarget}
@@ -895,32 +960,47 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
         )}
       </div>
 
-      <LocationDialog
-        departmentId={departmentId}
-        order={order.order}
-        orderNumber={number}
-        orderLocations={shownLocations}
-        stagedWeight={weight ?? 0}
-        open={!!picking}
-        onOpenChange={open => !open && setPicking(null)}
-        onPick={slot =>
-          picking === 'replace'
-            ? move.mutate(
-                { order: order.order, locationId: slot.location_id },
-                {
-                  onSuccess: () => {
-                    setPicked(null)
-                    toast.add({
-                      type: 'success',
-                      title: `Moved to ${slot.name ?? slot.location_id}`
-                    })
+      {jobMode ? (
+        <LocationDialog
+          departmentId={departmentId}
+          order={order.order}
+          orderNumber={number}
+          orderLocations={jobLocations ?? []}
+          stagedWeight={0}
+          job
+          open={picking === 'job'}
+          onOpenChange={open => !open && setPicking(null)}
+          onPick={addJobLocation}
+          onRemove={setRemovingJob}
+        />
+      ) : (
+        <LocationDialog
+          departmentId={departmentId}
+          order={order.order}
+          orderNumber={number}
+          orderLocations={shownLocations}
+          stagedWeight={weight ?? 0}
+          open={!!picking}
+          onOpenChange={open => !open && setPicking(null)}
+          onPick={slot =>
+            picking === 'replace'
+              ? move.mutate(
+                  { order: order.order, locationId: slot.location_id },
+                  {
+                    onSuccess: () => {
+                      setPicked(null)
+                      toast.add({
+                        type: 'success',
+                        title: `Moved to ${slot.name ?? slot.location_id}`
+                      })
+                    }
                   }
-                }
-              )
-            : setPicked(slot)
-        }
-        onRemove={removeLocation}
-      />
+                )
+              : setPicked(slot)
+          }
+          onRemove={removeLocation}
+        />
+      )}
 
       <PackagesDialog
         order={order.order}
@@ -944,6 +1024,13 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
           setPicked(null)
           setPicking('replace')
         }}
+      />
+
+      <RemoveJobLocationDialog
+        order={order.order}
+        departmentId={departmentId}
+        location={removingJob}
+        onOpenChange={open => !open && setRemovingJob(null)}
       />
     </div>
   )

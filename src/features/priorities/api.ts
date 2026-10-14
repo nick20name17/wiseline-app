@@ -71,8 +71,8 @@ export const onBoard = (priority: Priority, departmentId: number) =>
   priority.department === null || priority.department === departmentId
 
 /**
- * One department's priorities, or every department's when none is given, top of the hierarchy
- * first; one with no department is listed and ordered with each. The list is fetched whole, not with
+ * One department's priorities, top of the hierarchy first; one with no department is listed and
+ * ordered with each. None until the department is known. The list is fetched whole, not with
  * `?department=`, because a drag and a new priority's position are worked out against that one cache.
  */
 export const prioritiesQuery = (departmentId: number | undefined) =>
@@ -81,7 +81,7 @@ export const prioritiesQuery = (departmentId: number | undefined) =>
     queryFn: async () => z.array(prioritySchema).parse(await authApi.get('priorities/').json()),
     select: (priorities: Priority[]) =>
       priorities
-        .filter(priority => departmentId === undefined || onBoard(priority, departmentId))
+        .filter(priority => departmentId !== undefined && onBoard(priority, departmentId))
         .sort((a, b) => a.position - b.position || a.id - b.id)
   })
 

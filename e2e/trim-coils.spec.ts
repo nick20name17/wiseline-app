@@ -22,7 +22,7 @@ const coil = (id: number, productId: string, lotNumber: string, extra = {}) => (
   ...extra
 })
 
-// The department is the product's: every lot of a product reads the same.
+// Where a coil stands is its own; both lots of CB4828B happen to be in Rollforming.
 const LOTS = [
   // In Trim and mounted on the Slinet, so its product cannot go to Rollforming.
   coil(41, 'CB4826R', '3782201', {
@@ -97,30 +97,59 @@ test('Trim Coils are the coils inside the Coil Filter, All Coils ignores it', as
   await expect(page.getByRole('button', { name: 'Coil Filter' })).toBeHidden()
 })
 
-test('a product with a coil on the Slinet stays out of Rollforming, and the Slinet waits on a thickness', async ({
+test('a coil on the Slinet stays out of Rollforming, and the Slinet waits on a thickness', async ({
   page
 }) => {
-  await expect(page.getByRole('checkbox', { name: 'Rollforming holds CB4826R' })).toBeDisabled()
+  await expect(
+    page.getByRole('checkbox', { name: 'Every coil of CB4826R in Rollforming' })
+  ).toBeDisabled()
   await openProduct(page, 'CB4826R')
   await openProduct(page, 'CB4828B')
   await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3782201/ })).toBeEnabled()
   await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3797401/ })).toBeDisabled()
-  // Trim and Rollforming are set on the product, not on each coil.
-  await expect(page.getByRole('checkbox', { name: /Trim holds coil/ })).toHaveCount(0)
+  // Each coil has its own Trim and Rollforming boxes.
+  await expect(page.getByRole('checkbox', { name: /Trim holds coil 3782201/ })).toBeChecked()
+  await expect(
+    page.getByRole('checkbox', { name: /Rollforming holds coil 3782201/ })
+  ).toBeDisabled()
+  await expect(page.getByRole('checkbox', { name: /Rollforming holds coil 3797401/ })).toBeChecked()
+})
+
+test('one coil is moved on its own, after asking', async ({ page }) => {
+  const moved: { path: string; body: unknown }[] = []
+  await page.route(`${API_URL}/coils/lots/*/location/`, route => {
+    moved.push({
+      path: new URL(route.request().url()).pathname,
+      body: route.request().postDataJSON()
+    })
+    return route.fulfill({ json: { ...LOTS[1], in_trim: true, in_rollforming: false } })
+  })
+  await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
+  await openProduct(page, 'CB4828B')
+
+  await page.getByRole('checkbox', { name: /Trim holds coil 3797401/ }).click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(
+    dialog.getByText(/ok to move coil .*3797401.* to the Trim department\?/)
+  ).toBeVisible()
+  await dialog.getByRole('button', { name: 'Yes' }).click()
+  await expect
+    .poll(() => moved)
+    .toEqual([{ path: '/coils/lots/LOT-42/location/', body: { in_trim: true } }])
 })
 
 test('moving a product from Rollforming to Trim asks first', async ({ page }) => {
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
-  await page.getByRole('checkbox', { name: 'Trim holds CB4828B' }).click()
+  await page.getByRole('checkbox', { name: 'Every coil of CB4828B in Trim' }).click()
 
   const dialog = page.getByRole('alertdialog')
   await expect(
     dialog.getByText(
-      'Have you checked with the Rollforming department to ensure that it is ok to move CB4828B to the Trim department?'
+      'Have you checked with the Rollforming department to ensure that it is ok to move every coil of CB4828B to the Trim department?'
     )
   ).toBeVisible()
   await expect(
-    dialog.getByText(/every coil of it .* a coil can only be in one department/)
+    dialog.getByText(/Yes moves every coil of CB4828B .* a coil can only be in one department/)
   ).toBeVisible()
   await dialog.getByRole('button', { name: 'No' }).click()
   await expect(dialog).toBeHidden()
@@ -179,13 +208,15 @@ test('a product is put in a department in one call, its coils with it', async ({
       body: route.request().postDataJSON()
     })
     return route.fulfill({
-      json: { product_id: 'CB4828B', in_trim: true, in_rollforming: false }
+      json: { product_id: 'CB4828B', in_trim: true, in_rollforming: false, lots: 2 }
     })
   })
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
 
-  await expect(page.getByRole('checkbox', { name: 'Rollforming holds CB4828B' })).toBeChecked()
-  await page.getByRole('checkbox', { name: 'Trim holds CB4828B' }).click()
+  await expect(
+    page.getByRole('checkbox', { name: 'Every coil of CB4828B in Rollforming' })
+  ).toBeChecked()
+  await page.getByRole('checkbox', { name: 'Every coil of CB4828B in Trim' }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Yes' }).click()
   await expect
     .poll(() => moved)

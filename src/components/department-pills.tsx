@@ -7,6 +7,8 @@ type DepartmentPillsProps = {
   /** None means every department. */
   active: Department | undefined
   onChange: (code: string | undefined) => void
+  /** Whether every department can be listed at once; a page that keeps one list per department has no All. */
+  all?: boolean
 }
 
 const pill = cn(
@@ -15,17 +17,24 @@ const pill = cn(
 )
 
 /** Which department's rows the page lists. */
-export const DepartmentPills = ({ departments, active, onChange }: DepartmentPillsProps) => (
+export const DepartmentPills = ({
+  departments,
+  active,
+  onChange,
+  all = true
+}: DepartmentPillsProps) => (
   <fieldset className='flex flex-wrap gap-1.5'>
     <legend className='sr-only'>Department</legend>
-    <button
-      type='button'
-      aria-pressed={!active}
-      className={pill}
-      onClick={() => onChange(undefined)}
-    >
-      All
-    </button>
+    {all ? (
+      <button
+        type='button'
+        aria-pressed={!active}
+        className={pill}
+        onClick={() => onChange(undefined)}
+      >
+        All
+      </button>
+    ) : null}
     {departments.map(department => (
       <button
         key={department.id}

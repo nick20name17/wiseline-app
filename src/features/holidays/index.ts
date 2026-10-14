@@ -1,2 +1,2 @@
 export { WorkDaysPage } from './components/work-days-page'
-export { holidaysSearchSchema } from './lib/search'
+export { workDaysSearchSchema } from './lib/search'

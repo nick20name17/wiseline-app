@@ -33,21 +33,18 @@ type RemanufactureDialogProps = {
     'order' | 'origin_item' | 'order_number' | 'description' | 'qty_ordered'
   > | null
   source?: RemanufactureSource
-  /** The machine the new bendlist lands on, when the caller knows it. */
-  machineName?: string | null
   onOpenChange: (open: boolean) => void
 }
 
 /**
- * Ask for part of a line item to be remade — a piece damaged at the bench, most often. The request
- * spins off its own cutlist and bendlist carrying only this quantity, so it travels the machines
- * again on its own rather than reopening the order.
+ * Ask for part of a line item to be remade — a piece damaged at the bench, most often. The remake
+ * stays on the line's cutlist and bendlist while they are open, and gets lists of its own only where
+ * the line's are Done; either way it carries only this quantity rather than reopening the order.
  */
 export const RemanufactureDialog = ({
   departmentId,
   line: current,
   source = 'wrapping',
-  machineName,
   onOpenChange
 }: RemanufactureDialogProps) => {
   const [line, release] = useRetained(current)
@@ -100,7 +97,8 @@ export const RemanufactureDialog = ({
         onSuccess: () =>
           toast.add({
             type: 'success',
-            title: `Remanufacture ${wanted} pcs → recut cutlist on Slinet + new bendlist on ${machineName ?? 'its machine'}`
+            title: `Remanufacture of ${wanted} pcs requested`,
+            description: 'It is on the Slinet to recut, then back to the machine to bend.'
           })
       }
     )
@@ -113,7 +111,7 @@ export const RemanufactureDialog = ({
           <DialogTitle>Remanufacture</DialogTitle>
           <DialogDescription>
             {line?.description ?? 'This line'} on order {line?.order_number ?? line?.order} —{' '}
-            {ordered} ordered. The remake gets its own cutlist and bendlist.
+            {ordered} ordered. The remake is recut on the Slinet and bent again on its machine.
           </DialogDescription>
         </DialogHeader>
 

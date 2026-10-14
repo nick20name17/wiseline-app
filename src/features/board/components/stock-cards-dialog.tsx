@@ -28,7 +28,6 @@ export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) 
 
       <StockCardsPanel
         enabled={open}
-        variant='dialog'
         actions={buttons => (
           <DialogFooter>
             <Button variant='outline' onClick={() => onOpenChange(false)}>

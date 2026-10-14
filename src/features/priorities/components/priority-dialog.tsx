@@ -38,8 +38,8 @@ import { PALETTE, paletteFor } from '../lib/palette'
 
 type PriorityFormProps = {
   priority?: Priority
-  /** The department a new priority starts in: the one on screen. */
-  departmentId?: number
+  /** The department on screen: where a new priority starts, and an older one with none is offered. */
+  departmentId: number
   onSuccess: () => void
 }
 
@@ -50,7 +50,7 @@ const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) 
     defaultValues: {
       name: priority?.name ?? '',
       color: priority?.color ?? PALETTE[0].value,
-      department: priority?.department ?? departmentId ?? departments?.[0]?.id ?? 0
+      department: priority?.department ?? departmentId
     }
   })
 
@@ -165,14 +165,11 @@ const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) 
 }
 
 type CreatePriorityDialogProps = {
-  departmentId: number | undefined
+  departmentId: number
 }
 
 export const CreatePriorityDialog = ({ departmentId }: CreatePriorityDialogProps) => {
   const [open, setOpen] = useState(false)
-  // A form mounted before the departments would default to none and post a priority belonging
-  // nowhere, which the server refuses.
-  const { data: departments } = useQuery(departmentsQuery)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -185,11 +182,7 @@ export const CreatePriorityDialog = ({ departmentId }: CreatePriorityDialogProps
           <DialogTitle>Add priority</DialogTitle>
         </DialogHeader>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
-        {departments ? (
-          <PriorityForm departmentId={departmentId} onSuccess={() => setOpen(false)} />
-        ) : (
-          <Spinner />
-        )}
+        <PriorityForm departmentId={departmentId} onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   )
@@ -197,12 +190,14 @@ export const CreatePriorityDialog = ({ departmentId }: CreatePriorityDialogProps
 
 type UpdatePriorityDialogProps = {
   priority: Priority
+  departmentId: number
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export const UpdatePriorityDialog = ({
   priority,
+  departmentId,
   open,
   onOpenChange
 }: UpdatePriorityDialogProps) => (
@@ -211,7 +206,11 @@ export const UpdatePriorityDialog = ({
       <DialogHeader>
         <DialogTitle>Edit priority</DialogTitle>
       </DialogHeader>
-      <PriorityForm priority={priority} onSuccess={() => onOpenChange(false)} />
+      <PriorityForm
+        priority={priority}
+        departmentId={departmentId}
+        onSuccess={() => onOpenChange(false)}
+      />
     </DialogContent>
   </Dialog>
 )

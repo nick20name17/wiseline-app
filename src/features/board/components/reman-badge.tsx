@@ -44,6 +44,24 @@ const SOURCES: Record<string, string> = { machine: 'Machine', wrapping: 'Wrappin
 const remakeStep = (reman: Remanufacturing) =>
   reman.is_bent ? 'Bent' : reman.is_cut ? 'Cut' : 'Not started'
 
+/** One step of a remake as the history reads it: on which machine, by whom, when. */
+const Step = ({
+  label,
+  machine,
+  by,
+  at
+}: {
+  label: string
+  machine: string | null
+  by: string | null
+  at: string | null
+}) =>
+  machine || by || at ? (
+    <span className='text-xs text-muted-foreground'>
+      {label} · {[machine, by, formatStamp(at)].filter(Boolean).join(' · ')}
+    </span>
+  ) : null
+
 /**
  * A remake raised against a line item. Orange until the machine marks it Bent — the Slinet's recut
  * greens only the machine tab's copy, and the floor at Wrapping is still waiting on the pieces.
@@ -93,13 +111,20 @@ export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
                 <RemakePill done={reman.is_bent}>{remakeStep(reman)}</RemakePill>
               </span>
               {reman.note ? <span className='text-muted-foreground'>{reman.note}</span> : null}
-              {reman.requested_by || reman.requested_at ? (
-                <span className='text-xs text-muted-foreground'>
-                  {[reman.requested_by, formatStamp(reman.requested_at)]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              ) : null}
+              <Step
+                label='Requested'
+                machine={null}
+                by={reman.requested_by}
+                at={reman.requested_at}
+              />
+              {/* Older remakes kept none of these, and show none. */}
+              <Step label='Cut' machine={reman.cut_machine} by={reman.cut_by} at={reman.cut_at} />
+              <Step
+                label='Bent'
+                machine={reman.bent_machine}
+                by={reman.bent_by}
+                at={reman.bent_at}
+              />
             </li>
           ))}
         </ol>

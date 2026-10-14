@@ -8,6 +8,7 @@ import {
   DialogTitle
 } from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -23,15 +24,29 @@ import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Factory } from 'lucide-react'
-import { manufacturingBatchesQuery, useCreateStockManufacturing } from '../api'
+import {
+  manufacturingBatchesQuery,
+  useCreateStockManufacturing,
+  type StockCardOption
+} from '../api'
 import { formatStamp } from '../lib/format'
+import { pickedProduct } from '../lib/product-pick'
+import { ProductPicker } from './product-picker'
 
-type Line = { id: string; quantity: string; productId: string }
+// `productId` is the text in the box and `product` the last pick; the line names a product only while
+// the two agree.
+type Line = { id: string; quantity: string; productId: string; product: StockCardOption | null }
 
-const emptyLine = (): Line => ({ id: crypto.randomUUID(), quantity: '', productId: '' })
+const emptyLine = (): Line => ({
+  id: crypto.randomUUID(),
+  quantity: '',
+  productId: '',
+  product: null
+})
 
-// A row counts once both boxes are filled; the grid always keeps one empty row to type into.
-const filled = (line: Line) => Number(line.quantity) > 0 && line.productId.trim() !== ''
+const productOf = (line: Line) => pickedProduct(line.productId, line.product)
+// A row counts once it has a quantity and a picked product; the grid always keeps one empty row.
+const filled = (line: Line) => Number(line.quantity) > 0 && !!productOf(line)
 const blank = (line: Line) => !line.quantity.trim() && !line.productId.trim()
 
 type StockManufacturingDialogProps = {
@@ -51,6 +66,7 @@ export const StockManufacturingDialog = ({
 }: StockManufacturingDialogProps) => {
   const [lines, setLines] = useState<Line[]>(() => [emptyLine()])
   const [view, setView] = useState<'new' | 'sent'>('new')
+  const [error, setError] = useState('')
   const { data: batches } = useQuery(
     manufacturingBatchesQuery(departmentId, open && view === 'sent')
   )
@@ -60,18 +76,42 @@ export const StockManufacturingDialog = ({
       title: `Manufacturing batch ${batch.ebms_batch ?? batch.id} created`
     })
     setLines([emptyLine()])
+    setError('')
     onOpenChange(false)
   })
 
-  // A half-filled row is refused by the server, so it holds the button until it is finished or cleared.
-  const ready = lines.some(filled) && lines.every(line => filled(line) || blank(line))
+  // A half-filled row, or an ID EBMS does not have, is refused by the server; it is said here first.
+  const submit = () => {
+    const started = lines.filter(line => !blank(line))
+    if (!started.length) return setError('Enter at least one Qty and ID.')
+    const unknown = started.filter(line => line.productId.trim() && !productOf(line))
+    if (unknown.length)
+      return setError(
+        `Pick each ID from the list — ${unknown.map(line => line.productId.trim()).join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not a Trim product in EBMS.`
+      )
+    if (started.some(line => !productOf(line))) return setError('Every row with a Qty needs an ID.')
+    if (started.some(line => !(Number(line.quantity) > 0)))
+      return setError('Every row needs a Qty of 1 or more.')
+    setError('')
+    if (departmentId)
+      create.mutate({
+        departmentId,
+        lines: started.filter(filled).map(line => ({
+          quantity: Number(line.quantity),
+          product_id: productOf(line)!.product_id
+        }))
+      })
+  }
 
-  const edit = (index: number, patch: Partial<Line>) =>
+  const edit = (index: number, patch: Partial<Line>) => {
+    // The message was about the grid as it was; an edit may have answered it, and Create says again.
+    setError('')
     setLines(current => {
       const next = current.map((line, at) => (at === index ? { ...line, ...patch } : line))
       const last = next.at(-1)
       return last && blank(last) ? next : [...next, emptyLine()]
     })
+  }
 
   return (
     <Dialog
@@ -115,12 +155,19 @@ export const StockManufacturingDialog = ({
                     value={line.quantity}
                     onChange={event => edit(index, { quantity: event.target.value })}
                   />
-                  <Input
+                  <ProductPicker
                     className='flex-1'
-                    aria-label={`Product ID, row ${index + 1}`}
-                    placeholder='e.g. TJC8262'
-                    value={line.productId}
-                    onChange={event => edit(index, { productId: event.target.value.toUpperCase() })}
+                    label={`Product ID, row ${index + 1}`}
+                    text={line.productId}
+                    onTextChange={productId => edit(index, { productId })}
+                    picked={line.product}
+                    onPick={product =>
+                      edit(
+                        index,
+                        product ? { product, productId: product.product_id } : { product }
+                      )
+                    }
+                    invalid={!!error && !!line.productId.trim() && !productOf(line)}
                   />
                 </div>
               ))}
@@ -173,25 +220,14 @@ export const StockManufacturingDialog = ({
           )}
         </div>
 
+        {view === 'new' && error ? <FieldError>{error}</FieldError> : null}
+
         {view === 'new' ? (
           <DialogFooter>
             <Button variant='outline' onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={!ready || create.isPending}
-              title={ready ? undefined : 'Finish or clear every row first'}
-              onClick={() =>
-                departmentId &&
-                create.mutate({
-                  departmentId,
-                  lines: lines.filter(filled).map(line => ({
-                    quantity: Number(line.quantity),
-                    product_id: line.productId.trim()
-                  }))
-                })
-              }
-            >
+            <Button disabled={create.isPending} onClick={submit}>
               {create.isPending ? <Spinner data-icon='inline-start' /> : null}
               Create Manufacturing Batch
             </Button>

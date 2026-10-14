@@ -22,20 +22,15 @@ import { CSS } from '@dnd-kit/utilities'
 import { cn } from 'cn'
 import { GripVertical } from 'lucide-react'
 import { useState, type CSSProperties, type SyntheticEvent } from 'react'
-import { useReorderPriorities, type Department, type Priority } from '../api'
+import { useReorderPriorities, type Priority } from '../api'
 import { reorder } from '../lib/reorder'
 import { PriorityActions } from './priority-actions'
 
 type PrioritiesTableProps = {
-  /** In hierarchy order; under one department the rows are the hierarchy. */
+  /** One department's board, top of the hierarchy first. */
   priorities: Priority[]
-  /**
-   * The hierarchy the drag reorders: a department's own priorities, or `null` under All for the ones
-   * with no department. Other rows stay put.
-   */
-  scope: number | null
-  /** Set when every department is listed, so each row names its own. */
-  departments?: Department[]
+  /** The department on screen, where an edited priority with none is offered. */
+  departmentId: number
   isPending: boolean
   /** A row the viewer may not change is shown without its grip, Edit or Delete. */
   canChange: (priority: Priority) => boolean
@@ -45,8 +40,7 @@ type SortableRowProps = {
   priority: Priority
   /** Its place in its own hierarchy: 1 sorts above every other p1 (495,64). */
   rank: number
-  /** The department's name, shown when every department is listed. */
-  department?: string
+  departmentId: number
   disabled: boolean
   readOnly: boolean
 }
@@ -81,7 +75,7 @@ class RowTouchSensor extends TouchSensor {
   ]
 }
 
-const SortableRow = ({ priority, rank, department, disabled, readOnly }: SortableRowProps) => {
+const SortableRow = ({ priority, rank, departmentId, disabled, readOnly }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -138,10 +132,13 @@ const SortableRow = ({ priority, rank, department, disabled, readOnly }: Sortabl
       </TableCell>
       <TableCell card='title'>
         <span className='font-medium'>{priority.name}</span>
+        {/* Older priorities predate departments and rank on every board; dragging one moves it there too. */}
+        {priority.department === null ? (
+          <span className='ml-2 text-xs text-muted-foreground'>Every department</span>
+        ) : null}
       </TableCell>
-      {department === undefined ? null : <TableCell label='Department'>{department}</TableCell>}
       <TableCell card='trail'>
-        {readOnly ? null : <PriorityActions priority={priority} />}
+        {readOnly ? null : <PriorityActions priority={priority} departmentId={departmentId} />}
       </TableCell>
     </TableRow>
   )
@@ -149,8 +146,7 @@ const SortableRow = ({ priority, rank, department, disabled, readOnly }: Sortabl
 
 export const PrioritiesTable = ({
   priorities,
-  scope,
-  departments,
+  departmentId,
   isPending,
   canChange
 }: PrioritiesTableProps) => {
@@ -173,10 +169,6 @@ export const PrioritiesTable = ({
     })
   )
 
-  const departmentOf = (priority: Priority) =>
-    departments?.find(department => department.id === priority.department)?.name ??
-    'Every department'
-
   const announcements = dragAnnouncements({
     name: (id: UniqueIdentifier) => rows.find(priority => priority.id === id)?.name,
     place: (id: UniqueIdentifier) =>
@@ -186,11 +178,11 @@ export const PrioritiesTable = ({
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return
-    const moved = reorder(rows, scope, Number(active.id), Number(over.id))
+    const moved = reorder(rows, Number(active.id), Number(over.id))
     if (!moved) return
     setDropped(moved.rows)
     save.mutate(
-      { department: scope, ids: moved.ids },
+      { department: moved.department, ids: moved.ids },
       {
         // By now the cache holds the saved order, or the old one again if the save failed.
         onSettled: () => setDropped(null)
@@ -213,7 +205,6 @@ export const PrioritiesTable = ({
             <col className='w-24' />
             <col className='w-40' />
             <col />
-            {departments ? <col className='w-56' /> : null}
             <col className='w-24' />
           </colgroup>
           <TableHeader>
@@ -224,7 +215,6 @@ export const PrioritiesTable = ({
               <TableHead>Hierarchy</TableHead>
               <TableHead>Colour</TableHead>
               <TableHead>Name</TableHead>
-              {departments ? <TableHead>Department</TableHead> : null}
               <TableHead>
                 {/* The column is obvious from its buttons; the label is for screen readers. */}
                 <span className='sr-only'>Actions</span>
@@ -247,9 +237,8 @@ export const PrioritiesTable = ({
                       key={priority.id}
                       priority={priority}
                       rank={ranks.get(priority.id) ?? 0}
-                      department={departments ? departmentOf(priority) : undefined}
-                      // Only the hierarchy in scope moves: the server renumbers one at a time.
-                      disabled={!changeable || save.isPending || priority.department !== scope}
+                      departmentId={departmentId}
+                      disabled={!changeable || save.isPending}
                       readOnly={!changeable}
                     />
                   )

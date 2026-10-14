@@ -12,6 +12,13 @@ import {
 } from '@/components/dialog'
 import { Field, FieldError, FieldGroup } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { formatDate, fromIsoDay, toIsoDay } from '@/lib/days'
 import { invalid } from '@/lib/form'
@@ -19,42 +26,69 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { holidayPayloadSchema, useUpsertHoliday, type Holiday, type HolidayPayload } from '../api'
+import {
+  exceptionPayloadSchema,
+  KIND_LABELS,
+  useUpsertException,
+  type DayException,
+  type DayKind,
+  type ExceptionPayload
+} from '../api'
 
 const YEARS_AHEAD = 5
 
-type HolidayFormProps = {
-  holiday?: Holiday
-  /** Where a new holiday's date starts, as `YYYY-MM-DD`. */
+type ExceptionFormProps = {
+  exception?: DayException
+  /** Where a new day's date starts, as `YYYY-MM-DD`. */
   initialDate: string
-  /** Handed the saved date, so the page can show the year the holiday went into. */
+  /** Handed the saved date, so the page can show the year the day went into. */
   onSuccess: (date: string) => void
 }
 
-const HolidayForm = ({ holiday, initialDate, onSuccess }: HolidayFormProps) => {
-  const form = useForm<HolidayPayload>({
-    resolver: standardSchemaResolver(holidayPayloadSchema),
-    defaultValues: { date: holiday?.date ?? initialDate, name: holiday?.name ?? '' }
+const ExceptionForm = ({ exception, initialDate, onSuccess }: ExceptionFormProps) => {
+  // A saved day stays the kind it is: turning a holiday into a working day is a toggle on the calendar.
+  const [kind, setKind] = useState<DayKind>(exception?.kind ?? 'holiday')
+  const form = useForm<ExceptionPayload>({
+    resolver: standardSchemaResolver(exceptionPayloadSchema),
+    defaultValues: { date: exception?.date ?? initialDate, name: exception?.name ?? '' }
   })
 
-  // A date that already has a holiday comes back as a 409 whose reason the toast shows.
-  const mutation = useUpsertHoliday(() => onSuccess(form.getValues('date')))
+  // A date that already has one comes back as a 409 whose reason the toast shows.
+  const mutation = useUpsertException(() => onSuccess(form.getValues('date')))
   const { errors } = form.formState
 
   return (
     <form
-      onSubmit={form.handleSubmit(payload => mutation.mutate({ id: holiday?.id, payload }))}
+      onSubmit={form.handleSubmit(payload => mutation.mutate({ kind, id: exception?.id, payload }))}
       noValidate
     >
       <FieldGroup>
+        {exception ? null : (
+          <Field>
+            <RequiredLabel htmlFor='exception-kind'>Kind</RequiredLabel>
+            <Select value={kind} onValueChange={value => setKind(value as DayKind)}>
+              <SelectTrigger id='exception-kind'>
+                <SelectValue>{(value: DayKind) => KIND_LABELS[value]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(KIND_LABELS) as DayKind[]).map(value => (
+                  <SelectItem key={value} value={value}>
+                    {KIND_LABELS[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
+
         <Field data-invalid={invalid(errors.date)}>
-          <RequiredLabel htmlFor='holiday-date'>Date</RequiredLabel>
+          <RequiredLabel htmlFor='exception-date'>Date</RequiredLabel>
           <Controller
             control={form.control}
             name='date'
             render={({ field }) => (
               <DatePicker
-                id='holiday-date'
+                id='exception-date'
                 // Holidays are entered ahead, a year or more out.
                 endMonth={new Date(new Date().getFullYear() + YEARS_AHEAD, 11)}
                 value={fromIsoDay(field.value)}
@@ -67,11 +101,11 @@ const HolidayForm = ({ holiday, initialDate, onSuccess }: HolidayFormProps) => {
         </Field>
 
         <Field data-invalid={invalid(errors.name)}>
-          <RequiredLabel htmlFor='holiday-name'>Name</RequiredLabel>
+          <RequiredLabel htmlFor='exception-name'>Name</RequiredLabel>
           <InputGroup>
             <InputGroupInput
-              id='holiday-name'
-              placeholder='e.g. Christmas Day'
+              id='exception-name'
+              placeholder={kind === 'holiday' ? 'e.g. Christmas Day' : 'e.g. Saturday shift'}
               maxLength={255}
               aria-invalid={invalid(errors.name)}
               {...form.register('name')}
@@ -93,26 +127,26 @@ const HolidayForm = ({ holiday, initialDate, onSuccess }: HolidayFormProps) => {
   )
 }
 
-type CreateHolidayDialogProps = {
+type CreateExceptionDialogProps = {
   initialDate: string
   onSaved: (date: string) => void
 }
 
-export const CreateHolidayDialog = ({ initialDate, onSaved }: CreateHolidayDialogProps) => {
+export const CreateExceptionDialog = ({ initialDate, onSaved }: CreateExceptionDialogProps) => {
   const [open, setOpen] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button />}>
         <PlusCircle data-icon='inline-start' />
-        Add holiday
+        Add day
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add holiday</DialogTitle>
+          <DialogTitle>Add holiday or working day</DialogTitle>
         </DialogHeader>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
-        <HolidayForm
+        <ExceptionForm
           initialDate={initialDate}
           onSuccess={date => {
             setOpen(false)
@@ -124,27 +158,27 @@ export const CreateHolidayDialog = ({ initialDate, onSaved }: CreateHolidayDialo
   )
 }
 
-type UpdateHolidayDialogProps = {
-  holiday: Holiday
+type UpdateExceptionDialogProps = {
+  exception: DayException
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: (date: string) => void
 }
 
-export const UpdateHolidayDialog = ({
-  holiday,
+export const UpdateExceptionDialog = ({
+  exception,
   open,
   onOpenChange,
   onSaved
-}: UpdateHolidayDialogProps) => (
+}: UpdateExceptionDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Edit holiday</DialogTitle>
+        <DialogTitle>Edit {KIND_LABELS[exception.kind].toLowerCase()}</DialogTitle>
       </DialogHeader>
-      <HolidayForm
-        holiday={holiday}
-        initialDate={holiday.date}
+      <ExceptionForm
+        exception={exception}
+        initialDate={exception.date}
         onSuccess={date => {
           onOpenChange(false)
           onSaved(date)

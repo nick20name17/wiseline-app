@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import type { Cutlist, CutlistRow, CutlistSource, Machine } from '../api'
+import type { Cutlist, CutlistRow, CutlistSource, Machine, Remanufacturing } from '../api'
 import {
   completeBlocker,
   describeGroup,
+  doneBlocker,
   drawingOf,
   groupDrawing,
   editableLines,
   groupRows,
   hasSlinetStarted,
+  remakeHold,
+  remakeRequestBlocker,
+  remakesOf,
   slinetColumns,
   slinetListsFor,
   slinetTotals
@@ -51,6 +55,7 @@ const row = (id: number, machineId: number, extra: Partial<CutlistRow> = {}): Cu
   complete: false,
   operator_notes: null,
   is_standard_length: true,
+  remanufacturing_id: null,
   sources: [source({ origin_item: `${id}` })],
   ...extra
 })
@@ -286,5 +291,73 @@ describe('a bendlist row per product', () => {
 
   it('cuts them as one size on the Slinet', () => {
     expect(groupRows([ridge, eave])).toHaveLength(1)
+  })
+})
+
+const remake = (id: number, extra: Partial<Remanufacturing> = {}): Remanufacturing => ({
+  id,
+  order: 'A',
+  origin_item: '1',
+  department: 1,
+  source: 'machine',
+  remanufacturing_qty: 2,
+  pull_from_stock_qty: null,
+  note: null,
+  is_cut: false,
+  is_bent: false,
+  requested_by: null,
+  requested_at: null,
+  cut_by: null,
+  cut_machine: null,
+  cut_at: null,
+  bent_by: null,
+  bent_machine: null,
+  bent_at: null,
+  bend_row_id: null,
+  ...extra
+})
+
+describe("a remake on the line's own list", () => {
+  it("keeps a remake's row beside the line's of the same size, after it", () => {
+    const groups = groupRows([row(2, 1, { remanufacturing_id: 7, quantity: 2 }), row(1, 1)])
+
+    expect(groups.map(group => [group.remakeId, group.quantity])).toEqual([
+      [null, 4],
+      [7, 2]
+    ])
+  })
+
+  it('finds the remake a row is, the list is, or that rides on the row', () => {
+    const [line, own] = groupRows([row(1, 1), row(2, 1, { remanufacturing_id: 7 })])
+    const riding = remake(8, { bend_row_id: 1 })
+    const all = [remake(7), riding, remake(9)]
+
+    expect(remakesOf(line!, null, all)).toEqual([riding])
+    expect(remakesOf(own!, null, all).map(reman => reman.id)).toEqual([7])
+    expect(remakesOf(line!, remake(5), all).map(reman => reman.id)).toEqual([5, 8])
+  })
+
+  it('holds a bend row until the Slinet cuts its remake, never a Slinet row', () => {
+    expect(remakeHold(false, [remake(1)])).toBe('Available once the Slinet cuts the remake')
+    expect(remakeHold(false, [remake(1, { is_cut: true })])).toBeNull()
+    expect(remakeHold(true, [remake(1)])).toBeNull()
+    expect(remakeHold(false, [])).toBeNull()
+  })
+
+  it("says Done waits on the remake's row", () => {
+    expect(doneBlocker(list({ is_complete: true }))).toBeNull()
+    expect(
+      doneBlocker(
+        list({ rows: [row(1, 1, { complete: true }), row(2, 1, { remanufacturing_id: 7 })] })
+      )
+    ).toBe('Available once every row is Complete, the remake included')
+    expect(doneBlocker(list({ rows: [row(1, 1)] }))).toBe('Available once every row is Complete')
+  })
+
+  it('asks for a remake only once the Slinet has cut the line', () => {
+    expect(remakeRequestBlocker(null)).toBe('Available once the Slinet has cut this line')
+    expect(remakeRequestBlocker('not_started')).not.toBeNull()
+    expect(remakeRequestBlocker('cut')).toBeNull()
+    expect(remakeRequestBlocker('bent')).toBeNull()
   })
 })

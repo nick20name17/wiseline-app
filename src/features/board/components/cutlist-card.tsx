@@ -11,7 +11,7 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
-import { completeBlocker, type CutlistGroup } from '../lib/cutlists'
+import { completeBlocker, doneBlocker, type CutlistGroup } from '../lib/cutlists'
 import { toggleExpanded, useProductionView } from '../lib/production-view'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
@@ -20,8 +20,8 @@ import { RemakePill } from './reman-badge'
 
 type CutlistCardProps = {
   cutlist: Cutlist
-  /** The request a remake list came from, when this is one. */
-  remake: Remanufacturing | null
+  /** The department's remakes by id: a list, a row or a line's bend row may carry one. */
+  remakes: ReadonlyMap<number, Remanufacturing>
   /** The bending machines, which are the Slinet cutlist's columns. */
   machines: Machine[]
   isSlinet: boolean
@@ -39,7 +39,7 @@ type CutlistCardProps = {
  */
 export const CutlistCard = ({
   cutlist,
-  remake,
+  remakes,
   machines,
   isSlinet,
   slinetStarted,
@@ -60,6 +60,9 @@ export const CutlistCard = ({
   const hasStock = cutlist.rows.some(row => row.sources.some(source => source.is_stock))
   const blocked = completeBlocker({ isSlinet, slinetStarted })
   const viewOnly = useViewOnly()
+  const remake =
+    cutlist.remanufacturing_id === null ? null : (remakes.get(cutlist.remanufacturing_id) ?? null)
+  const notDone = doneBlocker(cutlist)
 
   return (
     <div
@@ -154,15 +157,15 @@ export const CutlistCard = ({
           ) : viewOnly ? null : (
             <>
               {/* A disabled button's title never shows under a finger, so a touch screen says it. */}
-              {cutlist.is_complete ? null : (
+              {notDone ? (
                 <span className='text-xs text-muted-foreground max-md:order-last max-md:basis-full max-md:text-center pointer-fine:hidden'>
-                  Once every row is Complete
+                  {notDone}
                 </span>
-              )}
+              ) : null}
               <Button
                 className='max-md:flex-1'
-                disabled={!cutlist.is_complete}
-                title={cutlist.is_complete ? undefined : 'Available once every row is Complete'}
+                disabled={!!notDone}
+                title={notDone ?? undefined}
                 onClick={() => setFinishing(true)}
               >
                 Done
@@ -182,6 +185,7 @@ export const CutlistCard = ({
             rows={cutlist.rows}
             isSlinet={isSlinet}
             remake={remake}
+            remakes={remakes}
             machines={machines}
             blocked={blocked}
             lineEdits={!isSlinet && !cutlist.is_remanufacture && !done}

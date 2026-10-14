@@ -39,6 +39,9 @@ import {
   groupRows,
   linesOf,
   machineQuantity,
+  remakeHold,
+  remakeRequestBlocker,
+  remakesOf,
   slinetColumns,
   type CutlistGroup
 } from '../lib/cutlists'
@@ -57,6 +60,20 @@ import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 const sizeOf = (group: CutlistGroup) => `${group.width ?? '—'} × ${group.length ?? '—'}`
+
+/** A row's remakes as one pill: orange until the Slinet has cut every one, green after. */
+const RemakesPill = ({ remakes, group }: { remakes: Remanufacturing[]; group: CutlistGroup }) => {
+  const cut = remakes.every(reman => reman.is_cut)
+  const qty = remakes.reduce((total, reman) => total + (reman.remanufacturing_qty ?? 0), 0)
+  return (
+    <RemakePill
+      done={cut}
+      title={cut ? 'Remake cut by the Slinet' : 'Remake requested — waiting on the Slinet'}
+    >
+      {qty || group.quantity}
+    </RemakePill>
+  )
+}
 
 type CompleteCellProps = {
   group: CutlistGroup
@@ -160,7 +177,12 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
           <DropdownMenuGroup>
             <DropdownMenuLabel>Remake which order&apos;s pieces?</DropdownMenuLabel>
             {onBoard.map(line => (
-              <DropdownMenuItem key={line.origin_item} onClick={() => onRemanufacture(line)}>
+              <DropdownMenuItem
+                key={line.origin_item}
+                disabled={!!remakeRequestBlocker(line.status)}
+                title={remakeRequestBlocker(line.status) ?? undefined}
+                onClick={() => onRemanufacture(line)}
+              >
                 <span className='font-mono'>{line.order_number ?? line.order}</span>
                 <span className='ml-auto text-muted-foreground'>{line.qty_ordered} pcs</span>
               </DropdownMenuItem>
@@ -172,13 +194,14 @@ const RemanufactureCell = ({ group, lines, onRemanufacture }: RemanufactureCellP
   }
 
   const line = item ? lines.get(item) : undefined
+  const held = line ? remakeRequestBlocker(line.status) : 'This line is not on the board any more'
   return (
     <Button
       variant='outline'
       size='lg'
       aria-label={`Remanufacture ${sizeOf(group)}`}
-      title={line ? undefined : 'This line is not on the board any more'}
-      disabled={!line}
+      title={held ?? undefined}
+      disabled={!!held}
       onClick={() => line && onRemanufacture(line)}
     >
       <RefreshCw data-icon='inline-start' />
@@ -338,14 +361,16 @@ const RowActions = ({
 const RowDetailsBody = ({
   group,
   remake,
+  remakes,
   editsLines,
   onStock,
   ...actions
 }: RowDetailsBodyProps) => {
   const viewOnly = useViewOnly()
   const about = describeGroup(group)
-  // «When a row is marked as Complete ... the Machine button would disappear» p1 (653,358).
-  const editable = editsLines && !group.complete
+  // «When a row is marked as Complete ... the Machine button would disappear» p1 (653,358). A
+  // remake's row belongs to the remake: its machine and stock are the line's, edited on the line's.
+  const editable = editsLines && !group.complete && !remake
   // A remake asked for at the bench shows only what was asked for; one from a machine keeps the
   // full Qty Ordered (p1 (612,482), (653,546)).
   const ordered = remake?.source === 'wrapping' ? group.quantity : about.ordered || null
@@ -373,12 +398,10 @@ const RowDetailsBody = ({
         <Fact label='Qty to manufacture'>{group.quantity}</Fact>
       </dl>
 
-      {remake ? (
+      {remakes.length ? (
         <p className='flex items-center gap-2 text-sm'>
           Remaking
-          <RemakePill done={remake.is_cut}>
-            {remake.remanufacturing_qty ?? group.quantity}
-          </RemakePill>
+          <RemakesPill remakes={remakes} group={group} />
         </p>
       ) : null}
 
@@ -396,7 +419,10 @@ type RowDetailsProps = {
   open: boolean
   /** Kept through the closing animation, so the window does not empty as it fades. */
   group: CutlistGroup | null
+  /** The remake this row is the work of — its own row, or its list — when it is one. */
   remake: Remanufacturing | null
+  /** Every remake the row answers for, those riding on the line's own bend row included. */
+  remakes: Remanufacturing[]
   /** The row's lines can still be moved and pulled from stock. */
   editsLines: boolean
   lines: ReadonlyMap<string, WrappingRow>
@@ -434,6 +460,8 @@ type CutlistRowsProps = {
   rows: CutlistRow[]
   /** The request a remake list came from; `null` on the day's own lists. */
   remake: Remanufacturing | null
+  /** The department's remakes by id, for the remake rows and riding remakes on an ordinary list. */
+  remakes: ReadonlyMap<number, Remanufacturing>
   /** The Slinet reads its list sideways: one line per size, the machines as columns. */
   isSlinet: boolean
   machines: Machine[]
@@ -458,6 +486,7 @@ export const CutlistRows = ({
   rows,
   isSlinet,
   remake,
+  remakes,
   machines,
   blocked,
   lineEdits,
@@ -473,6 +502,13 @@ export const CutlistRows = ({
   const [moving, setMoving] = useState<{ line: EditableLine; machine: Machine } | null>(null)
   const [stocking, setStocking] = useState<EditableLine | null>(null)
   const groups = groupRows(rows, { byProduct: !isSlinet })
+  const groupRemakes = new Map(
+    groups.map(group => [group.key, remakesOf(group, remake, remakes.values())])
+  )
+  const remakesFor = (group: CutlistGroup) => groupRemakes.get(group.key) ?? []
+  const ownRemake = (group: CutlistGroup) =>
+    group.remakeId === null ? remake : (remakes.get(group.remakeId) ?? null)
+  const anyRemake = groups.some(group => remakesFor(group).length)
   const [noteItem, setNoteItem] = useState<string | null>(null)
   // Only a bendlist carries the notes column, so only it asks for their state.
   const noteState = useLineNoteState(
@@ -487,15 +523,18 @@ export const CutlistRows = ({
     column.kind === 'vented' ? 'vented' : `machine-${column.machine.id}`
   // Machines are columns of the Slinet's list, so they move like the rest; one added later lands
   // beside the machine it is declared after. The list has to fit a touchscreen whole — a sideways
-  // scroll hides Complete — so the machine columns share what the fixed ones leave.
+  // scroll hides Complete — so the machine columns share what the fixed ones leave, and on the
+  // Slinet the fixed ones stay narrow enough that seven machines still read at 1280px.
   const columns = useColumnOrder({
     table: isSlinet ? 'cutlist-slinet' : 'cutlist-bend',
     columns: [
       { key: 'w', label: 'W"', width: 'w-20' },
       { key: 'l', label: 'L"', width: 'w-20' },
-      { key: 'qty', label: isSlinet ? 'Total' : 'Qty to Manufacture', width: 'w-28' },
-      // p1 (478,586): the Slinet's recut list carries its own Recut column.
-      ...(isSlinet && remake ? [{ key: 'recut', label: 'Recut', width: 'w-20' }] : []),
+      isSlinet
+        ? { key: 'qty', label: 'Total', width: 'w-20' }
+        : { key: 'qty', label: 'Qty to Manufacture', width: 'w-28' },
+      // p1 (478,586): a recut — its own list, or a remake's row on the line's — gets a Recut column.
+      ...(isSlinet && anyRemake ? [{ key: 'recut', label: 'Recut', width: 'w-20' }] : []),
       ...(isSlinet
         ? [
             ...machineColumns.map(column => ({
@@ -505,21 +544,20 @@ export const CutlistRows = ({
                   ? 'Vented'
                   : (column.machine.name ?? `Machine ${column.machine.id}`)
             })),
-            { key: 'op', label: 'Operator Notes', width: 'w-44', card: 'full' as const }
+            { key: 'op', label: 'Operator Notes', width: 'w-28', card: 'full' as const }
           ]
         : // A bendlist row keeps what the bender reads at the machine; Qty Ordered, Stock, Machine
           // and Remanufacture open from the row, so the list fits without a sideways scroll.
           [
             { key: 'pid', label: 'ID', width: 'w-32', card: 'title' as const },
             { key: 'desc', label: 'Description', card: 'subtitle' as const },
-            // On a remake list it says what is being remade, green once the Slinet has recut it
-            // (p1 (608,446), (613,462), (686,501)).
-            ...(remake ? [{ key: 'reman', label: 'Remanufacture', width: 'w-28' }] : []),
-            { key: 'status', label: 'Status', width: 'w-36' },
+            // A remake on the row shows beside its status rather than in a column of its own, which
+            // would squeeze Description out at the floor's screen width.
+            { key: 'status', label: 'Status', width: anyRemake ? 'w-44' : 'w-36' },
             { key: 'drawing', label: 'Drawing', width: 'w-20' },
             { key: 'notes', label: 'Notes', width: 'w-20' }
           ]),
-      { key: 'complete', label: 'Complete', width: 'w-32' }
+      { key: 'complete', label: 'Complete', width: isSlinet ? 'w-28' : 'w-32' }
     ]
   })
   // The row whose details are open, by key: the rows are rebuilt on every refetch, the key is not.
@@ -581,16 +619,11 @@ export const CutlistRows = ({
                   ),
                   recut: (
                     <TableCell>
-                      <RemakePill done={group.complete}>{group.quantity}</RemakePill>
+                      {remakesFor(group).length ? (
+                        <RemakePill done={group.complete}>{group.quantity}</RemakePill>
+                      ) : null}
                     </TableCell>
                   ),
-                  reman: remake ? (
-                    <TableCell>
-                      <RemakePill done={remake.is_cut}>
-                        {remake.remanufacturing_qty ?? group.quantity}
-                      </RemakePill>
-                    </TableCell>
-                  ) : null,
                   pid: (
                     <TableCell>
                       {/* The keyboard's way into the row's details; a tap anywhere on it is the
@@ -626,7 +659,14 @@ export const CutlistRows = ({
                   ),
                   status: (
                     <TableCell>
-                      <StatusPill status={itemStatus(about.status)} />
+                      {/* Where a remake is on the row it says what is being remade, green once the
+                          Slinet has recut it (p1 (608,446), (613,462), (686,501)). */}
+                      <span className='flex flex-wrap items-center gap-1.5'>
+                        <StatusPill status={itemStatus(about.status)} />
+                        {remakesFor(group).length ? (
+                          <RemakesPill remakes={remakesFor(group)} group={group} />
+                        ) : null}
+                      </span>
                     </TableCell>
                   ),
                   qty: (
@@ -694,7 +734,7 @@ export const CutlistRows = ({
                     <TableCell>
                       <CompleteCell
                         group={group}
-                        blocked={blocked}
+                        blocked={blocked ?? remakeHold(isSlinet, remakesFor(group))}
                         onComplete={complete => edit(group, { complete })}
                       />
                     </TableCell>
@@ -747,7 +787,8 @@ export const CutlistRows = ({
       <RowDetails
         open={detailsKey !== null}
         group={detailed}
-        remake={remake}
+        remake={detailed && ownRemake(detailed)}
+        remakes={detailed ? remakesFor(detailed) : []}
         editsLines={editsLines}
         lines={lines}
         machines={machines}

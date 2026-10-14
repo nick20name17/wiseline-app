@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import type { LocationSlot, OrderLocation, WrappingRow } from '../api'
+import type { LocationSlot, LocationType, OrderLocation, WrappingRow } from '../api'
 import {
   applyKeypad,
   benchLocations,
   decimalKeypad,
-  defaultWarehouseOf,
+  locationColumns,
   matchesWrapSearch,
   overPackageLimit,
   packageContents,
   packageTarget,
-  packageWeight,
-  warehousesOf
+  packageWeight
 } from './wrapping'
 
 describe('applyKeypad', () => {
@@ -47,29 +46,30 @@ describe('decimalKeypad', () => {
   })
 })
 
-describe('warehousesOf', () => {
-  const slot = (warehouse: string | null) => ({ warehouse }) as LocationSlot
-
-  it('puts the default warehouse first and the rest by name', () => {
-    const slots = [slot('Trim Shop'), slot('Coil Yard'), slot('Main Warehouse'), slot('Coil Yard')]
-    expect(warehousesOf(slots, 'Main Warehouse')).toEqual([
-      'Main Warehouse',
-      'Coil Yard',
-      'Trim Shop'
-    ])
-    expect(warehousesOf(slots, null)).toEqual(['Coil Yard', 'Main Warehouse', 'Trim Shop'])
+describe('locationColumns', () => {
+  const slot = (location_id: number, warehouse: string, isDefault = false) =>
+    ({ location_id, warehouse, warehouse_is_default: isDefault }) as LocationSlot
+  const type = (id: number, name: string, position: number | null): LocationType => ({
+    id,
+    name,
+    position
   })
-})
 
-describe('defaultWarehouseOf', () => {
-  const slot = (warehouse: string | null, isDefault: boolean) =>
-    ({ warehouse, warehouse_is_default: isDefault }) as LocationSlot
-
-  it('names the warehouse the server marks as the default', () => {
-    expect(defaultWarehouseOf([slot('Coil Yard', false), slot('Main Warehouse', true)])).toBe(
-      'Main Warehouse'
+  it('makes a column per type, the default warehouse first, then by position and name', () => {
+    const typeOf = new Map([
+      [1, type(10, 'Racks', 2)],
+      [2, type(11, 'Carts', 1)],
+      [3, type(10, 'Racks', 2)],
+      [4, type(12, 'Finished Line', 5)]
+    ])
+    const columns = locationColumns(
+      [slot(1, 'Yard'), slot(2, 'Yard'), slot(3, 'Yard'), slot(4, 'Main', true), slot(5, 'Yard')],
+      typeOf
     )
-    expect(defaultWarehouseOf([slot('Coil Yard', false)])).toBeNull()
+    expect(columns.map(column => column.name)).toEqual(['Finished Line', 'Carts', 'Racks', 'Yard'])
+    expect(columns[2]?.slots.map(entry => entry.location_id)).toEqual([1, 3])
+    // A location of no known type goes under its warehouse.
+    expect(columns[3]?.slots.map(entry => entry.location_id)).toEqual([5])
   })
 })
 
