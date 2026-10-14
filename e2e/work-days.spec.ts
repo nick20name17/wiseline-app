@@ -9,31 +9,104 @@ const HOLIDAYS: Record<number, { id: number; date: string; name: string }[]> = {
   2027: []
 }
 
-const fulfillList = (route: Route) => {
+const WORKING_DAYS: Record<number, { id: number; date: string; name: string }[]> = {
+  2026: [{ id: 7, date: '2026-10-17', name: 'Saturday shift' }],
+  2027: []
+}
+
+const byYear = (lists: typeof HOLIDAYS) => (route: Route) => {
   const year = Number(new URL(route.request().url()).searchParams.get('year'))
-  return route.fulfill({ json: HOLIDAYS[year] ?? [] })
+  return route.fulfill({ json: lists[year] ?? [] })
+}
+
+/** Every day of the asked year as `GET /work-calendar/` reads it, over a Monday-to-Friday week. */
+const fulfillCalendar = (route: Route) => {
+  const year = Number(new URL(route.request().url()).searchParams.get('start')?.slice(0, 4))
+  const days = []
+  for (let day = new Date(Date.UTC(year, 0, 1)); day.getUTCFullYear() === year;) {
+    const date = day.toISOString().slice(0, 10)
+    const weekday = day.getUTCDay() || 7
+    const holiday = HOLIDAYS[year]?.find(row => row.date === date)?.name ?? null
+    const working = WORKING_DAYS[year]?.find(row => row.date === date)?.name ?? null
+    days.push({
+      date,
+      weekday,
+      is_work_day: !holiday && (!!working || weekday <= 5),
+      holiday,
+      working_day: working
+    })
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+  return route.fulfill({ json: days })
 }
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-25T09:00:00'))
   await mockAuthApi(page)
-  await page.route(`${API_URL}/holidays/?*`, fulfillList)
+  await page.route(`${API_URL}/holidays/?*`, byYear(HOLIDAYS))
+  await page.route(`${API_URL}/working-days/?*`, byYear(WORKING_DAYS))
+  await page.route(`${API_URL}/work-calendar/?*`, fulfillCalendar)
+  await page.route(`${API_URL}/profiles/company/`, route =>
+    route.fulfill({ json: { working_weekend: false, work_days: [1, 2, 3, 4, 5] } })
+  )
   await page.goto('/settings/work-days')
   await page.getByLabel('Email').fill(user.email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Continue' }).click()
 })
 
-test('lists the year’s holidays and steps between years', async ({ page }) => {
+test('the calendar marks the year’s holidays and working days, and steps between years', async ({
+  page
+}) => {
   await expect(page.getByRole('heading', { name: '2026' })).toBeVisible()
-  await expect(page.getByRole('row', { name: /Christmas Day/ })).toContainText('Fri, Dec 25, 2026')
-  await expect(page.getByText('2 holidays')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Fri, Dec 25, 2026 · off · Christmas Day' })
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Sat, Oct 17, 2026 · work day · Saturday shift' })
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Next year' }).click()
   await expect(page).toHaveURL(/year=2027/)
-  await expect(page.getByText('No holidays in 2027')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '2027' })).toBeVisible()
   await page.getByRole('button', { name: 'This year' }).click()
-  await expect(page.getByRole('row', { name: /Boxing Day/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '2026' })).toBeVisible()
+})
+
+test('a Saturday picked on the calendar opens as a working day with its name', async ({ page }) => {
+  let sent: unknown
+  await page.route(`${API_URL}/work-calendar/2026-10-24/`, route => {
+    sent = route.request().postDataJSON()
+    return route.fulfill({
+      json: {
+        date: '2026-10-24',
+        weekday: 6,
+        is_work_day: true,
+        holiday: null,
+        working_day: 'Saturday shift'
+      }
+    })
+  })
+
+  await page.getByRole('button', { name: 'Sat, Oct 24, 2026 · off' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('switch', { name: 'Work day' }).click()
+  await dialog.getByLabel('Working day name').fill('Saturday shift')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(sent).toEqual({ is_work_day: true, name: 'Saturday shift' })
+})
+
+test('the list counts the year’s holidays and working days', async ({ page }) => {
+  await page.getByRole('tab', { name: 'List' }).click()
+
+  await expect(page).toHaveURL(/view=list/)
+  await expect(page.getByRole('row', { name: /Christmas Day/ })).toContainText('Fri, Dec 25, 2026')
+  await expect(page.getByText('2 holidays · 1 working day')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Next year' }).click()
+  await expect(page.getByText('No holidays or working days in 2027')).toBeVisible()
 })
 
 test('adds a holiday with the date and name the server expects', async ({ page }) => {
@@ -43,9 +116,10 @@ test('adds a holiday with the date and name the server expects', async ({ page }
     return route.fulfill({ json: { id: 3, ...(posted as object) } })
   })
 
-  await page.getByRole('button', { name: 'Add holiday' }).click()
+  await page.getByRole('tab', { name: 'List' }).click()
+  await page.getByRole('button', { name: 'Add day' }).click()
   const dialog = page.getByRole('dialog')
-  // A new holiday this year starts on today.
+  // A new day this year starts on today.
   await expect(dialog.getByLabel('Date')).toHaveText(/Fri, Sep 25, 2026/)
   await dialog.getByLabel('Name').fill('  Thanksgiving  ')
   await dialog.getByRole('button', { name: 'Save' }).click()
@@ -61,8 +135,9 @@ test('a date that already has a holiday keeps the dialog open with the server’
     route.fulfill({ status: 409, json: { detail: '2026-09-25 is already a holiday.' } })
   )
 
-  await page.getByRole('button', { name: 'Add holiday' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add holiday' })
+  await page.getByRole('tab', { name: 'List' }).click()
+  await page.getByRole('button', { name: 'Add day' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add holiday or working day' })
   await dialog.getByLabel('Name').fill('Duplicate')
   await dialog.getByRole('button', { name: 'Save' }).click()
 
@@ -77,6 +152,7 @@ test('deleting a holiday asks first', async ({ page }) => {
     return route.fulfill({ status: 204 })
   })
 
+  await page.getByRole('tab', { name: 'List' }).click()
   await page.getByRole('button', { name: 'Delete Christmas Day' }).click()
   const confirm = page.getByRole('alertdialog')
   await expect(confirm).toContainText('becomes a work day again')
@@ -91,6 +167,7 @@ test('a holiday saved into another year opens that year', async ({ page }) => {
     route.fulfill({ json: { id: 1, date: '2027-12-25', name: 'Christmas Day' } })
   )
 
+  await page.getByRole('tab', { name: 'List' }).click()
   await page.getByRole('button', { name: 'Edit Christmas Day' }).click()
   const dialog = page.getByRole('dialog', { name: 'Edit holiday' })
   await dialog.getByLabel('Date').click()
@@ -102,12 +179,11 @@ test('a holiday saved into another year opens that year', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '2027' })).toBeVisible()
 })
 
-test('a list that did not load says so instead of «no holidays»', async ({ page }) => {
-  await page.route(`${API_URL}/holidays/?*`, route =>
+test('a calendar that did not load says so', async ({ page }) => {
+  await page.route(`${API_URL}/work-calendar/?*`, route =>
     route.fulfill({ status: 500, json: { detail: 'boom' } })
   )
   await page.getByRole('button', { name: 'Next year' }).click()
 
-  await expect(page.getByText('The holidays of 2027 did not load')).toBeVisible()
-  await expect(page.getByText('No holidays in 2027')).toBeHidden()
+  await expect(page.getByText('The work days of 2027 did not load')).toBeVisible()
 })

@@ -211,7 +211,7 @@ test('a bendlist stays in progress once its Slinet list is done', async ({ page 
 })
 
 test('a machine row asks for a remanufacture against its line', async ({ page }) => {
-  // The bendlist row's only line, as the board has it released.
+  // The bendlist row's only line, as the board has it released and the Slinet has cut it.
   await page.route(`${API_URL}/wrapping/?*`, route =>
     route.fulfill({
       json: [
@@ -220,7 +220,9 @@ test('a machine row asks for a remanufacture against its line', async ({ page })
           order: 'ARINV-2',
           order_number: '330608',
           description: 'Ridge Cap Dark Red',
-          qty_ordered: 8
+          qty_ordered: 8,
+          // Nothing uncut can be spoiled, so a remake waits for the Slinet.
+          status: 'cut'
         }
       ]
     })

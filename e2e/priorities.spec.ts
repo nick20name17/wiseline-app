@@ -70,21 +70,18 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click()
 })
 
-test('every department’s priorities are listed under All, each naming its own', async ({
+test('the page opens on the first department, the shared priorities in its hierarchy', async ({
   page
 }) => {
-  await expect(page.getByText('5 priorities')).toBeVisible()
+  await expect(page.getByText('4 priorities in Trim')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'All' })).toBeHidden()
+  await expect(page.getByText('Rush')).toBeHidden()
   await expect(page.getByRole('row').filter({ hasText: 'Later' })).toContainText('Every department')
-  await expect(page.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByRole('row').filter({ hasText: 'Rush' })).toContainText('Rollforming')
-  // All holds the hierarchy of the priorities with no department. A department's own are changed under
-  // its pill, by its Manager: a Manager at large does not touch them here.
+  // A Manager at all changes the shared ones; a department's own are its Manager's.
   await expect(page.getByRole('button', { name: 'Move Later' })).toHaveAttribute(
     'aria-disabled',
     'false'
   )
-  await expect(page.getByRole('button', { name: 'Move Rush' })).toBeHidden()
-  await expect(page.getByRole('button', { name: 'Delete Rush' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Delete Later' })).toBeVisible()
 })
 
