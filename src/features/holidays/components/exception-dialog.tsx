@@ -48,6 +48,8 @@ type ExceptionFormProps = {
 const ExceptionForm = ({ exception, initialDate, onSuccess }: ExceptionFormProps) => {
   // A saved day stays the kind it is: turning a holiday into a working day is a toggle on the calendar.
   const [kind, setKind] = useState<DayKind>(exception?.kind ?? 'holiday')
+  // Read once, as a render must not read the clock.
+  const [thisYear] = useState(() => new Date().getFullYear())
   const form = useForm<ExceptionPayload>({
     resolver: standardSchemaResolver(exceptionPayloadSchema),
     defaultValues: { date: exception?.date ?? initialDate, name: exception?.name ?? '' }
@@ -90,7 +92,7 @@ const ExceptionForm = ({ exception, initialDate, onSuccess }: ExceptionFormProps
               <DatePicker
                 id='exception-date'
                 // Holidays are entered ahead, a year or more out.
-                endMonth={new Date(new Date().getFullYear() + YEARS_AHEAD, 11)}
+                endMonth={new Date(thisYear + YEARS_AHEAD, 11)}
                 value={fromIsoDay(field.value)}
                 onChange={date => field.onChange(toIsoDay(date))}
                 format={date => formatDate(toIsoDay(date))}

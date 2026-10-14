@@ -47,6 +47,8 @@ export const ScheduleDialog = ({
 }: ScheduleDialogProps) => {
   const [shipDate, setShipDate] = useState<string | null>(null)
   const [truckId, setTruckId] = useState<number | null>(null)
+  // Where the picker opens before a Ship Date is picked; read once, as a render must not read the clock.
+  const [today] = useState(() => new Date())
   const count = selection.orders.length + selection.pickupIds.length
   const { data: totals } = useQuery({
     ...selectionTotalsQuery(selection),
@@ -82,7 +84,7 @@ export const ScheduleDialog = ({
           <div className='flex items-center gap-3'>
             <span className='text-sm font-medium'>Ship Date</span>
             <DatePicker
-              value={shipDate ? fromIsoDay(shipDate) : new Date()}
+              value={shipDate ? fromIsoDay(shipDate) : today}
               onChange={date => {
                 setShipDate(toIsoDay(date))
                 setTruckId(null)
