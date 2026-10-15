@@ -205,7 +205,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           // picture the cell is the row's, like any other.
                           <TableCell
                             onClick={event =>
-                              drawingOf(row.product_files) && event.stopPropagation()
+                              drawingOf(row.product_files)?.url && event.stopPropagation()
                             }
                           >
                             <DrawingCell
