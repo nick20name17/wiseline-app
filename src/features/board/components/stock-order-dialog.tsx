@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { DECIMAL_INPUT } from '@/lib/form'
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,7 @@ import {
 } from '@/components/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Trash2 } from 'lucide-react'
@@ -22,14 +24,12 @@ import { ProductPicker } from './product-picker'
 const FIELD_LABEL = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase md:hidden'
 
 // `productId` is the text in the box and `product` the last pick; the line names a product only
-// while the two agree. `described` marks a description typed by hand, which a pick must not overwrite.
+// while the two agree. The description is always the product's own, so the row does not keep one.
 type Row = {
   id: string
   qty: string
   productId: string
   product: StockCardOption | null
-  description: string
-  described: boolean
   length: string
 }
 
@@ -38,12 +38,10 @@ const blank = (): Row => ({
   qty: '',
   productId: '',
   product: null,
-  description: '',
-  described: false,
   length: ''
 })
 
-const isBlank = (row: Row) => !row.qty && !row.productId && !row.description && !row.length
+const isBlank = (row: Row) => !row.qty && !row.productId && !row.length
 
 const productOf = (row: Row) => pickedProduct(row.productId, row.product)
 
@@ -105,16 +103,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
     setError('')
     setRows(current =>
       // Typing into the last line is what grows the table.
-      withOneBlank(
-        current.map(row => {
-          if (row.id !== id) return row
-          const next = { ...row, ...patch }
-          // Until one is typed, the description is the picked product's.
-          return next.described
-            ? next
-            : { ...next, description: productOf(next)?.description ?? '' }
-        })
-      )
+      withOneBlank(current.map(row => (row.id === id ? { ...row, ...patch } : row)))
     )
   }
 
@@ -149,8 +138,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
               color: null,
               gauge: null,
               has_card: true
-            },
-            description: card.description ?? ''
+            }
           }
           const last = current.at(-1)
           return withOneBlank(
@@ -215,15 +203,13 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
     if (filled.some(row => !(Number(row.qty) >= 1)))
       return setError('Every row needs a quantity of 1 or more.')
     if (filled.some(row => row.length && !(Number(row.length) > 0)))
-      return setError('A length has to be more than 0.')
+      return setError('A length has to be a number above 0, e.g. 120.')
 
     setError('')
     create.mutate(
       filled.map(row => ({
         product_id: productOf(row)!.product_id,
         quantity: Number(row.qty),
-        // Left out, the line takes the product's own from EBMS.
-        ...(row.description.trim() ? { description: row.description.trim() } : {}),
         ...(row.length ? { length: Number(row.length) } : {})
       }))
     )
@@ -293,17 +279,16 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 <span aria-hidden className={FIELD_LABEL}>
                   Description
                 </span>
-                <Input
-                  className='flex-1'
+                {/* The product's own, wrapped onto as many lines as it needs. Out of the tab order:
+                    the grid is typed into, and there is nothing to type here. */}
+                <Textarea
+                  className='min-h-8 flex-1'
+                  readOnly
+                  tabIndex={-1}
+                  rows={1}
                   aria-label={`Description, row ${index + 1}`}
-                  placeholder='The product’s own unless typed'
-                  value={row.description}
-                  onChange={event =>
-                    edit(row.id, {
-                      description: event.target.value,
-                      described: !!event.target.value
-                    })
-                  }
+                  placeholder='Pick a product'
+                  value={productOf(row)?.description ?? ''}
                 />
               </div>
               <div className='flex flex-col gap-1 max-md:flex-1 md:contents'>
@@ -312,9 +297,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                 </span>
                 <Input
                   className='w-24 max-md:w-full'
-                  type='number'
-                  min={1}
-                  inputMode='decimal'
+                  {...DECIMAL_INPUT}
                   aria-label={`Length, row ${index + 1}`}
                   placeholder='120'
                   value={row.length}

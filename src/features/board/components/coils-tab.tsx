@@ -30,7 +30,6 @@ import { cn } from 'cn'
 import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useDeferredValue, useRef, useState, type ReactNode } from 'react'
 import {
-  coilFoldersQuery,
   coilFiltersQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
@@ -72,6 +71,17 @@ const indexLots = (lots: CoilLot[]): IndexedLot[] =>
 
 /** The two lists the board keeps: the coils standing in this department, and the plant's whole stock. */
 type CoilScope = 'trim' | 'all'
+
+/** Whether a coil is in a department yet: a coil new from EBMS is in none until someone ticks one. */
+type Assignment = 'all' | 'assigned' | 'unassigned'
+
+const assigned = (lot: CoilLot) => lot.in_trim || lot.in_rollforming
+
+const ASSIGNMENT_MATCH: Record<Assignment, (lot: CoilLot) => boolean> = {
+  all: () => true,
+  assigned,
+  unassigned: lot => !assigned(lot)
+}
 
 type Department = 'in_trim' | 'in_rollforming'
 
@@ -363,6 +373,8 @@ const ProductGrid = ({
         <colgroup>
           <col className='w-12' />
           {columns.cols}
+          {/* Every column has a width, so the screen's slack goes to this one, which has no cells. */}
+          <col />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -415,7 +427,9 @@ const ProductGrid = ({
                       ),
                       color: (
                         <TableCell>
-                          <span className='truncate'>{group.color ?? '—'}</span>
+                          <span className='truncate' title={group.color ?? undefined}>
+                            {group.color ?? '—'}
+                          </span>
                         </TableCell>
                       ),
                       width: (
@@ -459,7 +473,8 @@ const ProductGrid = ({
 
                   {open ? (
                     <TableRow>
-                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
+                      {/* The tick column, the table's own and the slack one. */}
+                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 2}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
                             <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
@@ -611,15 +626,14 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   const viewOnly = useViewOnly()
-  // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
-  const [folder, setFolder] = useState<string | null>(null)
+  const [assignment, setAssignment] = useState<Assignment>('all')
   const [pageSize, setPageSize] = useState(40)
   const [paging, setPaging] = useState({ view: '', page: 0 })
   const listTop = useRef<HTMLDivElement>(null)
 
   const scoped: CoilScope = worker ? 'trim' : scope
   const trim = scoped === 'trim'
-  // Trim Coils come narrowed by the server, folder filters included; the company-wide list is only
+  // Trim Coils come narrowed by the server; the company-wide list is only
   // fetched while All Coils is open, which a Worker never sees.
   const trimLots = useQuery({
     ...departmentCoilLotsQuery(departmentId),
@@ -637,11 +651,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   })
   const filter = trim ? departmentCoilFilter(filters) : null
   const loading = lotsPending || (trim && filterLoading)
-  const { data: folders } = useQuery({
-    ...coilFoldersQuery(departmentId),
-    enabled: trim && departmentId !== undefined
-  })
-  const inFolder = trim && folder ? indexed.filter(({ lot }) => lot.folder_id === folder) : indexed
+  const match = ASSIGNMENT_MATCH[assignment]
+  const inAssignment = indexed.filter(({ lot }) => match(lot))
   const placeProduct = useSetCoilProductLocation()
   const placeLot = useSetCoilLocation()
 
@@ -679,18 +690,18 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     onSlinet: (lot, checked) => placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } })
   }
 
-  const shown = searched(inFolder, deferredTerm)
+  const shown = searched(inAssignment, deferredTerm)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, folder, deferredTerm, pageSize].join('|')
+  const view = [scoped, assignment, deferredTerm, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
   // An edit can drop coils off the last page; the page then steps back rather than show nothing.
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
-  // A folder tab left open hides the coil being searched for, and nothing on screen says so.
+  // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
   const elsewhere =
-    !!folder && !!deferredTerm.trim() && !shown.length ? searched(indexed, deferredTerm).length : 0
+    assignment !== 'all' && !shown.length ? searched(indexed, deferredTerm).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -748,34 +759,6 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         </div>
       ) : null}
 
-      {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. Brett may cut this to the
-          one Coil folder (round 10, A1). */}
-      {trim && folders?.length ? (
-        <Tabs
-          value={folder ?? 'all'}
-          onValueChange={value => setFolder(value === 'all' ? null : String(value))}
-        >
-          {/* A department has dozens of folders; they scroll on their own line rather than widen the
-              page under the sidebar. */}
-          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
-            <TabsList variant='line'>
-              <TabsTrigger value='all'>All folders</TabsTrigger>
-              {folders.map(entry => (
-                <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
-                  {entry.name}
-                  <span
-                    className='font-mono text-xs text-muted-foreground'
-                    title={`${entry.products} products · ${entry.lots} coils`}
-                  >
-                    {entry.products}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-        </Tabs>
-      ) : null}
-
       <div className='flex flex-wrap items-center gap-3'>
         <p className='text-sm text-muted-foreground'>
           <span className='font-medium text-foreground'>{groups.length}</span>{' '}
@@ -785,6 +768,18 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         </p>
 
         {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
+
+        <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
+          <TabsList>
+            <TabsTrigger value='all'>All</TabsTrigger>
+            <TabsTrigger value='assigned' title='In Trim or Rollforming'>
+              Assigned
+            </TabsTrigger>
+            <TabsTrigger value='unassigned' title='In no department yet'>
+              Unassigned
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <InputGroup className='w-full md:ml-auto md:w-80'>
           <InputGroupAddon>
@@ -805,13 +800,13 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
           title='No coils match'
           description={
             elsewhere
-              ? `None in this folder — ${elsewhere} in other folders.`
+              ? `None ${assignment} — ${elsewhere} ${elsewhere === 1 ? 'is' : 'are'} ${assignment === 'assigned' ? 'unassigned' : 'assigned'}.`
               : 'Clear the search to see every coil.'
           }
           action={
             elsewhere ? (
-              <Button variant='outline' onClick={() => setFolder(null)}>
-                Search all folders
+              <Button variant='outline' onClick={() => setAssignment('all')}>
+                Show all coils
               </Button>
             ) : null
           }

@@ -2310,6 +2310,8 @@ const wrappingRowSchema = z.object({
   is_standard_length: z._default(z.boolean(), true),
   // lb per piece, what a package's weight is worked out from.
   unit_weight: z._default(z.nullable(z.number()), null),
+  // The product's pictures in EBMS, for the Image column.
+  product_files: z._default(z.array(productFileSchema), []),
   // The order info block; a stock order has none of it.
   po: z._default(z.nullable(z.string()), null),
   salesman: z._default(z.nullable(z.string()), null),

@@ -17,7 +17,13 @@ import { SelectionBar } from '@/components/selection-bar'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { slitLineQuery, useScheduleSlit, useSlitRequest, type SlitStage } from '../api'
+import {
+  slitLineQuery,
+  useScheduleSlit,
+  useSlitRequest,
+  type SlitLine,
+  type SlitStage
+} from '../api'
 import { useViewOnly } from '../lib/board-context'
 import { matchesSearch } from '../lib/search'
 import { CoilAssignDialog } from './coil-assign-dialog'
@@ -40,6 +46,28 @@ const EMPTY: Record<SlitStage, [string, string]> = {
 }
 
 type SlitLineTabProps = { search: string | undefined; departmentId: number }
+
+// The server words a coil nobody chose as one of these, not as null.
+const UNCHOSEN = new Set([null, 'waiting...', 'Undefined'])
+
+/**
+ * Mark slit starts from what the Manager asked for, when the picked lines agree on it; Undefined
+ * still leaves the Slit Line free to slit off any coil p2 (709,408). Unlocked: the Worker records
+ * what was really used, and the server takes that over the request.
+ */
+const requestedCoil = (rows: SlitLine[]) => {
+  const one = (values: (string | null)[]) => {
+    const [value = null] = values
+    return new Set(values).size === 1 && !UNCHOSEN.has(value) ? value : null
+  }
+  const supplier = one(rows.map(row => row.supplier))
+  return {
+    supplier,
+    coil_number: supplier ? one(rows.map(row => row.coil_number)) : null,
+    supplier_locked: false,
+    coil_number_locked: false
+  }
+}
 
 /**
  * The Slit Line: material a machine asked to have slit p2 (754,297). The Manager gives a request its
@@ -283,6 +311,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         action='slit'
         departmentId={departmentId}
         lines={chosen.map(row => ({ id: row.origin_item, id_inven: row.product_id }))}
+        current={requestedCoil(chosen)}
         open={marking}
         onOpenChange={setMarking}
         onAssigned={() => setPicked(new Set())}

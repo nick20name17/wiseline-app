@@ -320,6 +320,21 @@ const CoilAssignForm = ({
   )
 }
 
+/** What the coil is for: the units when it is set per unit, the lines otherwise. */
+const describe = (lines: CoilLine[], units: CoilUnits | undefined) => {
+  const product = lines[0]?.id_inven ?? '—'
+  if (units?.fill?.length)
+    return `Units ${unitRuns(units.fill.map(unit => unit.unit))} of ${product}`
+  // Units name the choice only when every line is set per unit; a whole line among them is a line.
+  const picked = lines.map(line => units?.assign?.[line.id] ?? [])
+  if (!picked.length || !picked.every(numbers => numbers.length))
+    return `${lines.length} line${lines.length === 1 ? '' : 's'} of ${product}`
+  const [only] = picked
+  if (picked.length === 1 && only) return `Units ${unitRuns(only)} of ${product}`
+  const count = picked.reduce((total, numbers) => total + numbers.length, 0)
+  return `${count} units on ${picked.length} lines of ${product}`
+}
+
 type CoilAssignDialogProps = {
   lines: CoilLine[]
   action: CoilAction
@@ -350,11 +365,7 @@ export const CoilAssignDialog = ({
     <DialogContent className='sm:max-w-2xl'>
       <DialogHeader>
         <DialogTitle>{TITLE[action]}</DialogTitle>
-        <DialogDescription>
-          {units?.fill?.length
-            ? `Units ${unitRuns(units.fill.map(unit => unit.unit))} of ${lines[0]?.id_inven ?? '—'}`
-            : `${lines.length} line${lines.length === 1 ? '' : 's'} of ${lines[0]?.id_inven ?? '—'}`}
-        </DialogDescription>
+        <DialogDescription>{describe(lines, units)}</DialogDescription>
       </DialogHeader>
       {/* The popup unmounts once closed, so the next opening starts from Undefined. */}
       <CoilAssignForm
