@@ -1,5 +1,6 @@
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
+import { DECIMAL_INPUT } from '@/lib/form'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -79,8 +80,10 @@ const commitNumber = (
   const revert = () => {
     input.value = current === null ? '' : String(current)
   }
-  if (input.value.trim() === '' || Number.isNaN(input.valueAsNumber)) return revert()
-  const next = Math.min(range.max ?? Infinity, Math.max(range.min, input.valueAsNumber))
+  // Read off the text: a decimal box is a text box, which has no `valueAsNumber`.
+  const typed = Number(input.value)
+  if (input.value.trim() === '' || Number.isNaN(typed)) return revert()
+  const next = Math.min(range.max ?? Infinity, Math.max(range.min, typed))
   input.value = String(next)
   if (next !== current) write(next, revert)
 }
@@ -524,9 +527,7 @@ export const ScheduledLineItems = ({
                           {editable ? (
                             <Input
                               key={width ?? ''}
-                              type='number'
-                              min={0}
-                              step={0.1}
+                              {...DECIMAL_INPUT}
                               aria-label={`Width for ${item.id_inven ?? item.id}`}
                               placeholder='0'
                               defaultValue={width ?? ''}
