@@ -174,9 +174,15 @@ test('the day tab gear opens the machine capacities for that day', async ({ page
 
   await expect(page.getByRole('heading', { name: 'Machine Capacities' })).toBeVisible()
   // The day's own row sits above the machines, and each row is named by its header cell.
-  await expect(page.getByRole('rowheader', { name: /Press Brake/ })).toBeVisible()
+  // Each machine's card carries its Daily Bend Cap and how full the day has it.
+  await expect(page.getByRole('rowheader', { name: /Press Brake/ })).toContainText(/1,200\s*25%/)
+  // The day's own card, against the machines' summed cap.
+  await expect(page.getByRole('rowheader', { name: /Daily Bend Cap/ })).toContainText('20%')
+  // The Slinet cuts the whole day against its piece cap; Wrapping holds no ceiling, so has no card.
+  await expect(page.getByRole('rowheader', { name: /Daily Piece Cap/ })).toContainText(/1,200\s*2%/)
+  await expect(page.getByRole('rowheader', { name: /Wrapping/ })).toHaveCount(0)
   // The bracket is what the board shows: how much of the total comes from stock.
-  await expect(page.getByText('(4 - Stock)')).toBeVisible()
+  await expect(page.getByText('(4 - Stock)').first()).toBeVisible()
 })
 
 test('Allocated Stock reports what reviewed orders draw from stock', async ({ page }) => {
