@@ -1,3 +1,4 @@
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import {
   Sidebar,
   SidebarContent,
@@ -54,17 +55,17 @@ const ACTIVE = { 'data-active': '' }
 const ACTIVE_OPTIONS = { includeSearch: false }
 
 export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
-  const { setOpen, setOpenMobile } = useSidebar()
+  const { isMobile, openMobile, setOpen, setOpenMobile } = useSidebar()
   const wide = useIsWide()
-  // A phone's sheet and a tablet's opened rail lie over the page; a link that goes there puts them
+  // A phone's drawer and a tablet's opened rail lie over the page; a link that goes there puts them
   // away. A desk's sidebar stays as it is.
   const putAway = () => {
     setOpenMobile(false)
     if (!wide) setOpen(false)
   }
 
-  return (
-    <Sidebar collapsible='icon'>
+  const nav = (
+    <>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -116,6 +117,22 @@ export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
           </SidebarGroup>
         ))}
       </SidebarContent>
-    </Sidebar>
+    </>
   )
+
+  // A phone's menu rises from the bottom like its dialogs, where the thumb is, and a swipe down puts
+  // it away, where the sidebar's own sheet would slide in from the side.
+  if (isMobile)
+    return (
+      <Drawer open={openMobile} onOpenChange={setOpenMobile} showSwipeHandle>
+        <DrawerContent data-sidebar='sidebar'>
+          <DrawerTitle className='sr-only'>Menu</DrawerTitle>
+          <div className='flex min-h-0 flex-col overflow-y-auto overscroll-contain pb-safe-4'>
+            {nav}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+
+  return <Sidebar collapsible='icon'>{nav}</Sidebar>
 }
