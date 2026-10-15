@@ -93,7 +93,8 @@ export const DriverPage = ({ day, onDayChange }: DriverPageProps) => {
                       disabled={deliver.isPending && deliver.variables?.[0] === order.assignment_id}
                       onClick={() => deliver.mutate([order.assignment_id])}
                     >
-                      Delivered
+                      {/* A supplier pickup is collected on the run, not dropped off p3 (586,248). */}
+                      {order.kind === 'pickup' ? 'Picked up' : 'Delivered'}
                     </Button>
                   ) : null
                 }

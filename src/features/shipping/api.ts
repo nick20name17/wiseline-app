@@ -395,6 +395,15 @@ export const useReleaseLoad = () =>
     authApi.post(`shipping/loads/${loadId}/release/`).json()
   )
 
+/**
+ * Takes a release back so a Load can be changed: Unreleased again, its orders' statuses blank, every
+ * package ticked onto it off the truck. The server refuses once the Driver has left.
+ */
+export const useUnreleaseLoad = () =>
+  useLoadPost('The Load stayed released', (loadId: number) =>
+    authApi.post(`shipping/loads/${loadId}/unrelease/`).json()
+  )
+
 const shippingLineSchema = z.object({
   origin_item: z.string(),
   // `null` for a line no department makes — bought in, so nothing to wait for.
@@ -569,8 +578,13 @@ export const pickupPayloadSchema = z.object({
       z.maxLength(255, 'At most 255 characters')
     ),
   description: z.string().check(z.trim(), z.maxLength(255, 'At most 255 characters')),
-  weight: z.nullable(z.number().check(z.nonnegative('Cannot be negative'))),
-  length: z.nullable(z.number().check(z.nonnegative('Cannot be negative')))
+  // A typed «abc» reaches here as NaN, which zod words «Invalid input».
+  weight: z.nullable(
+    z.number({ error: 'Enter a number' }).check(z.nonnegative('Cannot be negative'))
+  ),
+  length: z.nullable(
+    z.number({ error: 'Enter a number' }).check(z.nonnegative('Cannot be negative'))
+  )
 })
 
 export type PickupPayload = z.infer<typeof pickupPayloadSchema>

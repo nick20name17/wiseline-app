@@ -10,7 +10,7 @@ import { toggled } from '@/lib/sets'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ArrowRight, CalendarDays, X } from 'lucide-react'
+import { ArrowRight, CalendarDays, Undo2, X } from 'lucide-react'
 import { useState } from 'react'
 import {
   isLoad,
@@ -18,9 +18,11 @@ import {
   useAddToLoad,
   useReleaseLoad,
   useRemoveFromLoad,
+  useUnreleaseLoad,
   type LoadTab,
   type TruckCard
 } from '../api'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { formatWeight } from '../lib/format'
 import { statusLabel } from '../lib/status'
 import { OrderLine } from './load-card'
@@ -31,6 +33,10 @@ import { ScheduleDialog } from './schedule-dialog'
 // Orders go only on a Load not yet released to Loading; the server refuses the rest.
 const takesOrders = (load: { status: string | null }) =>
   (load.status ?? 'unreleased') === 'unreleased'
+
+// A release is taken back only while the Load is still at the warehouse; the server refuses it after.
+const takesBackRelease = (load: { status: string | null }) =>
+  load.status === 'not_started' || load.status === 'loading' || load.status === 'loaded'
 
 // A day's first tab has no Load behind it until Add To Load makes one.
 const tabKey = (load: LoadTab) => (load.load_id === null ? 'new' : String(load.load_id))
@@ -52,6 +58,10 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
   const add = useAddToLoad()
   const remove = useRemoveFromLoad()
   const release = useReleaseLoad()
+  const unrelease = useUnreleaseLoad()
+  // The Load asked about, not a flag: a Load that leaves the warehouse mid-question must not hand the
+  // open confirm on to the next Load shown.
+  const [unreleasing, setUnreleasing] = useState<number | null>(null)
 
   const waiting = card.orders.filter(order => order.load_id === null)
   const current =
@@ -216,6 +226,25 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
                     )}
                     Release to Loading
                   </Button>
+                </div>
+              ) : null}
+              {isLoad(current) && takesBackRelease(current) ? (
+                <div className='flex justify-end border-t border-border px-3 py-2 max-md:*:flex-1'>
+                  <Button variant='outline' onClick={() => setUnreleasing(current.load_id)}>
+                    <Undo2 data-icon='inline-start' />
+                    Unrelease {current.name}
+                  </Button>
+                  <ConfirmDialog
+                    open={unreleasing === current.load_id}
+                    onOpenChange={open => setUnreleasing(open ? current.load_id : null)}
+                    title={`Unrelease ${current.name}?`}
+                    description={`${current.name} leaves Loading and can be changed again. Every package ticked onto the truck comes off it and has to be loaded again.`}
+                    confirmLabel={`Yes, Unrelease ${current.name}`}
+                    isPending={unrelease.isPending}
+                    onConfirm={() =>
+                      unrelease.mutate(current.load_id, { onSuccess: () => setUnreleasing(null) })
+                    }
+                  />
                 </div>
               ) : null}
             </>
