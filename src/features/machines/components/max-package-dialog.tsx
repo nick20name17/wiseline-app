@@ -17,7 +17,7 @@ import {
   InputGroupText
 } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
-import { asNumber, invalid } from '@/lib/form'
+import { asNumber, DECIMAL_INPUT, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { Package } from 'lucide-react'
 import { useState } from 'react'
@@ -50,10 +50,7 @@ const MaxPackageForm = ({ department, onSuccess }: MaxPackageFormProps) => {
         <InputGroup>
           <InputGroupInput
             id='max-package-weight'
-            type='number'
-            min={0}
-            step='any'
-            inputMode='decimal'
+            {...DECIMAL_INPUT}
             placeholder='e.g. 45'
             aria-invalid={invalid(errors.max_package_weight)}
             {...form.register('max_package_weight', { setValueAs: asNumber })}

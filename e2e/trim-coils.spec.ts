@@ -167,30 +167,27 @@ test('the search narrows the list to one coil', async ({ page }) => {
   await expect(page.getByText('No coils match')).toBeVisible()
 })
 
-test('a search that misses in one folder points to the others', async ({ page }) => {
-  await page.route(`${API_URL}/coils/folders/?*`, route =>
-    route.fulfill({
-      json: [
-        { folder_id: 'F-1', name: '26 Ga. B&B Coils', products: 1, lots: 1 },
-        { folder_id: 'F-2', name: '28 Ga. Coils', products: 1, lots: 1 }
-      ]
-    })
-  )
+test('the assignment filter splits the coils a department holds from the ones none does', async ({
+  page
+}) => {
   await page.route(`${API_URL}/coils/lots/?*`, route => {
-    const lots = [
-      { ...LOTS[0], folder_id: 'F-1' },
-      { ...LOTS[1], folder_id: 'F-2' }
-    ]
+    const lots = [LOTS[0], coil(44, 'CB4830G', '3811101')]
     return route.fulfill({ json: { count: lots.length, results: lots } })
   })
   await page.reload()
 
-  await page.getByRole('tab', { name: /26 Ga\. B&B Coils/ }).click()
-  await page.getByLabel('Search coils').fill('3797401')
+  await page.getByRole('tab', { name: 'Unassigned' }).click()
+  await expect(page.getByText('CB4830G')).toBeVisible()
+  await expect(page.getByText('CB4826R')).toBeHidden()
 
-  await expect(page.getByText('None in this folder — 1 in other folders.')).toBeVisible()
-  await page.getByRole('button', { name: 'Search all folders' }).click()
-  await expect(page.getByText('3797401')).toBeVisible()
+  await page.getByRole('tab', { name: 'Assigned', exact: true }).click()
+  await expect(page.getByText('CB4826R')).toBeVisible()
+  await expect(page.getByText('CB4830G')).toBeHidden()
+
+  await page.getByLabel('Search coils').fill('3811101')
+  await expect(page.getByText('None assigned — 1 is unassigned.')).toBeVisible()
+  await page.getByRole('button', { name: 'Show all coils' }).click()
+  await expect(page.getByText('CB4830G')).toBeVisible()
 })
 
 test('the list holds one row per product, opening into its coils', async ({ page }) => {

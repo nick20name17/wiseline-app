@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { DECIMAL_INPUT } from '@/lib/form'
 import {
   Dialog,
   DialogContent,
@@ -184,10 +185,7 @@ const StockCardForm = ({ card, onClose }: StockCardFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='card-width'
-              type='number'
-              min={0}
-              step='any'
-              inputMode='decimal'
+              {...DECIMAL_INPUT}
               placeholder={suggestedWidth === null ? 'e.g. 8' : String(suggestedWidth)}
               value={width}
               onChange={event => setTypedWidth(event.target.value)}

@@ -14,7 +14,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { formatLongDate } from '@/lib/days'
-import { asNumber, invalid } from '@/lib/form'
+import { asNumber, DECIMAL_INPUT, invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PackagePlus } from 'lucide-react'
 import { useState } from 'react'
@@ -75,10 +75,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
               <InputGroupInput
                 id='pickup-weight'
                 placeholder='e.g. 450'
-                type='number'
-                min={0}
-                step='any'
-                inputMode='decimal'
+                {...DECIMAL_INPUT}
                 aria-invalid={invalid(errors.weight)}
                 {...form.register('weight', { setValueAs: asNumber })}
               />
@@ -92,10 +89,7 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
               <InputGroupInput
                 id='pickup-length'
                 placeholder='e.g. 240'
-                type='number'
-                min={0}
-                step='any'
-                inputMode='decimal'
+                {...DECIMAL_INPUT}
                 aria-invalid={invalid(errors.length)}
                 {...form.register('length', { setValueAs: asNumber })}
               />

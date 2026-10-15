@@ -73,7 +73,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'status', label: 'Status', width: 'w-40' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
-    { key: 'w', label: 'W"', width: 'w-20' },
+    { key: 'w', label: 'W"', width: 'w-24' },
     // Room for a four-figure length and its inch mark — «1200"» — whole.
     { key: 'l', label: 'L"', width: 'w-24' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
@@ -90,6 +90,8 @@ export const WRAPPING_TABLE: ColumnTable = {
     { key: 'priority', label: 'Priority', width: 'w-36' },
     { key: 'remfg', label: 'Remfg', width: 'w-24' },
     { key: 'status', label: 'Status', width: 'w-40' },
+    // Products on a full bench look alike; the picture is what tells them apart.
+    { key: 'image', label: 'Image', width: 'w-20' },
     { key: 'pid', label: 'ID', width: 'w-36' },
     { key: 'desc', label: 'Description', card: 'full' },
     { key: 'notes', label: 'Notes', width: 'w-24' }
@@ -117,15 +119,16 @@ export const WRAP_LINES_TABLE: ColumnTable = {
 export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
-    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll.
-    { key: 'pid', label: 'Product ID', width: 'w-36', card: 'title' },
-    { key: 'color', label: 'Color', card: 'subtitle' },
+    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. Color is fixed:
+    // as the column that took the slack it ran far wider than any colour name.
+    { key: 'pid', label: 'Product ID', width: 'w-40', card: 'title' },
+    { key: 'color', label: 'Color', width: 'w-32', card: 'subtitle' },
     { key: 'width', label: 'Width (in.)', width: 'w-28' },
     { key: 'count', label: 'Count', width: 'w-20' },
     { key: 'lf', label: 'Total Linear Feet', width: 'w-36' },
     { key: 'weight', label: 'Total Weight (lbs.)', width: 'w-40' },
     // Shortcuts that move every coil of the product; each coil also has its own boxes. The labels
-    // stay short: a wider heading squeezes Color out at the floor's screen width.
+    // stay short, or the table outgrows the floor's screen width.
     { key: 'rollforming', label: 'Rollforming', width: 'w-32' },
     { key: 'trim', label: 'Trim', width: 'w-20' }
   ]

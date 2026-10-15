@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { asNumber, DECIMAL_INPUT } from '@/lib/form'
 import {
   Dialog,
   DialogContent,
@@ -35,18 +36,17 @@ const DEPLETE = 'deplete_and_delete'
 
 export type CoilFigure = keyof CoilFigures
 
-type Measure<Key> = { key: Key; label: string; unit: string; step: string; placeholder: string }
+type Measure<Key> = { key: Key; label: string; unit: string; placeholder: string }
 
 const MEASURES: Measure<CoilFigure>[] = [
   {
     key: 'coil_thickness',
     label: 'Coil Thickness',
     unit: 'inches',
-    step: '0.01',
     placeholder: 'e.g. 0.02'
   },
-  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', step: '1', placeholder: 'e.g. 3500' },
-  { key: 'weight', label: 'Weight', unit: 'lbs', step: '1', placeholder: 'e.g. 5000' }
+  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', placeholder: 'e.g. 3500' },
+  { key: 'weight', label: 'Weight', unit: 'lbs', placeholder: 'e.g. 5000' }
 ]
 
 type BuildField = 'material_thickness' | 'core_od'
@@ -57,15 +57,15 @@ const BUILD: Measure<BuildField>[] = [
     key: 'material_thickness',
     label: 'Material Thickness',
     unit: 'inches',
-    step: '0.001',
     placeholder: 'e.g. 0.018'
   },
-  { key: 'core_od', label: 'Core OD', unit: 'inches', step: '0.1', placeholder: 'e.g. 20' }
+  { key: 'core_od', label: 'Core OD', unit: 'inches', placeholder: 'e.g. 20' }
 ]
 
 type Draft = Record<CoilFigure | BuildField, string>
 
-const num = (value: string) => Number.parseFloat(value)
+// Whole text or nothing: `parseFloat` read «0,02» as 0 and «12abc» as 12, and pushed those to EBMS.
+const num = (value: string) => asNumber(value) ?? Number.NaN
 
 // Inches, as the server bounds them: steel coil runs about 0.014–0.03 thick on a core about 20
 // across, so a figure past these is a typo — 229" of coil on a 20" core came of one.
@@ -144,9 +144,7 @@ const MeasureField = ({ measure, value, disabled, inputRef, onChange }: MeasureF
     <div className='flex items-center gap-2'>
       <Input
         id={`coil-${measure.key}`}
-        type='number'
-        inputMode='decimal'
-        step={measure.step}
+        {...DECIMAL_INPUT}
         placeholder={measure.placeholder}
         ref={inputRef}
         disabled={disabled}

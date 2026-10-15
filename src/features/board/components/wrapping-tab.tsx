@@ -19,6 +19,8 @@ import {
 import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
 import { itemStatus } from '../lib/status'
 import { matchesWrapSearch, remanState } from '../lib/wrapping'
+import { drawingOf } from '../lib/cutlists'
+import { DrawingCell } from './drawing-cell'
 import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
 import { LocatePackages } from './locate-packages'
@@ -196,6 +198,20 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                         stock: (
                           <TableCell>
                             <Figure value={row.from_stock || null} />
+                          </TableCell>
+                        ),
+                        image: (
+                          // The picture opens on its own; the row would open the order under it. With no
+                          // picture the cell is the row's, like any other.
+                          <TableCell
+                            onClick={event =>
+                              drawingOf(row.product_files) && event.stopPropagation()
+                            }
+                          >
+                            <DrawingCell
+                              drawing={drawingOf(row.product_files)}
+                              product={row.product_id}
+                            />
                           </TableCell>
                         ),
                         pid: (

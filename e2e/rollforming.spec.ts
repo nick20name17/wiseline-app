@@ -110,6 +110,7 @@ test('a line gets a Supplier and a Coil Number picked from its coil’s lots', a
   const dialog = page.getByRole('dialog', { name: 'Select Supplier / Coil Number' })
   // A Coil Number waits on a Supplier p2 (709,459).
   await expect(dialog.getByLabel('Coil Number')).toBeDisabled()
+  await expect(dialog.getByText('Pick a Supplier first.')).toBeVisible()
   await dialog.getByLabel('Supplier').click()
   await page.getByRole('option', { name: 'COLSTE' }).click()
   await dialog.getByRole('button', { name: /CS8250/ }).click()
@@ -295,6 +296,45 @@ test('the Slit Line marks waiting material slit with the coil it used', async ({
   await dialog.getByLabel('Supplier').click()
   await page.getByRole('option', { name: 'SAMSUNG' }).click()
   await dialog.getByLabel('Coil Number').fill('J46A211')
+  await dialog.getByRole('button', { name: 'Mark slit' }).click()
+
+  await expect(dialog).toBeHidden()
+  expect(posted).toEqual([
+    {
+      path: 'slit-line/mark-slit/',
+      body: { origin_items: ['102'], supplier: 'SAMSUNG', coil_number: 'J46A211' }
+    }
+  ])
+})
+
+test('Mark slit starts from the coil the Manager asked for', async ({ page }) => {
+  await page.route(`${API_URL}/slit-line/?*`, route =>
+    route.fulfill({
+      json:
+        new URL(route.request().url()).searchParams.get('slit') === 'true'
+          ? []
+          : [
+              {
+                origin_item: '102',
+                order: 'ARINV-3',
+                invoice: '330615',
+                product_id: 'TED8250',
+                production_date: '2026-09-23',
+                icon: 'waiting_to_slit',
+                locked: true,
+                supplier: 'SAMSUNG',
+                coil_number: 'J46A211'
+              }
+            ]
+    })
+  )
+  await page.goto('/rollforming?view=slit')
+  await signIn(page)
+
+  await page.getByRole('checkbox', { name: 'Select TED8250 of 330615' }).click()
+  await page.getByRole('button', { name: 'Mark slit (1)' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Mark slit' })
+  await expect(dialog.getByLabel('Coil Number')).toHaveValue('J46A211')
   await dialog.getByRole('button', { name: 'Mark slit' }).click()
 
   await expect(dialog).toBeHidden()
