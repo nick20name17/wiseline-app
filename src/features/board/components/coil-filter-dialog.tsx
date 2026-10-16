@@ -168,7 +168,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
                   toast.add({
                     type: 'success',
                     title: next.apply_all
-                      ? 'Coil filter cleared — showing all folders'
+                      ? 'Coil filter cleared — showing every coil'
                       : 'Coil filter applied'
                   })
               }
@@ -203,8 +203,8 @@ export const CoilFilterDialog = ({ departmentId, open, onOpenChange }: CoilFilte
         <DialogHeader>
           <DialogTitle>Coil Filter</DialogTitle>
           <DialogDescription>
-            Coils whose Thickness, Width and Grade ALL fall in range show up under their EBMS
-            folder. Apply All makes that range limitless.
+            Coils whose Thickness, Width and Grade ALL fall in range show up in this department's
+            Coils. Apply All makes that range limitless.
           </DialogDescription>
         </DialogHeader>
 

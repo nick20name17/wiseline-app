@@ -17,7 +17,7 @@ import {
   InputGroupText
 } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
-import { asNumber, invalid } from '@/lib/form'
+import { asAmount, invalid, WHOLE_INPUT } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { Gauge } from 'lucide-react'
@@ -57,12 +57,10 @@ const DailyCapacityForm = ({ department, capacity, onSuccess }: DailyCapacityFor
         <InputGroup>
           <InputGroupInput
             id='daily-capacity'
-            type='number'
-            min={1}
-            inputMode='numeric'
+            {...WHOLE_INPUT}
             placeholder='e.g. 300'
             aria-invalid={invalid(errors.per_day)}
-            {...form.register('per_day', { setValueAs: asNumber })}
+            {...form.register('per_day', { setValueAs: asAmount })}
           />
           <InputGroupAddon align='inline-end'>
             <InputGroupText>pcs</InputGroupText>

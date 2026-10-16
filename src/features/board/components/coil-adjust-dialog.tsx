@@ -82,6 +82,27 @@ const buildOf = (draft: Draft) => {
     : null
 }
 
+/** Why Apply is off, or what to check before pressing it. */
+const AdjustHint = ({ draft, built }: { draft: Draft; built: boolean }) => {
+  if (!built)
+    return (
+      <p className='text-sm text-warning'>
+        Enter a Material Thickness under {MAX_MATERIAL}″ and a Core OD up to {MAX_CORE}″ to unlock
+        the three fields above and the Apply button.
+      </p>
+    )
+  // Apply stays off for it, and without a word the Manager would not know why.
+  if (MEASURES.some(measure => Number.isNaN(num(draft[measure.key]))))
+    return <p className='text-sm text-warning'>Enter each figure as a number, e.g. 0.02.</p>
+  if (num(draft.coil_thickness) > MAX_COIL)
+    return (
+      <p className='text-sm text-warning'>
+        Coil Thickness is over {MAX_COIL}″ — check the Material Thickness.
+      </p>
+    )
+  return null
+}
+
 /**
  * Typing one figure works the other two out. Weight needs the coil's pounds per foot, which the lot
  * can only give when it already has a weight and a length; without it, Weight is left as typed.
@@ -250,18 +271,7 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         ))}
       </div>
 
-      {build ? (
-        num(draft.coil_thickness) > MAX_COIL ? (
-          <p className='text-sm text-warning'>
-            Coil Thickness is over {MAX_COIL}″ — check the Material Thickness.
-          </p>
-        ) : null
-      ) : (
-        <p className='text-sm text-warning'>
-          Enter a Material Thickness under {MAX_MATERIAL}″ and a Core OD up to {MAX_CORE}″ to unlock
-          the three fields above and the Apply button.
-        </p>
-      )}
+      <AdjustHint draft={draft} built={!!build} />
 
       <CoilFacts lot={lot} />
 

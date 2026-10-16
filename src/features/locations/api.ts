@@ -138,10 +138,10 @@ export const locationFormSchema = z
     code: z.string().check(z.minLength(1, 'Name is required')),
     warehouse_id: picked('Warehouse is required'),
     location_type_id: picked('Location Type is required'),
-    weight: z.number('Max weight is required'),
+    weight: z.number('Enter the max weight as a number, e.g. 2000'),
     description: z.nullable(z.string()),
     multi_order: z.boolean(),
-    max_orders: z.nullable(z.number())
+    max_orders: z.nullable(z.number('Enter a number, e.g. 3'))
   })
   .check(
     // A multi-order location has to say how many orders it takes (p1 (731,91)).

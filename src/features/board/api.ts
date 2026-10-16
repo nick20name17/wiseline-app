@@ -521,6 +521,18 @@ const machineCapacitySchema = z.object({
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
     linear_feet: z._default(z.number(), 0),
+    linear_feet_from_stock: z._default(z.number(), 0),
+    // How much of the day is done: cut by the Slinet, bent, rolled. A line counts once it has passed
+    // its own stage, so a line pulled whole from the shelf is in none of these.
+    pieces_cut: z._default(z.number(), 0),
+    bends_done: z._default(z.number(), 0),
+    linear_feet_done: z._default(z.number(), 0),
+    vented_pieces: z._default(z.number(), 0),
+    // The Stock Orders' share of each done figure: the small blue line under it.
+    pieces_cut_from_stock: z._default(z.number(), 0),
+    bends_from_stock_done: z._default(z.number(), 0),
+    linear_feet_from_stock_done: z._default(z.number(), 0),
+    vented_pieces_from_stock: z._default(z.number(), 0),
     // The day's ceiling in `capacity_unit`: the machines' daily max bends in Trim, feet in
     // Rollforming.
     capacity: z._default(z.nullable(z.number()), null),
@@ -538,9 +550,14 @@ const machineCapacitySchema = z.object({
         max_pieces: z._default(z.nullable(z.number()), null),
         bends: z._default(z.number(), 0),
         bends_from_stock: z._default(z.number(), 0),
+        bends_done: z._default(z.number(), 0),
+        bends_from_stock_done: z._default(z.number(), 0),
         max_bends: z._default(z.nullable(z.number()), null),
         over_bends: z._default(z.boolean(), false),
         linear_feet: z._default(z.number(), 0),
+        linear_feet_from_stock: z._default(z.number(), 0),
+        linear_feet_done: z._default(z.number(), 0),
+        linear_feet_from_stock_done: z._default(z.number(), 0),
         max_feet: z._default(z.nullable(z.number()), null),
         over_feet: z._default(z.boolean(), false)
       })
@@ -555,12 +572,21 @@ type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
 /** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */
 export const machineLoad = (machine: MachineCapacity, unit: CapacityUnit) =>
   unit === 'linear_feet'
-    ? { value: machine.linear_feet, max: machine.max_feet, over: machine.over_feet, fromStock: 0 }
+    ? {
+        value: machine.linear_feet,
+        done: machine.linear_feet_done,
+        max: machine.max_feet,
+        over: machine.over_feet,
+        fromStock: machine.linear_feet_from_stock,
+        fromStockDone: machine.linear_feet_from_stock_done
+      }
     : {
         value: machine.bends,
+        done: machine.bends_done,
         max: machine.max_bends,
         over: machine.over_bends,
-        fromStock: machine.bends_from_stock
+        fromStock: machine.bends_from_stock,
+        fromStockDone: machine.bends_from_stock_done
       }
 
 /** One day broken down by machine — what the gear on a day tab opens. */

@@ -290,6 +290,17 @@ test.describe('a truck on the Scheduled tab', () => {
     load_id: loadId,
     status: null
   })
+  // The server puts the supplier in both the order number and the customer.
+  const pickup = {
+    assignment_id: 9,
+    order: null,
+    order_number: 'Acme',
+    customer: 'Acme',
+    kind: 'pickup',
+    weight: 120,
+    load_id: null,
+    status: null
+  }
   const onLoad = [assignment(3, '110825', 40), assignment(4, '114041', 40)]
   const stops = [
     {
@@ -322,7 +333,12 @@ test.describe('a truck on the Scheduled tab', () => {
             weight_limit: 5000,
             delivery: {},
             pickup: {},
-            orders: [assignment(1, 'W12631', null), assignment(2, 'W20936', null), ...onLoad]
+            orders: [
+              assignment(1, 'W12631', null),
+              assignment(2, 'W20936', null),
+              pickup,
+              ...onLoad
+            ]
           }
         ]
       })
@@ -422,6 +438,47 @@ test.describe('a truck on the Scheduled tab', () => {
     ])
   })
 
+  test('unschedules the ticked deliveries, leaving a ticked pickup on the truck', async ({
+    page
+  }) => {
+    await page.getByRole('checkbox', { name: 'Select order W12631' }).click()
+    await page.getByRole('checkbox', { name: 'Select the pickup from Acme' }).click()
+    await page.getByRole('button', { name: 'Unschedule' }).click()
+    const dialog = page.getByRole('alertdialog', { name: 'Unschedule 1 order?' })
+    await expect(
+      dialog.getByText(/Ship Date in EBMS stays.*pickups stay on the truck/)
+    ).toBeVisible()
+    await dialog.getByRole('button', { name: 'Yes, Unschedule' }).click()
+
+    await expect(dialog).toBeHidden()
+    expect(posted).toEqual([{ path: 'unschedule/', body: { orders: ['ORD-1'] } }])
+  })
+
+  test('corrects a pickup, sending only what changed', async ({ page }) => {
+    await page.getByRole('button', { name: 'Edit the pickup from Acme' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit pickup' })
+    await expect(dialog.getByLabel('Supplier')).toHaveValue('Acme')
+    await dialog.getByLabel('Weight (lbs)').fill('150')
+    const request = page.waitForRequest(
+      r => r.method() === 'PATCH' && r.url().endsWith('/shipping/pickups/9/')
+    )
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    expect((await request).postDataJSON()).toEqual({ weight: 150 })
+    await expect(dialog).toBeHidden()
+  })
+
+  test('deletes a cancelled pickup', async ({ page }) => {
+    await page.getByRole('button', { name: 'Delete the pickup from Acme' }).click()
+    const request = page.waitForRequest(
+      r => r.method() === 'DELETE' && r.url().endsWith('/shipping/pickups/9/')
+    )
+    const confirm = page.getByRole('alertdialog')
+    await confirm.getByRole('button', { name: /Delete/ }).click()
+    await request
+    await expect(confirm).toBeHidden()
+  })
+
   test('a route never built starts at the warehouse, which stays first', async ({ page }) => {
     await page.route(`${API_URL}/shipping/loads/40/route/`, route =>
       route.request().method() === 'GET'
@@ -513,7 +570,21 @@ test('Loading says how much of an order is ready, so Loading is not read as stuc
               load_id: 126,
               status: 'loading',
               lines_total: 3,
-              lines_ready: 2
+              lines_ready: 2,
+              lines_made: 3
+            },
+            {
+              assignment_id: 3,
+              order: 'ORD-3',
+              order_number: 'W20794',
+              customer: 'Flatstock only',
+              kind: 'delivery',
+              weight: 20,
+              load_id: 126,
+              status: 'not_started',
+              lines_total: 1,
+              lines_ready: 1,
+              lines_made: 0
             }
           ]
         }
@@ -524,4 +595,7 @@ test('Loading says how much of an order is ready, so Loading is not read as stuc
   await signIn(page)
 
   await expect(page.getByRole('button', { name: '2 of 3 ready' })).toBeVisible()
+  await expect(page.getByText('No packages made for this order yet.')).toBeVisible()
+  // Every line bought in: nothing to wait for.
+  await expect(page.getByText('Nothing to package: goes on with the Load.')).toBeVisible()
 })

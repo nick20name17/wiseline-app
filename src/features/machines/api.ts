@@ -78,15 +78,17 @@ const machineSchema = z.object({
 
 export type Machine = z.infer<typeof machineSchema>
 
+const WHOLE = 'Enter a number, e.g. 1000'
+
 export const machineFormSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
   category: z.string().check(z.minLength(1, 'Category is required')),
   department: z.number(),
   kind: z.string(),
   ebms_profile_names: z.array(z.string().check(z.maxLength(100, 'At most 100 characters'))),
-  daily_max_pieces: z.nullable(z.number()),
-  daily_max_bends: z.nullable(z.number()),
-  daily_max_feet: z.nullable(z.number())
+  daily_max_pieces: z.nullable(z.number(WHOLE)),
+  daily_max_bends: z.nullable(z.number(WHOLE)),
+  daily_max_feet: z.nullable(z.number(WHOLE))
 })
 
 export type MachineForm = z.infer<typeof machineFormSchema>
@@ -176,7 +178,7 @@ export const capacitiesQuery = queryOptions({
 // The form starts empty where nothing is set yet, but the server keeps no capacity without a figure.
 export const dailyCapacityFormSchema = z.object({
   per_day: z
-    .nullable(z.number().check(z.positive('Enter a number above 0')))
+    .nullable(z.number('Enter a number above 0').check(z.positive('Enter a number above 0')))
     .check(z.refine(value => value !== null, 'Enter a number above 0'))
 })
 

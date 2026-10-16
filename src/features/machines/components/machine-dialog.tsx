@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { asNumber, invalid } from '@/lib/form'
+import { asAmount, invalid, WHOLE_INPUT } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -231,12 +231,10 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
             <InputGroup>
               <InputGroupInput
                 id='machine-feet'
-                type='number'
-                min={0}
-                inputMode='numeric'
+                {...WHOLE_INPUT}
                 placeholder='No ceiling'
                 aria-invalid={invalid(errors.daily_max_feet)}
-                {...form.register('daily_max_feet', { setValueAs: asNumber })}
+                {...form.register('daily_max_feet', { setValueAs: asAmount })}
               />
             </InputGroup>
             <FieldError errors={[errors.daily_max_feet]} />
@@ -249,12 +247,10 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='machine-bends'
-              type='number'
-              min={0}
-              inputMode='numeric'
+              {...WHOLE_INPUT}
               placeholder='No ceiling'
               aria-invalid={invalid(errors.daily_max_bends)}
-              {...form.register('daily_max_bends', { setValueAs: asNumber })}
+              {...form.register('daily_max_bends', { setValueAs: asAmount })}
             />
           </InputGroup>
           <FieldError errors={[errors.daily_max_bends]} />
@@ -265,12 +261,10 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='machine-pieces'
-              type='number'
-              min={0}
-              inputMode='numeric'
+              {...WHOLE_INPUT}
               placeholder='No ceiling'
               aria-invalid={invalid(errors.daily_max_pieces)}
-              {...form.register('daily_max_pieces', { setValueAs: asNumber })}
+              {...form.register('daily_max_pieces', { setValueAs: asAmount })}
             />
           </InputGroup>
           <FieldError errors={[errors.daily_max_pieces]} />

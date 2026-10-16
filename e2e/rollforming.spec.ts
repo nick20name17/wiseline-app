@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { SCHEDULED_ORDERS, mockTrimApi, signIn } from './trim-api.ts'
+import { SCHEDULED_ORDERS, WRAPPING_ROWS, mockTrimApi, signIn } from './trim-api.ts'
 
 // The board's fixtures under the Rollforming department: its tabs, and the coil a line is rolled from.
 let posted: { path: string; body: unknown }[]
@@ -407,6 +407,42 @@ test('Wrapping checks a label, and Completed names Rollforming’s own locations
   await page.getByRole('button', { name: /Completed orders/ }).click()
   await expect(page.getByRole('columnheader', { name: 'Rollforming Location' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Trim Location' })).toBeHidden()
+})
+
+test('Wrapping shows the product picture, and a row without one still opens its order', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/wrapping/?*`, route =>
+    route.fulfill({
+      json: WRAPPING_ROWS.map((row, index) => ({
+        ...row,
+        product_id: index ? 'TDE8250' : 'TSF8250',
+        product_files: index
+          ? []
+          : [{ id: 9, name: 'TSF8250_1.png', url: 'https://files.e2e.test/TSF8250_1.png' }]
+      }))
+    })
+  )
+  await page.goto('/rollforming?view=wrapping')
+  await signIn(page)
+  // Lines no released order puts on a machine.
+  await page.getByRole('tab', { name: 'No machine' }).click()
+
+  await expect(page.getByRole('columnheader', { name: 'Image' })).toBeVisible()
+  await page.getByRole('button', { name: 'Drawing of TSF8250' }).click()
+  const drawing = page.getByRole('dialog', { name: 'Drawing of TSF8250' })
+  await expect(drawing).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(drawing).toBeHidden()
+
+  // No picture: the cell is the row's, and opens the order like any other.
+  const dripEdge = page.getByRole('row').filter({ hasText: 'Drip Edge' })
+  await dripEdge
+    .getByRole('cell')
+    .filter({ hasText: 'TDE8250' })
+    .locator('xpath=preceding-sibling::td[1]')
+    .click()
+  await expect(page.getByRole('button', { name: 'Back to Wrapping' })).toBeVisible()
 })
 
 test('a line taken whole from stock has no coil and no box to put it on one', async ({ page }) => {

@@ -52,7 +52,10 @@ const NO_NOTE: OrderNote = {
 // carries no order, so 0 of 0.
 const readinessShape = {
   lines_total: z._default(z.number(), 0),
-  lines_ready: z._default(z.number(), 0)
+  lines_ready: z._default(z.number(), 0),
+  // The lines a department makes: with none, the order has nothing to package and is Loaded once
+  // its Load is released.
+  lines_made: z._default(z.number(), 0)
 }
 
 export type Readiness = { lines_total: number; lines_ready: number }
@@ -212,6 +215,12 @@ const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>
     onSettled: (_, __, ___, ____, { client }) => refreshLoads(client)
   })
 
+/** Orders moved between Unscheduled and a day: both lists are read back. */
+const refreshSchedule = (client: QueryClient) => {
+  void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
+}
+
 /**
  * Apply: the selection goes on the truck for the day, leaves Unscheduled and shows under that date and
  * truck in Scheduled p3 (566,273). The server pushes the ship date to EBMS. Applied again to orders
@@ -234,8 +243,7 @@ export const useApplyShipping = (onSuccess: () => void) =>
     // Closed first: the refetch takes the scheduled orders out of the open window's selection.
     onSuccess: (_, __, ___, { client }) => {
       onSuccess()
-      void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
-      void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
+      refreshSchedule(client)
     }
   })
 
@@ -258,6 +266,9 @@ const assignmentSchema = z.object({
   weight: z._default(z.number(), 0),
   load_id: z._default(z.nullable(z.number()), null),
   status: z._default(z.nullable(z.string()), null),
+  // A supplier pickup's own particulars, for its edit form; the scheduled rows do not carry them yet.
+  description: z._default(z.nullable(z.string()), null),
+  length: z._default(z.nullable(z.number()), null),
   // Past its ship date and not delivered p3 (605,628).
   is_overdue: z._default(z.boolean(), false)
 })
@@ -367,6 +378,21 @@ export const dayLoadsQuery = (shipDate: string, statuses: readonly string[]) =>
           })
           .json()
       )
+  })
+
+/**
+ * Back to Unscheduled — «hold it, we will call». EBMS's Ship Date stays as it is; the server refuses
+ * an order on a Load.
+ */
+export const useUnschedule = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The orders stayed scheduled' },
+    mutationFn: (orders: string[]) =>
+      authApi.post('shipping/unschedule/', { json: { orders } }).json(),
+    onSuccess: (_, __, ___, { client }) => {
+      onSuccess()
+      refreshSchedule(client)
+    }
   })
 
 /** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled, `null` a new one. */
@@ -589,6 +615,10 @@ export const pickupPayloadSchema = z.object({
 
 export type PickupPayload = z.infer<typeof pickupPayloadSchema>
 
+// The server keeps no description as null, not an empty string.
+const pickupJson = (fields: Partial<PickupPayload>) =>
+  'description' in fields ? { ...fields, description: fields.description || null } : fields
+
 /**
  * A supplier pickup — «things that a delivery driver needs to pickup for a supplier», not a customer
  * pickup p3 (586,248) — straight onto the truck for the day.
@@ -600,15 +630,38 @@ export const useCreatePickup = () =>
       authApi
         .post('shipping/pickups/', {
           json: {
-            supplier: input.supplier,
-            description: input.description || null,
-            weight: input.weight,
-            length: input.length,
+            ...pickupJson({
+              supplier: input.supplier,
+              description: input.description,
+              weight: input.weight,
+              length: input.length
+            }),
             ship_date: input.shipDate,
             truck_id: input.truckId
           }
         })
         .json()
+  )
+
+/**
+ * A pickup typed wrong, corrected until its Load is released. Only the fields changed are sent: the
+ * rest stay as the server has them.
+ */
+export const useUpdatePickup = () =>
+  useLoadPost(
+    'The pickup was not saved',
+    ({ id, ...fields }: Partial<PickupPayload> & { id: number }) =>
+      authApi
+        .patch(`shipping/pickups/${id}/`, {
+          json: pickupJson(fields)
+        })
+        .json()
+  )
+
+/** A pickup the supplier cancelled: off the day and its Load, until that Load is released. */
+export const useDeletePickup = () =>
+  useLoadPost('The pickup was not deleted', (id: number) =>
+    authApi.delete(`shipping/pickups/${id}/`).json()
   )
 
 /** Every order's note on a page of Unscheduled, keyed as the shared Order Notes window reads them. */

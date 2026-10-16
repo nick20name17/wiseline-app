@@ -67,7 +67,12 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
           ))}
         </ul>
       ) : (
-        <p className='mt-1 text-xs text-muted-foreground'>No packages made for this order yet.</p>
+        <p className='mt-1 text-xs text-muted-foreground'>
+          {/* Every line bought in: the server counts it Loaded at release. */}
+          {order.lines_made
+            ? 'No packages made for this order yet.'
+            : 'Nothing to package: goes on with the Load.'}
+        </p>
       )}
     </li>
   )
