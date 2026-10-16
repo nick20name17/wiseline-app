@@ -181,6 +181,17 @@ test('the day tab gear opens the machine capacities for that day', async ({ page
   // The Slinet cuts the whole day against its piece cap; Wrapping holds no ceiling, so has no card.
   await expect(page.getByRole('rowheader', { name: /Daily Piece Cap/ })).toContainText(/1,200\s*2%/)
   await expect(page.getByRole('rowheader', { name: /Wrapping/ })).toHaveCount(0)
+  // Beside each ceiling, how much of it the floor has done: bent on the machines and the day, cut
+  // by the Slinet. Then the day's vented pieces on their own card.
+  const row = (name: RegExp) =>
+    page.getByRole('row').filter({ has: page.getByRole('rowheader', { name }) })
+  await expect(row(/Press Brake/)).toContainText(/75 \/ 300\s*25%/)
+  await expect(row(/Daily Bend Cap/)).toContainText(/250 \/ 1,000\s*25%/)
+  await expect(row(/Daily Piece Cap/)).toContainText(/18 \/ 24\s*75%/)
+  await expect(row(/Vented/)).toContainText('3')
+  // The small blue line: the same for the Stock Orders' part.
+  await expect(row(/Press Brake/)).toContainText('40 / 100 40%')
+  await expect(row(/Daily Piece Cap/)).toContainText('2 / 4 50%')
   // The bracket is what the board shows: how much of the total comes from stock.
   await expect(page.getByText('(4 - Stock)').first()).toBeVisible()
 })

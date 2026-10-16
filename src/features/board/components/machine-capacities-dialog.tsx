@@ -93,6 +93,38 @@ const Figure = ({ value, fromStock = 0, unrouted }: FigureProps) => (
   </span>
 )
 
+type ProgressProps = FigureProps & {
+  done: number
+  /** How much of `fromStock` is done. */
+  fromStockDone: number
+}
+
+/**
+ * How much of a total the floor has done — `done / total`, the percent and its bar — with the same
+ * for its Stock Orders underneath, in the small blue line.
+ */
+const Progress = ({ done, value, fromStock = 0, fromStockDone, unrouted }: ProgressProps) => {
+  const percent = share(done, value)
+  const stockPercent = share(fromStockDone, fromStock)
+  return (
+    <span className='flex flex-col items-center gap-1 font-mono'>
+      <span className='flex items-baseline gap-2 text-sm max-sm:flex-col max-sm:items-center max-sm:gap-0'>
+        <span className={cn(unrouted && 'text-warning')}>
+          {count(done)} / {count(value)}
+        </span>
+        {percent === null ? null : <span className='font-bold'>{percent}%</span>}
+      </span>
+      <Bar percent={percent} over={false} />
+      {fromStock ? (
+        <span className='text-xs whitespace-nowrap text-primary max-sm:whitespace-normal'>
+          {count(fromStockDone)} / {count(fromStock)}
+          {stockPercent === null ? null : ` ${stockPercent}%`}
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
 /** A column's name ruled underneath, as the paper report has them. */
 const Heading = ({ children }: { children: React.ReactNode }) => (
   <span className='mb-1 block border-b border-foreground pb-0.5 text-center text-sm font-bold'>
@@ -100,11 +132,13 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   </span>
 )
 
-// The day is the report's headline, the Slinet cuts for every machine, the rest are the machines.
+// The day is the report's headline, the Slinet cuts for every machine, the rest are the machines;
+// Vented is a count of the day's vented pieces, not a machine.
 const TONES = {
   day: 'border-foreground bg-muted',
   slinet: 'border-primary/40 bg-primary/5',
-  machine: 'border-input bg-card'
+  machine: 'border-input bg-card',
+  vented: 'border-warning/40 bg-warning/10'
 } as const
 
 type CardProps = {
@@ -185,6 +219,7 @@ export const MachineCapacitiesDialog = ({
   const measure = feet ? 'Linear Feet' : 'Bends'
   const capLabel = feet ? 'Daily Feet Cap' : 'Daily Bend Cap'
   const total = data ? (feet ? data.total.linear_feet : data.total.bends) : 0
+  const totalDone = data ? (feet ? data.total.linear_feet_done : data.total.bends_done) : 0
   // The report names the pieces with no machine; the rest is whatever the machines do not add up to.
   const unroutedPieces = data?.pieces_without_a_machine ?? 0
   const unroutedMeasure = data
@@ -249,9 +284,17 @@ export const MachineCapacitiesDialog = ({
                   measure={
                     <>
                       <Heading>{measure}</Heading>
-                      <Figure
+                      <Progress
+                        done={totalDone}
                         value={total}
-                        fromStock={feet ? 0 : data.total.bends_from_stock}
+                        fromStock={
+                          feet ? data.total.linear_feet_from_stock : data.total.bends_from_stock
+                        }
+                        fromStockDone={
+                          feet
+                            ? data.total.linear_feet_from_stock_done
+                            : data.total.bends_from_stock_done
+                        }
                         unrouted={unrouted}
                       />
                     </>
@@ -283,9 +326,11 @@ export const MachineCapacitiesDialog = ({
                     measure={
                       <>
                         <Heading>Pieces</Heading>
-                        <Figure
+                        <Progress
+                          done={data.total.pieces_cut}
                           value={data.total.pieces}
                           fromStock={data.total.pieces_from_stock}
+                          fromStockDone={data.total.pieces_cut_from_stock}
                         />
                       </>
                     }
@@ -325,13 +370,35 @@ export const MachineCapacitiesDialog = ({
                           over={load.over}
                         />
                       }
-                      measure={<Figure value={load.value} fromStock={load.fromStock} />}
+                      measure={
+                        <Progress
+                          done={load.done}
+                          value={load.value}
+                          fromStock={load.fromStock}
+                          fromStockDone={load.fromStockDone}
+                        />
+                      }
                       pieces={
                         <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
                       }
                     />
                   )
                 })}
+
+                {/* Venting is a Trim step; Rollforming's lines are never vented. */}
+                {feet ? null : (
+                  <Card
+                    tone='vented'
+                    name={<span className='text-sm font-semibold'>Vented</span>}
+                    measure={null}
+                    pieces={
+                      <Figure
+                        value={data.total.vented_pieces}
+                        fromStock={data.total.vented_pieces_from_stock}
+                      />
+                    }
+                  />
+                )}
               </tbody>
             </table>
           )}

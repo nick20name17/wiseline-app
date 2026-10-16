@@ -615,6 +615,10 @@ export const mockTrimApi = async (page: Page) => {
           pieces_from_stock: 4,
           bends: 1000,
           bends_from_stock: 0,
+          pieces_cut: 18,
+          pieces_cut_from_stock: 2,
+          bends_done: 250,
+          vented_pieces: 3,
           capacity: 5000,
           capacity_unit: 'bends',
           used: 1000
@@ -629,7 +633,9 @@ export const mockTrimApi = async (page: Page) => {
             pieces_from_stock: 0,
             max_pieces: station === SLINET ? 1200 : null,
             bends: bends ? 300 : 0,
-            bends_from_stock: 0,
+            bends_from_stock: bends ? 100 : 0,
+            bends_done: bends ? 75 : 0,
+            bends_from_stock_done: bends ? 40 : 0,
             max_bends: station.daily_max_bends,
             over_bends: false
           }
