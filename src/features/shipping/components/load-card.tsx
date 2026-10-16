@@ -43,7 +43,10 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
       {formatWeight(order.weight)}
     </span>
     <span className='w-24 text-right text-xs text-muted-foreground max-md:w-auto'>
-      {statusLabel(order.status) ?? ''}
+      {/* A pickup is collected, not delivered: the row says what its Driver button said. */}
+      {order.kind === 'pickup' && order.status === 'delivered'
+        ? 'Picked up'
+        : (statusLabel(order.status) ?? '')}
     </span>
     {/* The shipper sends what is done when the customer needs it (round 10, C1). */}
     <span className='flex w-32 justify-end max-md:w-auto'>

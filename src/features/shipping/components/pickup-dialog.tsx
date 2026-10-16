@@ -19,23 +19,35 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PackagePlus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { pickupPayloadSchema, useCreatePickup, type PickupPayload, type TruckCard } from '../api'
+import {
+  pickupPayloadSchema,
+  useCreatePickup,
+  useUpdatePickup,
+  type Assignment,
+  type PickupPayload,
+  type TruckCard
+} from '../api'
 
-type PickupFormProps = { card: TruckCard; shipDate: string; onDone: () => void }
+type PickupFormProps = {
+  defaultValues: PickupPayload
+  submitLabel: string
+  isPending: boolean
+  /** `changed` names the fields the user touched. */
+  onSubmit: (payload: PickupPayload, changed: (keyof PickupPayload)[]) => void
+}
 
-const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
+const PickupForm = ({ defaultValues, submitLabel, isPending, onSubmit }: PickupFormProps) => {
   const form = useForm<PickupPayload>({
     resolver: standardSchemaResolver(pickupPayloadSchema),
-    defaultValues: { supplier: '', description: '', weight: null, length: null }
+    defaultValues
   })
-  const create = useCreatePickup()
-  const { errors } = form.formState
+  const { errors, dirtyFields } = form.formState
 
   return (
     <form
       noValidate
       onSubmit={form.handleSubmit(payload =>
-        create.mutate({ ...payload, shipDate, truckId: card.truck_id }, { onSuccess: onDone })
+        onSubmit(payload, Object.keys(dirtyFields) as (keyof PickupPayload)[])
       )}
     >
       <FieldGroup>
@@ -101,9 +113,9 @@ const PickupForm = ({ card, shipDate, onDone }: PickupFormProps) => {
 
       <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>
-        <Button type='submit' disabled={create.isPending}>
-          {create.isPending ? <Spinner data-icon='inline-start' /> : null}
-          Add pickup
+        <Button type='submit' disabled={isPending}>
+          {isPending ? <Spinner data-icon='inline-start' /> : null}
+          {submitLabel}
         </Button>
       </DialogFooter>
     </form>
@@ -118,6 +130,7 @@ type PickupDialogProps = { card: TruckCard; shipDate: string }
  */
 export const PickupDialog = ({ card, shipDate }: PickupDialogProps) => {
   const [open, setOpen] = useState(false)
+  const create = useCreatePickup()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -133,7 +146,60 @@ export const PickupDialog = ({ card, shipDate }: PickupDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time. */}
-        <PickupForm card={card} shipDate={shipDate} onDone={() => setOpen(false)} />
+        <PickupForm
+          defaultValues={{ supplier: '', description: '', weight: null, length: null }}
+          submitLabel='Add pickup'
+          isPending={create.isPending}
+          onSubmit={payload =>
+            create.mutate(
+              { ...payload, shipDate, truckId: card.truck_id },
+              { onSuccess: () => setOpen(false) }
+            )
+          }
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type EditPickupDialogProps = {
+  pickup: Assignment
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+/** A pickup typed wrong, corrected before its Load is released. */
+export const EditPickupDialog = ({ pickup, open, onOpenChange }: EditPickupDialogProps) => {
+  const update = useUpdatePickup()
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit pickup</DialogTitle>
+          <DialogDescription>{pickup.customer}</DialogDescription>
+        </DialogHeader>
+        <PickupForm
+          // The server puts the supplier in `customer`.
+          defaultValues={{
+            supplier: pickup.customer ?? '',
+            description: pickup.description ?? '',
+            weight: pickup.weight || null,
+            length: pickup.length
+          }}
+          submitLabel='Save'
+          isPending={update.isPending}
+          onSubmit={(payload, changed) => {
+            if (!changed.length) return onOpenChange(false)
+            update.mutate(
+              {
+                id: pickup.assignment_id,
+                ...Object.fromEntries(changed.map(key => [key, payload[key]]))
+              },
+              { onSuccess: () => onOpenChange(false) }
+            )
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

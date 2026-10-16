@@ -56,6 +56,7 @@ export const useUpsertTruck = (onSuccess: () => void) =>
 
 export const useDeleteTruck = () =>
   useMutation({
+    meta: { errorTitle: 'The truck was not deleted' },
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
     onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: trucksKeys.all })
   })
