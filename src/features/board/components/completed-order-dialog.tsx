@@ -40,7 +40,7 @@ import {
 } from '../api'
 import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
-import { packageContents, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { contentNames, packageContents, remanTotal, type HeldLocation } from '../lib/wrapping'
 import {
   LocationChips,
   LocationDialog,
@@ -206,7 +206,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
   const reprint = useReprintPackage()
   const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
-  const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
+  const names = contentNames(lines)
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
 
   return (

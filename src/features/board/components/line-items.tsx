@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query'
 import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { byProduct, lineDay, newProduct } from '../lib/parts'
+import { contentName } from '../lib/wrapping'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -111,7 +112,7 @@ export const LineItems = ({
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
                     ) : (
                       <Checkbox
-                        aria-label={`Select line item ${item.id_inven ?? item.id}`}
+                        aria-label={`Select line item ${contentName({ product_id: item.id_inven, origin_item: item.id, length: item.length })}`}
                         checked={picked.has(item.id)}
                         disabled={scheduling || viewOnly}
                         title={

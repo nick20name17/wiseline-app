@@ -41,6 +41,7 @@ import {
   remanState,
   stagedQuantity,
   wrapAllowed,
+  contentName,
   lineName,
   type CellRoom,
   type HeldLocation
@@ -624,7 +625,7 @@ const CreatePrintButton = ({
       orderNumber: number,
       location: labelLocation,
       weight,
-      contents: lines.map(line => ({ product: lineName(line.row), quantity: line.quantity }))
+      contents: lines.map(line => ({ product: contentName(line.row), quantity: line.quantity }))
     })
   })
   // The board's own questions p1 (951,365) and p1 (861,440); both at once reads as one.

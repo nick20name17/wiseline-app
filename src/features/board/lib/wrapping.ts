@@ -1,4 +1,5 @@
 import { today } from '@/lib/days'
+import { formatWidth } from './format'
 import { matchesSearch } from './search'
 import type {
   LocationSlot,
@@ -237,6 +238,23 @@ export type HeldLocation = {
 /** How the floor names a line: its product, or the EBMS autoid of one that has none. */
 export const lineName = (row: { product_id: string | null; origin_item: string }) =>
   row.product_id ?? row.origin_item
+
+/**
+ * A line as a package lists it: its name and its length. An order cuts one product to several
+ * lengths, and «2 × MTR8055, 1 × MTR8055» does not say which went in.
+ */
+export const contentName = (row: {
+  product_id: string | null
+  origin_item: string | null
+  length: number | null
+}) => {
+  const name = row.product_id ?? row.origin_item ?? '—'
+  return row.length === null ? name : `${name} · ${formatWidth(row.length)}"`
+}
+
+/** The names a package's contents are read by, keyed by the autoid a package holds. */
+export const contentNames = (rows: Parameters<typeof contentName>[0][]) =>
+  new Map(rows.map(row => [row.origin_item, contentName(row)]))
 
 /**
  * What went into a package, line by line. A package names its lines by autoid, so the caller's own

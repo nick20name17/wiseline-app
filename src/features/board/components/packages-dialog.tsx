@@ -22,7 +22,7 @@ import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { lineName, packageContents } from '../lib/wrapping'
+import { contentNames, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
@@ -30,7 +30,7 @@ type PackagesDialogProps = {
   order: string
   number: string
   /** The order's lines on this board, which name a package's contents and say which are its own. */
-  rows: { origin_item: string; product_id: string | null }[]
+  rows: { origin_item: string; product_id: string | null; length: number | null }[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -54,7 +54,7 @@ export const PackagesDialog = ({
   const reprint = useReprintPackage()
   const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
-  const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
+  const names = contentNames(rows)
   // The order's packages across every department come back; the bench deletes only its own.
   const packages = all?.filter(parcel =>
     parcel.contents.every(line => line.origin_item !== null && names.has(line.origin_item))

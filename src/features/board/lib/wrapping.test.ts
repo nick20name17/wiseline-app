@@ -8,6 +8,7 @@ import {
   locationColumns,
   matchesWrapSearch,
   overPackageLimit,
+  contentName,
   packageContents,
   packageTarget,
   packageWeight
@@ -114,6 +115,21 @@ describe('locationColumns', () => {
     expect(locationColumns([slot(1, 'Yard')], undefined).map(column => column.name)).toEqual([
       'Yard'
     ])
+  })
+})
+
+describe('contentName', () => {
+  it('names a line with its length, as one product comes cut to several', () => {
+    expect(contentName({ product_id: 'MTR8055', origin_item: 'A1', length: 36 })).toBe(
+      'MTR8055 · 36"'
+    )
+    expect(contentName({ product_id: 'TJC8326', origin_item: 'A1', length: 120.5 })).toBe(
+      'TJC8326 · 120.5"'
+    )
+  })
+
+  it('falls back to the autoid, and leaves out a length it does not have', () => {
+    expect(contentName({ product_id: null, origin_item: 'B2', length: null })).toBe('B2')
   })
 })
 

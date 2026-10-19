@@ -678,7 +678,8 @@ export const ScheduledLineItems = ({
           number={order.invoice}
           rows={order.origin_items.map(item => ({
             origin_item: item.id,
-            product_id: item.id_inven
+            product_id: item.id_inven,
+            length: item.length
           }))}
           open={seeing}
           onOpenChange={setSeeing}
