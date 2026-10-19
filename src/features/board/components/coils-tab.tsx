@@ -13,7 +13,6 @@ import {
   EmptyTitle
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -27,8 +26,8 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useDeferredValue, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Database, SlidersHorizontal } from 'lucide-react'
+import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
   coilLotsQuery,
@@ -606,6 +605,8 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
 }
 
 type CoilsTabProps = {
+  /** The header's search, matched against product, colour, gauge and coil #. */
+  search: string | undefined
   departmentId: number | undefined
   /** A Worker works the coils but sees them through the Manager's filter: no scope switch, no filter. */
   worker: boolean
@@ -617,11 +618,9 @@ type CoilsTabProps = {
  * department and, inside Trim, into the Slinet — or a whole product at once; its figures are adjusted
  * from here and pushed back.
  */
-export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
+export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
-  const [term, setTerm] = useState('')
-  // The input keeps up with the typing; the list catches up when there is time for it.
-  const deferredTerm = useDeferredValue(term)
+  const term = search ?? ''
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
@@ -690,9 +689,9 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     onSlinet: (lot, checked) => placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } })
   }
 
-  const shown = searched(inAssignment, deferredTerm)
+  const shown = searched(inAssignment, term)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, assignment, deferredTerm, pageSize].join('|')
+  const view = [scoped, assignment, term, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
@@ -700,8 +699,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
   // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
-  const elsewhere =
-    assignment !== 'all' && !shown.length ? searched(indexed, deferredTerm).length : 0
+  const elsewhere = assignment !== 'all' && !shown.length ? searched(indexed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -780,19 +778,6 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        <InputGroup className='w-full md:ml-auto md:w-80'>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search coils'
-            placeholder='Search — product / colour / gauge / coil #'
-            value={term}
-            onChange={event => setTerm(event.target.value)}
-          />
-        </InputGroup>
       </div>
 
       {!loading && !shown.length ? (
@@ -815,10 +800,10 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
         <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
-            key={deferredTerm.trim() ? 'searching' : 'listing'}
+            key={term.trim() ? 'searching' : 'listing'}
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
-            searching={!!deferredTerm.trim()}
+            searching={!!term.trim()}
             onTickGroup={tickGroup}
             {...handlers}
           />

@@ -92,7 +92,18 @@ export const BoardPage = ({
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
-    search: <HeaderSearch initial={search} onSearchChange={onSearchChange} />
+    // Coils is searched for coils, not orders: one box in the header, not a second on the tab.
+    search:
+      view === 'coils' ? (
+        <HeaderSearch
+          initial={search}
+          label='Search coils'
+          placeholder='Search — product / colour / gauge / coil #'
+          onSearchChange={onSearchChange}
+        />
+      ) : (
+        <HeaderSearch initial={search} onSearchChange={onSearchChange} />
+      )
   })
 
   // A role that cannot see the tab in the URL is moved to the first one it can.
@@ -171,7 +182,7 @@ export const BoardPage = ({
           machineId={machineId}
         />
       ) : view === 'coils' ? (
-        <CoilsTab departmentId={departmentId} worker={worker} />
+        <CoilsTab search={search} departmentId={departmentId} worker={worker} />
       ) : view === 'calendar' ? (
         <CalendarTab
           departmentId={departmentId}
