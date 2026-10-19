@@ -114,6 +114,56 @@ export const exceptionsQuery = (year: number) =>
     }
   })
 
+// The production lines a day is scheduled on; Shipping books trucks, not a day's making.
+const PRODUCTION_CODES = new Set(['trim', 'rollforming', 'accessories'])
+
+const departmentSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  code: z._default(z.string(), '')
+})
+
+const dayStripSchema = z.array(
+  z.object({
+    used: z._default(z.number(), 0),
+    capacity_unit: z.catch(z.enum(['bends', 'linear_feet', 'pieces']), 'bends')
+  })
+)
+
+export type DayLoad = { department: string; used: number; unit: 'bends' | 'linear_feet' | 'pieces' }
+
+/**
+ * What each production line has already scheduled on `date`. Closing the day leaves it there: the
+ * server moves nothing, and the boards cannot schedule onto a closed day to fix it later.
+ */
+export const dayLoadQuery = (date: string) =>
+  queryOptions({
+    queryKey: [...workCalendarKeys.all, 'load', date] as const,
+    queryFn: async (): Promise<DayLoad[]> => {
+      const departments = z
+        .array(departmentSchema)
+        .parse(await authApi.get('departments/all/').json())
+        .filter(department => PRODUCTION_CODES.has(department.code))
+      const loads = await Promise.all(
+        departments.map(async department => {
+          const [day] = dayStripSchema.parse(
+            await authApi
+              .get(`departments/${department.id}/day-strip/`, {
+                searchParams: { start: date, days: 1 }
+              })
+              .json()
+          )
+          return {
+            department: department.name,
+            used: day?.used ?? 0,
+            unit: day?.capacity_unit ?? 'bends'
+          }
+        })
+      )
+      return loads.filter(load => load.used > 0)
+    }
+  })
+
 /**
  * Which days are worked decides every department's strip, calendar and scheduling, queries other
  * features own. Those are not on screen here, so they are only marked stale and read again when a

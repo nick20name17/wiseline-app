@@ -98,6 +98,40 @@ test('a Saturday picked on the calendar opens as a working day with its name', a
   expect(sent).toEqual({ is_work_day: true, name: 'Saturday shift' })
 })
 
+test('closing a day with work on it says what is scheduled there', async ({ page }) => {
+  await page.route(`${API_URL}/departments/all/`, route =>
+    route.fulfill({
+      json: [
+        { id: 1, name: 'Trim', code: 'trim' },
+        { id: 2, name: 'Rollforming', code: 'rollforming' },
+        { id: 4, name: 'Shipping', code: 'shipping' }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/departments/*/day-strip/?*`, route => {
+    const trim = route.request().url().includes('/departments/1/')
+    return route.fulfill({
+      json: [
+        trim
+          ? { date: '2026-10-30', used: 73, capacity_unit: 'bends' }
+          : { date: '2026-10-30', used: 0, capacity_unit: 'linear_feet' }
+      ]
+    })
+  })
+
+  await page.getByRole('button', { name: 'Fri, Oct 30, 2026 · work day' }).click()
+  const dialog = page.getByRole('dialog')
+  const warning = dialog.getByText(/^Already scheduled on this day/)
+  await expect(warning).toBeHidden()
+
+  await dialog.getByRole('switch', { name: 'Work day' }).click()
+  // Only a line with work there is named.
+  await expect(warning).toHaveText(
+    'Already scheduled on this day: 73 bends in Trim. Closing it leaves that work there until it is rescheduled.'
+  )
+  await expect(dialog.getByRole('button', { name: 'Save' })).toBeEnabled()
+})
+
 test('the list counts the year’s holidays and working days', async ({ page }) => {
   await page.getByRole('tab', { name: 'List' }).click()
 
