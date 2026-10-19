@@ -44,6 +44,7 @@ import {
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
+import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { unitCoils } from '../lib/unit-coils'
@@ -542,7 +543,7 @@ export const ScheduledLineItems = ({
                             />
                           ) : (
                             <span className='font-mono'>
-                              {width === null ? '—' : width.toFixed(1)}
+                              {width === null ? '—' : formatWidth(width)}
                             </span>
                           )}
                         </TableCell>

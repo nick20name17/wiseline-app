@@ -9,6 +9,7 @@ import { BOARDS, type BoardCode } from '../lib/boards'
 import { BoardContext, ViewOnlyContext } from '../lib/board-context'
 import { BoardPage } from './board-page'
 import { BoardSkeleton } from './board-skeleton'
+import { PackageLabelProvider } from './package-label'
 
 type BoardGateProps = Omit<ComponentProps<typeof BoardPage>, 'departmentId' | 'role'> & {
   /** Whose board this is. */
@@ -44,7 +45,9 @@ export const BoardGate = ({ code, userRole, userId, ...page }: BoardGateProps) =
     return (
       <BoardContext value={board}>
         <ViewOnlyContext value={role === 'viewer'}>
-          <BoardPage {...page} departmentId={department.id} role={role} />
+          <PackageLabelProvider>
+            <BoardPage {...page} departmentId={department.id} role={role} />
+          </PackageLabelProvider>
         </ViewOnlyContext>
       </BoardContext>
     )

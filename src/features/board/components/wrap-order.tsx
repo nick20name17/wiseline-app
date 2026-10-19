@@ -57,7 +57,7 @@ import {
   RemoveJobLocationDialog,
   RemoveLocationDialog
 } from './location-dialog'
-import { usePackageLabel } from './use-package-label'
+import { usePackageLabel } from '../lib/package-label'
 import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
@@ -605,10 +605,27 @@ const CreatePrintButton = ({
   onPrinted
 }: CreatePrintButtonProps) => {
   const [confirming, setConfirming] = useState(false)
-  const label = usePackageLabel()
-  const createPackage = useCreatePackage(() => {
+  const printLabel = usePackageLabel()
+  const createPackage = useCreatePackage(created => {
     setConfirming(false)
     onPrinted()
+    toast.add({
+      type: 'success',
+      title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
+    })
+    if (!created.name)
+      return toast.add({
+        type: 'error',
+        title: 'The package has no barcode yet',
+        description: 'Print its label from See packages once it has one.'
+      })
+    printLabel({
+      name: created.name,
+      orderNumber: number,
+      location: labelLocation,
+      weight,
+      contents: lines.map(line => ({ product: lineName(line.row), quantity: line.quantity }))
+    })
   })
   // The board's own questions p1 (951,365) and p1 (861,440); both at once reads as one.
   const question = overPackage
@@ -621,40 +638,14 @@ const CreatePrintButton = ({
   const print = (override: boolean) =>
     departmentId &&
     (target || locationless) &&
-    createPackage.mutate(
-      {
-        order,
-        department_id: departmentId,
-        ...(target ? { location_id: target.location_id } : {}),
-        lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
-        ...(weight === null ? {} : { weight }),
-        ...(override ? { override_weight: true } : {})
-      },
-      {
-        onSuccess: created => {
-          toast.add({
-            type: 'success',
-            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
-          })
-          if (!created.name)
-            return toast.add({
-              type: 'error',
-              title: 'The package has no barcode yet',
-              description: 'Print its label from See packages once it has one.'
-            })
-          label.print({
-            name: created.name,
-            orderNumber: number,
-            location: labelLocation,
-            weight,
-            contents: lines.map(line => ({
-              product: lineName(line.row),
-              quantity: line.quantity
-            }))
-          })
-        }
-      }
-    )
+    createPackage.mutate({
+      order,
+      department_id: departmentId,
+      ...(target ? { location_id: target.location_id } : {}),
+      lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
+      ...(weight === null ? {} : { weight }),
+      ...(override ? { override_weight: true } : {})
+    })
 
   return (
     <>
@@ -683,7 +674,6 @@ const CreatePrintButton = ({
         isPending={createPackage.isPending}
         onConfirm={() => print(true)}
       />
-      {label.sheet}
     </>
   )
 }

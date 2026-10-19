@@ -22,6 +22,13 @@ const numbers = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 export const formatCount = (value: number) => numbers.format(value)
 
+// Widths are cut to the sixteenth and finer (EBMS keeps 9.6875, 20.5625): rounding to a tenth printed
+// 4.25 as «4.3», a width nobody ordered. Five places hold a thirty-second.
+const inches = new Intl.NumberFormat('en-US', { maximumFractionDigits: 5, useGrouping: false })
+
+/** A width as entered, without trailing zeros: `4.25`, `4`, `9.6875`. */
+export const formatWidth = (value: number) => inches.format(value)
+
 /** A product's colour and gauge the way the cards and their labels print them. */
 export const productFacts = (product: { color: string | null; gauge: string | null }) =>
   [product.color, product.gauge === null ? null : `${product.gauge} ga`].filter(Boolean).join(' · ')

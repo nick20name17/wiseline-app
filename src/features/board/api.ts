@@ -2820,8 +2820,11 @@ type PackageLine = { origin_item: string; quantity: number }
 /**
  * Create & Print. A location is required, a quantity above Left To Wrap is refused, and an
  * over-weight package needs the override the board puts a confirmation behind.
+ *
+ * `onSuccess` is the hook's own, not `mutate`'s: those wait for the refetch below, and the last
+ * package completes the order, so the refetch unmounts the bench and they never run.
  */
-export const useCreatePackage = (onSuccess: () => void) =>
+export const useCreatePackage = (onSuccess: (created: { name: string | null }) => void) =>
   useMutation({
     meta: { errorTitle: 'Nothing was packed' },
     mutationFn: async (parcel: {

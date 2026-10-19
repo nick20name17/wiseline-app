@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { SCHEDULED_ORDERS, WRAPPING_ROWS, mockTrimApi, signIn } from './trim-api.ts'
+import { SCHEDULED_ORDERS, WRAPPING_ROWS, capturePrints, mockTrimApi, signIn } from './trim-api.ts'
 
 // The board's fixtures under the Rollforming department: its tabs, and the coil a line is rolled from.
 let posted: { path: string; body: unknown }[]
@@ -740,4 +740,48 @@ test('the Worker fills in the units of a line still without a coil', async ({ pa
       }
     }
   ])
+})
+
+test('the last package of an order still prints its label once the order leaves Production', async ({
+  page
+}) => {
+  const printed = await capturePrints(page)
+  await serveOrders(
+    page,
+    onRollFormer(line => (line.id === '102' ? { is_released: true, coil_number: 'F7601268' } : {}))
+  )
+  await page.route(`${API_URL}/wrapping/*`, route =>
+    route.fulfill({
+      json: [
+        {
+          item_id: 102,
+          origin_item: '102',
+          order: 'ARINV-3',
+          order_number: '330615',
+          product_id: 'TED8250',
+          description: 'Eave Drip Dark Red',
+          production_date: '2026-09-23',
+          status: 'not_started',
+          qty_ordered: 16,
+          left_to_wrap: 16,
+          can_wrap: true,
+          auto_fill_available: true,
+          auto_fill_amount: 16
+        }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/wrapping/packages/`, async route => {
+    // The package rolls the order's last line, so the order is no longer on the machine's list.
+    await serveOrders(page, onRollFormer())
+    return route.fulfill({ json: { id: 71, name: '02-330615-01' } })
+  })
+  await page.goto('/rollforming?view=production')
+  await signIn(page)
+  await page.getByRole('row', { name: /Package 330615/ }).click()
+  await page.getByRole('button', { name: 'Auto fill' }).first().click()
+  await page.getByRole('button', { name: 'Create & print' }).click()
+
+  await expect(page.getByRole('row', { name: /Package 330615/ })).toBeHidden()
+  await expect.poll(printed).toEqual([expect.stringMatching(/02-330615-01Order 330615.*16/)])
 })

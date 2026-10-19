@@ -46,6 +46,7 @@ import {
   type CutlistGroup
 } from '../lib/cutlists'
 import { useViewOnly } from '../lib/board-context'
+import { formatWidth } from '../lib/format'
 import { useRetained } from '@/lib/use-retained'
 import { itemStatus } from '../lib/status'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -604,7 +605,9 @@ export const CutlistRows = ({
                 {columns.cells({
                   w: (
                     <TableCell>
-                      <span className='font-mono'>{group.width?.toFixed(1) ?? '—'}</span>
+                      <span className='font-mono'>
+                        {group.width === null ? '—' : formatWidth(group.width)}
+                      </span>
                     </TableCell>
                   ),
                   l: (

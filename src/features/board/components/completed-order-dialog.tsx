@@ -47,8 +47,7 @@ import {
   RemoveJobLocationDialog,
   RemoveLocationDialog
 } from './location-dialog'
-import { reprintLabel } from '../lib/package-label'
-import { usePackageLabel } from './use-package-label'
+import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
 const titleOf = (order: CompletedOrder, isStock: boolean) =>
   `Completed · ${order.order_number ?? order.order}${isStock ? '' : ` · ${order.customer ?? '—'}`}`
@@ -205,7 +204,7 @@ type PackagesSectionProps = {
 /** The packages that carried the order out, each with a label the shop can print again. */
 const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => {
   const reprint = useReprintPackage()
-  const label = usePackageLabel()
+  const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
   const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
@@ -283,7 +282,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                           title='Reprint this package label'
                           onClick={() =>
                             reprint.mutate(parcel.package_id, {
-                              onSuccess: data => label.print(reprintLabel(data, names))
+                              onSuccess: data => printLabel(reprintLabel(data, names))
                             })
                           }
                         >
@@ -299,7 +298,6 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
           </Table>
         </div>
       )}
-      {label.sheet}
     </section>
   )
 }

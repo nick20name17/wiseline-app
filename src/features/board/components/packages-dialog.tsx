@@ -24,8 +24,7 @@ import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package }
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { lineName, packageContents } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { reprintLabel } from '../lib/package-label'
-import { usePackageLabel } from './use-package-label'
+import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
 type PackagesDialogProps = {
   order: string
@@ -53,7 +52,7 @@ export const PackagesDialog = ({
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
   const reprint = useReprintPackage()
-  const label = usePackageLabel()
+  const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
   const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
   // The order's packages across every department come back; the bench deletes only its own.
@@ -127,7 +126,7 @@ export const PackagesDialog = ({
                               disabled={reprint.isPending}
                               onClick={() =>
                                 reprint.mutate(parcel.package_id, {
-                                  onSuccess: data => label.print(reprintLabel(data, names))
+                                  onSuccess: data => printLabel(reprintLabel(data, names))
                                 })
                               }
                             >
@@ -184,7 +183,6 @@ export const PackagesDialog = ({
             })
           }
         />
-        {label.sheet}
       </DialogContent>
     </Dialog>
   )
