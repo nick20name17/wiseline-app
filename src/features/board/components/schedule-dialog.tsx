@@ -9,6 +9,7 @@ import {
   DialogTitle
 } from '@/components/dialog'
 import { Spinner } from '@/components/ui/spinner'
+import { useHeldWhileClosed } from '@/hooks/use-held-while-closed'
 import { useQuery } from '@tanstack/react-query'
 import { getDaysInMonth, startOfMonth } from 'date-fns'
 import { CalendarX } from 'lucide-react'
@@ -115,16 +116,21 @@ export const ScheduleDialog = ({
   description,
   initialDay = null,
   ...picker
-}: ScheduleDialogProps) => (
-  <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
-    {/* Wide enough that a day's «1000 / 6000» budget fits its cell whole. */}
-    <DialogContent className='sm:max-w-xl'>
-      <DialogHeader>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
+}: ScheduleDialogProps) => {
+  const shownTitle = useHeldWhileClosed(title, open)
+  const shownDescription = useHeldWhileClosed(description, open)
 
-      <Picker {...picker} initialDay={initialDay} onCancel={() => onOpenChange(false)} />
-    </DialogContent>
-  </Dialog>
-)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
+      {/* Wide enough that a day's «1000 / 6000» budget fits its cell whole. */}
+      <DialogContent className='sm:max-w-xl'>
+        <DialogHeader>
+          <DialogTitle>{shownTitle}</DialogTitle>
+          <DialogDescription>{shownDescription}</DialogDescription>
+        </DialogHeader>
+
+        <Picker {...picker} initialDay={initialDay} onCancel={() => onOpenChange(false)} />
+      </DialogContent>
+    </Dialog>
+  )
+}
