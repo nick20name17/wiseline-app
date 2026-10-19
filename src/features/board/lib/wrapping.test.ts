@@ -1,3 +1,4 @@
+import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import type { LocationSlot, LocationType, OrderLocation, WrappingRow } from '../api'
 import {
@@ -12,11 +13,36 @@ import {
   packageWeight
 } from './wrapping'
 
+// What each sign does, spelled out apart from the code under test.
+const KEYPAD: Record<string, (current: number, amount: number) => number> = {
+  '+': (current, amount) => current + amount,
+  '-': (current, amount) => current - amount,
+  '': (_, amount) => amount
+}
+
 describe('applyKeypad', () => {
   it('adds, takes away, or replaces', () => {
     expect(applyKeypad(50, '+10', 150)).toBe(60)
     expect(applyKeypad(50, '-5', 150)).toBe(45)
     expect(applyKeypad(50, '148', 150)).toBe(148)
+    expect(applyKeypad(50, ' +10 ', 150)).toBe(60)
+  })
+
+  it('always lands between nothing and the most, and replaces with a bare number', () => {
+    fc.assert(
+      fc.property(
+        fc.nat(500),
+        fc.constantFrom('', '+', '-'),
+        fc.nat(1000),
+        fc.nat(500),
+        (current, sign, amount, max) => {
+          const next = applyKeypad(current, `${sign}${amount}`, max)!
+          expect(next).toBeGreaterThanOrEqual(0)
+          expect(next).toBeLessThanOrEqual(max)
+          expect(next).toBe(Math.min(max, Math.max(0, KEYPAD[sign]!(current, amount))))
+        }
+      )
+    )
   })
 
   it('stays between nothing and the quantity ordered', () => {
@@ -35,6 +61,7 @@ describe('decimalKeypad', () => {
   it('reads a decimal as it is being typed', () => {
     expect(decimalKeypad('0.0179')).toBe(0.0179)
     expect(decimalKeypad('.5')).toBe(0.5)
+    expect(decimalKeypad('.25')).toBe(0.25)
     expect(decimalKeypad('12.')).toBe(12)
     expect(decimalKeypad('0')).toBe(0)
   })
@@ -70,6 +97,23 @@ describe('locationColumns', () => {
     expect(columns[2]?.slots.map(entry => entry.location_id)).toEqual([1, 3])
     // A location of no known type goes under its warehouse.
     expect(columns[3]?.slots.map(entry => entry.location_id)).toEqual([5])
+  })
+
+  it('puts a location of no known type and no warehouse under Other, after the typed ones', () => {
+    const columns = locationColumns(
+      [
+        { location_id: 7, warehouse: null, warehouse_is_default: false } as LocationSlot,
+        slot(1, 'Yard')
+      ],
+      new Map([[1, type(10, 'Racks', 99)]])
+    )
+    expect(columns.map(column => [column.key, column.name])).toEqual([
+      ['type-10', 'Racks'],
+      ['warehouse-', 'Other']
+    ])
+    expect(locationColumns([slot(1, 'Yard')], undefined).map(column => column.name)).toEqual([
+      'Yard'
+    ])
   })
 })
 
@@ -108,6 +152,10 @@ describe('packageWeight', () => {
 })
 
 describe('overPackageLimit', () => {
+  it('knows no limit is passed by a package of unknown weight', () => {
+    expect(overPackageLimit(null, 0)).toBe(false)
+  })
+
   it('holds a package to the ceiling, if there is one and its weight is known', () => {
     expect(overPackageLimit(501, 500)).toBe(true)
     expect(overPackageLimit(500, 500)).toBe(false)
@@ -157,6 +205,7 @@ describe('benchLocations', () => {
     const { shown, pendingId } = benchLocations([spot(405, true)], slot(405), null)
     expect(pendingId).toBeNull()
     expect(shown).toEqual([spot(405, true)])
+    expect(benchLocations([spot(404), spot(405, true)], slot(405), null).pendingId).toBeNull()
   })
 
   it('marks the location the staged package would overload', () => {
@@ -178,6 +227,20 @@ describe('packageTarget', () => {
     const clicked = { location_id: 36, name: 'B-03', remaining_weight: 2000 } as LocationSlot
     const own = { location_id: 36, name: 'B-03', remaining_weight: 1866.47 } as OrderLocation
     expect(packageTarget(clicked, [own], []).slot?.remaining_weight).toBe(1866.47)
+  })
+
+  it('goes where the order already stands when nothing is picked', () => {
+    const elsewhere = { location_id: 12, name: 'A-01', current: false } as OrderLocation
+    const current = {
+      location_id: 36,
+      name: 'B-03',
+      current: true,
+      remaining_weight: 50
+    } as OrderLocation
+    const { target, slot } = packageTarget(null, [elsewhere, current], undefined)
+    expect(target).toBe(current)
+    expect(slot).toBe(current)
+    expect(packageTarget(null, undefined, undefined)).toEqual({ target: null, slot: null })
   })
 })
 

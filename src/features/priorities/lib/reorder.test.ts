@@ -1,3 +1,4 @@
+import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import type { Priority } from '../api'
 import { reorder } from './reorder'
@@ -44,5 +45,46 @@ describe('reorder', () => {
 
   it('does nothing when dropped where it started', () => {
     expect(reorder([priority(1), priority(2)], 2, 2)).toBeNull()
+  })
+})
+
+describe('reorder on any list', () => {
+  const lists = fc.uniqueArray(
+    fc.record({
+      id: fc.integer({ min: 1, max: 30 }),
+      department: fc.constantFrom(null, 1),
+      position: fc.integer({ min: 1, max: 10 })
+    }),
+    { selector: row => row.id, minLength: 1, maxLength: 10 }
+  )
+
+  const byId = (a: number, b: number) => a - b
+
+  it('does nothing for an id that is not on the list', () => {
+    expect(reorder([priority(1), priority(2)], 9, 1)).toBeNull()
+    expect(reorder([priority(1), priority(2)], 1, 9)).toBeNull()
+  })
+
+  it("moves the row onto the drop, keeps every row, and saves the whole of the row's hierarchy", () => {
+    fc.assert(
+      fc.property(lists, fc.nat(), fc.nat(), (rows, from, to) => {
+        const list = rows.map(row => priority(row.id, row.department, row.position))
+        const active = list[from % list.length]!
+        const over = list[to % list.length]!
+        const moved = reorder(list, active.id, over.id)
+        fc.pre(moved !== null)
+
+        const own = list.filter(row => row.department === active.department)
+        expect(moved!.department).toBe(active.department)
+        expect(moved!.ids.toSorted(byId)).toEqual(own.map(row => row.id).toSorted(byId))
+        expect(moved!.rows.map(row => row.id).toSorted(byId)).toEqual(
+          list.map(row => row.id).toSorted(byId)
+        )
+        expect(moved!.ids).not.toEqual(own.map(row => row.id))
+        moved!.ids.forEach((id, index) =>
+          expect(moved!.rows.find(row => row.id === id)?.position).toBe(index + 1)
+        )
+      })
+    )
   })
 })

@@ -1,3 +1,4 @@
+import fc from 'fast-check'
 import { expect, test } from 'vitest'
 import { withNewColumns } from './column-order.ts'
 
@@ -29,4 +30,20 @@ test('consecutive new columns keep their declared order', () => {
 
 test('nothing saved yet reads as the declaration', () => {
   expect(withNewColumns([], ['a', 'b'])).toEqual(['a', 'b'])
+})
+
+test('a key saved twice is drawn once', () => {
+  expect(withNewColumns(['a', 'b', 'a'], ['a', 'b'])).toEqual(['a', 'b'])
+})
+
+test('any saved order reads as every declared column, once, saved ones in their saved order', () => {
+  const keys = fc.constantFrom<string>('a', 'b', 'c', 'd', 'e', 'gone')
+  fc.assert(
+    fc.property(fc.uniqueArray(keys, { minLength: 1 }), fc.array(keys), (declared, saved) => {
+      const next = withNewColumns(saved, declared)
+      expect(next.toSorted()).toEqual(declared.toSorted())
+      const kept = [...new Set(saved)].filter(key => declared.includes(key))
+      expect(next.filter(key => kept.includes(key))).toEqual(kept)
+    })
+  )
 })
