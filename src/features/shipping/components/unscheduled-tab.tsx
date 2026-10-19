@@ -152,7 +152,8 @@ export const UnscheduledTab = ({
             </>
           ) : (
             <>
-              <b className='font-semibold text-foreground'>{count}</b> orders to ship
+              <b className='font-semibold text-foreground'>{count}</b> order
+              {count === 1 ? '' : 's'} to ship
             </>
           )}
         </span>
