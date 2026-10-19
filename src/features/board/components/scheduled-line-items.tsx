@@ -319,6 +319,11 @@ export const ScheduledLineItems = ({
               const open = splittable && (unfolded.has(item.id) || !!item.item?.unit_coils.length)
               const units = open && item.item ? unitCoils(item.item, item.quantity) : []
               const ticked = pickedUnits.get(item.id) ?? []
+              const name = contentName({
+                product_id: item.id_inven,
+                origin_item: item.id,
+                length: item.length
+              })
 
               return (
                 <Fragment key={item.id}>
@@ -330,7 +335,7 @@ export const ScheduledLineItems = ({
                       {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
                       {board.coils && editable && status !== 'stock' ? (
                         <Checkbox
-                          aria-label={`Select ${contentName({ product_id: item.id_inven, origin_item: item.id, length: item.length })}`}
+                          aria-label={`Select ${name}`}
                           checked={picked.has(item.id)}
                           disabled={!pickable}
                           onCheckedChange={() =>
@@ -605,7 +610,7 @@ export const ScheduledLineItems = ({
                         <TableCell>
                           <NoteButton
                             state={noteState(item.id)}
-                            label='Line item notes'
+                            label={`Line notes for ${name}`}
                             onClick={() => onOpenNotes(item, otherDay)}
                           />
                         </TableCell>
@@ -617,7 +622,7 @@ export const ScheduledLineItems = ({
                       <TableCell>
                         {editable ? (
                           <Checkbox
-                            aria-label={`Select unit ${unit.unit} of ${item.id_inven ?? item.id}`}
+                            aria-label={`Select unit ${unit.unit} of ${name}`}
                             checked={picked.has(item.id) || ticked.includes(unit.unit)}
                             disabled={
                               picked.has(item.id) ||

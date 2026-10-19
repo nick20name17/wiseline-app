@@ -99,6 +99,11 @@ export const LineItems = ({
             {rows.map((item, index) => {
               const day = lineDay(item)
               const locked = !!day
+              const name = contentName({
+                product_id: item.id_inven,
+                origin_item: item.id,
+                length: item.length
+              })
 
               return (
                 // A line already on a day is read-only here; the mute says so before the lock does.
@@ -112,7 +117,7 @@ export const LineItems = ({
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
                     ) : (
                       <Checkbox
-                        aria-label={`Select line item ${contentName({ product_id: item.id_inven, origin_item: item.id, length: item.length })}`}
+                        aria-label={`Select line item ${name}`}
                         checked={picked.has(item.id)}
                         disabled={scheduling || viewOnly}
                         title={
@@ -144,7 +149,7 @@ export const LineItems = ({
                       <TableCell>
                         <NoteButton
                           state={noteState(item.id)}
-                          label='Line item notes'
+                          label={`Line notes for ${name}`}
                           onClick={() => onOpenNotes(item, locked)}
                         />
                       </TableCell>

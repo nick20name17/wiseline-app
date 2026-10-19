@@ -98,7 +98,7 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
         <Button
           variant='ghost'
           size='icon-sm'
-          aria-label={`Remanufacture ${lineName(row)}`}
+          aria-label={`Remanufacture ${contentName(row)}`}
           disabled={!room}
           title={room ? again : `All ${row.qty_ordered} pcs. are already awaiting remanufacture`}
           onClick={onRemake}
@@ -145,7 +145,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
           max={allowed}
           step={1}
           inputMode='numeric'
-          aria-label={`${pack.verb} from ${lineName(row)}`}
+          aria-label={`${pack.verb} from ${contentName(row)}`}
           title={`Qty to ${pack.verb.toLowerCase()} (1–${allowed})`}
           placeholder='0'
           value={staged || ''}
@@ -305,7 +305,7 @@ const WrapLines = ({
                         {board.stockCards && !viewOnly && !row.is_stock && row.item_id !== null ? (
                           <Button
                             variant='link'
-                            aria-label={`Stock for ${lineName(row)}`}
+                            aria-label={`Stock for ${contentName(row)}`}
                             title='Pull from stock'
                             onClick={() => setStocking(row)}
                           >
@@ -370,7 +370,7 @@ const WrapLines = ({
                       <TableCell>
                         <NoteButton
                           state={noteState(row.origin_item)}
-                          label={`Line notes for ${lineName(row)}`}
+                          label={`Line notes for ${contentName(row)}`}
                           onClick={() => setNoteLine(row)}
                         />
                       </TableCell>
@@ -412,7 +412,7 @@ const WrapLines = ({
         target={
           stocking
             ? {
-                title: `Stock for ${lineName(stocking)}`,
+                title: `Stock for ${contentName(stocking)}`,
                 current: stocking.from_stock,
                 max: stocking.qty_ordered
               }

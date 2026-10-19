@@ -200,7 +200,9 @@ test('a unit with a coil of its own shows under its line', async ({ page }) => {
     .first()
     .click()
 
-  await expect(page.getByRole('checkbox', { name: /^Select unit \d+ of TED8250$/ })).toHaveCount(16)
+  await expect(
+    page.getByRole('checkbox', { name: /^Select unit \d+ of TED8250 · 120"$/ })
+  ).toHaveCount(16)
   const second = page
     .getByRole('row')
     .filter({

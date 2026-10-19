@@ -18,7 +18,7 @@ import {
 } from '../api'
 import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
 import { itemStatus } from '../lib/status'
-import { matchesWrapSearch, remanState } from '../lib/wrapping'
+import { contentName, matchesWrapSearch, remanState } from '../lib/wrapping'
 import { drawingOf } from '../lib/cutlists'
 import { DrawingCell } from './drawing-cell'
 import { Figure } from './figure'
@@ -267,7 +267,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           <TableCell onClick={event => event.stopPropagation()}>
                             <NoteButton
                               state={noteState(row.origin_item)}
-                              label={`Line notes for ${row.origin_item}`}
+                              label={`Line notes for ${contentName(row)}`}
                               onClick={() => setNoteLine(row)}
                             />
                           </TableCell>
