@@ -157,7 +157,8 @@ export const LocationDialog = <T extends HeldLocation>({
                         key={slot.location_id}
                         type='button'
                         disabled={!mine && !slot.available}
-                        title={`${slot.name ?? slot.location_id} · ${weightOf(slot)} · ${slot.orders_on_it}/${slot.max_orders ?? 1}${slot.multi_order ? ' orders (Multi-Order)' : ' order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
+                        // A location made single-order keeps the cap it had as Multi-Order; it still takes one.
+                        title={`${slot.name ?? slot.location_id} · ${weightOf(slot)} · ${slot.orders_on_it}/${slot.multi_order ? `${slot.max_orders ?? '∞'} orders (Multi-Order)` : '1 order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
                         className={cn(
                           'flex items-baseline justify-between gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-left text-sm leading-tight hover:border-input disabled:pointer-events-none disabled:bg-muted disabled:text-muted-foreground',
                           mine
