@@ -10,7 +10,8 @@ import { persistedStore, type PersistedStore } from './persisted-store'
  */
 export const withNewColumns = (saved: readonly string[], declared: readonly string[]) => {
   const known = new Set(declared)
-  const next = saved.filter(key => known.has(key))
+  // A key saved twice would draw its column twice.
+  const next = [...new Set(saved)].filter(key => known.has(key))
   const placed = new Set(next)
 
   declared.forEach((key, index) => {
