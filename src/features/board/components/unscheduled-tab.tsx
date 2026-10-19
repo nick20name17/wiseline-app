@@ -219,6 +219,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
         title={`Set ${board.dateLabel.toLowerCase()}`}
         description={`Scheduling ${selected.length} order${selected.length === 1 ? '' : 's'} entirely.`}
         actionLabel='Set date'
+        ships={selected.map(order => ({ order: order.invoice, date: order.ship_date }))}
         departmentId={departmentId}
         isPending={schedule.isPending}
         onPick={productionDate =>
@@ -240,6 +241,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
             : ''
         }
         actionLabel='Set date'
+        ships={splitting ? [{ order: splitting.invoice, date: splitting.ship_date }] : undefined}
         departmentId={departmentId}
         isPending={splitOrder.isPending}
         onPick={productionDate =>

@@ -1,4 +1,4 @@
-import { fromIsoDay, toIsoDay, today } from '@/lib/days'
+import { formatDate, fromIsoDay, toIsoDay, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,12 +33,23 @@ type ScheduleDialogProps = {
   onPick: (productionDate: string) => void
   /** Offered only when moving a part that is already on a day. */
   onUnschedule?: () => void
+  /** The orders being put on the day, by their Ship Date: a day after it is warned of. */
+  ships?: Ship[]
 }
+
+type Ship = { order: string; date: string | null }
+
+const NO_SHIPS: Ship[] = []
+
+const sameShips = (a: Ship[], b: Ship[]) =>
+  a.length === b.length &&
+  a.every((ship, index) => ship.order === b[index]?.order && ship.date === b[index]?.date)
 
 type PickerProps = Pick<
   ScheduleDialogProps,
   'actionLabel' | 'departmentId' | 'anyDay' | 'isPending' | 'onPick' | 'onUnschedule'
 > & {
+  ships: Ship[]
   initialDay: string | null
   onCancel: () => void
 }
@@ -55,7 +66,8 @@ const Picker = ({
   isPending,
   onPick,
   onUnschedule,
-  onCancel
+  onCancel,
+  ships
 }: PickerProps) => {
   const initial = initialDay ? fromIsoDay(initialDay) : undefined
   const [month, setMonth] = useState(() => initial ?? new Date())
@@ -70,6 +82,8 @@ const Picker = ({
   const selectedIso = selected ? toIsoDay(selected) : null
   const shut = selectedMonth?.find(entry => entry.date === selectedIso)?.is_work_day === false
   const canPick = !!selectedIso && (anyDay || (selectedIso >= today() && !shut))
+  // Allowed — the customer may wait — but the order would be made after it was due out.
+  const late = selectedIso ? ships.filter(ship => ship.date && ship.date < selectedIso) : []
 
   return (
     <>
@@ -81,6 +95,13 @@ const Picker = ({
         selected={selected}
         onSelect={setSelected}
       />
+
+      {late.length ? (
+        <p className='text-sm text-destructive'>
+          {late.length === 1 ? 'Ships' : 'These ship'} before this day:{' '}
+          {late.map(ship => `${ship.order} (${formatDate(ship.date)})`).join(', ')}.
+        </p>
+      ) : null}
 
       <DialogFooter>
         {onUnschedule ? (
@@ -115,10 +136,12 @@ export const ScheduleDialog = ({
   title,
   description,
   initialDay = null,
+  ships = NO_SHIPS,
   ...picker
 }: ScheduleDialogProps) => {
   const shownTitle = useHeldWhileClosed(title, open)
   const shownDescription = useHeldWhileClosed(description, open)
+  const shownShips = useHeldWhileClosed(ships, open, sameShips)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
@@ -129,7 +152,12 @@ export const ScheduleDialog = ({
           <DialogDescription>{shownDescription}</DialogDescription>
         </DialogHeader>
 
-        <Picker {...picker} initialDay={initialDay} onCancel={() => onOpenChange(false)} />
+        <Picker
+          {...picker}
+          initialDay={initialDay}
+          ships={shownShips}
+          onCancel={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )

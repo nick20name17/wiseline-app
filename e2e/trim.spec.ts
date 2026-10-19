@@ -67,6 +67,18 @@ test('ticking an order enables Schedule and Bypass Production', async ({ page })
   await expect(page.getByText('Scheduling 1 order entirely.')).toBeVisible()
 })
 
+test('a day after the Ship Date is warned of, not refused', async ({ page }) => {
+  await page.getByLabel('Select order 330605').click()
+  await page.getByRole('button', { name: /^Schedule/ }).click()
+  await page.getByRole('button', { name: /September 24th, 2026/ }).click()
+
+  // The fixture ships on May 9, 2024: every day the calendar offers is after it.
+  await expect(
+    page.getByRole('dialog').getByText(/^Ships before this day: 330605 \(/)
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Set date' })).toBeEnabled()
+})
+
 test('Bypass Production asks first and reports where the order went', async ({ page }) => {
   await page.route(`${API_URL}/sales-orders/11/departments/1/bypass/`, route =>
     route.fulfill({ json: {} })

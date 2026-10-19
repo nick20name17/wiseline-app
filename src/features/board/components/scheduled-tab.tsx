@@ -92,6 +92,7 @@ const ReschedulePartDialog = ({
         title={`Reschedule order ${shown?.order.invoice ?? ''}`}
         description={`Pick any ${useBoard().dayWord}. Rescheduling resets Manager edits.`}
         actionLabel='Reschedule'
+        ships={shown ? [{ order: shown.order.invoice, date: shown.order.ship_date }] : undefined}
         departmentId={departmentId}
         initialDay={shown?.day ?? null}
         isPending={reschedule.isPending}
