@@ -51,6 +51,7 @@ import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { unitCoils } from '../lib/unit-coils'
 import { NoteButton } from '@/components/note-button'
+import { contentName } from '../lib/wrapping'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
@@ -329,7 +330,7 @@ export const ScheduledLineItems = ({
                       {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
                       {board.coils && editable && status !== 'stock' ? (
                         <Checkbox
-                          aria-label={`Select ${item.id_inven ?? item.id}`}
+                          aria-label={`Select ${contentName({ product_id: item.id_inven, origin_item: item.id, length: item.length })}`}
                           checked={picked.has(item.id)}
                           disabled={!pickable}
                           onCheckedChange={() =>
