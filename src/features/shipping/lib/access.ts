@@ -11,12 +11,3 @@ export const shippingPages = (globalRole: string, role: ShippingRole) => ({
   loading: role === 'manager' || role === 'worker',
   driver: role === 'manager' || globalRole === 'driver'
 })
-
-/** Where someone turned away from one of Shipping's windows goes instead — never back to it. */
-export const shippingFallback = (globalRole: string, role: ShippingRole) => {
-  const pages = shippingPages(globalRole, role)
-  if (pages.loading) return '/loading'
-  if (pages.driver) return '/driver'
-  if (pages.shipping) return '/shipping'
-  return '/trim'
-}

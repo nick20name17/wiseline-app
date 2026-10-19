@@ -83,39 +83,42 @@ export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map(group => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map(item =>
-                  !hidden.has(item.to) ? (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        render={
-                          <Link
-                            to={item.to}
-                            activeProps={ACTIVE}
-                            activeOptions={ACTIVE_OPTIONS}
-                            onClick={putAway}
-                          />
-                        }
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ) : pending ? (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuSkeleton showIcon />
-                    </SidebarMenuItem>
-                  ) : null
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {/* A group with nothing left to offer goes with its heading. */}
+        {NAV_GROUPS.filter(group => pending || group.items.some(item => !hidden.has(item.to))).map(
+          group => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map(item =>
+                    !hidden.has(item.to) ? (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          render={
+                            <Link
+                              to={item.to}
+                              activeProps={ACTIVE}
+                              activeOptions={ACTIVE_OPTIONS}
+                              onClick={putAway}
+                            />
+                          }
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ) : pending ? (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuSkeleton showIcon />
+                      </SidebarMenuItem>
+                    ) : null
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        )}
       </SidebarContent>
     </>
   )

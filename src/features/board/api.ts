@@ -8,7 +8,7 @@ import {
   type QueryClient
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
-import { departmentByCode } from '@/lib/departments'
+import { departmentByCode, departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 /**
@@ -56,6 +56,27 @@ export const departmentRoleQuery = (userId: number | undefined, departmentId: nu
         )
         // The filter is the server's, but a role handed to the wrong person is not worth trusting it.
         .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
+/**
+ * The role a user works a board in, or `null` when they have none there — nor does anyone, when the
+ * department is not set up. The sidebar and the route guards read it before any board mounts.
+ */
+export const boardRoleQuery = (user: { id: number; role: string }, code: string) =>
+  queryOptions({
+    queryKey: ['departments', 'board-role', code, user.id, user.role] as const,
+    queryFn: async ({ client }) => {
+      const department = departmentByCode(
+        await client.fetchQuery({ ...departmentsQuery, retry: false }),
+        code
+      )
+      if (!department) return null
+      const assigned = await client.fetchQuery({
+        ...departmentRoleQuery(user.id, department.id),
+        retry: false
+      })
+      return departmentRole(user.role, assigned)
+    }
   })
 
 /**

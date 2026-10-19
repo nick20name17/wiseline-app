@@ -1,7 +1,8 @@
 import { SettingsTabs } from '@/components/layout/settings-tabs'
-import { homePath, isManagerRole, managesUsers, meQuery } from '@/features/auth'
+import { guardPage } from '@/app/pages'
+import { managesUsers, meQuery } from '@/features/auth'
 import { useQuery } from '@tanstack/react-query'
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 const SettingsLayout = () => {
   const { data: me } = useQuery(meQuery)
@@ -18,10 +19,6 @@ const SettingsLayout = () => {
 
 export const Route = createFileRoute('/_app/settings')({
   staticData: { crumb: 'Settings' },
-  // A hand-typed URL is sent to the user's own page, the same as the hidden sidebar link.
-  beforeLoad: async ({ context }) => {
-    const me = await context.queryClient.ensureQueryData(meQuery)
-    if (!isManagerRole(me.role)) throw redirect({ to: homePath(me), replace: true })
-  },
+  beforeLoad: ({ context }) => guardPage(context.queryClient, '/settings'),
   component: SettingsLayout
 })

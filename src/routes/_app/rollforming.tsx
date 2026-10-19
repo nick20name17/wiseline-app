@@ -1,3 +1,4 @@
+import { guardPage } from '@/app/pages'
 import { meQuery } from '@/features/auth'
 import { BoardGate, boardSearchSchema, prefetchBoard } from '@/features/board'
 import { useQuery } from '@tanstack/react-query'
@@ -25,6 +26,7 @@ const RollformingRoute = () => {
 
 export const Route = createFileRoute('/_app/rollforming')({
   staticData: { crumb: 'Rollforming' },
+  beforeLoad: ({ context }) => guardPage(context.queryClient, '/rollforming'),
   validateSearch: boardSearchSchema,
   loaderDeps: ({ search }) => search,
   // Not awaited: the page draws its own placeholders, and a hover should not hold up anything.

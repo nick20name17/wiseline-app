@@ -21,14 +21,58 @@ test('guarded page redirects to login and returns after signing in', async ({ pa
   await expect(page).toHaveURL(/\/rollforming/)
 })
 
+const DEPARTMENTS = [
+  { id: 1, name: 'Trim', code: 'trim' },
+  { id: 2, name: 'Rollforming', code: 'rollforming' },
+  { id: 3, name: 'Accessories', code: 'accessories' },
+  { id: 4, name: 'Shipping', code: 'shipping' }
+]
+
+// The user's assignments, one department each; the server is asked about one department at a time.
+const assign = async (page: Page, roles: Record<number, string>) => {
+  await page.route(`${API_URL}/departments/all/`, route => route.fulfill({ json: DEPARTMENTS }))
+  await page.route(`${API_URL}/departments/users/assignments/*`, route => {
+    const department = Number(new URL(route.request().url()).searchParams.get('department_id'))
+    const role = roles[department]
+    void route.fulfill({ json: role ? [{ user: user.id, department, role }] : [] })
+  })
+}
+
 test('signing in lands on the page the role starts on', async ({ page }) => {
   await page.route(`${API_URL}/users/${user.id}/`, route =>
-    route.fulfill({ json: { ...user, role: 'driver', process_types: ['driver'] } })
+    route.fulfill({ json: { ...user, role: 'driver' } })
   )
+  await assign(page, {})
   await page.goto('/login')
   await signIn(page)
 
   await expect(page).toHaveURL(/\/driver/)
+})
+
+test('a department the user is not in is neither offered nor opened by its URL', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/users/${user.id}/`, route =>
+    route.fulfill({ json: { ...user, role: 'worker' } })
+  )
+  await assign(page, { 2: 'worker' })
+  await page.goto('/login')
+  await signIn(page)
+
+  await expect(page).toHaveURL(/\/rollforming/)
+  const sidebar = page.locator('[data-sidebar=sidebar]')
+  await expect(sidebar.getByRole('link', { name: 'Rollforming' })).toBeVisible()
+  await expect(sidebar.getByRole('link', { name: 'Trim' })).toBeHidden()
+  await expect(sidebar.getByRole('link', { name: 'Accessories' })).toBeHidden()
+  await expect(sidebar.getByRole('link', { name: 'Shipping' })).toBeHidden()
+  await expect(sidebar.getByRole('link', { name: 'Settings' })).toBeHidden()
+  // A heading whose links are all gone goes too.
+  await expect(sidebar.getByText('MANAGE')).toBeHidden()
+
+  await page.goto('/trim')
+  await expect(page).toHaveURL(/\/rollforming/)
+  await page.goto('/settings/machines')
+  await expect(page).toHaveURL(/\/rollforming/)
 })
 
 test('logging out clears the session', async ({ page }) => {
