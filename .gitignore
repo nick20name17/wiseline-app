@@ -34,3 +34,8 @@ docs
 
 # Playwright MCP snapshots from live checks
 .playwright-mcp
+
+# Coverage and mutation testing reports
+coverage
+.stryker-tmp
+reports/mutation

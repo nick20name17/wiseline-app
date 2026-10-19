@@ -104,3 +104,58 @@ test('a 502 keeps what EBMS said', async () => {
   const error = await authApi.get('ebms').catch((caught: unknown) => caught)
   expect((error as HTTPError).message).toBe('EBMS refused the batch.')
 })
+
+test.each([
+  [
+    'two refused fields',
+    { detail: [{ msg: 'Width is required.' }, { msg: 'Length is required.' }] },
+    'Width is required. Length is required.'
+  ],
+  ['a field-keyed detail', { detail: { width: 'Too wide.', code: 7 } }, 'Too wide.'],
+  ['an errors list', { errors: ['No such coil.', 'Try again.'] }, 'No such coil. Try again.'],
+  ['a message', { message: 'Locked by another user.' }, 'Locked by another user.'],
+  ['an empty detail', { detail: '', message: 'Fallback.' }, 'Fallback.'],
+  [
+    'a 422 with no sentences',
+    { detail: [{ loc: ['body'] }, null] },
+    'Request failed with status 400'
+  ],
+  ['an empty message', { message: '' }, 'Request failed with status 400']
+])('a 400 reads %s', async (_, body, message) => {
+  fetchMock.mockImplementation(async () => json(body, 400))
+
+  const error = await authApi.get('refused').catch((caught: unknown) => caught)
+  expect((error as HTTPError).message).toBe(message)
+})
+
+test('a 400 with no JSON at all reads as its status', async () => {
+  fetchMock.mockImplementation(async () => new Response('Bad Request', { status: 400 }))
+
+  const error = await authApi.get('refused').catch((caught: unknown) => caught)
+  expect((error as HTTPError).message).toBe('Request failed with status 400')
+})
+
+test('sends the access token on every request', async () => {
+  sessionStore.set(REFRESHED)
+  await authApi.get('anything').json()
+  expect(requests()[0]?.headers.get('Authorization')).toBe(`Bearer ${REFRESHED.accessToken}`)
+})
+
+test('a 403 is not refreshed', async () => {
+  fetchMock.mockImplementation(async () => json({ detail: 'Forbidden.' }, 403))
+
+  await expect(authApi.get('locked').json()).rejects.toThrow('Forbidden.')
+  expect(requests().some(isRefresh)).toBe(false)
+})
+
+test('refreshes with the refresh token it holds', async () => {
+  const bodies: Promise<unknown>[] = []
+  fetchMock.mockImplementation(async input => {
+    bodies.push((input as Request).clone().text())
+    return server(input as Request)
+  })
+
+  await authApi.get('anything').json()
+  const refresh = requests().findIndex(isRefresh)
+  expect(JSON.parse((await bodies[refresh]) as string)).toEqual({ refresh: SESSION.refreshToken })
+})

@@ -7,8 +7,10 @@ export const formatWeight = (value: number | null) =>
 /** `13'6" (162")`: the board gives a length in feet and inches, and in inches beside it p3 (595,185). */
 export const formatLength = (inches: number | null) => {
   if (!inches) return '—'
-  const feet = Math.floor(inches / 12)
-  const rest = Math.round((inches - feet * 12) * 10) / 10
+  // Rounded before the split: rounding the rest after it read 23.97" as 1'12".
+  const tenths = Math.round(inches * 10)
+  const feet = Math.floor(tenths / 120)
+  const rest = (tenths - feet * 120) / 10
   return `${feet}'${rest}" (${inches}")`
 }
 
