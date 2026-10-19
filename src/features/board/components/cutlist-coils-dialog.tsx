@@ -224,9 +224,10 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                 <EmptyMedia variant='icon'>
                   <Database />
                 </EmptyMedia>
-                <EmptyTitle>No coils in the Slinet</EmptyTitle>
+                {/* A coil of the colour but another gauge is in the Slinet and still not listed. */}
+                <EmptyTitle>No matching coils in the Slinet</EmptyTitle>
                 <EmptyDescription>
-                  Check a coil of this colour into the Slinet from the Coils tab.
+                  Check a coil of this gauge and colour into the Slinet from the Coils tab.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
