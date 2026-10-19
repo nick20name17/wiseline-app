@@ -92,6 +92,22 @@ test('Rollforming has its own tabs, split by machine, and no stock cards or bypa
   await expect(page.getByRole('button', { name: /Bypass Production/ })).toBeHidden()
 })
 
+test('the tab the Slit Line was opened from leads back to it', async ({ page }) => {
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('tablist').nth(1).getByRole('tab', { name: 'Slit Line' }).click()
+  await expect(page).toHaveURL(/view=slit/)
+
+  // Scheduled stays lit above the Slit Line, so a click on it reports no change of tab.
+  const scheduled = page
+    .getByRole('tablist')
+    .first()
+    .getByRole('tab', { name: /Scheduled/ })
+  await expect(scheduled).toHaveAttribute('aria-selected', 'true')
+  await scheduled.click()
+  await expect(page).toHaveURL(/view=scheduled/)
+})
+
 test('a line gets a Supplier and a Coil Number picked from its coil’s lots', async ({ page }) => {
   await page.goto('/rollforming?view=scheduled')
   await signIn(page)

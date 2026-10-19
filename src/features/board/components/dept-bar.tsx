@@ -46,7 +46,13 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
           <TabsList variant='line' className='h-9'>
             {/* A tab a role has no business with is not there at all, rather than there and dead. */}
             {strip.map(tab => (
-              <TabsTrigger key={tab} value={tab}>
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                // The Slit Line keeps lit the tab it was opened from, and Tabs report no change for
+                // the lit one: without this, clicking it would not leave the Slit Line.
+                onClick={tab === view ? () => onNavigate(tab) : undefined}
+              >
                 {VIEW_LABELS[tab]}
                 {tab in counts ? (
                   // The count takes the tab's own colour, so the active one reads as one thing. It
