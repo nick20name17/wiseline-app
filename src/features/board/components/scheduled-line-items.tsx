@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -44,6 +45,7 @@ import {
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
+import { editedDescription, shownDescription } from '../lib/descriptions'
 import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
@@ -505,16 +507,21 @@ export const ScheduledLineItems = ({
                       desc: (
                         <TableCell>
                           {editable ? (
-                            <Input
+                            // A textarea, as an input drops the memo's line breaks and a blur would
+                            // save the description run together.
+                            <Textarea
                               key={description ?? ''}
+                              rows={1}
+                              className='min-h-8'
                               aria-label={`Description for ${item.id_inven ?? item.id}`}
                               placeholder='Add a description'
-                              defaultValue={description ?? ''}
+                              defaultValue={shownDescription(description)}
                               onBlur={event => {
                                 const input = event.currentTarget
-                                if (input.value !== (description ?? ''))
-                                  edit(item, { description: input.value }, () => {
-                                    input.value = description ?? ''
+                                const next = editedDescription(description, input.value)
+                                if (next !== null)
+                                  edit(item, { description: next }, () => {
+                                    input.value = shownDescription(description)
                                   })
                               }}
                             />
