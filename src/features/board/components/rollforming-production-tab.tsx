@@ -39,6 +39,7 @@ import { CurrentCoil } from './current-coil'
 import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from './status-pill'
 import { WrapOrder } from './wrap-order'
+import { CoilName } from './coil-name'
 
 const COLUMNS = 13
 
@@ -67,7 +68,7 @@ type CoilProps = { value: string | null; item: BoardLineItem['item']; mono?: boo
 const Coil = ({ value, item, mono = false }: CoilProps) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className={cn('truncate', mono && 'font-mono')}>
-      {value ?? (item?.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+      <CoilName value={value} waiting={item?.coil_icon === 'waiting_to_slit'} />
     </span>
     <CoilLock locked={item?.coil_fields_locked ?? false} />
   </span>

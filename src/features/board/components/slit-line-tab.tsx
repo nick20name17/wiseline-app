@@ -32,6 +32,7 @@ import { LineNotesDialog } from './line-notes-dialog'
 import { ScheduleDialog } from './schedule-dialog'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
+import { CoilName } from './coil-name'
 
 // Every column, the select one included.
 const COLUMNS = 11
@@ -237,8 +238,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                     </TableRow>
                     {day.items.map(row => {
                       const product = row.product_id
-                      // No coil named: the Slit Line still owes it, or any coil will do.
-                      const unnamed = row.icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined'
+                      const waiting = row.icon === 'waiting_to_slit'
                       return (
                         <TableRow
                           key={row.origin_item}
@@ -290,10 +290,14 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             </span>
                           </TableCell>
                           <TableCell label='Supplier'>
-                            <span className='truncate'>{row.supplier ?? unnamed}</span>
+                            <span className='truncate'>
+                              <CoilName value={row.supplier} waiting={waiting} />
+                            </span>
                           </TableCell>
                           <TableCell label='Coil Number'>
-                            <span className='truncate font-mono'>{row.coil_number ?? unnamed}</span>
+                            <span className='truncate font-mono'>
+                              <CoilName value={row.coil_number} waiting={waiting} />
+                            </span>
                           </TableCell>
                           <TableCell label='Notes'>
                             <NoteButton

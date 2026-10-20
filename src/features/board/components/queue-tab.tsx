@@ -41,6 +41,7 @@ import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
 import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
+import { CoilName } from './coil-name'
 import { PriorityPill } from '@/components/priority-pill'
 
 const COLUMNS = 11
@@ -92,7 +93,7 @@ type LockedProps = { value: string | null; locked: boolean; row: QueueRow }
 const Locked = ({ value, locked, row }: LockedProps) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className='truncate font-mono'>
-      {value ?? (row.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+      <CoilName value={value} waiting={row.coil_icon === 'waiting_to_slit'} />
     </span>
     <CoilLock locked={locked} />
   </span>

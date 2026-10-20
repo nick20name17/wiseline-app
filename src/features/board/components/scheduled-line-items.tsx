@@ -57,6 +57,7 @@ import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
+import { CoilName } from './coil-name'
 
 type ScheduledLineItemsProps = {
   order: BoardOrder
@@ -102,12 +103,12 @@ const isAllFromStock = (item: BoardLineItem) =>
  * figure already does.
  */
 const coilOf = (item: BoardLineItem, stock: boolean) => {
-  const waiting = item.item?.coil_icon === 'waiting_to_slit'
   return {
     icon: stock ? null : (item.item?.coil_icon ?? null),
     locked: item.item?.coil_fields_locked ?? false,
-    supplier: item.item?.supplier ?? (waiting ? 'waiting...' : 'Undefined'),
-    coilNumber: item.item?.coil_number ?? (waiting ? 'waiting...' : 'Undefined')
+    waiting: item.item?.coil_icon === 'waiting_to_slit',
+    supplier: item.item?.supplier ?? null,
+    coilNumber: item.item?.coil_number ?? null
   }
 }
 
@@ -586,7 +587,7 @@ export const ScheduledLineItems = ({
                             <span
                               className={cn('truncate', coil.locked && 'text-muted-foreground')}
                             >
-                              {coil.supplier}
+                              <CoilName value={coil.supplier} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -602,7 +603,7 @@ export const ScheduledLineItems = ({
                                 coil.locked && 'text-muted-foreground'
                               )}
                             >
-                              {coil.coilNumber}
+                              <CoilName value={coil.coilNumber} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -657,7 +658,9 @@ export const ScheduledLineItems = ({
                         supplier: (
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
-                              <span className='truncate'>{unit.supplier ?? 'Undefined'}</span>
+                              <span className='truncate'>
+                                <CoilName value={unit.supplier} waiting={false} />
+                              </span>
                             </span>
                           </TableCell>
                         ),
@@ -665,7 +668,7 @@ export const ScheduledLineItems = ({
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
                               <span className='truncate font-mono'>
-                                {unit.coil_number ?? 'Undefined'}
+                                <CoilName value={unit.coil_number} waiting={false} />
                               </span>
                             </span>
                           </TableCell>
