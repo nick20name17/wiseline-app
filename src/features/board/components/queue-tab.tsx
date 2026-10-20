@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table'
 import { byDay, formatLongDate, today } from '@/lib/days'
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   arrayMove,
   SortableContext,
@@ -325,7 +325,9 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
+          // Kept inside the body: a row dragged past the table's foot grows its scroll box, which
+          // dnd-kit then scrolls into, leaving the rows out of sight above.
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
           accessibility={{ announcements }}
           onDragEnd={handleDragEnd}
         >
