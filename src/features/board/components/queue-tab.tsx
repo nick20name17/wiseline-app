@@ -96,9 +96,12 @@ const Locked = ({ value, row }: { value: string | null; row: QueueRow }) => (
   </span>
 )
 
-// The same coil can head several rows of a day; its coil number and orders tell them apart.
+// The same coil can head several rows of a day; its coil and orders tell them apart. The Supplier
+// counts too: units of a line given only a Supplier make a row of their own beside the rest.
 const rowName = (row: QueueRow) =>
-  `${row.material_id ?? 'material'} · ${row.coil_number ?? 'Undefined'} · ${
+  `${row.material_id ?? 'material'} · ${
+    [row.supplier, row.coil_number].filter(Boolean).join(' ') || 'no coil'
+  } · ${
     [...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ') || 'no order'
   }`
 
