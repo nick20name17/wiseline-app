@@ -80,7 +80,7 @@ test('logging out clears the session', async ({ page }) => {
   await signIn(page)
   await expect(page).toHaveURL(/\/trim/)
 
-  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('button', { name: /Emily Johnson/ }).click()
   await page.getByRole('menuitem', { name: 'Log out' }).click()
 
   await expect(page).toHaveURL(/\/login/)

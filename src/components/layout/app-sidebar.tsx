@@ -2,6 +2,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -15,6 +16,7 @@ import {
 import { useIsWide } from '@/hooks/use-mobile'
 import { Link } from '@tanstack/react-router'
 import { Grid2x2, Layers, PackageCheck, Settings, Truck, Waypoints } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 const NAV_GROUPS = [
   {
@@ -47,6 +49,8 @@ type AppSidebarProps = {
    * placeholder row of its own height rather than left out and pushed in once the role arrives.
    */
   pending?: boolean
+  /** The signed-in user's row, held at the foot of the menu. */
+  footer?: ReactNode
 }
 
 // Lit by the link itself: `useMatchRoute` would re-render the whole sidebar on every search change.
@@ -54,7 +58,7 @@ type AppSidebarProps = {
 const ACTIVE = { 'data-active': '' }
 const ACTIVE_OPTIONS = { includeSearch: false }
 
-export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
+export const AppSidebar = ({ hidden, pending = false, footer }: AppSidebarProps) => {
   const { isMobile, openMobile, setOpen, setOpenMobile } = useSidebar()
   const wide = useIsWide()
   // A phone's drawer and a tablet's opened rail lie over the page; a link that goes there puts them
@@ -120,6 +124,8 @@ export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
           )
         )}
       </SidebarContent>
+
+      {footer ? <SidebarFooter>{footer}</SidebarFooter> : null}
     </>
   )
 
