@@ -1,7 +1,7 @@
+import { SearchInput } from '@/components/search-input'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Warehouse } from 'lucide-react'
+import { Warehouse } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { warehousesQuery } from '../api'
 import { CreateWarehouseDialog } from './warehouse-dialog'
@@ -33,18 +33,12 @@ export const WarehousesPage = ({ search, onSearchChange }: WarehousesPageProps) 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
         <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
-          <InputGroup className='sm:max-w-60'>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='search'
-              aria-label='Search warehouses'
-              placeholder='Search...'
-              value={term}
-              onChange={event => handleSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            className='sm:max-w-60'
+            label='Search warehouses'
+            value={term}
+            onValueChange={handleSearch}
+          />
 
           {warehouses?.length ? (
             <p className='shrink-0 text-sm text-muted-foreground'>

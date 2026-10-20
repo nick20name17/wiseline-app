@@ -1,5 +1,4 @@
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { Search } from 'lucide-react'
+import { SearchInput } from '@/components/search-input'
 import { useRef, useState } from 'react'
 
 const DEBOUNCE_MS = 250
@@ -28,24 +27,17 @@ export const HeaderSearch = ({
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   return (
-    <InputGroup>
-      <InputGroupAddon>
-        <Search />
-      </InputGroupAddon>
-      <InputGroupInput
-        type='search'
-        aria-label={label}
-        placeholder={placeholder}
-        value={term}
-        onChange={event => {
-          setTerm(event.target.value)
-          clearTimeout(debounce.current)
-          debounce.current = setTimeout(
-            () => onSearchChange(event.target.value || undefined),
-            DEBOUNCE_MS
-          )
-        }}
-      />
-    </InputGroup>
+    <SearchInput
+      label={label}
+      placeholder={placeholder}
+      value={term}
+      onValueChange={value => {
+        setTerm(value)
+        clearTimeout(debounce.current)
+        // A cleared box is not more typing to wait out: the list comes back at once.
+        if (!value) onSearchChange(undefined)
+        else debounce.current = setTimeout(() => onSearchChange(value), DEBOUNCE_MS)
+      }}
+    />
   )
 }

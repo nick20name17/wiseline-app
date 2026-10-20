@@ -144,12 +144,12 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
       ) : (
         <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
-              still between the skeleton, the data and every search. Rollforming's Gauge / Color
-              column takes room of its own: 1108px fixed, which would leave the customer nothing. */}
+              still between the skeleton, the data and every search. The fixed columns take 756px,
+              Rollforming's Gauge / Color 980px; the rest, about 156px at the least, is the customer's. */}
           <Table
             ref={tableRef}
             data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-7xl' : 'min-w-5xl')}
+            className={cn('table-fixed', board.coils ? 'min-w-284' : 'min-w-5xl')}
           >
             <colgroup>
               <col className='w-10' />

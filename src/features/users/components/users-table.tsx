@@ -54,7 +54,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
     <Table data-cards className='min-w-4xl table-fixed'>
       {/* Departments take the leftover width, since a user can hold several. */}
       <colgroup>
-        <col className='w-64' />
+        <col className='w-48' />
         <col className='w-72' />
         <col className='w-36' />
         <col />

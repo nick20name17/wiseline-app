@@ -264,8 +264,10 @@ const boardKeys = {
   counts: (departmentId: number) => [...boardKeys.orders(), 'counts', departmentId] as const,
   machines: (category: string) => [...boardKeys.all, 'machines', category] as const,
   overdue: (departmentId: number) => [...boardKeys.all, 'overdue', departmentId] as const,
+  // Under `orders()`: a line put on another machine, or taken off stock, moves the day's machine
+  // loads the Scheduled tab shows as it is assigned.
   machineCapacities: (departmentId: number, day: string) =>
-    [...boardKeys.all, 'machine-capacities', departmentId, day] as const,
+    [...boardKeys.orders(), 'machine-capacities', departmentId, day] as const,
   allocatedStock: (departmentId: number, search: string | undefined) =>
     [...boardKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
@@ -1550,7 +1552,7 @@ export const stockCardOptionsQuery = (search: string) =>
       z
         .array(stockCardOptionSchema)
         .parse(
-          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 20 } }).json()
+          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 50 } }).json()
         )
   })
 

@@ -23,12 +23,12 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import { lineName } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { BenchHeader } from './wrap-order'
 import { SelectionBar } from '@/components/selection-bar'
 

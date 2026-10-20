@@ -200,7 +200,7 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 
   return (
     // The hint sits on a wrapper: a disabled control never shows its own.
-    <span className='inline-flex items-center gap-2' title={shut ? IN_SLINET : undefined}>
+    <span className='flex items-center gap-2' title={shut ? IN_SLINET : undefined}>
       <Checkbox
         aria-label={`${DEPARTMENT_LABEL[department]} holds coil ${coilName(lot)}`}
         checked={lot[department]}
@@ -215,6 +215,9 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 /** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
 const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
+  // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
+  // figure is missing, not only in the Slinet box's hover.
+  const thicknessMissing = lot.in_trim && !lot.coil_thickness
   const viewOnly = useViewOnly()
 
   return (
@@ -224,22 +227,34 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
           other two out, with the cursor in the one clicked. */}
-      {FIGURES.map(({ key, label }) => (
-        <TableCell key={key} label={label}>
-          {viewOnly ? (
-            <span className='font-mono'>{figure(lot[key])}</span>
-          ) : (
-            <Button
-              variant='link'
-              aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
-              title='Click to open the Coil Adjustment window'
-              onClick={() => onAdjust(lot, key)}
-            >
-              <span className='font-mono'>{figure(lot[key])}</span>
-            </Button>
-          )}
-        </TableCell>
-      ))}
+      {FIGURES.map(({ key, label }) => {
+        const missing = key === 'coil_thickness' && thicknessMissing
+        const shown = (
+          <span className={cn('font-mono', missing && 'text-destructive')}>
+            {missing ? 'Missing' : figure(lot[key])}
+          </span>
+        )
+        return (
+          <TableCell key={key} label={label}>
+            {viewOnly ? (
+              shown
+            ) : (
+              <Button
+                variant='link'
+                aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
+                title={
+                  missing
+                    ? 'Add a Coil Thickness to put this coil in the Slinet'
+                    : 'Click to open the Coil Adjustment window'
+                }
+                onClick={() => onAdjust(lot, key)}
+              >
+                {shown}
+              </Button>
+            )}
+          </TableCell>
+        )
+      })}
       <TableCell label='Rollforming'>
         <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} />
       </TableCell>
@@ -248,10 +263,7 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
       </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
-        <span
-          className='inline-flex items-center gap-2'
-          title={slinetShut ? SLINET_SHUT : undefined}
-        >
+        <span className='flex items-center gap-2' title={slinetShut ? SLINET_SHUT : undefined}>
           <Checkbox
             aria-label={`Slinet holds coil ${coilName(lot)}`}
             checked={lot.in_slinet}
@@ -285,14 +297,15 @@ const LotHead = () => (
 
 const LotColumns = () => (
   <>
+    {/* A lot number runs to 16 characters (01-02-1484403-05). The rest are as wide as their heading
+        on one line: the headings, not the figures, are the longest. */}
+    <col className='w-40' />
+    <col className='w-36' />
     <col className='w-32' />
-    <col className='w-28' />
-    <col className='w-28' />
-    <col className='w-28' />
+    <col className='w-36' />
     <col className='w-32' />
     <col className='w-20' />
-    {/* Headed by words longer than the box under it, and the heading is what sets the width. */}
-    <col className='w-32' />
+    <col className='w-36' />
     <col />
   </>
 )
@@ -321,7 +334,7 @@ const GroupLocation = ({ group, department, onTick }: GroupLocationProps) => {
 
   return (
     <span
-      className='inline-flex items-center gap-2'
+      className='flex items-center gap-2'
       title={
         shut
           ? MOUNTED
@@ -369,8 +382,9 @@ const ProductGrid = ({
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
       {/* The other columns' widths plus the longest Product ID (24 characters), which the table
-          scrolls sideways rather than cut. */}
-      <Table data-cards className='min-w-263 table-fixed'>
+          scrolls sideways rather than cut — and wide enough that an opened product's coils, 928px
+          of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
+      <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
           {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
           <col className='w-15' />
@@ -477,7 +491,7 @@ const ProductGrid = ({
                       <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
-                            <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
+                            <Table data-cards className='table-fixed'>
                               <colgroup>
                                 <LotColumns />
                               </colgroup>

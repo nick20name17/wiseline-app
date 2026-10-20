@@ -13,7 +13,12 @@ import * as z from 'zod/mini'
 
 const shippingKeys = {
   all: ['shipping'] as const,
-  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.all, 'unscheduled', filter] as const,
+  // The lists and their count under one prefix, so whatever refreshes one refreshes both; only the
+  // lists hold rows to patch.
+  unscheduledLists: () => [...shippingKeys.all, 'unscheduled', 'list'] as const,
+  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.unscheduledLists(), filter] as const,
+  // Under the list's own key, so whatever refreshes the list refreshes its count.
+  unscheduledCount: () => [...shippingKeys.all, 'unscheduled', 'count'] as const,
   totals: (selection: Selection) => [...shippingKeys.all, 'totals', selection] as const,
   selection: (selection: Selection, shipDate: string | null) =>
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
@@ -132,6 +137,15 @@ export const unscheduledQuery = ({ search, shipFrom, shipTo }: UnscheduledFilter
       return read < last.count && last.results.length ? read : undefined
     }
   })
+
+/** How many deliveries wait on the Unscheduled tab, whatever it is searched or filtered to. */
+export const unscheduledCountQuery = queryOptions({
+  queryKey: shippingKeys.unscheduledCount(),
+  queryFn: async () =>
+    unscheduledPageSchema.parse(
+      await authApi.get('shipping/unscheduled/', { searchParams: { limit: 1 } }).json()
+    ).count
+})
 
 const shipmentTotalsSchema = z.object({
   count: z._default(z.number(), 0),
@@ -810,7 +824,7 @@ const patchUnscheduled = (
   patch: (row: UnscheduledOrder) => UnscheduledOrder
 ) =>
   client.setQueriesData<UnscheduledPages>(
-    { queryKey: [...shippingKeys.all, 'unscheduled'] },
+    { queryKey: shippingKeys.unscheduledLists() },
     data =>
       data && {
         ...data,
@@ -832,7 +846,7 @@ export const useSetShippingPriority = (order: string) =>
     mutationFn: async (input: { departmentId: number; priority: Priority | null }, { client }) => {
       // Read now, not when clicked: a pick queued behind the one that made the sales order uses it.
       let id = client
-        .getQueriesData<UnscheduledPages>({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+        .getQueriesData<UnscheduledPages>({ queryKey: shippingKeys.unscheduledLists() })
         .flatMap(([, data]) => data?.pages.flatMap(page => page.results) ?? [])
         .find(row => row.order === order)?.sales_order_id
       if (!id) {

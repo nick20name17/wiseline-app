@@ -28,7 +28,8 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RowActions } from '@/components/row-actions'
 import { formatWeight } from '../lib/format'
-import { statusLabel } from '../lib/status'
+import { StatusPill } from '@/components/status-pill'
+import { loadStatus } from '@/lib/status'
 import { OrderLine } from './load-card'
 import { LoadRoute } from './load-route'
 import { EditPickupDialog, PickupDialog } from './pickup-dialog'
@@ -219,8 +220,8 @@ export const TruckLoads = ({ card, shipDate }: TruckLoadsProps) => {
                       {formatWeight(load.weight)}
                     </span>
                     {load.status ? (
-                      <span className='ml-1 text-xs text-muted-foreground'>
-                        · {statusLabel(load.status)}
+                      <span className='ml-1'>
+                        <StatusPill status={loadStatus(load.status)} />
                       </span>
                     ) : null}
                   </TabsTrigger>

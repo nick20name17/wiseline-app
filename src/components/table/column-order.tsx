@@ -1,12 +1,12 @@
 import { TableColumnContext } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
-import { columnOrderStore, withNewColumns } from '@/lib/column-order'
+import { columnOrderStore, columnWidthStore, withNewColumns } from '@/lib/column-order'
 import { closestCenter, DndContext, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core'
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, SortableContext } from '@dnd-kit/sortable'
 import { dragAnnouncements, useDragSensors } from './drag'
 import { SortableHead, type Column } from './sortable-head'
-import { useSyncExternalStore, type ReactNode } from 'react'
+import { useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 
 /** A table whose columns move: the key its order is saved under, and its columns as declared. */
 export type ColumnTable = { table: string; columns: Column[] }
@@ -44,8 +44,8 @@ export const useColumnCells = ({ table, columns }: ColumnTable) => {
 }
 
 /**
- * Movable table columns: a header is dragged to a new place and the order is kept for this person,
- * per table, across reloads.
+ * Movable table columns: a header is dragged to a new place, or its edge to a new width, and both are
+ * kept for this person, per table, across reloads.
  *
  * The order is data: the caller renders its `<col>`s, header cells and body cells through it, so a
  * header and a table's rows can live in different components and still agree. Only the columns
@@ -56,6 +56,19 @@ export const useColumnOrder = (definition: ColumnTable) => {
   const { order, cells } = useColumnCells(definition)
   const byKey = new Map(definition.columns.map(column => [column.key, column]))
   const sensors = useDragSensors()
+  const widthStore = columnWidthStore(definition.table)
+  const widths = useSyncExternalStore(widthStore.subscribe, widthStore.get)
+  // A drag sets the `<col>` directly: a render a step would redraw every row of the table.
+  const colEls = useRef(new Map<string, HTMLTableColElement>())
+
+  // Read now, not at the render the drag began in: another tab may have saved a width since.
+  const resized = (key: string, width: number | null) => {
+    const rest = Object.fromEntries(
+      Object.entries(widthStore.get() ?? {}).filter(([other]) => other !== key)
+    )
+    const next = width === null ? rest : { ...rest, [key]: width }
+    widthStore.set(Object.keys(next).length ? next : null)
+  }
 
   const announcements = dragAnnouncements({
     name: (id: UniqueIdentifier) => byKey.get(String(id))?.label,
@@ -72,7 +85,19 @@ export const useColumnOrder = (definition: ColumnTable) => {
     toast.add({ type: 'success', title: 'Column order saved' })
   }
 
-  const cols = order.map(key => <col key={key} className={byKey.get(key)?.width} />)
+  const cols = order.map(key => (
+    <col
+      key={key}
+      ref={element => {
+        if (!element) return
+        colEls.current.set(key, element)
+        return () => void colEls.current.delete(key)
+      }}
+      // A dragged width replaces the declared class rather than fighting it.
+      className={widths?.[key] ? 'w-(--col-width)' : byKey.get(key)?.width}
+      style={widths?.[key] ? ({ '--col-width': `${widths[key]}px` } as CSSProperties) : undefined}
+    />
+  ))
 
   const headers = (
     <DndContext
@@ -85,7 +110,17 @@ export const useColumnOrder = (definition: ColumnTable) => {
     >
       <SortableContext items={order} strategy={stayInPlace}>
         {order.map(key => (
-          <SortableHead key={key} column={byKey.get(key)!} />
+          <SortableHead
+            key={key}
+            column={byKey.get(key)!}
+            width={widths?.[key]}
+            onResize={width => {
+              const style = colEls.current.get(key)?.style
+              if (width === null) style?.removeProperty('width')
+              else if (style) style.width = `${width}px`
+            }}
+            onResizeEnd={width => resized(key, width)}
+          />
         ))}
       </SortableContext>
     </DndContext>

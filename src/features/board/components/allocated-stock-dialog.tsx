@@ -1,3 +1,4 @@
+import { SearchInput } from '@/components/search-input'
 import { useColumnOrder } from '@/components/table/column-order'
 import {
   Dialog,
@@ -7,12 +8,11 @@ import {
   DialogTitle
 } from '@/components/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Database, Search } from 'lucide-react'
+import { Database } from 'lucide-react'
 import { useState } from 'react'
 import { allocatedStockQuery } from '../api'
 import { ALLOCATED_STOCK_TABLE } from '../lib/columns'
@@ -59,18 +59,12 @@ export const AllocatedStockDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <InputGroup>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search allocated stock'
-            placeholder='Product ID, description or colour...'
-            value={term}
-            onChange={event => setTerm(event.target.value)}
-          />
-        </InputGroup>
+        <SearchInput
+          label='Search allocated stock'
+          placeholder='Product ID, description or colour...'
+          value={term}
+          onValueChange={setTerm}
+        />
 
         {/* The floor is the placeholder's own height: the dialog is centred, so a box that grew from
             nothing into the answer would move the whole sheet under the pointer. */}

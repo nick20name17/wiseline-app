@@ -17,7 +17,7 @@ import {
   type WrappingRow
 } from '../api'
 import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import { contentName, matchesWrapSearch, remanState } from '../lib/wrapping'
 import { drawingOf } from '../lib/cutlists'
 import { DrawingCell } from './drawing-cell'
@@ -27,7 +27,7 @@ import { LocatePackages } from './locate-packages'
 import { NoteButton } from '@/components/note-button'
 import { PriorityPill } from '@/components/priority-pill'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { StockWrap } from './stock-wrap'
 import { useLineNoteState } from './use-line-note-state'
 import { WrapOrder } from './wrap-order'
@@ -259,8 +259,17 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           </TableCell>
                         ),
                         desc: (
-                          <TableCell>
-                            <span className='truncate'>{row.description ?? '—'}</span>
+                          // Stacked rather than cut off, so a long description is read without
+                          // scrolling sideways, a custom length under it.
+                          <TableCell className='whitespace-normal'>
+                            <p>{row.description ?? '—'}</p>
+                            {board.standardLength !== null &&
+                            row.length !== null &&
+                            !row.is_standard_length ? (
+                              <p className='font-mono text-xs text-destructive'>
+                                Custom length {row.length}"
+                              </p>
+                            ) : null}
                           </TableCell>
                         ),
                         notes: (

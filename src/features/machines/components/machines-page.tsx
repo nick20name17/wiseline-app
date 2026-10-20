@@ -52,10 +52,11 @@ const MachineRow = ({ machine, unit }: MachineRowProps) => {
   )
 }
 
-type MachineGroupProps = { section: MachineSection; onAdd: () => void }
+type MachineGroupProps = { section: MachineSection }
 
-const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
+const MachineGroup = ({ section }: MachineGroupProps) => {
   const [open, setOpen] = useState(true)
+  const [creating, setCreating] = useState(false)
   const Chevron = open ? ChevronDown : ChevronRight
 
   return (
@@ -84,6 +85,12 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
           {section.department?.code === DAILY_CAPACITY_DEPARTMENT ? (
             <DailyCapacityDialog department={section.department} />
           ) : null}
+          {section.department ? (
+            <Button variant='outline' size='sm' onClick={() => setCreating(true)}>
+              <Plus data-icon='inline-start' />
+              Add machine
+            </Button>
+          ) : null}
         </div>
         <Button
           variant='ghost'
@@ -109,12 +116,20 @@ const MachineGroup = ({ section, onAdd }: MachineGroupProps) => {
             <button
               type='button'
               className='cursor-pointer underline-offset-4 hover:text-foreground hover:underline'
-              onClick={onAdd}
+              onClick={() => setCreating(true)}
             >
               Add one
             </button>
           </p>
         )
+      ) : null}
+
+      {section.department ? (
+        <CreateMachineDialog
+          department={section.department}
+          open={creating}
+          onOpenChange={setCreating}
+        />
       ) : null}
     </div>
   )
@@ -129,31 +144,22 @@ export const MachinesPage = () => {
   const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
   // Without the departments every machine would read as having none, and land in the wrong card.
   const isPending = machinesPending || departmentsPending
-  const [creating, setCreating] = useState(false)
 
   const sections = machineSections({ machines, departments })
 
   return (
     <section className='flex flex-1 flex-col gap-3'>
-      <div className='flex items-center justify-between gap-3.5'>
-        <p className='text-sm text-muted-foreground'>
-          <b className='font-semibold text-foreground'>{machines?.length ?? 0}</b> machines across
-          departments
-        </p>
-        <Button onClick={() => setCreating(true)}>
-          <Plus data-icon='inline-start' />
-          Add machine
-        </Button>
-      </div>
+      <p className='text-sm text-muted-foreground'>
+        <b className='font-semibold text-foreground'>{machines?.length ?? 0}</b> machines across
+        departments
+      </p>
 
       {isPending ? (
         Array.from({ length: SKELETON_SECTIONS }, (_, section) => (
           <Skeleton key={section} className='h-14' />
         ))
       ) : sections.length ? (
-        sections.map(section => (
-          <MachineGroup key={section.key} section={section} onAdd={() => setCreating(true)} />
-        ))
+        sections.map(section => <MachineGroup key={section.key} section={section} />)
       ) : (
         <Empty>
           <EmptyHeader>
@@ -165,8 +171,6 @@ export const MachinesPage = () => {
           </EmptyHeader>
         </Empty>
       )}
-
-      <CreateMachineDialog open={creating} onOpenChange={setCreating} />
     </section>
   )
 }

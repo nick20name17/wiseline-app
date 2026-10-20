@@ -22,12 +22,13 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
           widest cell, so they hold still between the skeleton, the data and every search. */}
       <Table data-cards className='min-w-4xl table-fixed'>
-        {/* Description takes the leftover width, since it is the one field that runs long. */}
+        {/* Description takes the leftover width, since it is the one field that runs long. A street
+            address runs to about 40 characters. */}
         <colgroup>
-          <col className='w-56' />
-          <col className='w-64' />
+          <col className='w-40' />
+          <col className='w-88' />
           <col />
-          <col className='w-28' />
+          <col className='w-24' />
           <col className='w-24' />
         </colgroup>
         <TableHeader>

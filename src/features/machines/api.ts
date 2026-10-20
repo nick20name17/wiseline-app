@@ -49,6 +49,16 @@ export const MACHINE_KINDS = [
 
 export type MachineKind = (typeof MACHINE_KINDS)[number]
 
+/**
+ * The kinds each department's machines can be, the one a new machine starts as first: Trim never
+ * slits a coil, Accessories only packs. A department not named here may hold any.
+ */
+export const DEPARTMENT_KINDS: Record<string, readonly MachineKind[]> = {
+  trim: ['bending', 'cutting', 'wrapping'],
+  rollforming: ['rollforming', 'slit_line', 'wrapping'],
+  accessories: ['packaging']
+}
+
 export const KIND_LABELS: Record<MachineKind, string> = {
   cutting: 'Cutting',
   bending: 'Bending',
@@ -184,24 +194,36 @@ export const dailyCapacityFormSchema = z.object({
 
 export type DailyCapacityForm = z.infer<typeof dailyCapacityFormSchema>
 
+/**
+ * The EBMS category a department's work arrives under, which the shared department list does not
+ * carry: what a capacity row is keyed by, and what a new machine of the department routes by.
+ */
+export const departmentCategoryQuery = (departmentId: number) =>
+  queryOptions({
+    queryKey: ['departments', departmentId, 'category'] as const,
+    queryFn: async () =>
+      z
+        .object({ category: z.nullable(z.string()) })
+        .parse(await authApi.get(`departments/${departmentId}/`).json()).category
+  })
+
 export const useSaveDailyCapacity = (onSuccess: () => void) =>
   useMutation({
     meta: { errorTitle: 'The daily capacity was not saved' },
-    mutationFn: async ({
-      department,
-      capacity,
-      values
-    }: {
-      department: Department
-      capacity: DepartmentCapacity | undefined
-      values: DailyCapacityForm
-    }) => {
+    mutationFn: async (
+      {
+        department,
+        capacity,
+        values
+      }: {
+        department: Department
+        capacity: DepartmentCapacity | undefined
+        values: DailyCapacityForm
+      },
+      { client }
+    ) => {
       if (capacity) return authApi.patch(`capacities/${capacity.id}/`, { json: values }).json()
-      // A capacity row is keyed by the department's EBMS category too, which the shared
-      // department list does not carry.
-      const { category } = z
-        .object({ category: z.nullable(z.string()) })
-        .parse(await authApi.get(`departments/${department.id}/`).json())
+      const category = await client.fetchQuery(departmentCategoryQuery(department.id))
       return authApi
         .post('capacities/', { json: { ...values, category, department: department.id } })
         .json()

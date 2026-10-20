@@ -48,14 +48,15 @@ import { isBender } from '../lib/cutlists'
 import { editedDescription, shownDescription } from '../lib/descriptions'
 import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
-import { itemStatus } from '../lib/status'
-import { unitCoils } from '../lib/unit-coils'
+import { itemStatus } from '@/lib/status'
+import { coilSummary, unitCoils } from '../lib/unit-coils'
 import { NoteButton } from '@/components/note-button'
+import { useTabSelect } from '@/components/tab-select'
 import { contentName } from '../lib/wrapping'
-import { CoilAssignDialog } from './coil-assign-dialog'
+import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 import { CoilName } from './coil-name'
 
@@ -97,18 +98,33 @@ const commitNumber = (
 const isAllFromStock = (item: BoardLineItem) =>
   item.quantity > 0 && (item.item?.pull_from_stock ?? 0) >= item.quantity
 
+// A split line whose units roll off more than one coil names none of them on its own row.
+const MIXED = 'Mixed'
+
 /**
  * A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). A line pulled from stock
  * is rolled off nothing, so it carries no coil p2 (542,453) — whether the server says Stock or the
  * figure already does.
  */
-const coilOf = (item: BoardLineItem, stock: boolean) => {
+const coilOf = (item: BoardLineItem, stock: boolean, released: boolean) => {
+  const own = item.item
+  const waiting = own?.coil_icon === 'waiting_to_slit'
+  // The line's own coil is only what its units without one take; the row says what they all run off.
+  const units = own?.unit_coils.length ? unitCoils(own, item.quantity) : null
+  const shared = (pick: (coil: CoilCurrent) => string | null) => {
+    if (!units) return own ? pick(own) : null
+    const values = new Set(units.map(pick))
+    return values.size === 1 ? ([...values][0] ?? null) : MIXED
+  }
   return {
-    icon: stock ? null : (item.item?.coil_icon ?? null),
-    locked: item.item?.coil_fields_locked ?? false,
-    waiting: item.item?.coil_icon === 'waiting_to_slit',
-    supplier: item.item?.supplier ?? null,
-    coilNumber: item.item?.coil_number ?? null
+    icon: stock ? null : (own?.coil_icon ?? null),
+    // What the Manager assigns locks it for the Worker, and the Manager can still change it until
+    // release; only the Slit Line's hold is a lock here before then.
+    locked: released ? (own?.coil_fields_locked ?? false) : waiting,
+    waiting,
+    supplier: shared(coil => coil.supplier),
+    coilNumber: shared(coil => coil.coil_number),
+    summary: units ? coilSummary(units).join('\n') : undefined
   }
 }
 
@@ -149,6 +165,8 @@ export const ScheduledLineItems = ({
   const slit = useSlitRequest()
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
+  // One for every row's machine menu: only one is ever open.
+  const tabSelect = useTabSelect()
   const [assigning, setAssigning] = useState(false)
   // Assign rolls the lines off a coil; request sends them to the Slit Line with the coil chosen. Kept
   // apart from `assigning` so the closing dialog keeps its title.
@@ -197,6 +215,39 @@ export const ScheduledLineItems = ({
   const coilLines = [...pickedLines, ...unitLines]
   const pickedProduct = coilLines[0]?.id_inven ?? null
   const pickedWaiting = pickedLines.filter(item => item.item?.coil_icon === 'waiting_to_slit')
+  // Choosing again starts from the coil already on what is ticked, when it is one coil, so a slip is
+  // corrected rather than typed over from Undefined. Before release the Manager's choice is open.
+  // A whole split line runs off its units' coils, and a request covers only the whole lines.
+  const pickedCoils: CoilCurrent[] = [
+    ...pickedLines.flatMap((item): CoilCurrent[] =>
+      !item.item
+        ? []
+        : item.item.unit_coils.length
+          ? unitCoils(item.item, item.quantity)
+          : [item.item]
+    ),
+    ...(coilAction === 'assign'
+      ? unitLines.flatMap(item => {
+          const ticked = new Set(pickedUnits.get(item.id))
+          return item.item
+            ? unitCoils(item.item, item.quantity).filter(unit => ticked.has(unit.unit))
+            : []
+        })
+      : [])
+  ]
+  const [firstCoil] = pickedCoils
+  const pickedCurrent: CoilCurrent | undefined =
+    firstCoil &&
+    pickedCoils.every(
+      coil => coil.supplier === firstCoil.supplier && coil.coil_number === firstCoil.coil_number
+    )
+      ? {
+          supplier: firstCoil.supplier,
+          coil_number: firstCoil.coil_number,
+          supplier_locked: false,
+          coil_number_locked: false
+        }
+      : undefined
 
   if (!order.origin_items.length) {
     return (
@@ -308,7 +359,11 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(item, status === 'stock' || item.item?.status === 'stock')
+              const coil = coilOf(
+                item,
+                status === 'stock' || item.item?.status === 'stock',
+                released
+              )
               const pickable =
                 board.coils &&
                 editable &&
@@ -434,7 +489,11 @@ export const ScheduledLineItems = ({
                                 <span className='truncate'>{machine?.name ?? 'Assign'}</span>
                                 <ChevronDown data-icon='inline-end' />
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align='start' className='min-w-40'>
+                              <DropdownMenuContent
+                                align='start'
+                                className='min-w-40'
+                                {...tabSelect}
+                              >
                                 <DropdownMenuRadioGroup
                                   value={machine ? String(machine.id) : ''}
                                   onValueChange={value => edit(item, { flow: Number(value) })}
@@ -521,7 +580,7 @@ export const ScheduledLineItems = ({
                             <Textarea
                               key={description ?? ''}
                               rows={1}
-                              className='min-h-8'
+                              size='sm'
                               aria-label={`Description for ${name}`}
                               placeholder='Add a description'
                               defaultValue={shownDescription(description)}
@@ -583,7 +642,7 @@ export const ScheduledLineItems = ({
                       ),
                       supplier: (
                         <TableCell>
-                          <span className='flex items-center gap-1.5'>
+                          <span className='flex items-center gap-1.5' title={coil.summary}>
                             <span
                               className={cn('truncate', coil.locked && 'text-muted-foreground')}
                             >
@@ -595,7 +654,7 @@ export const ScheduledLineItems = ({
                       ),
                       coil: (
                         <TableCell>
-                          <span className='flex items-center gap-1.5'>
+                          <span className='flex items-center gap-1.5' title={coil.summary}>
                             <CoilIcon icon={coil.icon} />
                             <span
                               className={cn(
@@ -701,6 +760,7 @@ export const ScheduledLineItems = ({
           lines={coilAction === 'assign' ? coilLines : pickedLines}
           action={coilAction}
           departmentId={departmentId}
+          current={pickedCurrent}
           units={{
             assign: unitLines.length
               ? Object.fromEntries(unitLines.map(item => [item.id, pickedUnits.get(item.id) ?? []]))

@@ -597,6 +597,17 @@
   }
 }
 
+/* Paper does not scroll: whatever prints — a report, a label, a page by Ctrl+P — prints no scroll
+   bar, nor the gutter the page keeps for one. */
+@media print {
+  * {
+    scrollbar-width: none !important;
+  }
+  html {
+    scrollbar-gutter: auto !important;
+  }
+}
+
 /**
  * A report prints on its own sheet.
  *
@@ -640,6 +651,9 @@
     --tw-translate-y: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
+    /* The dialog's own scroll box, kept to the screen's height, prints its scroll bars. */
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   /* Controls, and anything that only explains the screen, have no business on paper. */
@@ -664,6 +678,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* SearchInput draws its own clear button. */
+  input[type='search']::-webkit-search-cancel-button {
+    appearance: none;
   }
 
   html {

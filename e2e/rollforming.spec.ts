@@ -218,6 +218,51 @@ test('a unit with a coil of its own shows under its line', async ({ page }) => {
     })
     .last()
   await expect(first).toContainText('COLSTE')
+  // The line itself runs off two coils, so it names neither.
+  await expect(
+    page
+      .getByRole('row')
+      .filter({ has: page.getByRole('checkbox', { name: /^Select TED8250/ }) })
+      .last()
+  ).toContainText('Mixed')
+})
+
+test('choosing again starts from the coil the Manager already gave the line', async ({ page }) => {
+  await serveOrders(
+    page,
+    onRollFormer(line =>
+      line.id === '102'
+        ? {
+            supplier: 'COLSTE',
+            coil_number: 'F7601268',
+            supplier_locked: true,
+            coil_number_locked: true,
+            coil_fields_locked: true
+          }
+        : {}
+    )
+  )
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('button', { name: /^All Scheduled Orders/ }).click()
+  await page
+    .getByRole('row', { name: /330615/ })
+    .getByRole('button')
+    .first()
+    .click()
+
+  // Locked for the Worker, not for the Manager before release.
+  const line = page
+    .getByRole('row')
+    .filter({ has: page.getByRole('checkbox', { name: 'Select TED8250' }) })
+  await expect(line.getByLabel('Locked')).toHaveCount(0)
+  await page.getByRole('checkbox', { name: 'Select TED8250' }).click()
+  await page.getByRole('button', { name: /Select Supplier \/ Coil Number \(1\)/ }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Select Supplier / Coil Number' })
+  await expect(dialog.getByLabel('Supplier')).toContainText('COLSTE')
+  await expect(dialog.getByLabel('Coil Number')).toHaveValue('F7601268')
+  await expect(dialog.getByText('Set by the Manager — locked.')).toHaveCount(0)
 })
 
 test('a line goes to the Slit Line with the Supplier chosen for it', async ({ page }) => {
