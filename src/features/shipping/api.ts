@@ -58,7 +58,7 @@ const readinessShape = {
   lines_made: z._default(z.number(), 0)
 }
 
-export type Readiness = { lines_total: number; lines_ready: number }
+export type Readiness = { lines_total: number; lines_ready: number; order_number: string | null }
 
 const unscheduledOrderSchema = z.object({
   ...readinessShape,

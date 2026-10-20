@@ -203,7 +203,13 @@ test('an unscheduled order opens on its lines and packages, and its note is chec
   await page.goto('/shipping?view=unscheduled')
   await signIn(page)
 
-  await expect(page.getByRole('button', { name: '1 of 2 ready' })).toBeVisible()
+  await page.getByRole('button', { name: '1 of 2 ready' }).click()
+  const lines = page.getByRole('dialog', { name: 'Lines · Order 116764' })
+  await expect(lines.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText(
+    'Not ready'
+  )
+  await page.keyboard.press('Escape')
+  await expect(lines).toBeHidden()
   await page.getByRole('checkbox', { name: 'Select order 116764' }).click()
   await page.getByRole('button', { name: 'Expand order 116764' }).click()
   await expect(page.getByText('01-116764-1')).toBeVisible()

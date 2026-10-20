@@ -1,6 +1,13 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { orderLinesQuery, type Readiness } from '../api'
@@ -23,7 +30,7 @@ export const OrderLines = ({ order }: { order: string }) => {
   return (
     <ul className='divide-y divide-border'>
       {lines.map(line => (
-        // Two lines rather than six columns: a popover row is too narrow for the description.
+        // Two lines rather than six columns: a dialog's row is too narrow for the description.
         <li key={line.origin_item} className='flex items-start gap-3 px-3 py-2 text-sm'>
           <Badge variant={line.ready ? 'muted' : 'destructive'} className='w-24 justify-center'>
             {line.ready ? 'Ready' : 'Not ready'}
@@ -54,22 +61,34 @@ type ReadyCountProps = { order: string | null; readiness: Readiness; className?:
 
 /**
  * «2 of 3 ready» on an order row, opening into its lines. A tap rather than a hover: the floor's
- * screens are touch. Nothing for a pickup, which has no order lines.
+ * screens are touch. A dialog rather than a popover: an order of thirty lines ran a popover off the
+ * screen, with nothing to scroll it by. Nothing for a pickup, which has no order lines.
  */
 export const ReadyCount = ({ order, readiness, className }: ReadyCountProps) => {
   if (!order || !readiness.lines_total) return null
   const all = readiness.lines_ready === readiness.lines_total
 
   return (
-    <Popover>
-      <PopoverTrigger
+    <Dialog>
+      <DialogTrigger
         render={<Button variant={all ? 'ghost' : 'destructive'} size='sm' className={className} />}
       >
         {all ? 'All ready' : `${readiness.lines_ready} of ${readiness.lines_total} ready`}
-      </PopoverTrigger>
-      <PopoverContent align='end' className='w-96 max-w-(--available-width)'>
-        <OrderLines order={order} />
-      </PopoverContent>
-    </Popover>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Lines · Order {readiness.order_number ?? '—'}</DialogTitle>
+          <DialogDescription>
+            {all
+              ? `All ${readiness.lines_total} ready.`
+              : `${readiness.lines_ready} of ${readiness.lines_total} ready, the ones not ready first.`}
+          </DialogDescription>
+        </DialogHeader>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport rounded-lg border border-border md:max-h-96 md:overflow-y-auto'>
+          <OrderLines order={order} />
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
