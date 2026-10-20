@@ -206,7 +206,7 @@ export const ScheduledLineItems = ({
   }
 
   return (
-    <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+    <div className='sticky-view space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {/* Before release the Manager can still move the whole part to another day; after it, the two
           actions the board leaves here are gone and the rows are a record. */}
       {/* Once released the coil buttons give way to the packages the floor makes p2 (541,647). */}
@@ -270,7 +270,9 @@ export const ScheduledLineItems = ({
       )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
-        <Table data-cards className='min-w-4xl table-fixed'>
+        {/* The fixed columns take about 1000px; the rest is the Description's. Narrower than this,
+            the table scrolls inside the panel and the actions above stay in view. */}
+        <Table data-cards className='min-w-7xl table-fixed'>
           <colgroup>
             <col className='w-10' />
             {columns.cols}

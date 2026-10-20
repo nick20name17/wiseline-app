@@ -142,7 +142,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
               still between the skeleton, the data and every search. Rollforming's Gauge / Color
               column takes room of its own: 1108px fixed, which would leave the customer nothing. */}
