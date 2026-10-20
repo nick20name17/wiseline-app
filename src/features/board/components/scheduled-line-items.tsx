@@ -521,7 +521,7 @@ export const ScheduledLineItems = ({
                             <Textarea
                               key={description ?? ''}
                               rows={1}
-                              className='min-h-8'
+                              size='sm'
                               aria-label={`Description for ${name}`}
                               placeholder='Add a description'
                               defaultValue={shownDescription(description)}
