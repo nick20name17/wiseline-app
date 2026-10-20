@@ -3102,6 +3102,8 @@ const slitLineSchema = z.object({
   product_id: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   quantity: z._default(z.nullable(z.number()), null),
+  /** Inches. */
+  length: z._default(z.nullable(z.number()), null),
   production_date: z._default(z.nullable(z.string()), null),
   // The Slit Line's own day for a machine's request p2 (754,297); none until the Manager gives one.
   slit_production_date: z._default(z.nullable(z.string()), null),
@@ -3121,7 +3123,7 @@ export type SlitStage = 'unscheduled' | 'scheduled' | 'slit'
 /**
  * The Slit Line tab: the machines' requests with no slit day yet, those with one, or what has been
  * slit, by slit day (else Production Date) then Priority p2 (754,297), (1204,296). A line carries the
- * Supplier and Coil Number the Slit Line filled in, or «waiting...».
+ * Supplier and Coil Number the Slit Line filled in, or null while it owes them.
  */
 export const slitLineQuery = (departmentId: number | undefined, stage: SlitStage) =>
   queryOptions({
@@ -3282,15 +3284,6 @@ const queueLineSchema = z.object({
   units: z._default(z.nullable(z.array(z.number())), null)
 })
 
-// The server words a coil nobody named «Undefined», or «waiting...» while the Slit Line owes it.
-const queueCoil = z._default(
-  z.pipe(
-    z.nullable(z.string()),
-    z.transform(value => (value === 'Undefined' || value === 'waiting...' ? null : value))
-  ),
-  null
-)
-
 const queueRowSchema = z.object({
   // What a reorder names the row by. It changes when what the row combines does, so a reorder is
   // sent from a fresh read.
@@ -3302,10 +3295,14 @@ const queueRowSchema = z.object({
   linear_feet: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
   priority: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null),
-  supplier: queueCoil,
-  coil_number: queueCoil,
+  // `null`: no coil named — Undefined, or «waiting...» while the Slit Line owes it.
+  supplier: z._default(z.nullable(z.string()), null),
+  coil_number: z._default(z.nullable(z.string()), null),
   coil_icon: z._default(z.nullable(z.string()), null),
+  // Either field locked; each also on its own — a row for some units takes those units' locks.
   coil_fields_locked: z._default(z.boolean(), false),
+  supplier_locked: z._default(z.boolean(), false),
+  coil_number_locked: z._default(z.boolean(), false),
   gauge: z._default(z.nullable(z.string()), null),
   color: z._default(z.nullable(z.string()), null),
   // Runs off the coil in the machine — every row of that Supplier and Coil Number, whatever the day.
