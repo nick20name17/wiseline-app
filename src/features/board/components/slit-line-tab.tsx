@@ -1,4 +1,5 @@
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
+import { formatWidth } from '../lib/format'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,8 @@ import { ScheduleDialog } from './schedule-dialog'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
-const COLUMNS = 10
+// Every column, the select one included.
+const COLUMNS = 11
 
 const ONE_PRODUCT = 'One Product ID at a time: it is slit off one coil'
 
@@ -47,9 +49,6 @@ const EMPTY: Record<SlitStage, [string, string]> = {
 
 type SlitLineTabProps = { search: string | undefined; departmentId: number }
 
-// The server words a coil nobody chose as one of these, not as null.
-const UNCHOSEN = new Set([null, 'waiting...', 'Undefined'])
-
 /**
  * Mark slit starts from what the Manager asked for, when the picked lines agree on it; Undefined
  * still leaves the Slit Line free to slit off any coil p2 (709,408). Unlocked: the Worker records
@@ -58,7 +57,7 @@ const UNCHOSEN = new Set([null, 'waiting...', 'Undefined'])
 const requestedCoil = (rows: SlitLine[]) => {
   const one = (values: (string | null)[]) => {
     const [value = null] = values
-    return new Set(values).size === 1 && !UNCHOSEN.has(value) ? value : null
+    return new Set(values).size === 1 ? value : null
   }
   const supplier = one(rows.map(row => row.supplier))
   return {
@@ -193,7 +192,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards className='min-w-5xl table-fixed'>
+          <Table data-cards className='min-w-7xl table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-36' />
@@ -202,6 +201,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
               <col className='w-32' />
               <col />
               <col className='w-16' />
+              <col className='w-20' />
               <col className='w-36' />
               <col className='w-40' />
               <col className='w-16' />
@@ -215,6 +215,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 <TableHead>Product ID</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Qty</TableHead>
+                <TableHead>Length</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Coil Number</TableHead>
                 <TableHead>Notes</TableHead>
@@ -222,7 +223,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={COLUMNS} />
+                <TableSkeletonRows columns={COLUMNS - 1} />
               ) : (
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>
@@ -236,6 +237,8 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                     </TableRow>
                     {day.items.map(row => {
                       const product = row.product_id
+                      // No coil named: the Slit Line still owes it, or any coil will do.
+                      const unnamed = row.icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined'
                       return (
                         <TableRow
                           key={row.origin_item}
@@ -281,13 +284,16 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                           <TableCell label='Qty'>
                             <span className='font-mono'>{row.quantity ?? '—'}</span>
                           </TableCell>
+                          <TableCell label='Length'>
+                            <span className='font-mono'>
+                              {row.length === null ? '—' : `${formatWidth(row.length)}"`}
+                            </span>
+                          </TableCell>
                           <TableCell label='Supplier'>
-                            <span className='truncate'>{row.supplier ?? 'Undefined'}</span>
+                            <span className='truncate'>{row.supplier ?? unnamed}</span>
                           </TableCell>
                           <TableCell label='Coil Number'>
-                            <span className='truncate font-mono'>
-                              {row.coil_number ?? 'Undefined'}
-                            </span>
+                            <span className='truncate font-mono'>{row.coil_number ?? unnamed}</span>
                           </TableCell>
                           <TableCell label='Notes'>
                             <NoteButton
