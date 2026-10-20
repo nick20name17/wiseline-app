@@ -256,14 +256,33 @@ export const contentName = (row: {
 export const contentNames = (rows: Parameters<typeof contentName>[0][]) =>
   new Map(rows.map(row => [row.origin_item, contentName(row)]))
 
+type ContentLine = Parameters<typeof contentName>[0]
+
 /**
- * What went into a package, line by line. A package names its lines by autoid, so the caller's own
- * lines say which product each one is.
+ * What went into a package, by product: one product cut to many lengths reads as the product once
+ * and its lengths longest first, not the product repeated down a line wider than the screen. A
+ * package names its lines by autoid, so the caller's own lines say which product and length each is.
  */
-export const packageContents = (
-  contents: Package['contents'],
-  names: ReadonlyMap<string | null, string | null>
-) =>
-  contents
-    .map(item => `${item.quantity} × ${names.get(item.origin_item) ?? item.origin_item ?? '—'}`)
-    .join(', ') || '—'
+export const packageGroups = (contents: Package['contents'], rows: readonly ContentLine[]) => {
+  const byId = new Map(rows.map(row => [row.origin_item, row]))
+  const groups = new Map<
+    string,
+    { product: string; total: number; lengths: Map<number | null, number> }
+  >()
+  for (const item of contents) {
+    const row = byId.get(item.origin_item)
+    const product = row?.product_id ?? item.origin_item ?? '—'
+    const group = groups.get(product) ?? { product, total: 0, lengths: new Map() }
+    const length = row?.length ?? null
+    group.total += item.quantity
+    group.lengths.set(length, (group.lengths.get(length) ?? 0) + item.quantity)
+    groups.set(product, group)
+  }
+  return [...groups.values()].map(({ product, total, lengths }) => ({
+    product,
+    total,
+    pieces: [...lengths]
+      .map(([length, quantity]) => ({ length, quantity }))
+      .sort((a, b) => (b.length ?? -1) - (a.length ?? -1))
+  }))
+}

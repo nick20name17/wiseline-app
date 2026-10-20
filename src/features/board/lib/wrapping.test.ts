@@ -9,7 +9,7 @@ import {
   matchesWrapSearch,
   overPackageLimit,
   contentName,
-  packageContents,
+  packageGroups,
   packageTarget,
   packageWeight
 } from './wrapping'
@@ -133,22 +133,40 @@ describe('contentName', () => {
   })
 })
 
-describe('packageContents', () => {
-  it('names each line by product, falling back to its autoid', () => {
-    const names = new Map([['A1', 'TBT8262']])
+describe('packageGroups', () => {
+  it('names a product once and lists its lengths longest first', () => {
+    const rows = [
+      { origin_item: 'A1', product_id: 'MTR8055', length: 48 },
+      { origin_item: 'A2', product_id: 'MTR8055', length: 152 },
+      { origin_item: 'A3', product_id: 'MTR8055', length: 48 },
+      { origin_item: 'B1', product_id: null, length: null }
+    ]
     expect(
-      packageContents(
+      packageGroups(
         [
-          { origin_item: 'A1', quantity: 4 },
-          { origin_item: 'B2', quantity: 2 }
+          { origin_item: 'A1', quantity: 1 },
+          { origin_item: 'A2', quantity: 10 },
+          { origin_item: 'A3', quantity: 2 },
+          { origin_item: 'B1', quantity: 3 }
         ],
-        names
+        rows
       )
-    ).toBe('4 × TBT8262, 2 × B2')
+    ).toEqual([
+      {
+        product: 'MTR8055',
+        total: 13,
+        pieces: [
+          { length: 152, quantity: 10 },
+          { length: 48, quantity: 3 }
+        ]
+      },
+      // A line with no product is named by its autoid.
+      { product: 'B1', total: 3, pieces: [{ length: null, quantity: 3 }] }
+    ])
   })
 
-  it('says so when the package is empty', () => {
-    expect(packageContents([], new Map())).toBe('—')
+  it('has nothing to list for an empty package', () => {
+    expect(packageGroups([], [])).toEqual([])
   })
 })
 
