@@ -332,7 +332,10 @@ export const ScheduledRow = ({
       {expanded ? (
         <TableRow>
           {/* The select column where there is one, the expand column and the table's own. */}
-          <TableCell colSpan={(selectable ? 2 : 1) + board.tables.scheduled.columns.length}>
+          <TableCell
+            colSpan={(selectable ? 2 : 1) + board.tables.scheduled.columns.length}
+            className='lg:overflow-visible'
+          >
             <ScheduledLineItems
               order={order}
               departmentId={departmentId}

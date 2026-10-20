@@ -40,7 +40,8 @@ import {
 } from '../api'
 import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
-import { contentNames, packageContents, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { contentNames, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { PackageContents } from './package-contents'
 import {
   LocationChips,
   LocationDialog,
@@ -262,9 +263,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                     ),
                     contents: (
                       <TableCell>
-                        <span className='text-muted-foreground'>
-                          {packageContents(parcel.contents, names)}
-                        </span>
+                        <PackageContents contents={parcel.contents} rows={lines} />
                       </TableCell>
                     ),
                     location: (

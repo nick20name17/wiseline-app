@@ -22,7 +22,8 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
-import { contentNames, overWeight, packageContents } from '../lib/wrapping'
+import { contentNames, overWeight } from '../lib/wrapping'
+import { PackageContents } from './package-contents'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LocationDialog } from './location-dialog'
 
@@ -108,9 +109,7 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
                     <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                   </TableCell>
                   <TableCell label='Contents' card='full'>
-                    <span className='text-muted-foreground'>
-                      {packageContents(parcel.contents, names)}
-                    </span>
+                    <PackageContents contents={parcel.contents} rows={rows} />
                   </TableCell>
                   <TableCell label='Weight'>
                     <span className='font-mono'>

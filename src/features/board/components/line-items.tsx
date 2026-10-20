@@ -58,7 +58,7 @@ export const LineItems = ({
   }
 
   return (
-    <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+    <div className='sticky-view space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {viewOnly ? null : (
         <div className='flex flex-wrap items-center gap-x-3 gap-y-2'>
           <span className='flex items-center gap-1.5 text-sm font-medium'>

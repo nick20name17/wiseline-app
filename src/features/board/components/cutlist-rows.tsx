@@ -598,7 +598,6 @@ export const CutlistRows = ({
                   if (!(event.target instanceof Element)) return
                   if (!event.currentTarget.contains(event.target)) return
                   if (event.target.closest('button, a, input, label, [role=menuitem]')) return
-                  if (window.getSelection()?.toString()) return
                   setDetailsKey(group.key)
                 }}
               >

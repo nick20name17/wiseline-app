@@ -421,6 +421,23 @@ test.describe('a truck on the Scheduled tab', () => {
     ])
   })
 
+  test('says when EBMS kept an order’s old Ship Date', async ({ page }) => {
+    // EBMS takes a Ship Date only on an Open order; an invoiced one still ships.
+    await page.route(`${API_URL}/shipping/apply/`, route =>
+      route.fulfill({ json: { ship_date_not_in_ebms: ['W12631'] } })
+    )
+    await page.getByRole('checkbox', { name: 'Select order W12631' }).click()
+    await page.getByRole('button', { name: 'Reschedule' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Reschedule 1 order' })
+    await dialog.getByRole('button', { name: 'Select Ship Date…' }).click()
+    await page.getByRole('button', { name: /October 1st, 2026/ }).click()
+    await dialog.getByText('Truck 106').click()
+    await dialog.getByRole('button', { name: 'Apply' }).click()
+
+    await expect(page.getByText('Ship Date not written to EBMS')).toBeVisible()
+    await expect(page.getByText('W12631: no longer Open in EBMS')).toBeVisible()
+  })
+
   test('adds a supplier pickup onto the truck for the day', async ({ page }) => {
     await page.getByRole('button', { name: 'Supplier pickup' }).click()
     const dialog = page.getByRole('dialog', { name: 'Supplier pickup' })

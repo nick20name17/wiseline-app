@@ -302,6 +302,20 @@
   padding: calc(var(--spacing) * 1.5);
 }
 
+/**
+ * An expanded row in a table wider than the screen: its panel stays over the part of the table in
+ * view and is as wide as it, so the panel's actions are not off past the right edge. The element
+ * around the scrolling table carries `@container`; the inset is the cell's own `px-4`. The cell must
+ * not clip, or it, not the table, is what the panel sticks in. From `lg` only: below it rows are cards.
+ */
+@utility sticky-view {
+  @media (width >= 64rem) {
+    position: sticky;
+    left: calc(var(--spacing) * 4);
+    width: calc(100cqi - var(--spacing) * 8);
+  }
+}
+
 /*
  * A table marked `data-cards` lays each row out as a card below `lg`, where its columns would not
  * fit: the same rows, cells and handlers, so a phone or a tablet loses nothing a desk has. Each cell

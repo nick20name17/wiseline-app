@@ -151,7 +151,7 @@ export const OrderRow = ({
       {expanded ? (
         <TableRow>
           {/* The board's columns, and the checkbox and chevron before them. */}
-          <TableCell colSpan={columnOrder.length + 2}>
+          <TableCell colSpan={columnOrder.length + 2} className='lg:overflow-visible'>
             <LineItems
               order={order}
               ready={departmentId !== undefined}

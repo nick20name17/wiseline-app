@@ -41,6 +41,7 @@ import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
 import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
+import { CoilName } from './coil-name'
 import { PriorityPill } from '@/components/priority-pill'
 
 const COLUMNS = 11
@@ -68,12 +69,11 @@ const hasCoil = (row: QueueRow) =>
 
 const NEEDS_COIL = 'Needs a Supplier and Coil Number first'
 
-/** Locked is the row's either-or; the Manager locks only the fields they set. */
 const currentOf = (row: QueueRow): CoilCurrent => ({
   supplier: row.supplier,
   coil_number: row.coil_number,
-  supplier_locked: row.coil_fields_locked && !!row.supplier,
-  coil_number_locked: row.coil_fields_locked && !!row.coil_number
+  supplier_locked: row.supplier_locked,
+  coil_number_locked: row.coil_number_locked
 })
 
 /** A line on the row for some of its units fills in just those; the rest roll off other coils. */
@@ -88,13 +88,14 @@ const unitsOf = (row: QueueRow) => {
   )
 }
 
-const Locked = ({ value, row }: { value: string | null; row: QueueRow }) => (
+type LockedProps = { value: string | null; locked: boolean; row: QueueRow }
+
+const Locked = ({ value, locked, row }: LockedProps) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className='truncate font-mono'>
-      {value ?? (row.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+      <CoilName value={value} waiting={row.coil_icon === 'waiting_to_slit'} />
     </span>
-    {/* An empty field beside a locked one is still the Worker's to fill. */}
-    <CoilLock locked={row.coil_fields_locked && !!value} />
+    <CoilLock locked={locked} />
   </span>
 )
 
@@ -200,10 +201,10 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
         )}
       </TableCell>
       <TableCell label='Supplier'>
-        <Locked value={row.supplier} row={row} />
+        <Locked value={row.supplier} locked={row.supplier_locked} row={row} />
       </TableCell>
       <TableCell label='Coil Number'>
-        <Locked value={row.coil_number} row={row} />
+        <Locked value={row.coil_number} locked={row.coil_number_locked} row={row} />
       </TableCell>
       <TableCell label='Slit Line'>
         {row.coil_icon === 'waiting_to_slit' ? (

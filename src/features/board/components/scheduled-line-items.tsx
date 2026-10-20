@@ -57,6 +57,7 @@ import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
 import { StatusPill } from './status-pill'
 import { useLineNoteState } from './use-line-note-state'
+import { CoilName } from './coil-name'
 
 type ScheduledLineItemsProps = {
   order: BoardOrder
@@ -102,12 +103,12 @@ const isAllFromStock = (item: BoardLineItem) =>
  * figure already does.
  */
 const coilOf = (item: BoardLineItem, stock: boolean) => {
-  const waiting = item.item?.coil_icon === 'waiting_to_slit'
   return {
     icon: stock ? null : (item.item?.coil_icon ?? null),
     locked: item.item?.coil_fields_locked ?? false,
-    supplier: item.item?.supplier ?? (waiting ? 'waiting...' : 'Undefined'),
-    coilNumber: item.item?.coil_number ?? (waiting ? 'waiting...' : 'Undefined')
+    waiting: item.item?.coil_icon === 'waiting_to_slit',
+    supplier: item.item?.supplier ?? null,
+    coilNumber: item.item?.coil_number ?? null
   }
 }
 
@@ -206,7 +207,7 @@ export const ScheduledLineItems = ({
   }
 
   return (
-    <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+    <div className='sticky-view space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {/* Before release the Manager can still move the whole part to another day; after it, the two
           actions the board leaves here are gone and the rows are a record. */}
       {/* Once released the coil buttons give way to the packages the floor makes p2 (541,647). */}
@@ -270,7 +271,9 @@ export const ScheduledLineItems = ({
       )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
-        <Table data-cards className='min-w-4xl table-fixed'>
+        {/* The fixed columns take about 1000px; the rest is the Description's. Narrower than this,
+            the table scrolls inside the panel and the actions above stay in view. */}
+        <Table data-cards className='min-w-7xl table-fixed'>
           <colgroup>
             <col className='w-10' />
             {columns.cols}
@@ -584,7 +587,7 @@ export const ScheduledLineItems = ({
                             <span
                               className={cn('truncate', coil.locked && 'text-muted-foreground')}
                             >
-                              {coil.supplier}
+                              <CoilName value={coil.supplier} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -600,7 +603,7 @@ export const ScheduledLineItems = ({
                                 coil.locked && 'text-muted-foreground'
                               )}
                             >
-                              {coil.coilNumber}
+                              <CoilName value={coil.coilNumber} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -655,7 +658,9 @@ export const ScheduledLineItems = ({
                         supplier: (
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
-                              <span className='truncate'>{unit.supplier ?? 'Undefined'}</span>
+                              <span className='truncate'>
+                                <CoilName value={unit.supplier} waiting={false} />
+                              </span>
                             </span>
                           </TableCell>
                         ),
@@ -663,7 +668,7 @@ export const ScheduledLineItems = ({
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
                               <span className='truncate font-mono'>
-                                {unit.coil_number ?? 'Undefined'}
+                                <CoilName value={unit.coil_number} waiting={false} />
                               </span>
                             </span>
                           </TableCell>

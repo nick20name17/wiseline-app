@@ -22,7 +22,8 @@ import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { contentNames, packageContents } from '../lib/wrapping'
+import { contentNames } from '../lib/wrapping'
+import { PackageContents } from './package-contents'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
@@ -97,9 +98,7 @@ export const PackagesDialog = ({
                         <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                       </TableCell>
                       <TableCell label='Contents' card='full'>
-                        <span className='text-muted-foreground'>
-                          {packageContents(parcel.contents, names)}
-                        </span>
+                        <PackageContents contents={parcel.contents} rows={rows} />
                       </TableCell>
                       <TableCell label='Weight'>
                         <span className='font-mono'>

@@ -41,8 +41,8 @@ test.beforeEach(async ({ page }) => {
               origin_item: '101',
               icon: 'waiting_to_slit',
               locked: true,
-              supplier: 'waiting...',
-              coil_number: 'waiting...'
+              supplier: null,
+              coil_number: null
             }
           ]
     })
@@ -258,8 +258,8 @@ test('a line waiting for the Slit Line reads waiting and is taken back off it', 
         ? {
             coil_icon: 'waiting_to_slit',
             coil_fields_locked: true,
-            supplier: 'waiting...',
-            coil_number: 'waiting...'
+            supplier: null,
+            coil_number: null
           }
         : {}
     )
@@ -299,8 +299,8 @@ test('the Slit Line marks waiting material slit with the coil it used', async ({
                 production_date: '2026-09-23',
                 icon: 'waiting_to_slit',
                 locked: true,
-                supplier: 'waiting...',
-                coil_number: 'waiting...'
+                supplier: null,
+                coil_number: null
               }
             ]
     })
@@ -382,8 +382,8 @@ test('the Slit Line gives a machine’s request its own day', async ({ page }) =
                 requested_by: 'Roll Former',
                 icon: 'waiting_to_slit',
                 locked: true,
-                supplier: 'waiting...',
-                coil_number: 'waiting...'
+                supplier: null,
+                coil_number: null
               }
             ]
           : []
@@ -517,6 +517,8 @@ const queueRow = (key: string, material: string, supplier: string | null, coil: 
   coil_number: coil,
   coil_icon: 'coil',
   coil_fields_locked: supplier !== null,
+  supplier_locked: supplier !== null,
+  coil_number_locked: coil !== null,
   is_overdue: false,
   lines: [{ order_number: '330615', quantity: 3, length: 88 }]
 })
@@ -626,9 +628,8 @@ test('the coil ticked in the machine on the Queue shows on Production', async ({
 test('the Worker names a Queue row’s coil where the Manager left it Undefined', async ({
   page
 }) => {
-  // The server words a coil nobody named, rather than sending null.
   const unnamed = {
-    ...queueRow('k1', 'CS8250 DARK RED', 'Undefined', 'Undefined'),
+    ...queueRow('k1', 'CS8250 DARK RED', null, null),
     lines: [
       {
         origin_item: '102',
@@ -647,9 +648,11 @@ test('the Worker names a Queue row’s coil where the Manager left it Undefined'
     ]
   }
   const slitting = {
-    ...queueRow('k2', 'CS8262 BLACK', 'waiting...', 'waiting...'),
+    ...queueRow('k2', 'CS8262 BLACK', null, null),
     coil_icon: 'waiting_to_slit',
-    coil_fields_locked: true
+    coil_fields_locked: true,
+    supplier_locked: true,
+    coil_number_locked: true
   }
   await page.route(`${API_URL}/rollforming/queue/?*`, route =>
     route.fulfill({ json: [unnamed, slitting] })

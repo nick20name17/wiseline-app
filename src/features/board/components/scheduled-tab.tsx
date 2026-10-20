@@ -379,7 +379,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The fixed columns add up to less than the minimum width, so the customer name always has
               room left over — crush it to nothing and two headers print on top of each other. */}
           {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
