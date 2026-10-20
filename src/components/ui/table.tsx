@@ -46,10 +46,24 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
+function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
       data-slot='table-row'
+      // A drag that selected some of the row's text is a copy, not a click that opens the row.
+      onClick={
+        onClick &&
+        (event => {
+          const selection = window.getSelection()
+          if (
+            selection &&
+            !selection.isCollapsed &&
+            selection.containsNode(event.currentTarget, true)
+          )
+            return
+          onClick(event)
+        })
+      }
       className={cn(
         // The banding gives the eye a rail to follow across a wide table. It sits on the row, not
         // the body, so every state below is as specific as it is and wins by coming later.
