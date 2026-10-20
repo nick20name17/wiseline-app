@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useStripSlot } from '../lib/board-context'
 import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -13,6 +13,7 @@ import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { Inbox } from 'lucide-react'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   isPartial,
   unscheduledOrdersQuery,
@@ -48,6 +49,7 @@ type OpenDialog = 'schedule' | 'split' | 'bypass' | 'cards' | 'stock' | null
 
 export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTabProps) => {
   const board = useBoard()
+  const slot = useStripSlot()
   const {
     data: page,
     isPending,
@@ -101,17 +103,21 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
       return lineIds.length ? { orderId, lineIds } : null
     })
 
+  const toolbar = (
+    <UnscheduledToolbar
+      total={orders.length}
+      selectedCount={selected.length}
+      ready={departmentId !== undefined}
+      onStockCards={() => setDialog('cards')}
+      onCreateStockOrder={() => setDialog('stock')}
+      onBypass={() => setDialog('bypass')}
+      onSchedule={() => setDialog('schedule')}
+    />
+  )
+
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3'>
-      <UnscheduledToolbar
-        total={orders.length}
-        selectedCount={selected.length}
-        ready={departmentId !== undefined}
-        onStockCards={() => setDialog('cards')}
-        onCreateStockOrder={() => setDialog('stock')}
-        onBypass={() => setDialog('bypass')}
-        onSchedule={() => setDialog('schedule')}
-      />
+      {slot ? createPortal(toolbar, slot) : toolbar}
 
       <DayStrip departmentId={departmentId} />
 

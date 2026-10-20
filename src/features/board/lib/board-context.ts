@@ -17,3 +17,11 @@ export const useBoard = () => {
 export const ViewOnlyContext = createContext(false)
 
 export const useViewOnly = () => useContext(ViewOnlyContext)
+
+/**
+ * The trailing end of the machine tabs' row, where a tab may put its own toolbar rather than spend a
+ * row of its own on it. `null` where the board shows no machine tabs.
+ */
+export const StripSlotContext = createContext<HTMLElement | null>(null)
+
+export const useStripSlot = () => useContext(StripSlotContext)
