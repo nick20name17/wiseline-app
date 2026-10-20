@@ -173,6 +173,9 @@ export const ScheduledRow = ({
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const board = useBoard()
   const viewOnly = useViewOnly()
+  // Only a department that makes what it packs reviews and releases it p3 (1103,281); elsewhere,
+  // and for View only, the select column is left out rather than drawn empty.
+  const selectable = board.makes && !viewOnly
   const { cells } = useColumnCells(board.tables.scheduled)
 
   // Gate 1: every line of this part that still has to be made carries a machine — on a board that
@@ -188,9 +191,8 @@ export const ScheduledRow = ({
         data-state={selected ? 'selected' : undefined}
         onClick={toggleExpanded}
       >
-        <TableCell card='lead' onClick={stopRowClick}>
-          {/* Only a department that makes what it packs reviews and releases it p3 (1103,281). */}
-          {board.makes && !viewOnly ? (
+        {selectable ? (
+          <TableCell card='lead' onClick={stopRowClick}>
             <SelectCell
               released={released}
               reviewed={reviewed}
@@ -199,8 +201,8 @@ export const ScheduledRow = ({
               invoice={order.invoice}
               onToggle={checked => onSelect(key, checked)}
             />
-          ) : null}
-        </TableCell>
+          </TableCell>
+        ) : null}
         <TableCell card='trail' onClick={stopRowClick}>
           <Button
             variant='ghost'
