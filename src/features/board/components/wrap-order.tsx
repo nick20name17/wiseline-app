@@ -28,7 +28,7 @@ import {
   type UnitCoil,
   type WrappingRow
 } from '../api'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import {
   benchLocations,
   orderOverdue,
@@ -63,7 +63,7 @@ import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
 import { RemanufactureDialog } from './remanufacture-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 // The statuses a line is wrapped from: the floor has finished it, or it came off the shelf.

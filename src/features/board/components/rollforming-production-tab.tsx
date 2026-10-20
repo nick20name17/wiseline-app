@@ -33,11 +33,11 @@ import {
   runsOffCoil,
   sourceOf
 } from '../lib/rollforming'
-import { itemStatus, orderStatus } from '../lib/status'
+import { itemStatus, orderStatus } from '@/lib/status'
 import { CoilLock } from './coil-lock'
 import { CurrentCoil } from './current-coil'
 import { PriorityPill } from '@/components/priority-pill'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { WrapOrder } from './wrap-order'
 import { CoilName } from './coil-name'
 

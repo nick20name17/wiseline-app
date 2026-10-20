@@ -15,10 +15,10 @@ import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { packagingQuery, prioritiesQuery, wrappingRowsQuery, type PackagingOrder } from '../api'
 import { matchesSearch } from '../lib/search'
-import { orderStatus } from '../lib/status'
+import { orderStatus } from '@/lib/status'
 import { matchesWrapSearch } from '../lib/wrapping'
 import { PriorityPill } from '@/components/priority-pill'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { WrapOrder } from './wrap-order'
 
 const COLUMNS = 7

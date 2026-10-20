@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query'
 import { PackageOpen } from 'lucide-react'
 import { dayLoadsQuery, useMarkLoaded, type DayLoad } from '../api'
 import { formatWeight } from '../lib/format'
-import { statusLabel } from '../lib/status'
+import { StatusPill } from '@/components/status-pill'
+import { orderStatus } from '@/lib/status'
 import { DayPicker } from './day-picker'
 import { LoadCard, OrderLine } from './load-card'
 import { ReadyCount } from './order-readiness'
@@ -35,9 +36,11 @@ const OrderPackages = ({ load, order }: OrderPackagesProps) => {
         <span className='min-w-0 flex-1 truncate max-md:order-last max-md:basis-full'>
           {order.customer ?? '—'}
         </span>
-        <span className='text-xs text-muted-foreground max-md:ml-auto'>
-          {statusLabel(order.status) ?? ''}
-        </span>
+        {order.status ? (
+          <span className='max-md:ml-auto'>
+            <StatusPill status={orderStatus(order.status)} />
+          </span>
+        ) : null}
         {/* Loaded waits for every line, packaged or not yet (round 10, C3): this says what is left. */}
         <ReadyCount order={order.order} readiness={order} />
       </div>

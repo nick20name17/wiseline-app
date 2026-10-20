@@ -48,7 +48,7 @@ import {
 import { useViewOnly } from '../lib/board-context'
 import { formatWidth } from '../lib/format'
 import { useRetained } from '@/lib/use-retained'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
@@ -57,7 +57,7 @@ import { LineNotesDialog } from './line-notes-dialog'
 import { NoteButton } from '@/components/note-button'
 import { NoteInput } from './note-input'
 import { RemakePill } from './reman-badge'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 const sizeOf = (group: CutlistGroup) => `${group.width ?? '—'} × ${group.length ?? '—'}`

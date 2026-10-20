@@ -11,7 +11,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { orderLinesQuery, type Readiness } from '../api'
-import { statusLabel } from '../lib/status'
+import { StatusPill } from '@/components/status-pill'
+import { itemStatus } from '@/lib/status'
 
 const count = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -45,10 +46,9 @@ export const OrderLines = ({ order }: { order: string }) => {
             <p className='truncate text-muted-foreground' title={line.description ?? undefined}>
               {line.description ?? '—'}
             </p>
-            <p className='text-xs text-muted-foreground'>
-              {[line.department ?? 'Bought in', statusLabel(line.status)]
-                .filter(Boolean)
-                .join(' · ')}
+            <p className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
+              {line.department ?? 'Bought in'}
+              {line.status ? <StatusPill status={itemStatus(line.status)} /> : null}
             </p>
           </div>
         </li>

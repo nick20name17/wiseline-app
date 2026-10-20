@@ -17,12 +17,12 @@ import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard, useScheduledSelectable, useViewOnly } from '../lib/board-context'
 import { toMake, type partState, type splitOf } from '../lib/parts'
-import { orderStatus } from '../lib/status'
+import { orderStatus } from '@/lib/status'
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { PriorityCell } from './priority-cell'
 import { ReviewedToggle } from './reviewed-toggle'
 import { ScheduledLineItems } from './scheduled-line-items'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 
 /**
  * One production day of one order — what a row stands for: a split order is one row per day it has
