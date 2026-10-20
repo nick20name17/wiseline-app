@@ -289,7 +289,11 @@ const CoilAssignForm = ({
                     <li key={lot.coil_number}>
                       <button
                         type='button'
-                        className='flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-muted'
+                        className={cn(
+                          'flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-muted',
+                          coilNumber === lot.coil_number && 'bg-primary/10'
+                        )}
+                        aria-pressed={coilNumber === lot.coil_number}
                         onClick={() => setCoilNumber(lot.coil_number)}
                       >
                         <span className='font-mono'>{lot.coil_number}</span>
