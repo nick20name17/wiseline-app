@@ -239,7 +239,12 @@ test('a machine row asks for a remanufacture against its line', async ({ page })
   await page.getByRole('cell', { name: 'Ridge Cap Dark Red' }).first().click()
   const details = page.getByRole('dialog', { name: /TRC8250/ })
   await expect(details.getByText('Qty ordered')).toBeVisible()
-  await details.getByRole('button', { name: /Remanufacture 12.5/ }).click()
+  await page.keyboard.press('Escape')
+  // Remanufacture sits on the row, as it does at Wrapping.
+  await page
+    .getByRole('button', { name: /Remanufacture 12.5/ })
+    .first()
+    .click()
 
   // The keypad opens with it. Nothing on this line is waiting for a remake yet, so the whole order
   // can be asked for.

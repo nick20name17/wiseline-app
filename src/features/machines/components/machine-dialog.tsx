@@ -26,11 +26,14 @@ import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   categoriesQuery,
+  DEPARTMENT_KINDS,
+  departmentCategoryQuery,
   departmentsQuery,
   KIND_LABELS,
   MACHINE_KINDS,
   machineFormSchema,
   useUpsertMachine,
+  type Department,
   type Machine,
   type MachineForm as MachineFormValues,
   type MachineKind
@@ -68,20 +71,26 @@ const ProfilesInput = ({ id, value, invalid: isInvalid, onChange }: ProfilesInpu
 
 type MachineFormProps = {
   machine?: Machine
+  /** The department a new machine is added to, and the EBMS category its work arrives under. */
+  department?: Department
+  category?: string | null
   onSuccess: () => void
 }
 
-const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
+const MachineForm = ({ machine, department, category, onSuccess }: MachineFormProps) => {
   const { data: departments } = useQuery(departmentsQuery)
   const { data: categories } = useQuery(categoriesQuery)
+  // A machine is added from its department's card, so the department is already said; only one
+  // whose department is gone is asked for it again.
+  const home = department ?? departments?.find(entry => entry.id === machine?.department)
 
   const form = useForm<MachineFormValues>({
     resolver: standardSchemaResolver(machineFormSchema),
     defaultValues: {
       name: machine?.name ?? '',
-      category: machine?.category ?? categories?.[0]?.id ?? '',
-      department: machine?.department ?? departments?.[0]?.id ?? 0,
-      kind: machine?.kind ?? 'bending',
+      category: machine?.category ?? category ?? categories?.[0]?.id ?? '',
+      department: home?.id ?? departments?.[0]?.id ?? 0,
+      kind: machine?.kind ?? (DEPARTMENT_KINDS[home?.code ?? ''] ?? MACHINE_KINDS)[0],
       ebms_profile_names: machine?.ebms_profile_names ?? [],
       daily_max_pieces: machine?.daily_max_pieces ?? null,
       daily_max_bends: machine?.daily_max_bends ?? null,
@@ -91,9 +100,10 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
 
   const kind = useWatch({ control: form.control, name: 'kind' })
   const departmentId = useWatch({ control: form.control, name: 'department' })
+  const code = departments?.find(entry => entry.id === departmentId)?.code ?? ''
   // Only Rollforming's day is counted in feet, so only its machines are asked for a figure in them.
-  const inFeet =
-    departments?.find(department => department.id === departmentId)?.code === 'rollforming'
+  const inFeet = code === 'rollforming'
+  const kinds = DEPARTMENT_KINDS[code] ?? MACHINE_KINDS
   const mutation = useUpsertMachine(onSuccess)
   const { errors } = form.formState
 
@@ -116,37 +126,45 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
           <FieldError errors={[errors.name]} />
         </Field>
 
-        <Field data-invalid={invalid(errors.department)}>
-          <RequiredLabel htmlFor='machine-department'>Department</RequiredLabel>
-          <Controller
-            control={form.control}
-            name='department'
-            render={({ field }) => (
-              <Select
-                value={String(field.value)}
-                onValueChange={value => field.onChange(Number(value))}
-              >
-                <SelectTrigger id='machine-department'>
-                  {/* The trigger holds the id; the name is what the eye is looking for. */}
-                  <SelectValue>
-                    {(id: string) =>
-                      departments?.find(department => department.id === Number(id))?.name ??
-                      'Select…'
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {departments?.map(department => (
-                    <SelectItem key={department.id} value={String(department.id)}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <FieldError errors={[errors.department]} />
-        </Field>
+        {home ? null : (
+          <Field data-invalid={invalid(errors.department)}>
+            <RequiredLabel htmlFor='machine-department'>Department</RequiredLabel>
+            <Controller
+              control={form.control}
+              name='department'
+              render={({ field }) => (
+                <Select
+                  value={String(field.value)}
+                  onValueChange={value => {
+                    field.onChange(Number(value))
+                    // A kind the new department does not run is not kept for it.
+                    const next = departments?.find(entry => entry.id === Number(value))?.code ?? ''
+                    const allowed: readonly string[] = DEPARTMENT_KINDS[next] ?? MACHINE_KINDS
+                    if (!allowed.includes(form.getValues('kind')))
+                      form.setValue('kind', allowed[0] ?? MACHINE_KINDS[0])
+                  }}
+                >
+                  <SelectTrigger id='machine-department'>
+                    {/* The trigger holds the id; the name is what the eye is looking for. */}
+                    <SelectValue>
+                      {(id: string) =>
+                        departments?.find(entry => entry.id === Number(id))?.name ?? 'Select…'
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments?.map(entry => (
+                      <SelectItem key={entry.id} value={String(entry.id)}>
+                        {entry.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError errors={[errors.department]} />
+          </Field>
+        )}
 
         <Field data-invalid={invalid(errors.category)}>
           <RequiredLabel htmlFor='machine-category'>EBMS category</RequiredLabel>
@@ -190,7 +208,7 @@ const MachineForm = ({ machine, onSuccess }: MachineFormProps) => {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {MACHINE_KINDS.map(kind => (
+                  {kinds.map(kind => (
                     <SelectItem key={kind} value={kind}>
                       {KIND_LABELS[kind]}
                     </SelectItem>
@@ -290,26 +308,41 @@ const useReady = () => {
 }
 
 type CreateMachineDialogProps = {
+  department: Department
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-// Opened from the toolbar and from an empty department alike, so the page owns the open state.
-export const CreateMachineDialog = ({ open, onOpenChange }: CreateMachineDialogProps) => {
-  const ready = useReady()
+type CreateMachineBodyProps = { department: Department; onSuccess: () => void }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add machine</DialogTitle>
-        </DialogHeader>
-        {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
-        {ready ? <MachineForm onSuccess={() => onOpenChange(false)} /> : <Spinner />}
-      </DialogContent>
-    </Dialog>
+// Inside the popup, so the category is asked for only once the dialog opens.
+const CreateMachineBody = ({ department, onSuccess }: CreateMachineBodyProps) => {
+  const ready = useReady()
+  // A department without one, or a failed read, still adds a machine: the category is picked.
+  const { data: category, isPending } = useQuery(departmentCategoryQuery(department.id))
+  return ready && !isPending ? (
+    <MachineForm department={department} category={category} onSuccess={onSuccess} />
+  ) : (
+    <Spinner />
   )
 }
+
+// Opened from the card's header and from its empty list alike, so the card owns the open state.
+export const CreateMachineDialog = ({
+  department,
+  open,
+  onOpenChange
+}: CreateMachineDialogProps) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Add {department.name} machine</DialogTitle>
+      </DialogHeader>
+      {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
+      <CreateMachineBody department={department} onSuccess={() => onOpenChange(false)} />
+    </DialogContent>
+  </Dialog>
+)
 
 type UpdateMachineDialogProps = {
   machine: Machine

@@ -24,19 +24,33 @@ export const withNewColumns = (saved: readonly string[], declared: readonly stri
   return next
 }
 
-const orderSchema = z.array(z.string())
+const cached = <T>(
+  stores: Map<string, PersistedStore<T>>,
+  key: string,
+  schema: z.ZodMiniType<T>
+) => {
+  let store = stores.get(key)
+  if (!store) {
+    store = persistedStore(key, schema)
+    stores.set(key, store)
+  }
+  return store
+}
 
-const stores = new Map<string, PersistedStore<string[]>>()
+const orderSchema = z.array(z.string())
+const orderStores = new Map<string, PersistedStore<string[]>>()
 
 /**
  * The order one person has dragged a table's columns into, kept in this browser. A table's header and
  * its rows are often separate components; both read the same store, so they cannot disagree.
  */
-export const columnOrderStore = (table: string) => {
-  let store = stores.get(table)
-  if (!store) {
-    store = persistedStore(`column-order:${table}`, orderSchema)
-    stores.set(table, store)
-  }
-  return store
-}
+export const columnOrderStore = (table: string) =>
+  cached(orderStores, `column-order:${table}`, orderSchema)
+
+// px by column key; a column not in it keeps its declared width.
+const widthsSchema = z.record(z.string(), z.number())
+const widthStores = new Map<string, PersistedStore<Record<string, number>>>()
+
+/** The widths one person has dragged a table's columns to, kept in this browser like the order. */
+export const columnWidthStore = (table: string) =>
+  cached(widthStores, `column-width:${table}`, widthsSchema)

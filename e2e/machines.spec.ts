@@ -54,6 +54,9 @@ test.beforeEach(async ({ page }) => {
   await page.route(`${API_URL}/departments/all/`, route => route.fulfill({ json: DEPARTMENTS }))
   await page.route(`${API_URL}/ebms/categories/all/*`, route => route.fulfill({ json: CATEGORIES }))
   await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: MACHINES }))
+  await page.route(`${API_URL}/departments/1/`, route =>
+    route.fulfill({ json: { id: 1, code: 'trim', category: 'CAT-TRIM' } })
+  )
   await page.goto('/settings/machines')
   await page.getByLabel('Email').fill(user.email)
   await page.getByLabel('Password', { exact: true }).fill(password)
@@ -71,6 +74,20 @@ test('each department is an open card, counted, with its machines’ daily max',
 
   await page.getByRole('button', { name: 'Collapse Trim' }).click()
   await expect(press).toBeHidden()
+})
+
+test('a machine is added from its department’s card, as one of the kinds it runs', async ({
+  page
+}) => {
+  const trim = page.getByRole('button', { name: 'Add machine' }).first()
+  await trim.click()
+
+  const dialog = page.getByRole('dialog', { name: 'Add Trim machine' })
+  await expect(dialog.getByLabel('Department')).toHaveCount(0)
+  // A new machine routes by its department's EBMS category until told otherwise.
+  await expect(dialog.getByLabel('EBMS category')).toContainText('Trim')
+  await dialog.getByLabel('What it does').click()
+  await expect(page.getByRole('option')).toHaveText(['Bending', 'Cutting', 'Wrapping'])
 })
 
 test('deleting a machine says what goes with it', async ({ page }) => {

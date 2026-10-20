@@ -100,6 +100,15 @@ describe('groupRows', () => {
     ])
   })
 
+  // A ticked row comes back from the server after the rest of its size; it keeps its place.
+  it('keeps rows of one size in the order they were made', () => {
+    const product = (id: number, product_id: string) =>
+      row(id, 1, { sources: [source({ origin_item: `${id}`, product_id })] })
+    const groups = groupRows([product(7, 'B'), product(3, 'A')], { byProduct: true })
+
+    expect(groups.map(group => group.sources[0]?.product_id)).toEqual(['A', 'B'])
+  })
+
   // p1 (507,291): one line per width and length, its pieces and line items summed in.
   it('combines rows of the same width and length', () => {
     const groups = groupRows([
@@ -180,21 +189,26 @@ describe('completeBlocker', () => {
 })
 
 describe('slinetTotals', () => {
-  it("counts the day's lists, done ones included, and the stock-order share of them", () => {
+  it("counts the day's lists, done ones included, what of them is cut, and the stock-order share", () => {
     const lists = [
       list({
         rows: [
-          row(1, 1),
+          row(1, 1, { complete: true }),
           row(2, 2, { sources: [source({ order: 'S1', origin_item: '2', is_stock: true })] })
         ]
       }),
-      list({ completed_at: '2026-09-23T12:00:00', rows: [row(3, 1)] }),
+      list({
+        completed_at: '2026-09-23T12:00:00',
+        rows: [row(3, 1, { sources: [source({ order: 'S2', origin_item: '3', is_stock: true })] })]
+      }),
       list({ production_date: '2026-09-24', rows: [row(4, 1)] })
     ]
 
     expect(slinetTotals(lists, '2026-09-23')).toEqual({
       pieces: 12,
-      stockPieces: 4
+      stockPieces: 8,
+      cut: 8,
+      stockCut: 4
     })
   })
 })

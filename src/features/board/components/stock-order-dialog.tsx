@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import { DECIMAL_INPUT } from '@/lib/form'
 import {
   Dialog,
   DialogContent,
@@ -30,18 +29,16 @@ type Row = {
   qty: string
   productId: string
   product: StockCardOption | null
-  length: string
 }
 
 const blank = (): Row => ({
   id: crypto.randomUUID(),
   qty: '',
   productId: '',
-  product: null,
-  length: ''
+  product: null
 })
 
-const isBlank = (row: Row) => !row.qty && !row.productId && !row.length
+const isBlank = (row: Row) => !row.qty && !row.productId
 
 const productOf = (row: Row) => pickedProduct(row.productId, row.product)
 
@@ -85,10 +82,17 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
   const [rows, setRows] = useState<Row[]>(() => [blank()])
   const [error, setError] = useState('')
 
+  // A click beside the dialog does not close it — five lines typed would go with it — so every close
+  // is meant, and starts the next order afresh.
+  const close = () => {
+    setRows([blank()])
+    setError('')
+    onOpenChange(false)
+  }
+
   const create = useCreateStockOrder(order => {
     toast.add({ type: 'success', title: `Stock order ${order} created` })
-    setRows([blank()])
-    onOpenChange(false)
+    close()
   })
   const scanCard = useScanStockCard()
   // What the grid held before the keystroke that began the current burst, so a scan can take back
@@ -202,21 +206,23 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
       )
     if (filled.some(row => !(Number(row.qty) >= 1)))
       return setError('Every row needs a quantity of 1 or more.')
-    if (filled.some(row => row.length && !(Number(row.length) > 0)))
-      return setError('A length has to be a number above 0, e.g. 120.')
 
     setError('')
     create.mutate(
       filled.map(row => ({
         product_id: productOf(row)!.product_id,
-        quantity: Number(row.qty),
-        ...(row.length ? { length: Number(row.length) } : {})
+        // No length: the Product ID already says how long the piece is.
+        quantity: Number(row.qty)
       }))
     )
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      disablePointerDismissal
+      onOpenChange={next => (next ? onOpenChange(true) : close())}
+    >
       <DialogContent className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>Create stock order</DialogTitle>
@@ -234,7 +240,6 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
             <span className='w-24'>Qty</span>
             <span className='w-44'>Product ID</span>
             <span className='flex-1'>Description</span>
-            <span className='w-24'>Length (in.)</span>
             <span className='w-8' />
           </div>
 
@@ -291,19 +296,6 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
                   value={productOf(row)?.description ?? ''}
                 />
               </div>
-              <div className='flex flex-col gap-1 max-md:flex-1 md:contents'>
-                <span aria-hidden className={FIELD_LABEL}>
-                  Length (in.)
-                </span>
-                <Input
-                  className='w-24 max-md:w-full'
-                  {...DECIMAL_INPUT}
-                  aria-label={`Length, row ${index + 1}`}
-                  placeholder='120'
-                  value={row.length}
-                  onChange={event => edit(row.id, { length: event.target.value })}
-                />
-              </div>
               {/* The trailing blank row is the grow-row — there is nothing to delete there. */}
               {index < rows.length - 1 ? (
                 <Button
@@ -336,7 +328,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
         {error ? <FieldError>{error}</FieldError> : null}
 
         <DialogFooter>
-          <Button variant='ghost' onClick={() => onOpenChange(false)}>
+          <Button variant='ghost' onClick={close}>
             Cancel
           </Button>
           <Button disabled={create.isPending} onClick={submit}>

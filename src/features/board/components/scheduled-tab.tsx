@@ -37,6 +37,7 @@ import { ScheduledDayTabs } from './scheduled-day-tabs'
 import { ScheduledRow, type Part } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
+import { MachineLoads } from './machine-loads'
 import { useOrderNotes } from './use-line-note-state'
 import { onMachine, type MachineTab } from '../lib/machines'
 
@@ -342,6 +343,9 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
         onDayChange={changeDay}
         onOpenCapacities={setCapacitiesDay}
       />
+
+      {/* Only where lines are put on machines by hand, and only for one day. */}
+      {board.assignsMachines && day ? <MachineLoads departmentId={departmentId} day={day} /> : null}
 
       <ScheduledToolbar
         total={parts.length}

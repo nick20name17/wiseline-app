@@ -23,7 +23,8 @@ export const PackageContents = ({ contents, rows }: PackageContentsProps) => {
               key={piece.length ?? 'none'}
               className='rounded-sm bg-muted px-1.5 font-mono text-xs leading-5 text-muted-foreground'
             >
-              {piece.quantity} ×{' '}
+              {/* One length is all of the pieces, already counted: «8 pcs × 120"», not «8 pcs 8 × 120"». */}
+              {group.pieces.length > 1 ? `${piece.quantity} ` : null}×{' '}
               <span className='text-foreground'>
                 {piece.length === null ? '—' : `${formatWidth(piece.length)}"`}
               </span>

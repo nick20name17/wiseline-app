@@ -215,6 +215,9 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 /** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
 const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
+  // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
+  // figure is missing, not only in the Slinet box's hover.
+  const thicknessMissing = lot.in_trim && !lot.coil_thickness
   const viewOnly = useViewOnly()
 
   return (
@@ -224,22 +227,34 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
           other two out, with the cursor in the one clicked. */}
-      {FIGURES.map(({ key, label }) => (
-        <TableCell key={key} label={label}>
-          {viewOnly ? (
-            <span className='font-mono'>{figure(lot[key])}</span>
-          ) : (
-            <Button
-              variant='link'
-              aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
-              title='Click to open the Coil Adjustment window'
-              onClick={() => onAdjust(lot, key)}
-            >
-              <span className='font-mono'>{figure(lot[key])}</span>
-            </Button>
-          )}
-        </TableCell>
-      ))}
+      {FIGURES.map(({ key, label }) => {
+        const missing = key === 'coil_thickness' && thicknessMissing
+        const shown = (
+          <span className={cn('font-mono', missing && 'text-destructive')}>
+            {missing ? 'Missing' : figure(lot[key])}
+          </span>
+        )
+        return (
+          <TableCell key={key} label={label}>
+            {viewOnly ? (
+              shown
+            ) : (
+              <Button
+                variant='link'
+                aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
+                title={
+                  missing
+                    ? 'Add a Coil Thickness to put this coil in the Slinet'
+                    : 'Click to open the Coil Adjustment window'
+                }
+                onClick={() => onAdjust(lot, key)}
+              >
+                {shown}
+              </Button>
+            )}
+          </TableCell>
+        )
+      })}
       <TableCell label='Rollforming'>
         <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} />
       </TableCell>

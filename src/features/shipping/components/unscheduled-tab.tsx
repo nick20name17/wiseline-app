@@ -93,19 +93,13 @@ type UnscheduledTabProps = {
   search: string | undefined
   shipDates: ShipDates
   onShipDatesChange: (next: ShipDates) => void
-  onScheduled: (shipDate: string) => void
 }
 
 /**
  * The delivery orders still without a ship date and a truck p3 (605,182). Ticking some opens the
  * Schedule window; selections survive expanding, searching and the map p3 (560,202).
  */
-export const UnscheduledTab = ({
-  search,
-  shipDates,
-  onShipDatesChange,
-  onScheduled
-}: UnscheduledTabProps) => {
+export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: UnscheduledTabProps) => {
   const {
     data,
     isPending,
@@ -390,10 +384,11 @@ export const UnscheduledTab = ({
         selection={{ orders: picked.map(order => order.order), pickupIds: [] }}
         open={scheduling}
         onOpenChange={setScheduling}
+        // Dispatch stays here: the tab is emptied as orders come in, and each truck is worked on
+        // the Scheduled tab once they are all given a day.
         onApplied={shipDate => {
           setSelected(new Map())
           toast.add({ type: 'success', title: `Scheduled to ship ${formatLongDate(shipDate)}` })
-          onScheduled(shipDate)
         }}
       />
     </div>

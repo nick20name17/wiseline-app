@@ -206,14 +206,14 @@ test('an unscheduled order opens on its lines and packages, and its note is chec
   await page.getByRole('button', { name: '1 of 2 ready' }).click()
   const lines = page.getByRole('dialog', { name: 'Lines · Order 116764' })
   await expect(lines.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText(
-    'Not ready'
+    'Not Ready'
   )
   await page.keyboard.press('Escape')
   await expect(lines).toBeHidden()
   await page.getByRole('checkbox', { name: 'Select order 116764' }).click()
   await page.getByRole('button', { name: 'Expand order 116764' }).click()
   await expect(page.getByText('01-116764-1')).toBeVisible()
-  await expect(page.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText('Not ready')
+  await expect(page.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText('Not Ready')
   await expect(page.getByRole('listitem').filter({ hasText: 'TSG8306' })).toContainText('Bent')
 
   await page.getByRole('button', { name: 'Order notes for 116764' }).click()
@@ -554,7 +554,9 @@ test.describe('a truck on the Scheduled tab', () => {
 test('Unscheduled narrows to the ship dates in the address', async ({ page }) => {
   const asked: URLSearchParams[] = []
   await page.route(`${API_URL}/shipping/unscheduled/?*`, route => {
-    asked.push(new URL(route.request().url()).searchParams)
+    const params = new URL(route.request().url()).searchParams
+    // The tab's count asks for every order, whatever the dates.
+    if (params.get('limit') !== '1') asked.push(params)
     return route.fulfill({ json: { count: 0, results: [] } })
   })
   await page.goto('/shipping?view=unscheduled&shipFrom=2026-10-01&shipTo=2026-10-09')
