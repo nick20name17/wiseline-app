@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { orderLinesQuery, type Readiness } from '../api'
 import { StatusPill } from '@/components/status-pill'
-import { itemStatus } from '@/lib/status'
+import { itemStatus, lineReadiness } from '@/lib/status'
 
 const count = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -33,9 +32,9 @@ export const OrderLines = ({ order }: { order: string }) => {
       {lines.map(line => (
         // Two lines rather than six columns: a dialog's row is too narrow for the description.
         <li key={line.origin_item} className='flex items-start gap-3 px-3 py-2 text-sm'>
-          <Badge variant={line.ready ? 'muted' : 'destructive'} className='w-24 justify-center'>
-            {line.ready ? 'Ready' : 'Not ready'}
-          </Badge>
+          <span className='w-24 shrink-0'>
+            <StatusPill status={lineReadiness(line.ready)} />
+          </span>
           <div className='min-w-0 flex-1'>
             <div className='flex gap-3'>
               <span className='truncate font-mono'>{line.product_id ?? '—'}</span>
