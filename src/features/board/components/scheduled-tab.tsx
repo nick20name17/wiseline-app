@@ -1,4 +1,4 @@
-import { useBoard, useViewOnly } from '../lib/board-context'
+import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -241,9 +241,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   }
 
   const board = useBoard()
-  // The rows' select column, left out where it would stay empty (see the row).
-  const viewOnly = useViewOnly()
-  const selectable = board.makes && !viewOnly
+  const selectable = useScheduledSelectable()
   const {
     data: page,
     isPending,
@@ -405,7 +403,10 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
             </TableHeader>
             {isPending ? (
               <TableBody>
-                <TableSkeletonRows columns={10} />
+                {/* Every column but the expand one, which the skeleton draws as its trailing cell. */}
+                <TableSkeletonRows
+                  columns={(selectable ? 1 : 0) + board.tables.scheduled.columns.length}
+                />
               </TableBody>
             ) : (
               <>

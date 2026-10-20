@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
-import { useBoard, useViewOnly } from '../lib/board-context'
+import { useBoard, useScheduledSelectable, useViewOnly } from '../lib/board-context'
 import { toMake, type partState, type splitOf } from '../lib/parts'
 import { orderStatus } from '../lib/status'
 import { NoteButton, type NoteState } from '@/components/note-button'
@@ -173,9 +173,8 @@ export const ScheduledRow = ({
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const board = useBoard()
   const viewOnly = useViewOnly()
-  // Only a department that makes what it packs reviews and releases it p3 (1103,281); elsewhere,
-  // and for View only, the select column is left out rather than drawn empty.
-  const selectable = board.makes && !viewOnly
+  // Elsewhere the select column is left out rather than drawn empty.
+  const selectable = useScheduledSelectable()
   const { cells } = useColumnCells(board.tables.scheduled)
 
   // Gate 1: every line of this part that still has to be made carries a machine — on a board that
@@ -332,7 +331,8 @@ export const ScheduledRow = ({
 
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={11}>
+          {/* The select column where there is one, the expand column and the table's own. */}
+          <TableCell colSpan={(selectable ? 2 : 1) + board.tables.scheduled.columns.length}>
             <ScheduledLineItems
               order={order}
               departmentId={departmentId}
