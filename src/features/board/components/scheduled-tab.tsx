@@ -380,13 +380,13 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
         </Empty>
       ) : (
         <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns add up to less than the minimum width, so the customer name always has
-              room left over — crush it to nothing and two headers print on top of each other. */}
-          {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
+          {/* The fixed columns take 1228px, with Rollforming's Export and wider Rollforming Location
+              1388px; the minimum width leaves the customer name 160px over them — crush it to nothing
+              and two headers print on top of each other. */}
           <Table
             ref={tableRef}
             data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
+            className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}
           >
             <colgroup>
               {selectable ? <col className='w-12' /> : null}

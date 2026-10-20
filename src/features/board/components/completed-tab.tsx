@@ -1,4 +1,4 @@
-import { formatLongDate } from '@/lib/days'
+import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
@@ -96,14 +96,14 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       ship: (
                         <TableCell>
                           <span className='text-muted-foreground'>
-                            {order.ship_date ? formatLongDate(order.ship_date) : 'N/A'}
+                            {order.ship_date ? formatDate(order.ship_date) : 'N/A'}
                           </span>
                         </TableCell>
                       ),
                       prod: (
                         <TableCell>
                           <span className='text-muted-foreground'>
-                            {order.production_date ? formatLongDate(order.production_date) : '—'}
+                            {order.production_date ? formatDate(order.production_date) : '—'}
                           </span>
                         </TableCell>
                       ),

@@ -190,23 +190,24 @@ export const UnscheduledTab = ({
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* Sized to the widest value plus the cell's 32px padding — a date with a two-digit day, a
-              five-figure weight — so only the free text truncates. The fixed columns take 1776px; the
+              five-figure weight — so only the free text truncates. The fixed columns take 1748px; the
               floor leaves the Customer room to read. */}
           <Table data-cards className='min-w-498 table-fixed'>
             <colgroup>
               <col className='w-10' />
-              <col className='w-10' />
-              <col className='w-44' />
-              <col className='w-44' />
-              <col className='w-28' />
+              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+              <col className='w-15' />
+              <col className='w-40' />
+              <col className='w-40' />
+              <col className='w-32' />
               <col />
               <col className='w-56' />
               <col className='w-40' />
               <col className='w-16' />
-              <col className='w-40' />
+              <col className='w-36' />
               <col className='w-44' />
               <col className='w-24' />
-              <col className='w-36' />
+              <col className='w-32' />
               <col className='w-32' />
               <col className='w-20' />
             </colgroup>

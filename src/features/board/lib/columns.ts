@@ -22,12 +22,12 @@ export const UNSCHEDULED_TABLE: ColumnTable = {
     { key: 'entry', label: 'Entry', width: 'w-40' },
     { key: 'ship', label: 'Ship', width: 'w-40' },
     // Wide enough for a stock order's own number, which runs longer than an invoice, and the split
-    // mark beside it.
-    { key: 'order', label: 'Order #', width: 'w-48', card: 'title' },
-    { key: 'priority', label: 'Priority', width: 'w-44' },
+    // mark beside it. Every column is as wide as what it holds, so Customer takes the slack.
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    { key: 'priority', label: 'Priority', width: 'w-32' },
     { key: 'customer', label: 'Customer', card: 'subtitle' },
     // The heading is wider than the dot under it, and it is what sets the width.
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -49,16 +49,16 @@ export const SCHEDULED_TABLE: ColumnTable = {
     // The production day is a button with a date on it, and the icons that mark the row — past due,
     // stock — sit beside it and need room of their own.
     { key: 'proddate', label: 'Prod. Date', width: 'w-52' },
-    { key: 'order', label: 'Order #', width: 'w-36', card: 'title' },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
     { key: 'customer', label: 'Customer', card: 'subtitle' },
     { key: 'priority', label: 'Priority', width: 'w-32' },
-    { key: 'reviewed', label: 'Reviewed', width: 'w-40' },
+    { key: 'reviewed', label: 'Reviewed', width: 'w-32' },
     // The widest pill, «In progress» / «Not started», sits whole beside the cell's padding.
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     // Every column holds its own heading: the headings are the widest thing several of them ever
     // carry, and a heading crushed against the next one reads as one word.
     { key: 'trimloc', label: 'Trim Location', width: 'w-36' },
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -70,7 +70,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'machine', label: 'Machine', width: 'w-40' },
     // A stock order is what puts trims on the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'w', label: 'W"', width: 'w-24' },
@@ -83,18 +83,18 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
 export const WRAPPING_TABLE: ColumnTable = {
   table: 'wrapping',
   columns: [
-    { key: 'order', label: 'Order #', width: 'w-36', card: 'title' },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
     { key: 'customer', label: 'Customer', width: 'w-48', card: 'subtitle' },
     { key: 'qty', label: 'Qty', width: 'w-20' },
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'priority', label: 'Priority', width: 'w-36' },
+    { key: 'priority', label: 'Priority', width: 'w-32' },
     { key: 'remfg', label: 'Remfg', width: 'w-24' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     // Products on a full bench look alike; the picture is what tells them apart.
     { key: 'image', label: 'Image', width: 'w-20' },
     { key: 'pid', label: 'ID', width: 'w-36' },
     { key: 'desc', label: 'Description', card: 'full' },
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -109,7 +109,7 @@ export const WRAP_LINES_TABLE: ColumnTable = {
     { key: 'stock', label: 'Stock', width: 'w-16' },
     { key: 'wrapped', label: 'Wrapped', width: 'w-20' },
     { key: 'left', label: 'Left to wrap', width: 'w-32' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     { key: 'reman', label: 'Remanufacture', width: 'w-32' },
     // The amount and Auto fill side by side: narrower, the button drops under it and doubles the row.
     { key: 'wrapping', label: 'Wrapping', width: 'w-56' },
@@ -138,10 +138,10 @@ export const COIL_GROUPS_TABLE: ColumnTable = {
 export const COMPLETED_TABLE: ColumnTable = {
   table: 'completed',
   columns: [
-    { key: 'ship', label: 'Ship Date', width: 'w-44' },
-    { key: 'prod', label: 'Production Date', width: 'w-44' },
+    { key: 'ship', label: 'Ship Date', width: 'w-40' },
+    { key: 'prod', label: 'Production Date', width: 'w-40' },
     { key: 'completed', label: 'Completed Date & Time', width: 'w-60' },
-    { key: 'order', label: 'Order #', width: 'w-36', card: 'title' },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
     { key: 'customer', label: 'Customer Name', card: 'subtitle' },
     { key: 'location', label: 'Trim Location', width: 'w-44' }
   ]
@@ -223,8 +223,8 @@ export const ACCESSORIES_UNSCHEDULED_TABLE: ColumnTable = {
   table: 'accessories-unscheduled',
   columns: [
     ...UNSCHEDULED_TABLE.columns.filter(column => column.key !== 'notes'),
-    { key: 'shipvia', label: 'Ship Via', width: 'w-32' },
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -233,13 +233,13 @@ export const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
   columns: [
     { key: 'ship', label: 'Ship', width: 'w-40' },
     { key: 'proddate', label: 'Prep Date', width: 'w-52' },
-    { key: 'order', label: 'Order #', width: 'w-36', card: 'title' },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
     { key: 'customer', label: 'Customer', card: 'subtitle' },
     { key: 'priority', label: 'Priority', width: 'w-32' },
-    { key: 'status', label: 'Status', width: 'w-40' },
-    { key: 'shipvia', label: 'Ship Via', width: 'w-32' },
-    { key: 'trimloc', label: 'Accessories Location', width: 'w-44' },
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
+    { key: 'trimloc', label: 'Accessories Location', width: 'w-52' },
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -249,7 +249,7 @@ export const ACCESSORIES_COMPLETED_TABLE: ColumnTable = {
     column.key === 'prod'
       ? { ...column, label: 'Prep Date' }
       : column.key === 'location'
-        ? { ...column, label: 'Accessories Location' }
+        ? { ...column, label: 'Accessories Location', width: 'w-52' }
         : column
   )
 }
@@ -260,7 +260,7 @@ export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty Ordered', width: 'w-28' },
     { key: 'shipped', label: 'Shipped', width: 'w-24' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
@@ -288,7 +288,7 @@ export const PACKAGE_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty ordered', width: 'w-32' },
     { key: 'wrapped', label: 'Packaged', width: 'w-24' },
     { key: 'left', label: 'Left to package', width: 'w-40' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     { key: 'wrapping', label: 'Packaging', width: 'w-56' },
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
@@ -307,7 +307,7 @@ export const ROLLFORMING_UNSCHEDULED_TABLE: ColumnTable = {
   columns: [
     ...without(UNSCHEDULED_TABLE, ['notes']),
     { key: 'material', label: 'Gauge / Color', width: 'w-56' },
-    { key: 'notes', label: 'Notes', width: 'w-24' }
+    { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
 
@@ -328,7 +328,7 @@ export const ROLLFORMING_SCHEDULED_LINES_TABLE: ColumnTable = {
   columns: [
     { key: 'qty', label: 'Qty', width: 'w-16' },
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'status', label: 'Status', width: 'w-40' },
+    { key: 'status', label: 'Status', width: 'w-36' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'l', label: 'L"', width: 'w-24' },

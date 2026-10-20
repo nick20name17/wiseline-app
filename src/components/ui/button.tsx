@@ -37,6 +37,13 @@ const buttonVariants = cva(
         'icon-lg': 'size-9'
       }
     },
+    compoundVariants: [
+      // A link is a value in its cell: unpadded, it starts where the column's heading starts.
+      {
+        variant: 'link',
+        className: 'px-0 has-data-[icon=inline-end]:pr-0 has-data-[icon=inline-start]:pl-0'
+      }
+    ],
     defaultVariants: {
       variant: 'default',
       size: 'default'

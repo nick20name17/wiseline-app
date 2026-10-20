@@ -99,9 +99,9 @@ export const LocationTypesPage = ({
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           <Table data-cards className='min-w-3xl table-fixed'>
             <colgroup>
-              <col className='w-64' />
-              <col className='w-56' />
-              {active ? null : <col className='w-44' />}
+              <col className='w-48' />
+              <col className='w-40' />
+              {active ? null : <col className='w-36' />}
               <col />
               <col className='w-24' />
             </colgroup>

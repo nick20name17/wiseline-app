@@ -105,13 +105,13 @@ export const LocationsPage = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards className='min-w-6xl table-fixed'>
+          <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-40' />
-              <col className='w-48' />
-              <col className='w-48' />
-              <col className='w-36' />
               <col className='w-40' />
+              <col className='w-36' />
+              <col className='w-32' />
+              <col className='w-32' />
               <col />
               <col className='w-24' />
             </colgroup>
