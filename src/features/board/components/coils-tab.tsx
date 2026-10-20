@@ -368,12 +368,13 @@ const ProductGrid = ({
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table data-cards className='table-fixed'>
+      {/* The other columns' widths plus the longest Product ID (24 characters), which the table
+          scrolls sideways rather than cut. */}
+      <Table data-cards className='min-w-263 table-fixed'>
         <colgroup>
-          <col className='w-12' />
+          {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+          <col className='w-15' />
           {columns.cols}
-          {/* Every column has a width, so the screen's slack goes to this one, which has no cells. */}
-          <col />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -472,8 +473,8 @@ const ProductGrid = ({
 
                   {open ? (
                     <TableRow>
-                      {/* The tick column, the table's own and the slack one. */}
-                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 2}>
+                      {/* The expand column and the table's own. */}
+                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
                             <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
@@ -714,7 +715,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
       value={scope}
       onValueChange={value => setScope(value as CoilScope)}
     >
-      <TabsList className='h-10 max-md:w-full'>
+      <TabsList className='max-md:w-full'>
         <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
         <TabsTrigger
           value='all'
@@ -728,7 +729,12 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
 
   const filterButton =
     !worker && !viewOnly && trim ? (
-      <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
+      // Last on a desk, after the counts; beside the scope switch on a phone, where the rest wraps.
+      <Button
+        variant='outline'
+        className='max-md:ml-auto md:order-2'
+        onClick={() => setFilterOpen(true)}
+      >
         <SlidersHorizontal data-icon='inline-start' />
         Coil Filter
       </Button>
@@ -739,7 +745,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   if (!loading && !listed.length)
     return (
       <div className='flex flex-1 flex-col gap-3'>
-        <div className='flex flex-wrap items-center gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           {scopeTabs}
           {filterButton}
         </div>
@@ -750,34 +756,33 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
 
   return (
     <div className='flex min-w-0 flex-col gap-3'>
-      {scopeTabs || filterButton ? (
-        <div className='flex flex-wrap items-center gap-3'>
-          {scopeTabs}
-          {filterButton}
-        </div>
-      ) : null}
-
       <div className='flex flex-wrap items-center gap-3'>
-        <p className='text-sm text-muted-foreground'>
-          <span className='font-medium text-foreground'>{groups.length}</span>{' '}
-          {groups.length === 1 ? 'product' : 'products'} ·{' '}
-          <span className='font-medium text-foreground'>{shown.length}</span>{' '}
-          {shown.length === 1 ? 'coil' : 'coils'}
-        </p>
+        {scopeTabs}
+        {filterButton}
 
-        {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
+        {/* A row of its own on a phone, under the scope switch; one row with it on a desk. */}
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-3 max-md:w-full md:contents'>
+          <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
+            <TabsList>
+              <TabsTrigger value='all'>All</TabsTrigger>
+              <TabsTrigger value='assigned' title='In Trim or Rollforming'>
+                Assigned
+              </TabsTrigger>
+              <TabsTrigger value='unassigned' title='In no department yet'>
+                Unassigned
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
-          <TabsList>
-            <TabsTrigger value='all'>All</TabsTrigger>
-            <TabsTrigger value='assigned' title='In Trim or Rollforming'>
-              Assigned
-            </TabsTrigger>
-            <TabsTrigger value='unassigned' title='In no department yet'>
-              Unassigned
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
+
+          <p className='text-sm text-muted-foreground md:order-1 md:ml-auto'>
+            <span className='font-medium text-foreground'>{groups.length}</span>{' '}
+            {groups.length === 1 ? 'product' : 'products'} ·{' '}
+            <span className='font-medium text-foreground'>{shown.length}</span>{' '}
+            {shown.length === 1 ? 'coil' : 'coils'}
+          </p>
+        </div>
       </div>
 
       {!loading && !shown.length ? (

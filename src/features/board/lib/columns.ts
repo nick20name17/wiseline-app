@@ -120,14 +120,14 @@ export const WRAP_LINES_TABLE: ColumnTable = {
 export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
-    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. Color is fixed:
-    // as the column that took the slack it ran far wider than any colour name.
-    { key: 'pid', label: 'Product ID', width: 'w-40', card: 'title' },
+    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. Product ID takes
+    // the slack: a coil is known by it, so it is never cut short, and a colour name never needs it.
+    { key: 'pid', label: 'Product ID', card: 'title' },
     { key: 'color', label: 'Color', width: 'w-32', card: 'subtitle' },
     { key: 'width', label: 'Width (in.)', width: 'w-28' },
     { key: 'count', label: 'Count', width: 'w-20' },
-    { key: 'lf', label: 'Total Linear Feet', width: 'w-36' },
-    { key: 'weight', label: 'Total Weight (lbs.)', width: 'w-40' },
+    { key: 'lf', label: 'Total L/F', width: 'w-30' },
+    { key: 'weight', label: 'Total lbs', width: 'w-30' },
     // Shortcuts that move every coil of the product; each coil also has its own boxes. The labels
     // stay short, or the table outgrows the floor's screen width.
     { key: 'rollforming', label: 'Rollforming', width: 'w-32' },
