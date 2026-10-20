@@ -115,7 +115,7 @@ export const BoardPage = ({
 
   return (
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
-    <section className='flex min-w-0 flex-1 flex-col gap-4'>
+    <section className='flex min-w-0 flex-1 flex-col gap-3'>
       <DeptBar
         views={viewsFor(board, role).filter(tab => !slitInStrip || tab !== 'slit')}
         view={view === 'slit' && slitInStrip ? slitFrom : view}

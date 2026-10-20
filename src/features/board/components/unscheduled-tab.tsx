@@ -102,7 +102,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
     })
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       <UnscheduledToolbar
         total={orders.length}
         selectedCount={selected.length}

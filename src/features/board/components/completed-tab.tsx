@@ -53,7 +53,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const columns = useColumnOrder(tables.completed)
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-4'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       {isError && !page ? (
         <QueryError
           title='The completed orders did not load'

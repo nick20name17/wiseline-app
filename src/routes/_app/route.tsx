@@ -42,7 +42,7 @@ const AppLayout = () => {
           <AppHeader />
           {/* SidebarInset is already the <main> landmark, so this is only the page's padding box. A
               phone gives the page its edges back, clear of its notch and home indicator. */}
-          <div className='flex min-w-0 flex-1 flex-col gap-4 px-safe-3 pt-3 pb-safe-3 sm:gap-6 sm:px-safe-6 sm:py-6'>
+          <div className='flex min-w-0 flex-1 flex-col gap-3 px-safe-3 pt-3 pb-safe-3 sm:gap-4 sm:px-safe-6 sm:pt-4 sm:pb-6'>
             <Outlet />
           </div>
         </SidebarInset>

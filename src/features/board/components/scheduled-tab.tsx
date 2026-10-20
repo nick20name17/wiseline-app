@@ -336,7 +336,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       <ScheduledDayTabs
         departmentId={departmentId}
         day={day}

@@ -738,7 +738,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   // scope switch too, or an empty Trim list would hide every other coil.
   if (!loading && !listed.length)
     return (
-      <div className='flex flex-1 flex-col gap-4'>
+      <div className='flex flex-1 flex-col gap-3'>
         <div className='flex flex-wrap items-center gap-3'>
           {scopeTabs}
           {filterButton}
@@ -749,7 +749,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
+    <div className='flex min-w-0 flex-col gap-3'>
       {scopeTabs || filterButton ? (
         <div className='flex flex-wrap items-center gap-3'>
           {scopeTabs}
@@ -797,7 +797,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
           }
         />
       ) : (
-        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
             key={term.trim() ? 'searching' : 'listing'}
