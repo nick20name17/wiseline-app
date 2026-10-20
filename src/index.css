@@ -665,6 +665,12 @@
     @apply bg-background text-sm text-foreground antialiased;
   }
 
+  /* The window's height for whatever the router shows, so a page still loading before the shell
+     is up sits in the middle of the screen rather than at its top. */
+  #root {
+    @apply flex min-h-svh flex-col;
+  }
+
   /* Tailwind's preflight leaves buttons on the arrow cursor; every button here is a real
      click target, so the hand belongs on all of them rather than on each call site. */
   button:not(:disabled),
