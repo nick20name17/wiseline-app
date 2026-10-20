@@ -1,4 +1,5 @@
 import { authApi } from '@/api/client'
+import { toast } from '@/components/ui/toast'
 import {
   infiniteQueryOptions,
   keepPreviousData,
@@ -221,6 +222,12 @@ const refreshSchedule = (client: QueryClient) => {
   void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
 }
 
+// EBMS takes a Ship Date only on an Open order; one already invoiced still ships, its date kept
+// only in the app.
+const appliedSchema = z.object({
+  ship_date_not_in_ebms: z._default(z.array(z.string()), [])
+})
+
 /**
  * Apply: the selection goes on the truck for the day, leaves Unscheduled and shows under that date and
  * truck in Scheduled p3 (566,273). The server pushes the ship date to EBMS. Applied again to orders
@@ -239,11 +246,18 @@ export const useApplyShipping = (onSuccess: () => void) =>
             truck_id: input.truckId
           }
         })
-        .json(),
+        .json()
+        .then(data => appliedSchema.parse(data)),
     // Closed first: the refetch takes the scheduled orders out of the open window's selection.
-    onSuccess: (_, __, ___, { client }) => {
+    onSuccess: ({ ship_date_not_in_ebms: kept }, __, ___, { client }) => {
       onSuccess()
       refreshSchedule(client)
+      if (kept.length)
+        toast.add({
+          type: 'warning',
+          title: 'Ship Date not written to EBMS',
+          description: `${kept.join(', ')}: no longer Open in EBMS, so the date is kept only here.`
+        })
     }
   })
 
