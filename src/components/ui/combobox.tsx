@@ -66,6 +66,9 @@ function ComboboxInput({
             variant='ghost'
             render={<ComboboxTrigger />}
             data-slot='input-group-button'
+            // Out of the tab order: the box opens its own list, and a field typed through with Tab
+            // should not stop on the arrow beside it.
+            tabIndex={-1}
             className='group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent'
             disabled={disabled}
           />

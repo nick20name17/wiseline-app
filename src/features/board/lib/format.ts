@@ -64,3 +64,7 @@ export const dayLoad = (entry: DayStripEntry) => {
 /** A day's load in a sentence, for a hint: against the capacity where the day has one. */
 export const dayLoadHint = (entry: DayStripEntry) =>
   `${formatCount(entry.used)}${entry.capacity === null ? '' : ` of ${formatCount(entry.capacity)}`} ${loadUnit(entry.capacity_unit)} scheduled${entry.over_capacity ? ' — over the daily capacity' : ''}`
+
+/** `used / cap` as a whole percent; a machine with no cap has none. */
+export const share = (used: number, cap: number | null | undefined) =>
+  cap ? Math.round((used / cap) * 100) : null

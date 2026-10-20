@@ -372,7 +372,7 @@ export const CoilAssignDialog = ({
         <DialogTitle>{TITLE[action]}</DialogTitle>
         <DialogDescription>{describe(lines, units)}</DialogDescription>
       </DialogHeader>
-      {/* The popup unmounts once closed, so the next opening starts from Undefined. */}
+      {/* The popup unmounts once closed, so the next opening starts again from `current`. */}
       <CoilAssignForm
         lines={lines}
         action={action}

@@ -259,8 +259,17 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           </TableCell>
                         ),
                         desc: (
-                          <TableCell>
-                            <span className='truncate'>{row.description ?? '—'}</span>
+                          // Stacked rather than cut off, so a long description is read without
+                          // scrolling sideways, a custom length under it.
+                          <TableCell className='whitespace-normal'>
+                            <p>{row.description ?? '—'}</p>
+                            {board.standardLength !== null &&
+                            row.length !== null &&
+                            !row.is_standard_length ? (
+                              <p className='font-mono text-xs text-destructive'>
+                                Custom length {row.length}"
+                              </p>
+                            ) : null}
                           </TableCell>
                         ),
                         notes: (
