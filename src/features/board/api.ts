@@ -3282,6 +3282,15 @@ const queueLineSchema = z.object({
   units: z._default(z.nullable(z.array(z.number())), null)
 })
 
+// The server words a coil nobody named «Undefined», or «waiting...» while the Slit Line owes it.
+const queueCoil = z._default(
+  z.pipe(
+    z.nullable(z.string()),
+    z.transform(value => (value === 'Undefined' || value === 'waiting...' ? null : value))
+  ),
+  null
+)
+
 const queueRowSchema = z.object({
   // What a reorder names the row by. It changes when what the row combines does, so a reorder is
   // sent from a fresh read.
@@ -3293,8 +3302,8 @@ const queueRowSchema = z.object({
   linear_feet: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
   priority: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null),
-  supplier: z._default(z.nullable(z.string()), null),
-  coil_number: z._default(z.nullable(z.string()), null),
+  supplier: queueCoil,
+  coil_number: queueCoil,
   coil_icon: z._default(z.nullable(z.string()), null),
   coil_fields_locked: z._default(z.boolean(), false),
   gauge: z._default(z.nullable(z.string()), null),

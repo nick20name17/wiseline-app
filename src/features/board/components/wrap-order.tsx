@@ -388,7 +388,9 @@ const WrapLines = ({
         action='fill'
         departmentId={departmentId}
         current={filling ? coils?.get(filling.row.origin_item) : undefined}
-        units={{ fill: filling?.units ?? null }}
+        units={{
+          fill: filling?.units ? { [filling.row.origin_item]: filling.units } : undefined
+        }}
         open={!!filling}
         onOpenChange={open => !open && setFilling(null)}
         onAssigned={() => setFilling(null)}

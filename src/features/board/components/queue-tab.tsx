@@ -1,6 +1,7 @@
 import { QueryError } from '@/components/query-error'
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
@@ -23,7 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { GripVertical, Layers, Scissors } from 'lucide-react'
+import { GripVertical, Layers, Pencil, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import {
   prioritiesQuery,
@@ -31,11 +32,13 @@ import {
   useReorderQueue,
   useSetCurrentCoil,
   type Priority,
-  type QueueRow
+  type QueueRow,
+  type UnitCoil
 } from '../api'
 import { unitRuns } from '../lib/unit-coils'
 import { useViewOnly } from '../lib/board-context'
 import { formatCount } from '../lib/format'
+import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { PriorityPill } from '@/components/priority-pill'
 
@@ -54,6 +57,8 @@ type QueueLineProps = {
   movable: boolean
   /** Ticks the row's coil into the machine, or takes it out p2 (902,356). */
   onInMachine: ((row: QueueRow, inMachine: boolean) => void) | null
+  /** Names the coil the Manager left Undefined, which the Worker may after release p2 (894,313). */
+  onFill: ((row: QueueRow) => void) | null
 }
 
 /** Only a coil that is named can go in the machine p2 (895,300); the Slit Line's is not yet. */
@@ -62,10 +67,32 @@ const hasCoil = (row: QueueRow) =>
 
 const NEEDS_COIL = 'Needs a Supplier and Coil Number first'
 
-const Locked = ({ value, locked }: { value: string | null; locked: boolean }) => (
+/** Locked is the row's either-or; the Manager locks only the fields they set. */
+const currentOf = (row: QueueRow): CoilCurrent => ({
+  supplier: row.supplier,
+  coil_number: row.coil_number,
+  supplier_locked: row.coil_fields_locked && !!row.supplier,
+  coil_number_locked: row.coil_fields_locked && !!row.coil_number
+})
+
+/** A line on the row for some of its units fills in just those; the rest roll off other coils. */
+const unitsOf = (row: QueueRow) => {
+  const current = currentOf(row)
+  return Object.fromEntries(
+    row.lines.flatMap(line =>
+      line.units
+        ? [[line.origin_item, line.units.map((unit): UnitCoil => ({ unit, ...current }))]]
+        : []
+    )
+  )
+}
+
+const Locked = ({ value, row }: { value: string | null; row: QueueRow }) => (
   <span className='inline-flex items-center gap-1.5'>
-    <span className='truncate font-mono'>{value ?? 'Undefined'}</span>
-    <CoilLock locked={locked} />
+    <span className='truncate font-mono'>
+      {value ?? (row.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+    </span>
+    <CoilLock locked={row.coil_fields_locked} />
   </span>
 )
 
@@ -75,7 +102,45 @@ const rowName = (row: QueueRow) =>
     [...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ') || 'no order'
   }`
 
-const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
+/** The row's box for the coil in the machine, and the way to name that coil where none is. */
+const InMachine = ({
+  row,
+  onInMachine,
+  onFill
+}: Pick<QueueLineProps, 'row' | 'onInMachine' | 'onFill'>) => (
+  <span className='inline-flex items-center gap-2'>
+    <Checkbox
+      aria-label={`${rowName(row)} is in the machine`}
+      title={hasCoil(row) ? undefined : NEEDS_COIL}
+      checked={row.current}
+      disabled={!onInMachine || !hasCoil(row)}
+      // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
+      onPointerDown={event => event.stopPropagation()}
+      onKeyDown={event => event.stopPropagation()}
+      onCheckedChange={checked => onInMachine?.(row, checked)}
+    />
+    {/* The Slit Line names its own coil once it slits it. */}
+    {onFill && !hasCoil(row) && row.coil_icon !== 'waiting_to_slit' ? (
+      <Button
+        variant='ghost'
+        size='icon-sm'
+        aria-label={`Supplier and Coil Number for ${rowName(row)}`}
+        title='Choose the Supplier and Coil Number'
+        onPointerDown={event => event.stopPropagation()}
+        onKeyDown={event => event.stopPropagation()}
+        onClick={() => onFill(row)}
+      >
+        <Pencil />
+      </Button>
+    ) : null}
+    {/* The box's title, for a finger that cannot hover for it. */}
+    {onInMachine && !hasCoil(row) ? (
+      <span className='text-xs text-muted-foreground pointer-fine:hidden'>{NEEDS_COIL}</span>
+    ) : null}
+  </span>
+)
+
+const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLineProps) => {
   const {
     attributes,
     listeners,
@@ -130,10 +195,10 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
         )}
       </TableCell>
       <TableCell label='Supplier'>
-        <Locked value={row.supplier} locked={row.coil_fields_locked} />
+        <Locked value={row.supplier} row={row} />
       </TableCell>
       <TableCell label='Coil Number'>
-        <Locked value={row.coil_number} locked={row.coil_fields_locked} />
+        <Locked value={row.coil_number} row={row} />
       </TableCell>
       <TableCell label='Slit Line'>
         {row.coil_icon === 'waiting_to_slit' ? (
@@ -143,22 +208,7 @@ const QueueLine = ({ row, priority, movable, onInMachine }: QueueLineProps) => {
         ) : null}
       </TableCell>
       <TableCell label='In Machine'>
-        <span className='inline-flex items-center gap-2'>
-          <Checkbox
-            aria-label={`${rowName(row)} is in the machine`}
-            title={hasCoil(row) ? undefined : NEEDS_COIL}
-            checked={row.current}
-            disabled={!onInMachine || !hasCoil(row)}
-            // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
-            onPointerDown={event => event.stopPropagation()}
-            onKeyDown={event => event.stopPropagation()}
-            onCheckedChange={checked => onInMachine?.(row, checked)}
-          />
-          {/* The box's title, for a finger that cannot hover for it. */}
-          {onInMachine && !hasCoil(row) ? (
-            <span className='text-xs text-muted-foreground pointer-fine:hidden'>{NEEDS_COIL}</span>
-          ) : null}
-        </span>
+        <InMachine row={row} onInMachine={onInMachine} onFill={onFill} />
       </TableCell>
       <TableCell label='Orders' card='full'>
         <span className='truncate text-xs text-muted-foreground'>
@@ -191,6 +241,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
   const viewOnly = useViewOnly()
   const reorder = useReorderQueue()
   const inMachine = useSetCurrentCoil()
+  const [filling, setFilling] = useState<QueueRow | null>(null)
   const sensors = useDragSensors()
   // The order a drop left, until the save settles — see the priorities table.
   const [dropped, setDropped] = useState<QueueRow[] | null>(null)
@@ -334,6 +385,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                                     key: checked ? picked.key : null
                                   })
                           }
+                          onFill={viewOnly ? null : setFilling}
                         />
                       ))}
                     </SortableContext>
@@ -344,6 +396,19 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
           </Table>
         </DndContext>
       </div>
+
+      <CoilAssignDialog
+        lines={
+          filling?.lines.map(line => ({ id: line.origin_item, id_inven: line.product_id })) ?? []
+        }
+        action='fill'
+        departmentId={departmentId}
+        current={filling ? currentOf(filling) : undefined}
+        units={{ fill: filling ? unitsOf(filling) : undefined }}
+        open={!!filling}
+        onOpenChange={open => !open && setFilling(null)}
+        onAssigned={() => setFilling(null)}
+      />
     </div>
   )
 }

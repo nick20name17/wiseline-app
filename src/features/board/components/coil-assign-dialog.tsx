@@ -74,10 +74,10 @@ export type CoilCurrent = Pick<
 >
 
 /**
- * A line split by coil p2 (679,416): the Manager assigns the units ticked, per line; the Worker fills
- * in the units still without one.
+ * A line split by coil p2 (679,416): the Manager assigns the units ticked, the Worker fills in the
+ * units still without one — per line, and a line left out is set whole.
  */
-type CoilUnits = { assign?: Record<string, number[]>; fill?: UnitCoil[] | null }
+type CoilUnits = { assign?: Record<string, number[]>; fill?: Record<string, UnitCoil[]> }
 
 type CoilAssignFormProps = {
   lines: CoilLine[]
@@ -104,7 +104,8 @@ const CoilAssignForm = ({
   units,
   onDone
 }: CoilAssignFormProps) => {
-  const current = units?.fill?.length ? currentOf(units.fill) : lineCurrent
+  const filled = Object.values(units?.fill ?? {}).flat()
+  const current = filled.length ? currentOf(filled) : lineCurrent
   // The lines are one Product ID p2 (540,467), so any of them names the coils.
   const first = lines[0]?.id ?? null
   const { data: choices, isPending: choicesPending } = useQuery(coilChoicesQuery(first))
@@ -154,7 +155,7 @@ const CoilAssignForm = ({
           assign.mutate({ ...choice, units: units?.assign }, { onSuccess: onDone })
         else if (action === 'fill')
           fillIn.mutate(
-            lines.flatMap(line => fillEntries(line.id, units?.fill ?? null, choice)),
+            lines.flatMap(line => fillEntries(line.id, units?.fill?.[line.id] ?? null, choice)),
             { onSuccess: onDone }
           )
         else markSlit.mutate(choice, { onSuccess: onDone })
@@ -323,10 +324,10 @@ const CoilAssignForm = ({
 /** What the coil is for: the units when it is set per unit, the lines otherwise. */
 const describe = (lines: CoilLine[], units: CoilUnits | undefined) => {
   const product = lines[0]?.id_inven ?? '—'
-  if (units?.fill?.length)
-    return `Units ${unitRuns(units.fill.map(unit => unit.unit))} of ${product}`
   // Units name the choice only when every line is set per unit; a whole line among them is a line.
-  const picked = lines.map(line => units?.assign?.[line.id] ?? [])
+  const picked = lines.map(
+    line => units?.assign?.[line.id] ?? units?.fill?.[line.id]?.map(unit => unit.unit) ?? []
+  )
   if (!picked.length || !picked.every(numbers => numbers.length))
     return `${lines.length} line${lines.length === 1 ? '' : 's'} of ${product}`
   const [only] = picked

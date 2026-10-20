@@ -623,6 +623,71 @@ test('the coil ticked in the machine on the Queue shows on Production', async ({
   await expect(panel).toContainText('None')
 })
 
+test('the Worker names a Queue row’s coil where the Manager left it Undefined', async ({
+  page
+}) => {
+  // The server words a coil nobody named, rather than sending null.
+  const unnamed = {
+    ...queueRow('k1', 'CS8250 DARK RED', 'Undefined', 'Undefined'),
+    lines: [
+      {
+        origin_item: '102',
+        order_number: '330615',
+        product_id: 'TED8250',
+        quantity: 3,
+        units: null
+      },
+      {
+        origin_item: '103',
+        order_number: '330616',
+        product_id: 'TED8250',
+        quantity: 2,
+        units: [2, 3]
+      }
+    ]
+  }
+  const slitting = {
+    ...queueRow('k2', 'CS8262 BLACK', 'waiting...', 'waiting...'),
+    coil_icon: 'waiting_to_slit',
+    coil_fields_locked: true
+  }
+  await page.route(`${API_URL}/rollforming/queue/?*`, route =>
+    route.fulfill({ json: [unnamed, slitting] })
+  )
+  await page.goto('/rollforming?view=queue')
+  await signIn(page)
+
+  await expect(page.getByRole('checkbox', { name: /CS8250 .* is in the machine/ })).toBeDisabled()
+  // The Slit Line names its own coil once it slits it.
+  await expect(page.getByRole('row', { name: /CS8262/ })).toContainText('waiting...')
+  await expect(
+    page.getByRole('button', { name: /^Supplier and Coil Number for CS8262/ })
+  ).toBeHidden()
+
+  await page.getByRole('button', { name: /^Supplier and Coil Number for CS8250/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Supplier / Coil Number' })
+  await expect(dialog).toContainText('2 lines of TED8250')
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'COLSTE' }).click()
+  await dialog.getByLabel('Coil Number').fill('F7601268')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+
+  await expect(dialog).toBeHidden()
+  // A line on the row for some of its units fills in just those.
+  expect(posted).toEqual([
+    {
+      path: 'coil-assignment/fill-in/',
+      body: {
+        lines: [
+          { origin_item: '102', supplier: 'COLSTE', coil_number: 'F7601268' },
+          { origin_item: '103', unit: 2, supplier: 'COLSTE', coil_number: 'F7601268' },
+          { origin_item: '103', unit: 3, supplier: 'COLSTE', coil_number: 'F7601268' }
+        ]
+      }
+    }
+  ])
+})
+
 test('Production lists the orders released to the machine, a row per day', async ({ page }) => {
   await serveOrders(
     page,
