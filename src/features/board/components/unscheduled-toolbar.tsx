@@ -61,7 +61,7 @@ export const UnscheduledToolbar = ({
                 title='Skip Slinet + Machines — straight to Wrapping (Status: Bypassed), Production Date today'
                 onClick={onBypass}
               >
-                <FastForward data-icon='inline-start' className='size-3.5' />
+                <FastForward data-icon='inline-start' />
                 {/* A phone shares the row out three ways; the short word fits a third. */}
                 <span className='md:hidden'>Bypass</span>
                 <span className='max-md:hidden'>Bypass Production</span>
@@ -69,7 +69,7 @@ export const UnscheduledToolbar = ({
               </Button>
             ) : null}
             <Button disabled={!ready || !selectedCount} onClick={onSchedule}>
-              <CalendarDays data-icon='inline-start' className='size-3.5' />
+              <CalendarDays data-icon='inline-start' />
               Schedule{selectedCount ? ` (${selectedCount})` : ''}
             </Button>
           </SelectionBar>
