@@ -111,7 +111,8 @@ export const WRAP_LINES_TABLE: ColumnTable = {
     { key: 'left', label: 'Left to wrap', width: 'w-32' },
     { key: 'status', label: 'Status', width: 'w-40' },
     { key: 'reman', label: 'Remanufacture', width: 'w-32' },
-    { key: 'wrapping', label: 'Wrapping', width: 'w-40' },
+    // The amount and Auto fill side by side: narrower, the button drops under it and doubles the row.
+    { key: 'wrapping', label: 'Wrapping', width: 'w-56' },
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
 }
@@ -286,9 +287,9 @@ export const PACKAGE_LINES_TABLE: ColumnTable = {
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'qty', label: 'Qty ordered', width: 'w-32' },
     { key: 'wrapped', label: 'Packaged', width: 'w-24' },
-    { key: 'left', label: 'Left to package', width: 'w-28' },
+    { key: 'left', label: 'Left to package', width: 'w-40' },
     { key: 'status', label: 'Status', width: 'w-40' },
-    { key: 'wrapping', label: 'Packaging', width: 'w-40' },
+    { key: 'wrapping', label: 'Packaging', width: 'w-56' },
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
 }
