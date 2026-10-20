@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -44,10 +45,13 @@ import {
 } from '../api'
 import { withoutStock } from '../lib/columns'
 import { isBender } from '../lib/cutlists'
+import { editedDescription, shownDescription } from '../lib/descriptions'
+import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '../lib/status'
 import { unitCoils } from '../lib/unit-coils'
 import { NoteButton } from '@/components/note-button'
+import { contentName } from '../lib/wrapping'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
@@ -315,6 +319,11 @@ export const ScheduledLineItems = ({
               const open = splittable && (unfolded.has(item.id) || !!item.item?.unit_coils.length)
               const units = open && item.item ? unitCoils(item.item, item.quantity) : []
               const ticked = pickedUnits.get(item.id) ?? []
+              const name = contentName({
+                product_id: item.id_inven,
+                origin_item: item.id,
+                length: item.length
+              })
 
               return (
                 <Fragment key={item.id}>
@@ -326,7 +335,7 @@ export const ScheduledLineItems = ({
                       {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
                       {board.coils && editable && status !== 'stock' ? (
                         <Checkbox
-                          aria-label={`Select ${item.id_inven ?? item.id}`}
+                          aria-label={`Select ${name}`}
                           checked={picked.has(item.id)}
                           disabled={!pickable}
                           onCheckedChange={() =>
@@ -504,16 +513,21 @@ export const ScheduledLineItems = ({
                       desc: (
                         <TableCell>
                           {editable ? (
-                            <Input
+                            // A textarea, as an input drops the memo's line breaks and a blur would
+                            // save the description run together.
+                            <Textarea
                               key={description ?? ''}
-                              aria-label={`Description for ${item.id_inven ?? item.id}`}
+                              rows={1}
+                              className='min-h-8'
+                              aria-label={`Description for ${name}`}
                               placeholder='Add a description'
-                              defaultValue={description ?? ''}
+                              defaultValue={shownDescription(description)}
                               onBlur={event => {
                                 const input = event.currentTarget
-                                if (input.value !== (description ?? ''))
-                                  edit(item, { description: input.value }, () => {
-                                    input.value = description ?? ''
+                                const next = editedDescription(description, input.value)
+                                if (next !== null)
+                                  edit(item, { description: next }, () => {
+                                    input.value = shownDescription(description)
                                   })
                               }}
                             />
@@ -542,7 +556,7 @@ export const ScheduledLineItems = ({
                             />
                           ) : (
                             <span className='font-mono'>
-                              {width === null ? '—' : width.toFixed(1)}
+                              {width === null ? '—' : formatWidth(width)}
                             </span>
                           )}
                         </TableCell>
@@ -596,7 +610,7 @@ export const ScheduledLineItems = ({
                         <TableCell>
                           <NoteButton
                             state={noteState(item.id)}
-                            label='Line item notes'
+                            label={`Line notes for ${name}`}
                             onClick={() => onOpenNotes(item, otherDay)}
                           />
                         </TableCell>
@@ -608,7 +622,7 @@ export const ScheduledLineItems = ({
                       <TableCell>
                         {editable ? (
                           <Checkbox
-                            aria-label={`Select unit ${unit.unit} of ${item.id_inven ?? item.id}`}
+                            aria-label={`Select unit ${unit.unit} of ${name}`}
                             checked={picked.has(item.id) || ticked.includes(unit.unit)}
                             disabled={
                               picked.has(item.id) ||
@@ -670,7 +684,8 @@ export const ScheduledLineItems = ({
           number={order.invoice}
           rows={order.origin_items.map(item => ({
             origin_item: item.id,
-            product_id: item.id_inven
+            product_id: item.id_inven,
+            length: item.length
           }))}
           open={seeing}
           onOpenChange={setSeeing}

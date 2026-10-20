@@ -7,7 +7,7 @@ import { countsQuery, cutlistsQuery, machinesQuery } from '../api'
 import { machineTabsOf, type MachineTab } from '../lib/machines'
 import { canAccess, defaultView, VIEW_LABELS, viewsFor } from '../lib/views'
 import type { BoardView } from '../lib/boards'
-import { useBoard } from '../lib/board-context'
+import { StripSlotContext, useBoard } from '../lib/board-context'
 import { CalendarTab } from './calendar-tab'
 import { CoilsTab } from './coils-tab'
 import { CompletedTab } from './completed-tab'
@@ -74,6 +74,7 @@ export const BoardPage = ({
   // The board puts the Slit Line at the end of the machine row p2 (1204,296); the working tab it was
   // opened from stays lit above it.
   const [slitFrom, setSlitFrom] = useState<BoardView>('production')
+  const [stripSlot, setStripSlot] = useState<HTMLElement | null>(null)
   // The lists of lines also hold those no machine takes; a machine's own tabs do not.
   const withNone = view === 'unscheduled' || view === 'scheduled' || view === 'wrapping'
   const firstMachine = machines[0]?.id
@@ -92,7 +93,20 @@ export const BoardPage = ({
 
   usePageHeader({
     trail: [VIEW_LABELS[view]],
-    search: <HeaderSearch initial={search} onSearchChange={onSearchChange} />
+    // Coils is searched for coils, not orders: one box in the header, not a second on the tab.
+    search:
+      view === 'coils' ? (
+        // Keyed apart: the box holds its own term, and the orders' one must not stay in it.
+        <HeaderSearch
+          key='coils'
+          initial={search}
+          label='Search coils'
+          placeholder='Search — product / colour / gauge / coil #'
+          onSearchChange={onSearchChange}
+        />
+      ) : (
+        <HeaderSearch key='orders' initial={search} onSearchChange={onSearchChange} />
+      )
   })
 
   // A role that cannot see the tab in the URL is moved to the first one it can.
@@ -102,7 +116,7 @@ export const BoardPage = ({
 
   return (
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
-    <section className='flex min-w-0 flex-1 flex-col gap-4'>
+    <section className='flex min-w-0 flex-1 flex-col gap-3'>
       <DeptBar
         views={viewsFor(board, role).filter(tab => !slitInStrip || tab !== 'slit')}
         view={view === 'slit' && slitInStrip ? slitFrom : view}
@@ -132,75 +146,85 @@ export const BoardPage = ({
         }
       />
 
-      {showStrip && machines.length ? (
-        <MachineStrip
-          machines={machines}
-          value={view === 'slit' ? 'slit' : ((withNone ? machine : machineId) ?? 'none')}
-          withNone={withNone}
-          withSlit={offersSlit}
-          onChange={tab => {
-            if (tab === 'slit') {
-              setSlitFrom(view)
-              onViewChange('slit')
-              return
-            }
-            setPicked(tab)
-            if (view === 'slit') onViewChange(slitFrom)
-          }}
-        />
-      ) : showStrip && machinesPending ? (
-        // The row's room is kept while the machines load, so the tab below does not drop into it.
-        <MachineStripSkeleton />
+      {showStrip && (machines.length || machinesPending) ? (
+        // A tab's toolbar shares the row: on a laptop the board's list starts a row higher.
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
+          <div className='min-w-0 grow basis-80'>
+            {machines.length ? (
+              <MachineStrip
+                machines={machines}
+                value={view === 'slit' ? 'slit' : ((withNone ? machine : machineId) ?? 'none')}
+                withNone={withNone}
+                withSlit={offersSlit}
+                onChange={tab => {
+                  if (tab === 'slit') {
+                    setSlitFrom(view)
+                    onViewChange('slit')
+                    return
+                  }
+                  setPicked(tab)
+                  if (view === 'slit') onViewChange(slitFrom)
+                }}
+              />
+            ) : (
+              // The row's room is kept while the machines load, so the tab below does not drop into it.
+              <MachineStripSkeleton />
+            )}
+          </div>
+          <div ref={setStripSlot} className='ml-auto empty:hidden max-md:w-full' />
+        </div>
       ) : null}
 
-      {view === 'unscheduled' ? (
-        <UnscheduledTab search={search} departmentId={departmentId} machine={machine} />
-      ) : view === 'scheduled' ? (
-        <ScheduledTab
-          search={search}
-          departmentId={departmentId}
-          initialDay={openDay}
-          machine={machine}
-        />
-      ) : view === 'queue' ? (
-        <QueueTab departmentId={departmentId} machineId={machineId} worker={worker} />
-      ) : view === 'production' && board.machineTabs ? (
-        <RollformingProductionTab
-          search={search}
-          departmentId={departmentId}
-          machineId={machineId}
-        />
-      ) : view === 'coils' ? (
-        <CoilsTab departmentId={departmentId} worker={worker} />
-      ) : view === 'calendar' ? (
-        <CalendarTab
-          departmentId={departmentId}
-          // A day leads back to the board: the calendar reads the month, the Scheduled tab works it.
-          onOpenDay={day => {
-            setOpenDay(day)
-            onViewChange('scheduled')
-          }}
-        />
-      ) : view === 'completed' ? (
-        <CompletedTab departmentId={departmentId} />
-      ) : view === 'packaging' ? (
-        <PackagingTab search={search} departmentId={departmentId} />
-      ) : view === 'slit' ? (
-        <SlitLineTab search={search} departmentId={departmentId} />
-      ) : view === 'wrapping' ? (
-        // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
-        <WrappingTab
-          search={search}
-          departmentId={departmentId}
-          machine={board.machineTabs ? machine : undefined}
-        />
-      ) : (
-        <ProductionTab
-          search={search}
-          departmentId={departmentId}
-          onOpenCoils={() => onViewChange('coils')}
-        />
-      )}
+      <StripSlotContext value={stripSlot}>
+        {view === 'unscheduled' ? (
+          <UnscheduledTab search={search} departmentId={departmentId} machine={machine} />
+        ) : view === 'scheduled' ? (
+          <ScheduledTab
+            search={search}
+            departmentId={departmentId}
+            initialDay={openDay}
+            machine={machine}
+          />
+        ) : view === 'queue' ? (
+          <QueueTab departmentId={departmentId} machineId={machineId} worker={worker} />
+        ) : view === 'production' && board.machineTabs ? (
+          <RollformingProductionTab
+            search={search}
+            departmentId={departmentId}
+            machineId={machineId}
+          />
+        ) : view === 'coils' ? (
+          <CoilsTab search={search} departmentId={departmentId} worker={worker} />
+        ) : view === 'calendar' ? (
+          <CalendarTab
+            departmentId={departmentId}
+            // A day leads back to the board: the calendar reads the month, the Scheduled tab works it.
+            onOpenDay={day => {
+              setOpenDay(day)
+              onViewChange('scheduled')
+            }}
+          />
+        ) : view === 'completed' ? (
+          <CompletedTab departmentId={departmentId} />
+        ) : view === 'packaging' ? (
+          <PackagingTab search={search} departmentId={departmentId} />
+        ) : view === 'slit' ? (
+          <SlitLineTab search={search} departmentId={departmentId} />
+        ) : view === 'wrapping' ? (
+          // Rollforming wraps from a tab of its own; Trim's Wrapping sits among its machine tabs.
+          <WrappingTab
+            search={search}
+            departmentId={departmentId}
+            machine={board.machineTabs ? machine : undefined}
+          />
+        ) : (
+          <ProductionTab
+            search={search}
+            departmentId={departmentId}
+            onOpenCoils={() => onViewChange('coils')}
+          />
+        )}
+      </StripSlotContext>
     </section>
   )
 }

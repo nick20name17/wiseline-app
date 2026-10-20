@@ -18,6 +18,7 @@ import {
 } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { useHeldWhileClosed } from '@/hooks/use-held-while-closed'
 import { useDrawer } from '@/hooks/use-mobile'
 
 type ConfirmDialogProps = {
@@ -51,6 +52,8 @@ export const ConfirmDialog = ({
   onConfirm
 }: ConfirmDialogProps) => {
   const mobile = useDrawer(open)
+  const shownTitle = useHeldWhileClosed(title, open)
+  const shownDescription = useHeldWhileClosed(description, open)
   const confirm = (
     <Button
       variant={destructive ? 'destructive' : 'default'}
@@ -68,8 +71,8 @@ export const ConfirmDialog = ({
       <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
+            <DialogTitle>{shownTitle}</DialogTitle>
+            <DialogDescription>{shownDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose render={<Button variant='outline' />}>{cancelLabel}</DialogClose>
@@ -87,8 +90,8 @@ export const ConfirmDialog = ({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{shownTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{shownDescription}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>

@@ -156,6 +156,8 @@ test('moving a product from Rollforming to Trim asks first', async ({ page }) =>
 })
 
 test('the search narrows the list to one coil', async ({ page }) => {
+  // The header's box searches the coils; the tab has none of its own beside it.
+  await expect(page.getByRole('searchbox')).toHaveCount(1)
   const search = page.getByLabel('Search coils')
   await expect(search).toHaveAttribute('placeholder', 'Search — product / colour / gauge / coil #')
   await search.fill('3797401')

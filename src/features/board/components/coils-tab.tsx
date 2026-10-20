@@ -13,7 +13,6 @@ import {
   EmptyTitle
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -27,8 +26,8 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useDeferredValue, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Database, SlidersHorizontal } from 'lucide-react'
+import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
   coilLotsQuery,
@@ -369,12 +368,13 @@ const ProductGrid = ({
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table data-cards className='table-fixed'>
+      {/* The other columns' widths plus the longest Product ID (24 characters), which the table
+          scrolls sideways rather than cut. */}
+      <Table data-cards className='min-w-263 table-fixed'>
         <colgroup>
-          <col className='w-12' />
+          {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+          <col className='w-15' />
           {columns.cols}
-          {/* Every column has a width, so the screen's slack goes to this one, which has no cells. */}
-          <col />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -473,8 +473,8 @@ const ProductGrid = ({
 
                   {open ? (
                     <TableRow>
-                      {/* The tick column, the table's own and the slack one. */}
-                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 2}>
+                      {/* The expand column and the table's own. */}
+                      <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
                             <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
@@ -606,6 +606,8 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
 }
 
 type CoilsTabProps = {
+  /** The header's search, matched against product, colour, gauge and coil #. */
+  search: string | undefined
   departmentId: number | undefined
   /** A Worker works the coils but sees them through the Manager's filter: no scope switch, no filter. */
   worker: boolean
@@ -617,11 +619,9 @@ type CoilsTabProps = {
  * department and, inside Trim, into the Slinet — or a whole product at once; its figures are adjusted
  * from here and pushed back.
  */
-export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
+export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
-  const [term, setTerm] = useState('')
-  // The input keeps up with the typing; the list catches up when there is time for it.
-  const deferredTerm = useDeferredValue(term)
+  const term = search ?? ''
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
@@ -690,9 +690,9 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     onSlinet: (lot, checked) => placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } })
   }
 
-  const shown = searched(inAssignment, deferredTerm)
+  const shown = searched(inAssignment, term)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, assignment, deferredTerm, pageSize].join('|')
+  const view = [scoped, assignment, term, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
@@ -700,8 +700,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
   // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
-  const elsewhere =
-    assignment !== 'all' && !shown.length ? searched(indexed, deferredTerm).length : 0
+  const elsewhere = assignment !== 'all' && !shown.length ? searched(indexed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -716,7 +715,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       value={scope}
       onValueChange={value => setScope(value as CoilScope)}
     >
-      <TabsList className='h-10 max-md:w-full'>
+      <TabsList className='max-md:w-full'>
         <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
         <TabsTrigger
           value='all'
@@ -730,7 +729,12 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   const filterButton =
     !worker && !viewOnly && trim ? (
-      <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
+      // Last on a desk, after the counts; beside the scope switch on a phone, where the rest wraps.
+      <Button
+        variant='outline'
+        className='max-md:ml-auto md:order-2'
+        onClick={() => setFilterOpen(true)}
+      >
         <SlidersHorizontal data-icon='inline-start' />
         Coil Filter
       </Button>
@@ -740,8 +744,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   // scope switch too, or an empty Trim list would hide every other coil.
   if (!loading && !listed.length)
     return (
-      <div className='flex flex-1 flex-col gap-4'>
-        <div className='flex flex-wrap items-center gap-3'>
+      <div className='flex flex-1 flex-col gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           {scopeTabs}
           {filterButton}
         </div>
@@ -751,48 +755,34 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
-      {scopeTabs || filterButton ? (
-        <div className='flex flex-wrap items-center gap-3'>
-          {scopeTabs}
-          {filterButton}
-        </div>
-      ) : null}
-
+    <div className='flex min-w-0 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-3'>
-        <p className='text-sm text-muted-foreground'>
-          <span className='font-medium text-foreground'>{groups.length}</span>{' '}
-          {groups.length === 1 ? 'product' : 'products'} ·{' '}
-          <span className='font-medium text-foreground'>{shown.length}</span>{' '}
-          {shown.length === 1 ? 'coil' : 'coils'}
-        </p>
+        {scopeTabs}
+        {filterButton}
 
-        {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
+        {/* A row of its own on a phone, under the scope switch; one row with it on a desk. */}
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-3 max-md:w-full md:contents'>
+          <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
+            <TabsList>
+              <TabsTrigger value='all'>All</TabsTrigger>
+              <TabsTrigger value='assigned' title='In Trim or Rollforming'>
+                Assigned
+              </TabsTrigger>
+              <TabsTrigger value='unassigned' title='In no department yet'>
+                Unassigned
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
-          <TabsList>
-            <TabsTrigger value='all'>All</TabsTrigger>
-            <TabsTrigger value='assigned' title='In Trim or Rollforming'>
-              Assigned
-            </TabsTrigger>
-            <TabsTrigger value='unassigned' title='In no department yet'>
-              Unassigned
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
 
-        <InputGroup className='w-full md:ml-auto md:w-80'>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search coils'
-            placeholder='Search — product / colour / gauge / coil #'
-            value={term}
-            onChange={event => setTerm(event.target.value)}
-          />
-        </InputGroup>
+          <p className='text-sm text-muted-foreground md:order-1 md:ml-auto'>
+            <span className='font-medium text-foreground'>{groups.length}</span>{' '}
+            {groups.length === 1 ? 'product' : 'products'} ·{' '}
+            <span className='font-medium text-foreground'>{shown.length}</span>{' '}
+            {shown.length === 1 ? 'coil' : 'coils'}
+          </p>
+        </div>
       </div>
 
       {!loading && !shown.length ? (
@@ -812,13 +802,13 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
           }
         />
       ) : (
-        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
-            key={deferredTerm.trim() ? 'searching' : 'listing'}
+            key={term.trim() ? 'searching' : 'listing'}
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
-            searching={!!deferredTerm.trim()}
+            searching={!!term.trim()}
             onTickGroup={tickGroup}
             {...handlers}
           />

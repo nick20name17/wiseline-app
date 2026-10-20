@@ -1,8 +1,8 @@
 import { toast } from '@/components/ui/toast'
 import { toDataURL } from 'qrcode'
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { PackageLabel } from '../lib/package-label'
+import { PrintLabelContext, type PackageLabel } from '../lib/package-label'
 
 type SheetProps = { label: PackageLabel; onDone: () => void }
 
@@ -67,5 +67,22 @@ export const PackageLabelSheet = ({ label, onDone }: SheetProps) => {
       </article>
     </div>,
     document.body
+  )
+}
+
+/**
+ * Keeps the sheet above the tabs. The last package of an order completes it, and the refetch that
+ * drops the order from its list unmounts the bench while the label's code is still being drawn.
+ */
+export const PackageLabelProvider = ({ children }: { children: ReactNode }) => {
+  const [label, setLabel] = useState<PackageLabel | null>(null)
+  return (
+    <PrintLabelContext value={setLabel}>
+      {children}
+      {/* Keyed, so a second label gets its own code rather than printing on the first one's. */}
+      {label ? (
+        <PackageLabelSheet key={label.name} label={label} onDone={() => setLabel(null)} />
+      ) : null}
+    </PrintLabelContext>
   )
 }

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { SCHEDULED_ORDERS, WRAPPING_ROWS, mockTrimApi, signIn } from './trim-api.ts'
+import { SCHEDULED_ORDERS, WRAPPING_ROWS, capturePrints, mockTrimApi, signIn } from './trim-api.ts'
 
 // The board's fixtures under the Rollforming department: its tabs, and the coil a line is rolled from.
 let posted: { path: string; body: unknown }[]
@@ -90,6 +90,22 @@ test('Rollforming has its own tabs, split by machine, and no stock cards or bypa
   await expect(machines.getByRole('tab', { name: 'Press Brake' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Stock Cards' })).toBeHidden()
   await expect(page.getByRole('button', { name: /Bypass Production/ })).toBeHidden()
+})
+
+test('the tab the Slit Line was opened from leads back to it', async ({ page }) => {
+  await page.goto('/rollforming?view=scheduled')
+  await signIn(page)
+  await page.getByRole('tablist').nth(1).getByRole('tab', { name: 'Slit Line' }).click()
+  await expect(page).toHaveURL(/view=slit/)
+
+  // Scheduled stays lit above the Slit Line, so a click on it reports no change of tab.
+  const scheduled = page
+    .getByRole('tablist')
+    .first()
+    .getByRole('tab', { name: /Scheduled/ })
+  await expect(scheduled).toHaveAttribute('aria-selected', 'true')
+  await scheduled.click()
+  await expect(page).toHaveURL(/view=scheduled/)
 })
 
 test('a line gets a Supplier and a Coil Number picked from its coil’s lots', async ({ page }) => {
@@ -184,7 +200,9 @@ test('a unit with a coil of its own shows under its line', async ({ page }) => {
     .first()
     .click()
 
-  await expect(page.getByRole('checkbox', { name: /^Select unit \d+ of TED8250$/ })).toHaveCount(16)
+  await expect(
+    page.getByRole('checkbox', { name: /^Select unit \d+ of TED8250 · 120"$/ })
+  ).toHaveCount(16)
   const second = page
     .getByRole('row')
     .filter({
@@ -605,6 +623,71 @@ test('the coil ticked in the machine on the Queue shows on Production', async ({
   await expect(panel).toContainText('None')
 })
 
+test('the Worker names a Queue row’s coil where the Manager left it Undefined', async ({
+  page
+}) => {
+  // The server words a coil nobody named, rather than sending null.
+  const unnamed = {
+    ...queueRow('k1', 'CS8250 DARK RED', 'Undefined', 'Undefined'),
+    lines: [
+      {
+        origin_item: '102',
+        order_number: '330615',
+        product_id: 'TED8250',
+        quantity: 3,
+        units: null
+      },
+      {
+        origin_item: '103',
+        order_number: '330616',
+        product_id: 'TED8250',
+        quantity: 2,
+        units: [2, 3]
+      }
+    ]
+  }
+  const slitting = {
+    ...queueRow('k2', 'CS8262 BLACK', 'waiting...', 'waiting...'),
+    coil_icon: 'waiting_to_slit',
+    coil_fields_locked: true
+  }
+  await page.route(`${API_URL}/rollforming/queue/?*`, route =>
+    route.fulfill({ json: [unnamed, slitting] })
+  )
+  await page.goto('/rollforming?view=queue')
+  await signIn(page)
+
+  await expect(page.getByRole('checkbox', { name: /CS8250 .* is in the machine/ })).toBeDisabled()
+  // The Slit Line names its own coil once it slits it.
+  await expect(page.getByRole('row', { name: /CS8262/ })).toContainText('waiting...')
+  await expect(
+    page.getByRole('button', { name: /^Supplier and Coil Number for CS8262/ })
+  ).toBeHidden()
+
+  await page.getByRole('button', { name: /^Supplier and Coil Number for CS8250/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Supplier / Coil Number' })
+  await expect(dialog).toContainText('2 lines of TED8250')
+  await dialog.getByLabel('Supplier').click()
+  await page.getByRole('option', { name: 'COLSTE' }).click()
+  await dialog.getByLabel('Coil Number').fill('F7601268')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+
+  await expect(dialog).toBeHidden()
+  // A line on the row for some of its units fills in just those.
+  expect(posted).toEqual([
+    {
+      path: 'coil-assignment/fill-in/',
+      body: {
+        lines: [
+          { origin_item: '102', supplier: 'COLSTE', coil_number: 'F7601268' },
+          { origin_item: '103', unit: 2, supplier: 'COLSTE', coil_number: 'F7601268' },
+          { origin_item: '103', unit: 3, supplier: 'COLSTE', coil_number: 'F7601268' }
+        ]
+      }
+    }
+  ])
+})
+
 test('Production lists the orders released to the machine, a row per day', async ({ page }) => {
   await serveOrders(
     page,
@@ -740,4 +823,48 @@ test('the Worker fills in the units of a line still without a coil', async ({ pa
       }
     }
   ])
+})
+
+test('the last package of an order still prints its label once the order leaves Production', async ({
+  page
+}) => {
+  const printed = await capturePrints(page)
+  await serveOrders(
+    page,
+    onRollFormer(line => (line.id === '102' ? { is_released: true, coil_number: 'F7601268' } : {}))
+  )
+  await page.route(`${API_URL}/wrapping/*`, route =>
+    route.fulfill({
+      json: [
+        {
+          item_id: 102,
+          origin_item: '102',
+          order: 'ARINV-3',
+          order_number: '330615',
+          product_id: 'TED8250',
+          description: 'Eave Drip Dark Red',
+          production_date: '2026-09-23',
+          status: 'not_started',
+          qty_ordered: 16,
+          left_to_wrap: 16,
+          can_wrap: true,
+          auto_fill_available: true,
+          auto_fill_amount: 16
+        }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/wrapping/packages/`, async route => {
+    // The package rolls the order's last line, so the order is no longer on the machine's list.
+    await serveOrders(page, onRollFormer())
+    return route.fulfill({ json: { id: 71, name: '02-330615-01' } })
+  })
+  await page.goto('/rollforming?view=production')
+  await signIn(page)
+  await page.getByRole('row', { name: /Package 330615/ }).click()
+  await page.getByRole('button', { name: 'Auto fill' }).first().click()
+  await page.getByRole('button', { name: 'Create & print' }).click()
+
+  await expect(page.getByRole('row', { name: /Package 330615/ })).toBeHidden()
+  await expect.poll(printed).toEqual([expect.stringMatching(/02-330615-01Order 330615.*16/)])
 })

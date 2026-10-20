@@ -1,4 +1,4 @@
-import { useBoard } from '../lib/board-context'
+import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -92,6 +92,7 @@ const ReschedulePartDialog = ({
         title={`Reschedule order ${shown?.order.invoice ?? ''}`}
         description={`Pick any ${useBoard().dayWord}. Rescheduling resets Manager edits.`}
         actionLabel='Reschedule'
+        ships={shown ? [{ order: shown.order.invoice, date: shown.order.ship_date }] : undefined}
         departmentId={departmentId}
         initialDay={shown?.day ?? null}
         isPending={reschedule.isPending}
@@ -240,6 +241,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   }
 
   const board = useBoard()
+  const selectable = useScheduledSelectable()
   const {
     data: page,
     isPending,
@@ -332,7 +334,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       <ScheduledDayTabs
         departmentId={departmentId}
         day={day}
@@ -387,21 +389,24 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
             className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
           >
             <colgroup>
-              <col className='w-12' />
+              {selectable ? <col className='w-12' /> : null}
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
               <col className='w-15' />
               {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead />
+                {selectable ? <TableHead /> : null}
                 <TableHead />
                 {columns.headers}
               </TableRow>
             </TableHeader>
             {isPending ? (
               <TableBody>
-                <TableSkeletonRows columns={10} />
+                {/* Every column but the expand one, which the skeleton draws as its trailing cell. */}
+                <TableSkeletonRows
+                  columns={(selectable ? 1 : 0) + board.tables.scheduled.columns.length}
+                />
               </TableBody>
             ) : (
               <>

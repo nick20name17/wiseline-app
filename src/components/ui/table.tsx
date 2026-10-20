@@ -53,7 +53,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
       className={cn(
         // The banding gives the eye a rail to follow across a wide table. It sits on the row, not
         // the body, so every state below is as specific as it is and wins by coming later.
-        'h-9 border-b transition-colors even:bg-muted/30 hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        'h-8.5 border-b transition-colors even:bg-muted/30 hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
         // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
         // every one is back. A late line carries only the overdue mark, so it stays red.
         'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',
@@ -79,7 +79,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot='table-head'
       className={cn(
-        'h-9 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        'h-8.5 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
         // A movable column's header: the one in hand fades, and a bar on the side it will land on
         // marks where it goes; the body cells only move on drop, so the bar is the whole preview.
         'data-dragging:cursor-grabbing data-dragging:opacity-50 data-movable:relative data-movable:cursor-grab data-movable:select-none',
@@ -115,7 +115,7 @@ function TableCell({
       data-label={label ?? column?.label}
       data-card={card ?? column?.card}
       className={cn(
-        'overflow-hidden px-4 py-1 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
+        'overflow-hidden px-4 py-0.75 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
         className
       )}
       {...props}

@@ -41,6 +41,7 @@ import {
   remanState,
   stagedQuantity,
   wrapAllowed,
+  contentName,
   lineName,
   type CellRoom,
   type HeldLocation
@@ -57,7 +58,7 @@ import {
   RemoveJobLocationDialog,
   RemoveLocationDialog
 } from './location-dialog'
-import { usePackageLabel } from './use-package-label'
+import { usePackageLabel } from '../lib/package-label'
 import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
@@ -97,7 +98,7 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
         <Button
           variant='ghost'
           size='icon-sm'
-          aria-label={`Remanufacture ${lineName(row)}`}
+          aria-label={`Remanufacture ${contentName(row)}`}
           disabled={!room}
           title={room ? again : `All ${row.qty_ordered} pcs. are already awaiting remanufacture`}
           onClick={onRemake}
@@ -144,7 +145,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
           max={allowed}
           step={1}
           inputMode='numeric'
-          aria-label={`${pack.verb} from ${lineName(row)}`}
+          aria-label={`${pack.verb} from ${contentName(row)}`}
           title={`Qty to ${pack.verb.toLowerCase()} (1–${allowed})`}
           placeholder='0'
           value={staged || ''}
@@ -247,8 +248,8 @@ const WrapLines = ({
     <>
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
         {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it.
-            Rollforming's fixed columns, Supplier / Coil Number among them, take 1312px. */}
-        <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-360' : 'min-w-300')}>
+            Rollforming's fixed columns, Supplier / Coil Number among them, take 1376px. */}
+        <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-376' : 'min-w-320')}>
           <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
@@ -304,7 +305,7 @@ const WrapLines = ({
                         {board.stockCards && !viewOnly && !row.is_stock && row.item_id !== null ? (
                           <Button
                             variant='link'
-                            aria-label={`Stock for ${lineName(row)}`}
+                            aria-label={`Stock for ${contentName(row)}`}
                             title='Pull from stock'
                             onClick={() => setStocking(row)}
                           >
@@ -369,7 +370,7 @@ const WrapLines = ({
                       <TableCell>
                         <NoteButton
                           state={noteState(row.origin_item)}
-                          label={`Line notes for ${lineName(row)}`}
+                          label={`Line notes for ${contentName(row)}`}
                           onClick={() => setNoteLine(row)}
                         />
                       </TableCell>
@@ -387,7 +388,9 @@ const WrapLines = ({
         action='fill'
         departmentId={departmentId}
         current={filling ? coils?.get(filling.row.origin_item) : undefined}
-        units={{ fill: filling?.units ?? null }}
+        units={{
+          fill: filling?.units ? { [filling.row.origin_item]: filling.units } : undefined
+        }}
         open={!!filling}
         onOpenChange={open => !open && setFilling(null)}
         onAssigned={() => setFilling(null)}
@@ -411,7 +414,7 @@ const WrapLines = ({
         target={
           stocking
             ? {
-                title: `Stock for ${lineName(stocking)}`,
+                title: `Stock for ${contentName(stocking)}`,
                 current: stocking.from_stock,
                 max: stocking.qty_ordered
               }
@@ -605,10 +608,27 @@ const CreatePrintButton = ({
   onPrinted
 }: CreatePrintButtonProps) => {
   const [confirming, setConfirming] = useState(false)
-  const label = usePackageLabel()
-  const createPackage = useCreatePackage(() => {
+  const printLabel = usePackageLabel()
+  const createPackage = useCreatePackage(created => {
     setConfirming(false)
     onPrinted()
+    toast.add({
+      type: 'success',
+      title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
+    })
+    if (!created.name)
+      return toast.add({
+        type: 'error',
+        title: 'The package has no barcode yet',
+        description: 'Print its label from See packages once it has one.'
+      })
+    printLabel({
+      name: created.name,
+      orderNumber: number,
+      location: labelLocation,
+      weight,
+      contents: lines.map(line => ({ product: contentName(line.row), quantity: line.quantity }))
+    })
   })
   // The board's own questions p1 (951,365) and p1 (861,440); both at once reads as one.
   const question = overPackage
@@ -621,40 +641,14 @@ const CreatePrintButton = ({
   const print = (override: boolean) =>
     departmentId &&
     (target || locationless) &&
-    createPackage.mutate(
-      {
-        order,
-        department_id: departmentId,
-        ...(target ? { location_id: target.location_id } : {}),
-        lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
-        ...(weight === null ? {} : { weight }),
-        ...(override ? { override_weight: true } : {})
-      },
-      {
-        onSuccess: created => {
-          toast.add({
-            type: 'success',
-            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
-          })
-          if (!created.name)
-            return toast.add({
-              type: 'error',
-              title: 'The package has no barcode yet',
-              description: 'Print its label from See packages once it has one.'
-            })
-          label.print({
-            name: created.name,
-            orderNumber: number,
-            location: labelLocation,
-            weight,
-            contents: lines.map(line => ({
-              product: lineName(line.row),
-              quantity: line.quantity
-            }))
-          })
-        }
-      }
-    )
+    createPackage.mutate({
+      order,
+      department_id: departmentId,
+      ...(target ? { location_id: target.location_id } : {}),
+      lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
+      ...(weight === null ? {} : { weight }),
+      ...(override ? { override_weight: true } : {})
+    })
 
   return (
     <>
@@ -683,7 +677,6 @@ const CreatePrintButton = ({
         isPending={createPackage.isPending}
         onConfirm={() => print(true)}
       />
-      {label.sheet}
     </>
   )
 }

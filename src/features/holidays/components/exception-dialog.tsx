@@ -25,7 +25,7 @@ import { invalid } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   exceptionPayloadSchema,
   KIND_LABELS,
@@ -34,6 +34,7 @@ import {
   type DayKind,
   type ExceptionPayload
 } from '../api'
+import { DayLoadWarning } from './day-load-warning'
 
 const YEARS_AHEAD = 5
 
@@ -58,6 +59,7 @@ const ExceptionForm = ({ exception, initialDate, onSuccess }: ExceptionFormProps
   // A date that already has one comes back as a 409 whose reason the toast shows.
   const mutation = useUpsertException(() => onSuccess(form.getValues('date')))
   const { errors } = form.formState
+  const date = useWatch({ control: form.control, name: 'date' })
 
   return (
     <form
@@ -116,6 +118,8 @@ const ExceptionForm = ({ exception, initialDate, onSuccess }: ExceptionFormProps
           <FieldError errors={[errors.name]} />
         </Field>
       </FieldGroup>
+
+      {kind === 'holiday' && date ? <DayLoadWarning date={date} /> : null}
 
       {/* A phone stacks the answers full width, Save on top, as the drawer's own footers do. */}
       <DialogFooter bare className='mt-6'>

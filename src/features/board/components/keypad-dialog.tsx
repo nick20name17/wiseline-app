@@ -87,7 +87,7 @@ export const KeypadDialog = ({
         </DialogHeader>
 
         <div className='flex items-baseline justify-between rounded-md border border-border px-3 py-2'>
-          <span className='font-mono text-2xl'>{typed || '—'}</span>
+          <span className='font-mono text-xl'>{typed || '—'}</span>
           <span className='font-mono text-sm text-muted-foreground'>
             {next === null ? unit : `→ ${next} ${unit}`}
           </span>

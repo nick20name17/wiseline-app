@@ -118,7 +118,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2.5'>
         <div className='border-b border-border'>
           <Tabs

@@ -275,11 +275,11 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
   }
 
   return (
-    <div className='flex flex-1 flex-col gap-4'>
+    <div className='flex flex-1 flex-col gap-3'>
       {/* From the station strip to the totals stays put while the lists scroll under it, so the
           day's totals and the station switch are in reach at the bottom of a long list. A phone
           has no height to spare for it. */}
-      <div className='flex flex-col gap-4 bg-background md:sticky md:top-13 md:z-5 md:-mx-6 md:px-6 md:pb-2'>
+      <div className='flex flex-col gap-3 bg-background md:sticky md:top-13 md:z-5 md:-mx-6 md:px-6 md:pb-2'>
         {/* On a phone the buttons share a row of their own above the stations, in equal parts, so the
           strip keeps the whole width and still sits on the rule. */}
         <div className='flex items-center gap-3 border-b border-border max-md:flex-wrap'>

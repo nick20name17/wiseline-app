@@ -8,7 +8,7 @@ import {
   type QueryClient
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
-import { departmentByCode } from '@/lib/departments'
+import { departmentByCode, departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 /**
@@ -56,6 +56,27 @@ export const departmentRoleQuery = (userId: number | undefined, departmentId: nu
         )
         // The filter is the server's, but a role handed to the wrong person is not worth trusting it.
         .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
+/**
+ * The role a user works a board in, or `null` when they have none there — nor does anyone, when the
+ * department is not set up. The sidebar and the route guards read it before any board mounts.
+ */
+export const boardRoleQuery = (user: { id: number; role: string }, code: string) =>
+  queryOptions({
+    queryKey: ['departments', 'board-role', code, user.id, user.role] as const,
+    queryFn: async ({ client }) => {
+      const department = departmentByCode(
+        await client.fetchQuery({ ...departmentsQuery, retry: false }),
+        code
+      )
+      if (!department) return null
+      const assigned = await client.fetchQuery({
+        ...departmentRoleQuery(user.id, department.id),
+        retry: false
+      })
+      return departmentRole(user.role, assigned)
+    }
   })
 
 /**
@@ -2820,8 +2841,11 @@ type PackageLine = { origin_item: string; quantity: number }
 /**
  * Create & Print. A location is required, a quantity above Left To Wrap is refused, and an
  * over-weight package needs the override the board puts a confirmation behind.
+ *
+ * `onSuccess` is the hook's own, not `mutate`'s: those wait for the refetch below, and the last
+ * package completes the order, so the refetch unmounts the bench and they never run.
  */
-export const useCreatePackage = (onSuccess: () => void) =>
+export const useCreatePackage = (onSuccess: (created: { name: string | null }) => void) =>
   useMutation({
     meta: { errorTitle: 'Nothing was packed' },
     mutationFn: async (parcel: {
@@ -3258,6 +3282,15 @@ const queueLineSchema = z.object({
   units: z._default(z.nullable(z.array(z.number())), null)
 })
 
+// The server words a coil nobody named «Undefined», or «waiting...» while the Slit Line owes it.
+const queueCoil = z._default(
+  z.pipe(
+    z.nullable(z.string()),
+    z.transform(value => (value === 'Undefined' || value === 'waiting...' ? null : value))
+  ),
+  null
+)
+
 const queueRowSchema = z.object({
   // What a reorder names the row by. It changes when what the row combines does, so a reorder is
   // sent from a fresh read.
@@ -3269,8 +3302,8 @@ const queueRowSchema = z.object({
   linear_feet: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
   priority: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null),
-  supplier: z._default(z.nullable(z.string()), null),
-  coil_number: z._default(z.nullable(z.string()), null),
+  supplier: queueCoil,
+  coil_number: queueCoil,
   coil_icon: z._default(z.nullable(z.string()), null),
   coil_fields_locked: z._default(z.boolean(), false),
   gauge: z._default(z.nullable(z.string()), null),

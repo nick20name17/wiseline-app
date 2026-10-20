@@ -3,7 +3,7 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 // A body row is as tall as the header row; both come from ui/table.tsx.
-const ROW_HEIGHT = 37
+const ROW_HEIGHT = 35
 
 // What renders before the measurement below replaces it, in the same layout pass.
 const INITIAL_ROWS = 5

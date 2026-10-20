@@ -1,5 +1,6 @@
+import { guardPage } from '@/app/pages'
 import { meQuery } from '@/features/auth'
-import { BoardGate, boardSearchSchema, prefetchBoard } from '@/features/board'
+import { BoardGate, boardSearchSchema, prefetchBoard, withView } from '@/features/board'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -15,7 +16,7 @@ const AccessoriesRoute = () => {
       search={search}
       userRole={me?.role ?? ''}
       userId={me?.id}
-      onViewChange={next => void navigate({ search: previous => ({ ...previous, view: next }) })}
+      onViewChange={next => void navigate({ search: previous => withView(previous, next) })}
       onSearchChange={next =>
         void navigate({ search: previous => ({ ...previous, search: next }), replace: true })
       }
@@ -25,6 +26,7 @@ const AccessoriesRoute = () => {
 
 export const Route = createFileRoute('/_app/accessories')({
   staticData: { crumb: 'Accessories' },
+  beforeLoad: ({ context }) => guardPage(context.queryClient, '/accessories'),
   validateSearch: boardSearchSchema,
   loaderDeps: ({ search }) => search,
   // Not awaited: the page draws its own placeholders, and a hover should not hold up anything.
