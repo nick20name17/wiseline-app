@@ -3,6 +3,7 @@ import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useHeldWhileClosed } from '@/hooks/use-held-while-closed'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -92,7 +93,8 @@ const Locked = ({ value, row }: { value: string | null; row: QueueRow }) => (
     <span className='truncate font-mono'>
       {value ?? (row.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
     </span>
-    <CoilLock locked={row.coil_fields_locked} />
+    {/* An empty field beside a locked one is still the Worker's to fill. */}
+    <CoilLock locked={row.coil_fields_locked && !!value} />
   </span>
 )
 
@@ -245,6 +247,8 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
   const reorder = useReorderQueue()
   const inMachine = useSetCurrentCoil()
   const [filling, setFilling] = useState<QueueRow | null>(null)
+  // The row stays in the dialog while it closes, or it would fade out as «0 lines of —».
+  const shownFilling = useHeldWhileClosed(filling, !!filling)
   const sensors = useDragSensors()
   // The order a drop left, until the save settles — see the priorities table.
   const [dropped, setDropped] = useState<QueueRow[] | null>(null)
@@ -402,12 +406,13 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
 
       <CoilAssignDialog
         lines={
-          filling?.lines.map(line => ({ id: line.origin_item, id_inven: line.product_id })) ?? []
+          shownFilling?.lines.map(line => ({ id: line.origin_item, id_inven: line.product_id })) ??
+          []
         }
         action='fill'
         departmentId={departmentId}
-        current={filling ? currentOf(filling) : undefined}
-        units={{ fill: filling ? unitsOf(filling) : undefined }}
+        current={shownFilling ? currentOf(shownFilling) : undefined}
+        units={{ fill: shownFilling ? unitsOf(shownFilling) : undefined }}
         open={!!filling}
         onOpenChange={open => !open && setFilling(null)}
         onAssigned={() => setFilling(null)}

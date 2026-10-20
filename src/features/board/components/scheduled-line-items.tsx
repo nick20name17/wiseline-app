@@ -519,7 +519,7 @@ export const ScheduledLineItems = ({
                               key={description ?? ''}
                               rows={1}
                               className='min-h-8'
-                              aria-label={`Description for ${item.id_inven ?? item.id}`}
+                              aria-label={`Description for ${name}`}
                               placeholder='Add a description'
                               defaultValue={shownDescription(description)}
                               onBlur={event => {

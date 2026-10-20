@@ -95,14 +95,16 @@ export const BoardPage = ({
     // Coils is searched for coils, not orders: one box in the header, not a second on the tab.
     search:
       view === 'coils' ? (
+        // Keyed apart: the box holds its own term, and the orders' one must not stay in it.
         <HeaderSearch
+          key='coils'
           initial={search}
           label='Search coils'
           placeholder='Search — product / colour / gauge / coil #'
           onSearchChange={onSearchChange}
         />
       ) : (
-        <HeaderSearch initial={search} onSearchChange={onSearchChange} />
+        <HeaderSearch key='orders' initial={search} onSearchChange={onSearchChange} />
       )
   })
 
