@@ -1,7 +1,7 @@
+import { SearchInput } from '@/components/search-input'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { useRef, useState } from 'react'
 import {
   allLocationTypesQuery,
@@ -73,18 +73,12 @@ export const LocationsPage = ({
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
         <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
-          <InputGroup className='sm:max-w-60'>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='search'
-              aria-label='Search locations'
-              placeholder='Search...'
-              value={term}
-              onChange={event => handleSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            className='sm:max-w-60'
+            label='Search locations'
+            value={term}
+            onValueChange={handleSearch}
+          />
 
           {locations.length ? (
             <p className='shrink-0 text-sm text-muted-foreground'>
