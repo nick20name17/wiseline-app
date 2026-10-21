@@ -551,6 +551,20 @@ test.describe('a truck on the Scheduled tab', () => {
   })
 })
 
+test('both tabs say how much is on them, the Scheduled one with its pickups', async ({ page }) => {
+  await page.route(`${API_URL}/shipping/unscheduled/?*`, route =>
+    route.fulfill({ json: { count: 1425, results: [] } })
+  )
+  await page.route(`${API_URL}/shipping/scheduled/count/`, route =>
+    route.fulfill({ json: { orders: 12, pickups: 1 } })
+  )
+  await page.goto('/shipping?view=unscheduled')
+  await signIn(page)
+
+  await expect(page.getByRole('tab', { name: /^Unscheduled/ })).toContainText('1425')
+  await expect(page.getByRole('tab', { name: /^Scheduled/ })).toContainText('13')
+})
+
 test('Unscheduled narrows to the ship dates in the address', async ({ page }) => {
   const asked: URLSearchParams[] = []
   await page.route(`${API_URL}/shipping/unscheduled/?*`, route => {
