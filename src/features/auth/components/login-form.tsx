@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/lib/errors'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useMutation } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Lock, Mail } from 'lucide-react'
+import { ArrowRight, Lock, UserRound } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { authKeys, credentialsSchema, login, type Credentials } from '../api'
 import { AuthCard } from './auth-card'
@@ -39,16 +39,17 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
         <FieldGroup>
           <FieldGroup>
             <Field data-invalid={errors.email ? true : undefined}>
-              <FieldLabel htmlFor='email'>Email</FieldLabel>
+              <FieldLabel htmlFor='email'>Email or login</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
-                  <Mail />
+                  <UserRound />
                 </InputGroupAddon>
                 <InputGroupInput
                   id='email'
-                  type='email'
-                  autoComplete='email'
-                  placeholder='you@wiseline.com'
+                  autoComplete='username'
+                  autoCapitalize='none'
+                  spellCheck={false}
+                  placeholder='you@wiseline.com or jsmith'
                   aria-invalid={errors.email ? true : undefined}
                   {...form.register('email')}
                 />
