@@ -87,10 +87,15 @@ export const prioritiesQuery = (departmentId: number | undefined) =>
 
 export const useUpsertPriority = (onSuccess: () => void) =>
   useMutation({
-    mutationFn: ({ id, values }: { id?: number; values: PriorityForm & { position?: number } }) =>
-      id
-        ? authApi.patch(`priorities/${id}/`, { json: values }).json()
-        : authApi.post('priorities/', { json: values }).json(),
+    // A priority stays in the department it was made in: the API refuses another on an edit.
+    mutationFn: (
+      input:
+        | { id: number; values: Omit<PriorityForm, 'department'> }
+        | { id?: undefined; values: PriorityForm & { position: number } }
+    ) =>
+      input.id
+        ? authApi.patch(`priorities/${input.id}/`, { json: input.values }).json()
+        : authApi.post('priorities/', { json: input.values }).json(),
     onSuccess: async (_, __, ___, { client }) => {
       await client.invalidateQueries({ queryKey: prioritiesKeys.all })
       onSuccess()
