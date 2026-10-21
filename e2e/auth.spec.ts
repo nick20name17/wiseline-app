@@ -21,6 +21,22 @@ test('guarded page redirects to login and returns after signing in', async ({ pa
   await expect(page).toHaveURL(/\/rollforming/)
 })
 
+test('a worker without an email signs in with a login word', async ({ page }) => {
+  const sent: unknown[] = []
+  await page.route(`${API_URL}/token/`, route => {
+    sent.push(route.request().postDataJSON())
+    return route.fallback()
+  })
+  await page.goto('/rollforming')
+
+  await page.getByLabel('Email or login').fill('jsmith')
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await expect(page).toHaveURL(/\/rollforming/)
+  expect(sent).toEqual([{ email: 'jsmith', password }])
+})
+
 const DEPARTMENTS = [
   { id: 1, name: 'Trim', code: 'trim' },
   { id: 2, name: 'Rollforming', code: 'rollforming' },

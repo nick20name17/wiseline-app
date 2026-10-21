@@ -83,13 +83,14 @@ const UserFormFields = ({ user, onSuccess }: UserFormProps) => {
         </div>
 
         <Field data-invalid={invalid(errors.email)}>
-          <RequiredLabel htmlFor='user-email'>Email</RequiredLabel>
+          <RequiredLabel htmlFor='user-email'>Email or login</RequiredLabel>
           <InputGroup>
             <InputGroupInput
               id='user-email'
-              type='email'
               autoComplete='off'
-              placeholder='e.g. john@wiseline.app'
+              autoCapitalize='none'
+              spellCheck={false}
+              placeholder='e.g. john@wiseline.app or jsmith'
               aria-invalid={invalid(errors.email)}
               {...form.register('email')}
             />

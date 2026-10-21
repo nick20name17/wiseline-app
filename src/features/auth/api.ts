@@ -1,12 +1,16 @@
 import { authApi, publicApi } from '@/api/client'
 import { queryClient } from '@/lib/query-client'
+import { isLogin, LOGIN_RULE } from '@/lib/login'
 import { sessionStore } from '@/lib/session-store'
 import { queryOptions } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 import { userIdFromToken } from './lib/jwt'
 
 export const credentialsSchema = z.object({
-  email: z.string().check(z.minLength(1, 'Email is required'), z.email('Enter a valid email')),
+  // `email` carries a login word too, for a worker without an address.
+  email: z
+    .string()
+    .check(z.trim(), z.minLength(1, 'Email or login is required'), z.refine(isLogin, LOGIN_RULE)),
   password: z.string().check(z.minLength(1, 'Password is required'))
 })
 

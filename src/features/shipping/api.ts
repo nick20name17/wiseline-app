@@ -24,6 +24,8 @@ const shippingKeys = {
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
   scheduledDays: () => [...shippingKeys.all, 'scheduled'] as const,
   scheduled: (shipDate: string) => [...shippingKeys.scheduledDays(), shipDate] as const,
+  // Under the days, so whatever puts an order on a truck or takes it off refreshes the count.
+  scheduledCount: () => [...shippingKeys.scheduledDays(), 'count'] as const,
   allLoads: () => [...shippingKeys.all, 'loads'] as const,
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
@@ -145,6 +147,20 @@ export const unscheduledCountQuery = queryOptions({
     unscheduledPageSchema.parse(
       await authApi.get('shipping/unscheduled/', { searchParams: { limit: 1 } }).json()
     ).count
+})
+
+/**
+ * How much is on a truck and not delivered yet, overdue included: the Scheduled tab's count. Pickups
+ * count too, since the tab lists them beside the orders.
+ */
+export const scheduledCountQuery = queryOptions({
+  queryKey: shippingKeys.scheduledCount(),
+  queryFn: async () => {
+    const { orders, pickups } = z
+      .object({ orders: z._default(z.number(), 0), pickups: z._default(z.number(), 0) })
+      .parse(await authApi.get('shipping/scheduled/count/').json())
+    return orders + pickups
+  }
 })
 
 const shipmentTotalsSchema = z.object({

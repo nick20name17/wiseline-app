@@ -59,6 +59,13 @@ export const DEPARTMENT_KINDS: Record<string, readonly MachineKind[]> = {
   accessories: ['packaging']
 }
 
+/** Every applicable piece passes through these, so the API refuses to delete one. */
+export const REQUIRED_KINDS = [
+  'cutting',
+  'slit_line',
+  'wrapping'
+] as const satisfies readonly MachineKind[]
+
 export const KIND_LABELS: Record<MachineKind, string> = {
   cutting: 'Cutting',
   bending: 'Bending',

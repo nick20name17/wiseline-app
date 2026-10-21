@@ -163,6 +163,25 @@ test('a new priority takes a palette colour and goes last in the department on s
   await expect.poll(() => posted[0]?.color).toBe('#2563eb')
 })
 
+test('an edited priority stays in its department: it is neither asked for nor sent', async ({
+  page
+}) => {
+  const patched: Record<string, unknown>[] = []
+  await page.route(`${API_URL}/priorities/3/`, route => {
+    patched.push(route.request().postDataJSON() as Record<string, unknown>)
+    return route.fulfill({ json: { ...PRIORITIES[0], name: 'Now' } })
+  })
+
+  await page.getByRole('button', { name: 'Trim' }).click()
+  await page.getByRole('button', { name: 'Edit ASAP' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Department')).toHaveCount(0)
+  await dialog.getByLabel('Name').fill('Now')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+
+  await expect.poll(() => patched[0]).toEqual({ name: 'Now', color: '#dc2626' })
+})
+
 test('deleting one says what it costs', async ({ page }) => {
   await page.getByRole('button', { name: 'Trim' }).click()
   await page.getByRole('button', { name: 'Delete ASAP' }).click()

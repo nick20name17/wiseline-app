@@ -97,6 +97,13 @@ test('deleting a machine says what goes with it', async ({ page }) => {
   await expect(page.getByText(/left without a machine/)).toBeVisible()
 })
 
+test('the Slinet cannot be deleted, and says why', async ({ page }) => {
+  await page.getByRole('button', { name: 'Delete Slinet' }).click()
+
+  await expect(page.getByText(/work passes through Slinet/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled()
+})
+
 test('a rollformer runs every EBMS profile listed on it, one a line', async ({ page }) => {
   let saved: unknown
   await page.route(`${API_URL}/flows/85/`, route => {

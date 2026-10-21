@@ -1,5 +1,6 @@
 import { authApi } from '@/api/client'
 import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
+import { isLogin, LOGIN_RULE } from '@/lib/login'
 import * as z from 'zod/mini'
 import { DEPARTMENTS, ROLES, toUserTypes, type Role } from './lib/roles'
 
@@ -28,12 +29,13 @@ const PASSWORD_MIN_LENGTH = 8
 export const userFormSchema = z.object({
   first_name: z.string().check(z.minLength(1, 'First name is required')),
   last_name: z.string().check(z.minLength(1, 'Last name is required')),
-  email: z.string().check(z.email('Enter a valid email')),
+  email: z.string().check(z.trim(), z.refine(isLogin, LOGIN_RULE)),
   role: z.enum(ROLES),
   departments: z.array(z.enum(DEPARTMENTS))
 })
 
-// Only a new account carries a password; an edit leaves the existing one alone.
+// Only a new account carries a password; an edit leaves the existing one alone. One with a login word
+// gets no invite to set it from, so the admin always sets it here.
 export const newUserFormSchema = z.object({
   ...userFormSchema.shape,
   password: z

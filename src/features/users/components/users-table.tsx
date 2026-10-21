@@ -37,7 +37,7 @@ const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
   )
 }
 
-const COLUMNS = ['Name', 'Email', 'Role', 'Departments'] as const
+const COLUMNS = ['Name', 'Email or login', 'Role', 'Departments'] as const
 
 const ROLE_BADGE =
   'inline-flex h-5 items-center rounded-4xl px-2 text-xs font-medium tracking-wider uppercase'
@@ -78,7 +78,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
           users.map(user => (
             <TableRow key={user.id}>
               <TableCell card='title'>{fullName(user) || '—'}</TableCell>
-              <TableCell label='Email' card='subtitle' className='max-lg:break-all'>
+              <TableCell label='Email or login' card='subtitle' className='max-lg:break-all'>
                 {user.email}
               </TableCell>
               <TableCell label='Role'>
