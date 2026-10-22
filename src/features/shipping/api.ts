@@ -163,6 +163,25 @@ export const scheduledCountQuery = queryOptions({
   }
 })
 
+const liveCountsSchema = z.object({
+  unscheduled: z.number(),
+  scheduled: z.object({ orders: z.number(), pickups: z.number() })
+})
+
+/**
+ * The tabs' counts as the counts socket pushes them after a change: the same figures the two count
+ * queries read, written into their caches.
+ */
+export const applyShippingCounts = (client: QueryClient, pushed: unknown) => {
+  const counts = liveCountsSchema.safeParse(pushed).data
+  if (!counts) return
+  client.setQueryData(shippingKeys.unscheduledCount(), counts.unscheduled)
+  client.setQueryData(
+    shippingKeys.scheduledCount(),
+    counts.scheduled.orders + counts.scheduled.pickups
+  )
+}
+
 const shipmentTotalsSchema = z.object({
   count: z._default(z.number(), 0),
   total_weight: z._default(z.number(), 0),

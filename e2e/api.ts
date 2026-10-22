@@ -23,4 +23,17 @@ export const mockAuthApi = async (page: Page) => {
     route.fulfill({ json: { access: accessToken, refresh: 'refresh' } })
   )
   await page.route(`${API_URL}/users/${user.id}/`, route => route.fulfill({ json: user }))
+  // The user's preferences, kept by the server across reloads as the real one keeps them.
+  const preferences: Record<string, unknown> = {}
+  await page.route(`${API_URL}/users/me/preferences/**`, route => {
+    const request = route.request()
+    const key = decodeURIComponent(new URL(request.url()).pathname.split('/').at(-2) ?? '')
+    if (request.method() === 'GET') return route.fulfill({ json: preferences })
+    if (request.method() === 'DELETE') {
+      delete preferences[key]
+      return route.fulfill({ status: 204 })
+    }
+    preferences[key] = request.postDataJSON()
+    return route.fulfill({ json: { key, value: preferences[key] } })
+  })
 }

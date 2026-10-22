@@ -1,4 +1,4 @@
-export { logout, meQuery } from './api'
+export { logout, meQuery, openPreferences } from './api'
 export { ForgotPasswordForm } from './components/forgot-password-form'
 export { LoginForm } from './components/login-form'
 export { ResetPasswordForm } from './components/reset-password-form'

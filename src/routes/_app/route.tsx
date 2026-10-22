@@ -3,14 +3,17 @@ import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageHeaderProvider } from '@/components/layout/page-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useIsWide } from '@/hooks/use-mobile'
+import { useLiveCounts } from '@/app/live-counts'
 import { PAGES, pagesQuery } from '@/app/pages'
-import { UserMenu, meQuery } from '@/features/auth'
+import { UserMenu, meQuery, openPreferences } from '@/features/auth'
+import { preferencesLoaded } from '@/lib/preferences'
 import { sessionStore } from '@/lib/session-store'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 
 const AppLayout = () => {
+  useLiveCounts()
   const { data: me, isPending: findingMe } = useQuery(meQuery)
   const { data: pages, isPending: findingPages } = useQuery({
     ...pagesQuery(me ?? { id: 0, role: '' }),
@@ -57,6 +60,11 @@ export const Route = createFileRoute('/_app')({
     if (!sessionStore.get()) {
       throw redirect({ to: '/login', search: { redirect: location.href } })
     }
+  },
+  // Beside the page's own loaders, not before them: the tables open in the layout this user left them
+  // in, rather than jumping to it.
+  loader: async () => {
+    if (!preferencesLoaded()) await openPreferences()
   },
   component: AppLayout
 })

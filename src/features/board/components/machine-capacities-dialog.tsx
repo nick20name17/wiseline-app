@@ -12,8 +12,7 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Printer } from 'lucide-react'
-import { machineCapacitiesQuery, machineLoad, machinesQuery } from '../api'
-import { useBoard } from '../lib/board-context'
+import { isMaker, machineCapacitiesQuery, machineLoad } from '../api'
 import { formatCount as count } from '../lib/format'
 import { Cap, Heading, Progress } from './capacity-parts'
 
@@ -110,20 +109,10 @@ export const MachineCapacitiesDialog = ({
   day: current,
   onOpenChange
 }: MachineCapacitiesDialogProps) => {
-  const board = useBoard()
   const [day, release] = useRetained(current)
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
-  // The report does not say what each machine does; the machine list does, and the board has it.
-  // Without it the Slinet and Wrapping would show as machines, so the report waits for it.
-  const { data: machines, isPending: kindsPending } = useQuery(
-    machinesQuery(board.name, departmentId)
-  )
-  const kindOf = new Map(machines?.map(machine => [machine.id, machine.kind]))
-  const slinet = data?.machines.find(machine => kindOf.get(machine.flow_id) === 'cutting')
-  const makers =
-    data?.machines.filter(
-      machine => !['cutting', 'wrapping'].includes(kindOf.get(machine.flow_id) ?? '')
-    ) ?? []
+  const slinet = data?.machines.find(machine => machine.kind === 'cutting')
+  const makers = data?.machines.filter(isMaker) ?? []
   // Trim's machines are held to bends, Rollforming's to linear feet: the measure is the day's own
   // unit, the one its Daily Max is set in.
   const unit = data?.total.capacity_unit ?? 'bends'
@@ -164,7 +153,7 @@ export const MachineCapacitiesDialog = ({
             dropping down the sheet once the figures arrive. A phone's drawer scrolls as one; a box
             scrolling inside it would fight the swipe. */}
         <div data-print-expand className='scrollport min-h-64 md:max-h-96 md:overflow-y-auto'>
-          {isPending || kindsPending || !data ? (
+          {isPending || !data ? (
             <Skeleton className='h-64' />
           ) : (
             <table className='w-full table-fixed border-separate border-spacing-y-1.5'>
@@ -231,18 +220,18 @@ export const MachineCapacitiesDialog = ({
                         heading={slinet.name ?? 'Slinet'}
                         label='Daily Piece Cap:'
                         cap={slinet.max_pieces}
-                        used={data.total.pieces}
-                        over={!!slinet.max_pieces && data.total.pieces > slinet.max_pieces}
+                        used={slinet.pieces}
+                        over={slinet.over_pieces}
                       />
                     }
                     measure={
                       <>
                         <Heading>Pieces</Heading>
                         <Progress
-                          done={data.total.pieces_cut}
-                          value={data.total.pieces}
-                          fromStock={data.total.pieces_from_stock}
-                          fromStockDone={data.total.pieces_cut_from_stock}
+                          done={slinet.pieces_cut}
+                          value={slinet.pieces}
+                          fromStock={slinet.pieces_from_stock}
+                          fromStockDone={slinet.pieces_cut_from_stock}
                         />
                       </>
                     }
