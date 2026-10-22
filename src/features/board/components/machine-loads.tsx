@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { machineCapacitiesQuery, machineLoad, machinesQuery } from '../api'
-import { useBoard } from '../lib/board-context'
+import { isMaker, machineCapacitiesQuery, machineLoad } from '../api'
 import { formatCount as count, loadUnit, share } from '../lib/format'
 import { Bar } from './capacity-parts'
 
@@ -16,16 +15,11 @@ type MachineLoadsProps = {
  * The Slinet and Wrapping are not assigned to, so they have no bar here.
  */
 export const MachineLoads = ({ departmentId, day }: MachineLoadsProps) => {
-  const board = useBoard()
   const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
-  const { data: machines } = useQuery(machinesQuery(board.name, departmentId))
-  if (!data || !machines) return null
+  if (!data) return null
 
-  const kindOf = new Map(machines.map(machine => [machine.id, machine.kind]))
   const unit = data.total.capacity_unit
-  const makers = data.machines.filter(
-    machine => !['cutting', 'wrapping'].includes(kindOf.get(machine.flow_id) ?? '')
-  )
+  const makers = data.machines.filter(isMaker)
   if (!makers.length) return null
 
   return (

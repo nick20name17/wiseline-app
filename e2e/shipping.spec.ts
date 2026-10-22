@@ -565,6 +565,27 @@ test('both tabs say how much is on them, the Scheduled one with its pickups', as
   await expect(page.getByRole('tab', { name: /^Scheduled/ })).toContainText('13')
 })
 
+test('the tab counts follow what the counts socket pushes', async ({ page }) => {
+  await page.route(`${API_URL}/shipping/unscheduled/?*`, route =>
+    route.fulfill({ json: { count: 1425, results: [] } })
+  )
+  await page.route(`${API_URL}/shipping/scheduled/count/`, route =>
+    route.fulfill({ json: { orders: 12, pickups: 1 } })
+  )
+  let push: (message: unknown) => void = () => {}
+  await page.routeWebSocket(`${API_URL.replace('https', 'wss')}/ws/counts/`, socket => {
+    push = message => socket.send(JSON.stringify(message))
+  })
+  await page.goto('/shipping?view=unscheduled')
+  await signIn(page)
+  await expect(page.getByRole('tab', { name: /^Scheduled/ })).toContainText('13')
+
+  push({ shipping: { unscheduled: 1424, scheduled: { orders: 13, pickups: 1 } }, departments: {} })
+
+  await expect(page.getByRole('tab', { name: /^Unscheduled/ })).toContainText('1424')
+  await expect(page.getByRole('tab', { name: /^Scheduled/ })).toContainText('14')
+})
+
 test('Unscheduled narrows to the ship dates in the address', async ({ page }) => {
   const asked: URLSearchParams[] = []
   await page.route(`${API_URL}/shipping/unscheduled/?*`, route => {

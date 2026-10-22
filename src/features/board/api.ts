@@ -408,6 +408,31 @@ export const countsQuery = (departmentId: number | undefined) =>
       countsSchema.parse(await authApi.get(`departments/${departmentId}/counts/`).json())
   })
 
+/**
+ * Every department's tab counts as the counts socket pushes them after a change, keyed by department
+ * id: the same figures `countsQuery` reads, written into its cache.
+ */
+export const applyDepartmentCounts = (client: QueryClient, pushed: unknown) => {
+  const departments = z.record(z.string(), countsSchema).safeParse(pushed).data
+  for (const [id, counts] of Object.entries(departments ?? {}))
+    client.setQueryData(boardKeys.counts(Number(id)), counts)
+}
+
+/**
+ * The days whose capacity moved, by department, as the counts socket signals them: the day strips
+ * and the Machine Capacities of those days are read again. A strip is keyed by its range rather than
+ * its days, so each of the department's is.
+ */
+export const refetchCapacity = (client: QueryClient, pushed: unknown) => {
+  const changed = z.record(z.string(), z.array(z.string())).safeParse(pushed).data
+  for (const [id, days] of Object.entries(changed ?? {})) {
+    const departmentId = Number(id)
+    void client.invalidateQueries({ queryKey: [...boardKeys.all, 'day-strip', departmentId] })
+    for (const day of days)
+      void client.invalidateQueries({ queryKey: boardKeys.machineCapacities(departmentId, day) })
+  }
+}
+
 export const unscheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
     queryKey: boardKeys.unscheduled(category, search),
@@ -568,9 +593,15 @@ const machineCapacitySchema = z.object({
       z.object({
         flow_id: z.number(),
         name: z._default(z.nullable(z.string()), null),
+        // `cutting` is the Slinet, whose row is the whole day's pieces against its own Daily Max;
+        // its bends are 0.
+        kind: z._default(z.nullable(z.string()), null),
         pieces: z._default(z.number(), 0),
         pieces_from_stock: z._default(z.number(), 0),
+        pieces_cut: z._default(z.number(), 0),
+        pieces_cut_from_stock: z._default(z.number(), 0),
         max_pieces: z._default(z.nullable(z.number()), null),
+        over_pieces: z._default(z.boolean(), false),
         bends: z._default(z.number(), 0),
         bends_from_stock: z._default(z.number(), 0),
         bends_done: z._default(z.number(), 0),
@@ -591,6 +622,13 @@ const machineCapacitySchema = z.object({
 })
 
 type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
+
+/**
+ * The machines lines are assigned to. The Slinet cuts for all of them and Wrapping comes after, so
+ * neither is one.
+ */
+export const isMaker = (machine: MachineCapacity) =>
+  machine.kind !== 'cutting' && machine.kind !== 'wrapping'
 
 /** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */
 export const machineLoad = (machine: MachineCapacity, unit: CapacityUnit) =>
@@ -1183,10 +1221,13 @@ export const useSetPriority = (orderId: string) =>
       patchCachedOrder(client, order.id, cached =>
         withPriority(cached, departmentId, departmentStateOf(order, departmentId)?.priority ?? null)
       ),
-    // The lists are already patched, so this only settles their order; nothing else on the board
-    // reads a priority, and nothing waits for it.
-    onSettled: (_, __, ___, ____, { client }) =>
+    // The order lists are already patched, so this only settles their order. A released order's
+    // lines move to the cutlists and bendlists of their new priority, under new ids, so those are
+    // read again too. Nothing waits for either.
+    onSettled: (_, __, ___, ____, { client }) => {
       void client.invalidateQueries({ queryKey: boardKeys.orders() })
+      void client.invalidateQueries({ queryKey: boardKeys.cutlists() })
+    }
   })
 
 /**

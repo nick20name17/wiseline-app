@@ -6,7 +6,7 @@ export const MachineActions = ({ machine }: { machine: Machine }) => {
   // The schema lets the name be null, though the database always has one.
   const name = machine.name ?? `#${machine.id}`
   const deletion = useDeleteMachine()
-  const required = (REQUIRED_KINDS as readonly string[]).includes(machine.kind ?? '')
+  const required = REQUIRED_KINDS.some(kind => kind === machine.kind)
 
   return (
     <RowActions

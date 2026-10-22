@@ -24,7 +24,7 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, type UseFormReturn } from 'react-hook-form'
 import {
   departmentsQuery,
   onBoard,
@@ -43,8 +43,47 @@ type PriorityFormProps = {
   onSuccess: () => void
 }
 
-const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) => {
+// A priority belongs to one department and is never seen outside it, so only a new one is asked for
+// it: "create one in the other department instead", as the API answers a move.
+const DepartmentField = ({ form }: { form: UseFormReturn<PriorityFormValues> }) => {
   const { data: departments } = useQuery(departmentsQuery)
+  const error = form.formState.errors.department
+
+  return (
+    <Field data-invalid={invalid(error)}>
+      <RequiredLabel htmlFor='priority-department'>Department</RequiredLabel>
+      <Controller
+        control={form.control}
+        name='department'
+        render={({ field }) => (
+          <Select
+            value={String(field.value)}
+            onValueChange={value => field.onChange(Number(value))}
+          >
+            <SelectTrigger id='priority-department'>
+              {/* The trigger holds the id; the name is what the eye is looking for. */}
+              <SelectValue>
+                {(id: string) =>
+                  departments?.find(department => department.id === Number(id))?.name ?? 'Select…'
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {departments?.map(department => (
+                <SelectItem key={department.id} value={String(department.id)}>
+                  {department.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      <FieldError errors={[error]} />
+    </Field>
+  )
+}
+
+const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) => {
   const form = useForm<PriorityFormValues>({
     resolver: standardSchemaResolver(priorityFormSchema),
     defaultValues: {
@@ -93,41 +132,7 @@ const PriorityForm = ({ priority, departmentId, onSuccess }: PriorityFormProps) 
           <FieldError errors={[errors.name]} />
         </Field>
 
-        {/* A priority belongs to one department and is never seen outside it, so only a new one is
-            asked for it: "create one in the other department instead", as the API answers a move. */}
-        {priority ? null : (
-          <Field data-invalid={invalid(errors.department)}>
-            <RequiredLabel htmlFor='priority-department'>Department</RequiredLabel>
-            <Controller
-              control={form.control}
-              name='department'
-              render={({ field }) => (
-                <Select
-                  value={String(field.value)}
-                  onValueChange={value => field.onChange(Number(value))}
-                >
-                  <SelectTrigger id='priority-department'>
-                    {/* The trigger holds the id; the name is what the eye is looking for. */}
-                    <SelectValue>
-                      {(id: string) =>
-                        departments?.find(department => department.id === Number(id))?.name ??
-                        'Select…'
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments?.map(department => (
-                      <SelectItem key={department.id} value={String(department.id)}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            <FieldError errors={[errors.department]} />
-          </Field>
-        )}
+        {priority ? null : <DepartmentField form={form} />}
 
         <FieldSet data-invalid={invalid(errors.color)}>
           <RequiredLegend>Colour</RequiredLegend>

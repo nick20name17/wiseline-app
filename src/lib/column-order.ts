@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
-import { persistedStore, type PersistedStore } from './persisted-store'
+import type { PersistedStore } from './persisted-store'
+import { preferenceStore } from './preferences'
 
 /**
  * A saved order outlives the table it was saved from: a release can rename, drop or add a column.
@@ -24,33 +25,49 @@ export const withNewColumns = (saved: readonly string[], declared: readonly stri
   return next
 }
 
-const cached = <T>(
-  stores: Map<string, PersistedStore<T>>,
-  key: string,
-  schema: z.ZodMiniType<T>
-) => {
-  let store = stores.get(key)
+// One preference per table, both halves in it: the order its columns were dragged into, and the px
+// widths their edges were dragged to (a column not in it keeps its declared width).
+const tableSchema = z.object({
+  order: z.optional(z.array(z.string())),
+  widths: z.optional(z.record(z.string(), z.number()))
+})
+
+type TableLayout = z.infer<typeof tableSchema>
+
+const tableStores = new Map<string, PersistedStore<TableLayout>>()
+
+const tableStore = (table: string) => {
+  let store = tableStores.get(table)
   if (!store) {
-    store = persistedStore(key, schema)
-    stores.set(key, store)
+    store = preferenceStore(`table:${table}`, tableSchema)
+    tableStores.set(table, store)
   }
   return store
 }
 
-const orderSchema = z.array(z.string())
-const orderStores = new Map<string, PersistedStore<string[]>>()
+/** One half of a table's layout, written without touching the other. */
+const half = <K extends keyof TableLayout>(
+  table: string,
+  part: K
+): PersistedStore<NonNullable<TableLayout[K]>> => {
+  const store = tableStore(table)
+  return {
+    get: () => store.get()?.[part] ?? null,
+    set: next => {
+      const { [part]: _, ...rest } = store.get() ?? {}
+      const layout: TableLayout = next === null ? rest : { ...rest, [part]: next }
+      store.set(Object.keys(layout).length ? layout : null)
+    },
+    subscribe: store.subscribe
+  }
+}
 
 /**
- * The order one person has dragged a table's columns into, kept in this browser. A table's header and
- * its rows are often separate components; both read the same store, so they cannot disagree.
+ * The order one person has dragged a table's columns into, kept for them on the server. A table's
+ * header and its rows are often separate components; both read the same store, so they cannot
+ * disagree.
  */
-export const columnOrderStore = (table: string) =>
-  cached(orderStores, `column-order:${table}`, orderSchema)
+export const columnOrderStore = (table: string) => half(table, 'order')
 
-// px by column key; a column not in it keeps its declared width.
-const widthsSchema = z.record(z.string(), z.number())
-const widthStores = new Map<string, PersistedStore<Record<string, number>>>()
-
-/** The widths one person has dragged a table's columns to, kept in this browser like the order. */
-export const columnWidthStore = (table: string) =>
-  cached(widthStores, `column-width:${table}`, widthsSchema)
+/** The widths one person has dragged a table's columns to, kept like the order. */
+export const columnWidthStore = (table: string) => half(table, 'widths')

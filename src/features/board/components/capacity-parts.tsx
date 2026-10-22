@@ -18,7 +18,7 @@ type CapProps = {
   label: ReactNode
   cap: number | null | undefined
   used: number
-  /** Over `cap`: the server's verdict for the day and machines, the Slinet's own pieces cap aside. */
+  /** Over `cap`: the server's verdict. */
   over?: boolean
 }
 

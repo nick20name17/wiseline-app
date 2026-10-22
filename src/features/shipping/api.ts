@@ -24,8 +24,8 @@ const shippingKeys = {
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
   scheduledDays: () => [...shippingKeys.all, 'scheduled'] as const,
   scheduled: (shipDate: string) => [...shippingKeys.scheduledDays(), shipDate] as const,
-  // Under the days, so whatever puts an order on a truck or takes it off refreshes the count.
-  scheduledCount: () => [...shippingKeys.scheduledDays(), 'count'] as const,
+  // Apart from the days: a Load action awaits the days' refetch, and the count need not hold it up.
+  scheduledCount: () => [...shippingKeys.all, 'scheduled-count'] as const,
   allLoads: () => [...shippingKeys.all, 'loads'] as const,
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
@@ -163,6 +163,25 @@ export const scheduledCountQuery = queryOptions({
   }
 })
 
+const liveCountsSchema = z.object({
+  unscheduled: z.number(),
+  scheduled: z.object({ orders: z.number(), pickups: z.number() })
+})
+
+/**
+ * The tabs' counts as the counts socket pushes them after a change: the same figures the two count
+ * queries read, written into their caches.
+ */
+export const applyShippingCounts = (client: QueryClient, pushed: unknown) => {
+  const counts = liveCountsSchema.safeParse(pushed).data
+  if (!counts) return
+  client.setQueryData(shippingKeys.unscheduledCount(), counts.unscheduled)
+  client.setQueryData(
+    shippingKeys.scheduledCount(),
+    counts.scheduled.orders + counts.scheduled.pickups
+  )
+}
+
 const shipmentTotalsSchema = z.object({
   count: z._default(z.number(), 0),
   total_weight: z._default(z.number(), 0),
@@ -232,11 +251,13 @@ export const truckPanelsQuery = (selection: Selection, shipDate: string | null) 
 
 // Awaited, so a button stays busy until the Loads it moved are read back: a second click on a stale
 // Load would be refused by the server.
-const refreshLoads = (client: QueryClient) =>
-  Promise.all([
+const refreshLoads = (client: QueryClient) => {
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledCount() })
+  return Promise.all([
     client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() }),
     client.invalidateQueries({ queryKey: shippingKeys.allLoads() })
   ])
+}
 
 /** A POST on the day's Loads: they and the truck cards are read back, nothing else. */
 const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>) =>
@@ -250,6 +271,7 @@ const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>
 const refreshSchedule = (client: QueryClient) => {
   void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
   void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledCount() })
 }
 
 // EBMS takes a Ship Date only on an Open order; one already invoiced still ships, its date kept
