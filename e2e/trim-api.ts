@@ -623,15 +623,21 @@ export const mockTrimApi = async (page: Page) => {
           capacity_unit: 'bends',
           used: 1000
         },
-        // Every machine of the department, the Slinet and Wrapping too, as the server lists them.
+        // Every machine of the department, the Slinet and Wrapping too, as the server lists them. The
+        // Slinet's row is the whole day's pieces.
         machines: MACHINES.map(station => {
           const bends = BENDERS.includes(station)
+          const slinet = station === SLINET
           return {
             flow_id: station.id,
             name: station.name,
-            pieces: bends ? 8 : 0,
-            pieces_from_stock: 0,
-            max_pieces: station === SLINET ? 1200 : null,
+            kind: station.kind,
+            pieces: slinet ? 24 : bends ? 8 : 0,
+            pieces_from_stock: slinet ? 4 : 0,
+            pieces_cut: slinet ? 18 : 0,
+            pieces_cut_from_stock: slinet ? 2 : 0,
+            max_pieces: slinet ? 1200 : null,
+            over_pieces: false,
             bends: bends ? 300 : 0,
             bends_from_stock: bends ? 100 : 0,
             bends_done: bends ? 75 : 0,

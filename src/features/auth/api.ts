@@ -1,6 +1,7 @@
 import { authApi, publicApi } from '@/api/client'
 import { queryClient } from '@/lib/query-client'
 import { isLogin, LOGIN_RULE } from '@/lib/login'
+import { loadPreferences } from '@/lib/preferences'
 import { sessionStore } from '@/lib/session-store'
 import { queryOptions } from '@tanstack/react-query'
 import * as z from 'zod/mini'
@@ -116,3 +117,24 @@ export const resetPassword = ({ uid64, token }: ResetPasswordLink, values: Reset
       }
     })
     .json()
+
+const preferenceUrl = (key: string) => `users/me/preferences/${encodeURIComponent(key)}/`
+
+/**
+ * The signed-in user's own settings — each table's column order and widths — read once as the app
+ * opens. If they cannot be read, the tables keep their declared layout and the next page asks again.
+ */
+export const openPreferences = async () => {
+  try {
+    const all = z
+      .record(z.string(), z.unknown())
+      .parse(await authApi.get('users/me/preferences/').json())
+    loadPreferences(all, (key, value) =>
+      value === null
+        ? authApi.delete(preferenceUrl(key))
+        : authApi.put(preferenceUrl(key), { json: value })
+    )
+  } catch {
+    // Left unloaded: nothing to show but the declared layouts.
+  }
+}
