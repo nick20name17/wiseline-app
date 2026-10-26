@@ -1,4 +1,4 @@
-import { HTTPError } from 'ky'
+import { HTTPError, NetworkError, TimeoutError } from 'ky'
 import { expect, test } from 'vitest'
 import { retryDelay, shouldRetry } from './query-client.ts'
 
@@ -15,6 +15,14 @@ test.each([408, 429, 500, 503])('retries status %i', status => {
 
 test.each([400, 401, 403, 404, 422])('does not retry status %i', status => {
   expect(shouldRetry(0, httpError(status))).toBe(false)
+})
+
+test('retries a request that never reached the server', () => {
+  expect(shouldRetry(0, new NetworkError(new Request('http://api.test/')))).toBe(true)
+})
+
+test('does not retry a request that timed out', () => {
+  expect(shouldRetry(0, new TimeoutError(new Request('http://api.test/')))).toBe(false)
 })
 
 test('stops after the retry budget', () => {
