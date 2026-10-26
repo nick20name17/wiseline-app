@@ -54,7 +54,7 @@ export const SCHEDULED_TABLE: ColumnTable = {
     { key: 'priority', label: 'Priority', width: 'w-32' },
     { key: 'reviewed', label: 'Reviewed', width: 'w-32' },
     // The widest pill, «In progress» / «Not started», sits whole beside the cell's padding.
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     // Every column holds its own heading: the headings are the widest thing several of them ever
     // carry, and a heading crushed against the next one reads as one word.
     { key: 'trimloc', label: 'Trim Location', width: 'w-36' },
@@ -70,7 +70,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'machine', label: 'Machine', width: 'w-40' },
     // A stock order is what puts trims on the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'w', label: 'W"', width: 'w-24' },
@@ -89,7 +89,7 @@ export const WRAPPING_TABLE: ColumnTable = {
     { key: 'stock', label: 'Stock', width: 'w-20' },
     { key: 'priority', label: 'Priority', width: 'w-32' },
     { key: 'remfg', label: 'Remfg', width: 'w-24' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     // Products on a full bench look alike; the picture is what tells them apart.
     { key: 'image', label: 'Image', width: 'w-20' },
     { key: 'pid', label: 'ID', width: 'w-36' },
@@ -109,7 +109,7 @@ export const WRAP_LINES_TABLE: ColumnTable = {
     { key: 'stock', label: 'Stock', width: 'w-16' },
     { key: 'wrapped', label: 'Wrapped', width: 'w-20' },
     { key: 'left', label: 'Left to wrap', width: 'w-32' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'reman', label: 'Remanufacture', width: 'w-32' },
     // The amount and Auto fill side by side: narrower, the button drops under it and doubles the row.
     { key: 'wrapping', label: 'Wrapping', width: 'w-56' },
@@ -236,7 +236,7 @@ export const ACCESSORIES_SCHEDULED_TABLE: ColumnTable = {
     { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
     { key: 'customer', label: 'Customer', card: 'subtitle' },
     { key: 'priority', label: 'Priority', width: 'w-32' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
     { key: 'trimloc', label: 'Accessories Location', width: 'w-52' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
@@ -260,7 +260,7 @@ export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty Ordered', width: 'w-28' },
     { key: 'shipped', label: 'Shipped', width: 'w-24' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
@@ -288,7 +288,7 @@ export const PACKAGE_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty ordered', width: 'w-32' },
     { key: 'wrapped', label: 'Packaged', width: 'w-24' },
     { key: 'left', label: 'Left to package', width: 'w-40' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'wrapping', label: 'Packaging', width: 'w-56' },
     { key: 'notes', label: 'Notes', width: 'w-16' }
   ]
@@ -328,7 +328,7 @@ export const ROLLFORMING_SCHEDULED_LINES_TABLE: ColumnTable = {
   columns: [
     { key: 'qty', label: 'Qty', width: 'w-16' },
     { key: 'stock', label: 'Stock', width: 'w-20' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'l', label: 'L"', width: 'w-24' },

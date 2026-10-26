@@ -24,7 +24,9 @@ const SKELETON_SECTIONS = 3
 
 type MachineRowProps = { machine: Machine; unit: MachineSection['unit'] }
 
-const MachineRow = ({ machine, unit }: MachineRowProps) => {
+const MachineRow = ({ machine, unit: sectionUnit }: MachineRowProps) => {
+  // Every piece goes through the cutter, so it is held to a count of pieces, not its department's unit.
+  const unit = machine.kind === GATEWAY_KIND ? 'pieces' : sectionUnit
   const max =
     unit === 'bends'
       ? machine.daily_max_bends
@@ -86,7 +88,7 @@ const MachineGroup = ({ section }: MachineGroupProps) => {
             <DailyCapacityDialog department={section.department} />
           ) : null}
           {section.department ? (
-            <Button variant='outline' size='sm' onClick={() => setCreating(true)}>
+            <Button variant='outline' onClick={() => setCreating(true)}>
               <Plus data-icon='inline-start' />
               Add machine
             </Button>

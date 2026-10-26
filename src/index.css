@@ -316,6 +316,11 @@
   }
 }
 
+/* The least a table with movable columns takes to leave its flexible ones room: see `useColumnOrder`. */
+table[data-slot='table'] {
+  width: max(100%, var(--fit-width, 0px));
+}
+
 /*
  * A table marked `data-cards` lays each row out as a card below `lg`, where its columns would not
  * fit: the same rows, cells and handlers, so a phone or a tablet loses nothing a desk has. Each cell
@@ -329,6 +334,7 @@
   }
   table[data-cards] {
     display: block;
+    width: 100%;
     min-width: 0;
     table-layout: auto;
 

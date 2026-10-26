@@ -492,10 +492,11 @@ export const CutlistRows = ({
     columns: [
       { key: 'w', label: 'W"', width: 'w-16' },
       // A custom length runs to three decimals, 47.625".
-      { key: 'l', label: 'L"', width: 'w-24' },
+      { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-22' },
       isSlinet
         ? { key: 'qty', label: 'Total', width: 'w-20' }
-        : { key: 'qty', label: 'Qty to Manufacture', width: 'w-24' },
+        : // Its heading wraps in two, and MANUFACTURE alone takes 99px.
+          { key: 'qty', label: 'Qty to Manufacture', width: 'w-33' },
       // p1 (478,586): a recut — its own list, or a remake's row on the line's — gets a Recut column.
       ...(isSlinet && anyRemake ? [{ key: 'recut', label: 'Recut', width: 'w-20' }] : []),
       ...(isSlinet
@@ -514,13 +515,14 @@ export const CutlistRows = ({
           // fits without a sideways scroll.
           [
             { key: 'pid', label: 'ID', width: 'w-28', card: 'title' as const },
-            { key: 'desc', label: 'Description', card: 'subtitle' as const },
+            // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
+            { key: 'desc', label: 'Description', minWidth: 48, card: 'subtitle' as const },
             { key: 'status', label: 'Status', width: 'w-32' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
             { key: 'actions', label: 'Actions', width: 'w-28', hideLabel: true },
-            { key: 'drawing', label: 'Drawing', width: 'w-16' },
-            { key: 'notes', label: 'Notes', width: 'w-16' }
+            { key: 'drawing', label: 'Drawing', width: 'w-24' },
+            { key: 'notes', label: 'Notes', width: 'w-20' }
           ]),
       { key: 'complete', label: 'Complete', width: isSlinet ? 'w-28' : 'w-32' }
     ]

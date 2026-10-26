@@ -96,7 +96,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       ship: (
                         <TableCell>
                           <span className='text-muted-foreground'>
-                            {order.ship_date ? formatDate(order.ship_date) : 'N/A'}
+                            {formatDate(order.ship_date)}
                           </span>
                         </TableCell>
                       ),
