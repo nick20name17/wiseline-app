@@ -118,7 +118,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
-      <DialogContent className='sm:max-w-5xl'>
+      <DialogContent className='sm:max-w-5xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>
           <DialogDescription>

@@ -1,22 +1,9 @@
-import { TableHead, type TableCellCard } from '@/components/ui/table'
+import { TableHead } from '@/components/ui/table'
+import { cn } from 'cn'
 import { useSortable } from '@dnd-kit/sortable'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { flushSync } from 'react-dom'
-
-// Narrower and a heading is no longer there to grab.
-const MIN_WIDTH = 48
-
-export type Column = {
-  key: string
-  /** Also what the drag announcements call the column. */
-  label: string
-  /** The width class of the column's `<col>`; none takes what the others leave. */
-  width?: string
-  /** The column is obvious from its cells, so its heading is for screen readers only. */
-  hideLabel?: boolean
-  /** Where its cells go when the table is laid out as cards; a labelled field unless set. */
-  card?: TableCellCard
-}
+import { clampWidth, type Column } from './column'
 
 type SortableHeadProps = {
   column: Column
@@ -51,10 +38,11 @@ export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableH
     if (!head) return
     const start = event.clientX
     const from = head.getBoundingClientRect().width
-    const at = (x: number) => Math.max(MIN_WIDTH, Math.round(from + x - start))
-    // The header is set too: a table laid out by its content has no `<col>` to follow.
+    const at = (x: number) => clampWidth(column, from + x - start)
+    // The header is set too: a table laid out by its content has no `<col>` to follow, and takes a
+    // header's width only as a hint it drops once the table outgrows its box; a minimum it keeps.
     const move = (next: PointerEvent) => {
-      head.style.width = `${at(next.clientX)}px`
+      head.style.width = head.style.minWidth = `${at(next.clientX)}px`
       onResize(at(next.clientX))
     }
     // A cancelled pointer (the OS took the touch, the window lost it) ends the drag unsaved.
@@ -75,6 +63,7 @@ export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableH
 
   const clear = (head: HTMLElement) => {
     head.style.removeProperty('width')
+    head.style.removeProperty('min-width')
     onResize(null)
   }
 
@@ -85,7 +74,8 @@ export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableH
       data-drop={drop}
       data-movable
       title='Drag to reorder column'
-      className={width ? 'w-(--col-width)' : undefined}
+      // Clipped: a column dragged narrower than its heading would spill it over the next one.
+      className={cn('overflow-hidden', width && 'w-(--col-width) min-w-(--col-width)')}
       style={width ? ({ '--col-width': `${width}px` } as CSSProperties) : undefined}
       {...listeners}
     >
