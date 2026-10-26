@@ -2693,13 +2693,26 @@ export const useRemoveJobLocation = () =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
-/** The packages made for an order still at the bench — See Packages. */
-export const orderPackagesQuery = (order: string | null, enabled: boolean) =>
+/**
+ * The packages made for an order still at the bench — See Packages. `part`, a split order's
+ * production day, narrows them to that part's; under the order's key, so a change refetches both.
+ */
+export const orderPackagesQuery = (
+  order: string | null,
+  enabled: boolean,
+  part: string | null = null
+) =>
   queryOptions({
-    queryKey: boardKeys.orderPackages(order ?? ''),
+    queryKey: [...boardKeys.orderPackages(order ?? ''), part] as const,
     enabled: enabled && !!order,
     queryFn: async () =>
-      z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
+      z.array(packageSchema).parse(
+        await authApi
+          .get(`wrapping/orders/${order}/packages/`, {
+            searchParams: part === null ? undefined : { production_date: part }
+          })
+          .json()
+      )
   })
 
 // --- Stock window (a stock order at the bench) ---------------------------

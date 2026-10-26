@@ -73,6 +73,14 @@ test('the calendar marks the year’s holidays and working days, and steps betwe
   await expect(page.getByRole('heading', { name: '2026' })).toBeVisible()
 })
 
+test('a month’s weeks start on Sunday', async ({ page }) => {
+  // Seven headings, then the 1st: Feb 1, 2026 is a Sunday, Oct 1 a Thursday after four blanks.
+  const cells = (month: string) => page.getByRole('region', { name: month }).locator('.grid > *')
+  await expect(cells('February').first()).toHaveText('Su')
+  await expect(cells('February').nth(7)).toHaveText('1')
+  await expect(cells('October').nth(11)).toHaveText('1')
+})
+
 test('a Saturday picked on the calendar opens as a working day with its name', async ({ page }) => {
   let sent: unknown
   await page.route(`${API_URL}/work-calendar/2026-10-24/`, route => {

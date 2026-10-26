@@ -24,6 +24,9 @@ const monthsOf = (days: CalendarDay[]) => {
 
 const nameOf = (day: CalendarDay) => day.holiday ?? day.working_day
 
+// Sunday first, as the board's calendars and EBMS's are (call of 2026-10-26).
+const SUNDAY_FIRST = [WEEKDAYS[6], ...WEEKDAYS.slice(0, 6)]
+
 const LEGEND = [
   { label: 'Work day', swatch: 'border border-border bg-card' },
   { label: 'Off', swatch: 'bg-muted' },
@@ -38,7 +41,7 @@ type YearCalendarProps = {
 }
 
 /**
- * The year at a glance, Monday first as the work week counts: which days are worked, and the named
+ * The year at a glance: which days are worked, and the named
  * ones that break their weekday's rule. Each month lists its names beneath, since a cell has no room.
  */
 export const YearCalendar = ({ days, onPick }: YearCalendarProps) => {
@@ -70,7 +73,7 @@ export const YearCalendar = ({ days, onPick }: YearCalendarProps) => {
                     {MONTH.format(utcOf(first.date))}
                   </h3>
                   <div className='grid grid-cols-7 gap-1'>
-                    {WEEKDAYS.map(({ day, short }) => (
+                    {SUNDAY_FIRST.map(({ day, short }) => (
                       <span
                         key={day}
                         aria-hidden
@@ -79,7 +82,8 @@ export const YearCalendar = ({ days, onPick }: YearCalendarProps) => {
                         {short.slice(0, 2)}
                       </span>
                     ))}
-                    {Array.from({ length: first.weekday - 1 }, (_, index) => (
+                    {/* The server counts Monday 1 to Sunday 7; Sunday opens the row, so it pushes none. */}
+                    {Array.from({ length: first.weekday % 7 }, (_, index) => (
                       <span key={`blank-${index}`} />
                     ))}
                     {month.map(day => {
