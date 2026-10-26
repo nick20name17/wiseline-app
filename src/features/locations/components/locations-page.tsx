@@ -20,7 +20,8 @@ import {
   allLocationTypesQuery,
   departmentsQuery,
   locationsQuery,
-  warehousePickerQuery
+  warehousePickerQuery,
+  type Location
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
