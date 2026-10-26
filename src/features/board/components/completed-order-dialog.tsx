@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -129,7 +130,7 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     desc: (
                       <TableCell>
-                        <span className='text-muted-foreground'>{line.description ?? '—'}</span>
+                        <Description text={line.description} className='text-muted-foreground' />
                       </TableCell>
                     ),
                     qty: (

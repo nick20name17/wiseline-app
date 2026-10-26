@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { SearchInput } from '@/components/search-input'
 import { useColumnOrder } from '@/components/table/column-order'
 import {
@@ -96,9 +97,7 @@ export const AllocatedStockDialog = ({
                         ),
                         desc: (
                           <TableCell>
-                            <span className='truncate text-muted-foreground'>
-                              {row.description ?? '—'}
-                            </span>
+                            <Description text={row.description} className='text-muted-foreground' />
                           </TableCell>
                         ),
                         qty: (

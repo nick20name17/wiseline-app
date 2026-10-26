@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useColumnOrder } from '@/components/table/column-order'
 import {
   Dialog,
@@ -88,9 +89,10 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                         ),
                         desc: (
                           <TableCell>
-                            <span className='truncate text-muted-foreground'>
-                              {entry.description ?? '—'}
-                            </span>
+                            <Description
+                              text={entry.description}
+                              className='text-muted-foreground'
+                            />
                           </TableCell>
                         ),
                         qtyord: (

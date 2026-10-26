@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { formatWidth } from '../lib/format'
 import { QueryError } from '@/components/query-error'
@@ -277,9 +278,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             <span className='font-mono'>{product ?? '—'}</span>
                           </TableCell>
                           <TableCell card='subtitle'>
-                            <span className='truncate text-muted-foreground'>
-                              {row.description ?? '—'}
-                            </span>
+                            <Description text={row.description} className='text-muted-foreground' />
                           </TableCell>
                           <TableCell label='Qty'>
                             <span className='font-mono'>{row.quantity ?? '—'}</span>

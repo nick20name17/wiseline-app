@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { DECIMAL_INPUT } from '@/lib/form'
@@ -603,7 +604,7 @@ export const ScheduledLineItems = ({
                               }}
                             />
                           ) : (
-                            <span className='truncate'>{description ?? '—'}</span>
+                            <Description text={description} />
                           )}
                         </TableCell>
                       ),

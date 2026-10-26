@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -112,9 +113,10 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
                   <span className='font-mono'>{line.id_inven ?? '—'}</span>
                 </TableCell>
                 <TableCell card='subtitle'>
-                  <span className='truncate text-muted-foreground'>
-                    {line.item?.description ?? line.description ?? '—'}
-                  </span>
+                  <Description
+                    text={line.item?.description ?? line.description}
+                    className='text-muted-foreground'
+                  />
                 </TableCell>
                 <TableCell label='L"'>
                   <span className='font-mono'>
