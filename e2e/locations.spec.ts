@@ -85,6 +85,31 @@ test('the locations list names the warehouse and type each one hangs off', async
   await expect(row.getByText('4')).toBeVisible()
 })
 
+test('only locations that hold coils get labels to scan', async ({ page }) => {
+  await page.goto('/settings/locations')
+  await signIn(page)
+  await expect(page.getByText('2 locations')).toBeVisible()
+  // Package racks are picked from a list, not scanned.
+  await expect(page.getByRole('button', { name: 'Print inventory labels' })).toBeHidden()
+
+  // Registered after the shared mocks, so it answers first.
+  await page.route(`${API_URL}/location-types/all/*`, route =>
+    route.fulfill({ json: TYPES.map(type => ({ ...type, kind: 'inventory' })) })
+  )
+  // The print dialog would hold the page; counting the calls is enough.
+  await page.addInitScript(() => {
+    window.print = () => {
+      ;(window as unknown as { printed: number }).printed =
+        ((window as unknown as { printed?: number }).printed ?? 0) + 1
+    }
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'Print inventory labels' }).click()
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { printed?: number }).printed))
+    .toBe(1)
+})
+
 test('a location offers only the types in its own warehouse', async ({ page }) => {
   await page.goto('/settings/locations')
   await signIn(page)

@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, Database, Factory, History, Layers } from 'lucide-react'
 import { useState } from 'react'
 import {
+  cutlistCoilSummariesQuery,
   cutlistsQuery,
   machineCapacitiesQuery,
   machinesQuery,
@@ -205,6 +206,13 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
     select: page => new Map(page.results.map(reman => [reman.id, reman]))
   })
 
+  // Under each open Slinet list: the coils it could be cut from next.
+  const { data: coilSummaries } = useQuery({
+    ...cutlistCoilSummariesQuery(
+      isSlinet && !done ? (lists.data ?? []).map(cutlist => cutlist.id) : []
+    )
+  })
+
   const word = isSlinet ? 'cutlists' : 'bendlists'
   // Production date, then priority, then gauge/colour.
   const days = byDay(lists.data ?? [], cutlist => cutlist.production_date)
@@ -278,6 +286,7 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
               remakes={remakes}
               machines={benders}
               isSlinet={isSlinet}
+              coilSummary={coilSummaries?.get(cutlist.id)}
               slinetStarted={!isSlinet && hasSlinetStarted(slinetList, slinetLoaded)}
               lines={lines}
               onOpenTotal={setTotal}

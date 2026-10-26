@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Description } from '@/components/description'
 import { useBoard } from '../lib/board-context'
 import { byDay, formatLongDate, today } from '@/lib/days'
@@ -49,7 +50,8 @@ type WrappingTabProps = {
  * into its order, which is where packages are built — a package carries one order, never two.
  */
 export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps) => {
-  const [order, setOrder] = useState<string | null>(null)
+  // A split order opens one part at a time, by its production day.
+  const [order, setOrder] = useState<{ order: string; part: string | null } | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const board = useBoard()
   const {
@@ -77,7 +79,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   const columns = useColumnOrder(board.tables.wrapping)
 
   if (order) {
-    const onOrder = (rows ?? []).filter(row => row.order === order)
+    const onOrder = (rows ?? []).filter(row => row.order === order.order)
     const back = () => setOrder(null)
     // A stock order opens its Stock window instead of the package modal; a board that packs at the
     // machine only locates the packages here.
@@ -87,7 +89,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
       ) : board.packsAtMachine ? (
         <LocatePackages departmentId={departmentId} rows={onOrder} onBack={back} />
       ) : (
-        <WrapOrder departmentId={departmentId} rows={onOrder} onBack={back} />
+        <WrapOrder departmentId={departmentId} rows={onOrder} part={order.part} onBack={back} />
       )
   }
 
@@ -166,7 +168,12 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                       // A late line outranks its remake: it stays red rather than orange or green.
                       data-overdue={isOverdue(row) || undefined}
                       data-reman={isOverdue(row) ? undefined : remanState(lineRemans)}
-                      onClick={() => setOrder(row.order)}
+                      onClick={() =>
+                        setOrder({
+                          order: row.order,
+                          part: row.is_split ? row.production_date : null
+                        })
+                      }
                     >
                       {columns.cells({
                         order: (
@@ -182,6 +189,13 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                                   className='size-3.5 shrink-0 text-muted-foreground'
                                   aria-label='Stock order'
                                 />
+                              ) : null}
+                              {/* A split order's parts are wrapped and completed apart; a done part
+                                  stays listed until the whole order is. */}
+                              {row.part_completed ? (
+                                <Badge variant='muted'>Part done</Badge>
+                              ) : row.is_split ? (
+                                <Badge variant='muted'>Split</Badge>
                               ) : null}
                             </span>
                           </TableCell>

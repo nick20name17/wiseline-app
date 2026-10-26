@@ -153,21 +153,17 @@ export const useUpsertMachine = (onSuccess: () => void) =>
   })
 
 /**
- * A department's machines saved in the order given, numbered from 1. Only the ones whose number
- * changes are sent; the boards read the same numbers for their machine tabs.
+ * A department's machines saved in the order given, in one write. The server numbers them 1..n and
+ * keeps the cutter first and Wrapping last whatever is sent; the boards read the same numbers.
  */
 export const useReorderMachines = () =>
   useMutation({
     meta: { errorTitle: 'The order was not saved' },
-    mutationFn: (machines: Machine[]) =>
-      Promise.all(
-        machines.flatMap((machine, index) =>
-          machine.position === index + 1
-            ? []
-            : [authApi.patch(`flows/${machine.id}/`, { json: { position: index + 1 } }).json()]
-        )
-      ),
-    onMutate: async (machines, { client }) => {
+    mutationFn: ({ department, machines }: { department: number; machines: Machine[] }) =>
+      authApi
+        .post('flows/reorder/', { json: { department, ids: machines.map(({ id }) => id) } })
+        .json(),
+    onMutate: async ({ machines }, { client }) => {
       await client.cancelQueries({ queryKey: machinesKeys.list() })
       const previous = client.getQueryData<Machine[]>(machinesKeys.list())
       const positions = new Map(machines.map(({ id }, index) => [id, index + 1]))

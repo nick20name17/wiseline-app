@@ -124,9 +124,12 @@ const MachineGroup = ({ section }: MachineGroupProps) => {
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return
     const next = reorderMachines(machines, Number(active.id), Number(over.id))
-    if (!next) return
+    if (!next || !section.department) return
     setDropped(next)
-    save.mutate(next, { onSettled: () => setDropped(null) })
+    save.mutate(
+      { department: section.department.id, machines: next },
+      { onSettled: () => setDropped(null) }
+    )
   }
 
   const Chevron = open ? ChevronDown : ChevronRight

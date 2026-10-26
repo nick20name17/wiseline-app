@@ -289,3 +289,36 @@ test('the completed lists are a switch away and keep the same format', async ({ 
     page.getByText('Are you sure you want to mark this row as NOT completed?')
   ).toBeVisible()
 })
+
+test('a Slinet list shows the coil in the machine and how many more could go on', async ({
+  page
+}) => {
+  const asked: string[][] = []
+  await page.route(`${API_URL}/coils/cutlist-summary/*`, route => {
+    const ids = new URL(route.request().url()).searchParams.getAll('ids')
+    asked.push(ids)
+    return route.fulfill({
+      json: ids.map(id => ({
+        cutlist_id: Number(id),
+        available: 3,
+        linear_feet: 7579,
+        in_trim: 2,
+        in_rollforming: 1,
+        elsewhere: 0,
+        locations: [{ location: 'T-1', coils: 2 }]
+      }))
+    })
+  })
+  await page.reload()
+
+  await expect(page.getByText('Coil # 37067677 is in the machine (1,533 ft)').first()).toBeVisible()
+  await expect(
+    page
+      .getByText(
+        '3 more coils available totaling 7,579 ft (2 in Trim and 1 in Rollforming) · at T-1 (2)'
+      )
+      .first()
+  ).toBeVisible()
+  // Every list of the day in one request.
+  expect(asked).toHaveLength(1)
+})
