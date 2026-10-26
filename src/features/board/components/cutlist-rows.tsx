@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -620,9 +621,7 @@ export const CutlistRows = ({
                   ),
                   desc: (
                     <TableCell>
-                      <span className='truncate text-muted-foreground'>
-                        {about.description ?? '—'}
-                      </span>
+                      <Description text={about.description} className='text-muted-foreground' />
                     </TableCell>
                   ),
                   status: (

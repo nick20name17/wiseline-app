@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -152,7 +153,7 @@ export const LineItems = ({
                     ),
                     desc: (
                       <TableCell>
-                        <span className='truncate'>{item.description ?? '—'}</span>
+                        <Description text={item.description} />
                       </TableCell>
                     ),
                     notes: (

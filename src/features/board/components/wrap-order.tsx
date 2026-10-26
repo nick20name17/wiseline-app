@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -269,9 +270,7 @@ const WrapLines = ({
                     ),
                     desc: (
                       <TableCell>
-                        <span className='truncate text-muted-foreground'>
-                          {row.description ?? '—'}
-                        </span>
+                        <Description text={row.description} className='text-muted-foreground' />
                       </TableCell>
                     ),
                     // Anything but the standard 120" is worth a second look, as on the

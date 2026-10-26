@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -164,9 +165,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     <span className='font-mono'>{line.product_id ?? '—'}</span>
                   </TableCell>
                   <TableCell card='subtitle'>
-                    <span className='truncate text-muted-foreground'>
-                      {line.description ?? '—'}
-                    </span>
+                    <Description text={line.description} className='text-muted-foreground' />
                   </TableCell>
                   <TableCell label='Length'>
                     <span

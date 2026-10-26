@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -42,9 +43,7 @@ export const OrderLines = ({ order }: { order: string }) => {
                 {count.format(line.packaged)} / {count.format(line.quantity)}
               </span>
             </div>
-            <p className='truncate text-muted-foreground' title={line.description ?? undefined}>
-              {line.description ?? '—'}
-            </p>
+            <Description text={line.description} className='text-muted-foreground' />
             <p className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
               {line.department ?? 'Bought in'}
               {line.status ? <StatusPill status={itemStatus(line.status)} /> : null}

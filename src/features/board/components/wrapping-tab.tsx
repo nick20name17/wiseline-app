@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard } from '../lib/board-context'
 import { byDay, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -262,7 +263,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           // Stacked rather than cut off, so a long description is read without
                           // scrolling sideways, a custom length under it.
                           <TableCell className='whitespace-normal'>
-                            <p>{row.description ?? '—'}</p>
+                            <Description text={row.description} />
                             {board.standardLength !== null &&
                             row.length !== null &&
                             !row.is_standard_length ? (
