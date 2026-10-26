@@ -3004,6 +3004,8 @@ const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
   // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
   reason: z._default(z.nullable(z.string()), null),
+  // The asked-for part of a split order is done; it stays listed until the whole order is.
+  part_completed: z._default(z.boolean(), false),
   // A stock order is finished through its own Stock window, never through Order Complete.
   is_stock: z._default(z.boolean(), false),
   outstanding: z.catch(

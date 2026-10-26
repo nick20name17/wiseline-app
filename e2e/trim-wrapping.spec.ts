@@ -263,8 +263,12 @@ test('a part of a split order is wrapped and completed on its own', async ({ pag
   await expect(page.getByText(/^Part · /)).toBeVisible()
   // The later part's line is on the bench too, but it is not this part's to wrap.
   await expect(page.getByLabel('Wrap from 903')).toBeHidden()
+  // The counter is this part's alone: the later part's 10 pieces are not owed here.
+  await expect(page.getByText('40 / 40 wrapped')).toBeVisible()
 
   await page.getByRole('button', { name: 'Order complete' }).click()
-  await page.getByRole('alertdialog').getByRole('button', { name: /^Yes/ }).click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm.getByRole('heading')).toHaveText(/^Complete the .+ part of /)
+  await confirm.getByRole('button', { name: /^Yes/ }).click()
   await expect.poll(() => completed).toEqual([SCHEDULED_DAY])
 })

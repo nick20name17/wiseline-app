@@ -25,7 +25,7 @@ const GaugeActions = ({ row }: { row: GaugeRow }) => {
         id === null
           ? undefined
           : {
-              title: `Clear the ${row.gauge} ga weight?`,
+              title: `Delete the ${row.gauge} ga weight?`,
               description: "Its coils go back to the product's weight in EBMS.",
               isPending: clear.isPending,
               onConfirm: () => clear.mutateAsync(id)

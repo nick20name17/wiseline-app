@@ -512,23 +512,29 @@ const CompleteOrderButton = ({
   )
   // Completing early leaves lines short; EBMS hears only of what went into packages.
   const short = completion?.outstanding.length ?? 0
+  // What is being completed: one part of a split order, or the order.
+  const what = part === null ? `order ${number}` : `the ${formatDayLabel(part)} part of ${number}`
+  const sentenceStart =
+    part === null ? `Order ${number}` : `The ${formatDayLabel(part)} part of ${number}`
   const shut = completion?.can_complete
     ? undefined
-    : completion?.reason
-      ? completion.reason
-      : owesReman
-        ? 'Waiting on a remanufacture — available once the machine marks it Bent'
-        : makes
-          ? 'Available once Left To Wrap is zero on every line'
-          : 'Available once the first package is created'
+    : completion?.part_completed
+      ? 'This part is complete — it leaves Wrapping with the rest of the order'
+      : completion?.reason
+        ? completion.reason
+        : owesReman
+          ? 'Waiting on a remanufacture — available once the machine marks it Bent'
+          : makes
+            ? 'Available once Left To Wrap is zero on every line'
+            : 'Available once the first package is created'
 
   const complete = useCompleteOrder(() => {
     setCompleting(false)
     toast.add({
       type: 'success',
       title: batch
-        ? `Order ${number} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
-        : `Order ${number} complete`
+        ? `${sentenceStart} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
+        : `${sentenceStart} complete`
     })
     onDone()
   })
@@ -552,10 +558,10 @@ const CompleteOrderButton = ({
       <ConfirmDialog
         open={completing}
         onOpenChange={setCompleting}
-        title={`Complete order ${number}?`}
+        title={`Complete ${what}?`}
         description={[
           batch
-            ? `Are you sure you are done with this order and that you want to create a manufacturing batch for it (${batch} pcs)?`
+            ? `Are you sure you are done with ${part === null ? 'this order' : 'this part'} and that you want to create a manufacturing batch for it (${batch} pcs)?`
             : `Are you sure you are done with this order? It leaves ${makes ? 'Wrapping' : 'Packaging'} for Completed Orders.`,
           short
             ? `${short} line${short === 1 ? ' is' : 's are'} not fully packed; only what is in the packages goes to EBMS.`
@@ -702,8 +708,10 @@ export const BenchHeader = ({
   onBack
 }: BenchHeaderProps) => {
   const { pack } = useBoard()
-  const ordered = rows.reduce((total, row) => total + row.qty_ordered, 0)
-  const wrapped = known ?? rows.reduce((total, row) => total + row.wrapped, 0)
+  // A split order's part is counted on its own: the other parts are wrapped and completed apart.
+  const counted = part === null ? rows : rows.filter(row => row.production_date === part)
+  const ordered = counted.reduce((total, row) => total + row.qty_ordered, 0)
+  const wrapped = known ?? counted.reduce((total, row) => total + row.wrapped, 0)
 
   return (
     <span className='flex flex-wrap items-center gap-3'>
@@ -714,7 +722,7 @@ export const BenchHeader = ({
       </Button>
       <span className='font-mono font-medium'>{number}</span>
       {part ? <Badge variant='muted'>Part · {formatDayLabel(part)}</Badge> : null}
-      {orderOverdue(rows) ? (
+      {orderOverdue(counted) ? (
         <span className='rounded-md border border-destructive px-1.5 py-0.5 text-xs font-semibold tracking-wider text-destructive uppercase'>
           Overdue
         </span>

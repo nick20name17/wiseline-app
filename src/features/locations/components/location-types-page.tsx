@@ -108,7 +108,8 @@ export const LocationTypesPage = ({
               <col className='w-48' />
               <col className='w-40' />
               {active ? null : <col className='w-36' />}
-              <col className='w-28' />
+              {/* Wide enough for the Inventory badge. */}
+              <col className='w-36' />
               <col />
               <col className='w-24' />
             </colgroup>
