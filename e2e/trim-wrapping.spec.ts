@@ -266,6 +266,16 @@ test('a part of a split order is wrapped and completed on its own', async ({ pag
   // The counter is this part's alone: the later part's 10 pieces are not owed here.
   await expect(page.getByText('40 / 40 wrapped')).toBeVisible()
 
+  // See packages lists this part's packages, not the later part's.
+  const listed: (string | null)[] = []
+  await page.route(`${API_URL}/wrapping/orders/*/packages/**`, route => {
+    listed.push(new URL(route.request().url()).searchParams.get('production_date'))
+    return route.fulfill({ json: [] })
+  })
+  await page.getByRole('button', { name: 'See packages' }).click()
+  await expect.poll(() => listed).toEqual([SCHEDULED_DAY])
+  await page.keyboard.press('Escape')
+
   await page.getByRole('button', { name: 'Order complete' }).click()
   const confirm = page.getByRole('alertdialog')
   await expect(confirm.getByRole('heading')).toHaveText(/^Complete the .+ part of /)

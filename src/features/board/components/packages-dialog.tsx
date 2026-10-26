@@ -32,6 +32,8 @@ type PackagesDialogProps = {
   number: string
   /** The order's lines on this board, which name a package's contents and say which are its own. */
   rows: { origin_item: string; product_id: string | null; length: number | null }[]
+  /** A split order's part on the bench, by its production day: only its packages are listed. */
+  part?: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -45,11 +47,12 @@ export const PackagesDialog = ({
   order,
   number,
   rows,
+  part = null,
   open,
   onOpenChange
 }: PackagesDialogProps) => {
   const { pack } = useBoard()
-  const { data: all, isPending } = useQuery(orderPackagesQuery(order, open))
+  const { data: all, isPending } = useQuery(orderPackagesQuery(order, open, part))
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
   const reprint = useReprintPackage()

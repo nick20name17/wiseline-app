@@ -1038,6 +1038,7 @@ export const WrapOrder = ({
         order={order.order}
         number={number}
         rows={rows}
+        part={part}
         open={seeing}
         onOpenChange={setSeeing}
       />
