@@ -1,6 +1,7 @@
 import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { formatDate } from '@/lib/days'
+import { formatDate, formatDayLabel } from '@/lib/days'
+import { Badge } from '@/components/ui/badge'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -482,6 +483,8 @@ const LocationRoom = ({ slot, max, over }: { slot: CellRoom; max: number; over: 
 type CompleteOrderButtonProps = {
   departmentId: number | undefined
   order: string
+  /** The production day of the part being completed, or `null` for the whole order. */
+  part: string | null
   number: string
   owesReman: boolean
   onDone: () => void
@@ -495,13 +498,14 @@ type CompleteOrderButtonProps = {
 const CompleteOrderButton = ({
   departmentId,
   order,
+  part,
   number,
   owesReman,
   onDone
 }: CompleteOrderButtonProps) => {
   const [completing, setCompleting] = useState(false)
   const { makes } = useBoard()
-  const { data: completion } = useQuery(orderCompleteQuery(departmentId, order))
+  const { data: completion } = useQuery(orderCompleteQuery(departmentId, order, part))
   const batch = (completion?.manufacturing_batch ?? []).reduce(
     (total, line) => total + line.manufactured,
     0
@@ -562,7 +566,7 @@ const CompleteOrderButton = ({
         confirmLabel={batch ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'}
         cancelLabel='No'
         isPending={complete.isPending}
-        onConfirm={() => departmentId && complete.mutate({ order, departmentId })}
+        onConfirm={() => departmentId && complete.mutate({ order, departmentId, part })}
       />
     </>
   )
@@ -682,13 +686,21 @@ const CreatePrintButton = ({
 
 type BenchHeaderProps = {
   number: string
+  /** The production day of the split order's part on the bench. */
+  part?: string | null
   rows: WrappingRow[]
   /** What is wrapped, when the bench knows better than the Wrapping list's rows. */
   wrapped?: number
   onBack: () => void
 }
 
-export const BenchHeader = ({ number, rows, wrapped: known, onBack }: BenchHeaderProps) => {
+export const BenchHeader = ({
+  number,
+  part = null,
+  rows,
+  wrapped: known,
+  onBack
+}: BenchHeaderProps) => {
   const { pack } = useBoard()
   const ordered = rows.reduce((total, row) => total + row.qty_ordered, 0)
   const wrapped = known ?? rows.reduce((total, row) => total + row.wrapped, 0)
@@ -701,6 +713,7 @@ export const BenchHeader = ({ number, rows, wrapped: known, onBack }: BenchHeade
         <span className='max-md:hidden'>Back to {pack.station}</span>
       </Button>
       <span className='font-mono font-medium'>{number}</span>
+      {part ? <Badge variant='muted'>Part · {formatDayLabel(part)}</Badge> : null}
       {orderOverdue(rows) ? (
         <span className='rounded-md border border-destructive px-1.5 py-0.5 text-xs font-semibold tracking-wider text-destructive uppercase'>
           Overdue
@@ -769,6 +782,11 @@ type WrapOrderProps = {
   departmentId: number | undefined
   /** Every released line of this one order, as the Wrapping list holds them. */
   rows: WrappingRow[]
+  /**
+   * A split order's part on the bench, by its production day: the order's other lines show, locked,
+   * and Order Complete finishes this part only. `null` is the whole order.
+   */
+  part?: string | null
   /** At the machine: each line's coil, which the Worker fills in where the Manager left it Undefined. */
   coils?: ReadonlyMap<string, CoilItem>
   onBack: () => void
@@ -778,7 +796,18 @@ type WrapOrderProps = {
  * One order at the wrapping bench and the three gates it walks: a quantity opens Select location, a
  * location opens Create & print, and only every line wrapped opens Order Complete.
  */
-export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps) => {
+export const WrapOrder = ({
+  departmentId,
+  rows: orderRows,
+  part = null,
+  coils,
+  onBack
+}: WrapOrderProps) => {
+  const rows = orderRows.map(row =>
+    part !== null && row.production_date !== part
+      ? { ...row, can_wrap: false, auto_fill_available: false }
+      : row
+  )
   const order = rows[0]
   const board = useBoard()
   const atMachine = board.packsAtMachine
@@ -857,7 +886,7 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <BenchHeader number={number} rows={rows} onBack={onBack} />
+      <BenchHeader number={number} part={part} rows={rows} onBack={onBack} />
 
       <WrapLines
         departmentId={departmentId}
@@ -945,8 +974,11 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
           <CompleteOrderButton
             departmentId={departmentId}
             order={order.order}
+            part={part}
             number={number}
-            owesReman={rows.some(row => remanOwed(remansOf(row)) > 0)}
+            owesReman={rows.some(
+              row => (part === null || row.production_date === part) && remanOwed(remansOf(row)) > 0
+            )}
             onDone={onBack}
           />
         )}

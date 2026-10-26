@@ -1,3 +1,5 @@
+import { QrLabels } from '@/components/qr-labels'
+import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/search-input'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +14,7 @@ import {
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
-import { MapPin } from 'lucide-react'
+import { MapPin, Printer } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { SortHead } from '@/components/table/sort-head'
 import { sortRows, type Sort } from '@/lib/sort-rows'
@@ -56,6 +58,7 @@ export const LocationsPage = ({
 
   const [term, setTerm] = useState(search ?? '')
   // By name, numbers as numbers: a location added to a series lands in it, not at the bottom.
+  const [printing, setPrinting] = useState(false)
   const [sort, setSort] = useState<Sort<SortKey>>({ key: 'name', desc: false })
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -83,6 +86,11 @@ export const LocationsPage = ({
             : location.weight
   )
 
+  // The ones a coil is put on, which the forklift scans: each gets a label with its code.
+  const inventory = locations.filter(
+    location => typeOf(location)?.kind === 'inventory' && location.code
+  )
+
   return (
     <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
@@ -105,8 +113,26 @@ export const LocationsPage = ({
           ) : null}
         </div>
 
+        {inventory.length ? (
+          <Button variant='outline' onClick={() => setPrinting(true)}>
+            <Printer data-icon='inline-start' />
+            Print inventory labels
+          </Button>
+        ) : null}
         <CreateLocationDialog department={active} />
       </div>
+
+      {printing ? (
+        <QrLabels
+          labels={inventory.map(location => ({
+            key: String(location.id),
+            code: location.code ?? '',
+            title: location.code ?? '',
+            detail: typeOf(location)?.name
+          }))}
+          onDone={() => setPrinting(false)}
+        />
+      ) : null}
 
       {!isPending && !locations.length ? (
         <Empty>

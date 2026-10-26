@@ -326,8 +326,8 @@ const boardKeys = {
   orderLocations: (order: string) => [...boardKeys.wrapping(), 'order-locations', order] as const,
   jobLocations: (departmentId: number, order: string) =>
     [...boardKeys.wrapping(), 'job-locations', departmentId, order] as const,
-  orderComplete: (departmentId: number, order: string) =>
-    [...boardKeys.wrapping(), 'complete', departmentId, order] as const,
+  orderComplete: (departmentId: number, order: string, part: string | null) =>
+    [...boardKeys.wrapping(), 'complete', departmentId, order, part] as const,
   remanufacturings: () => [...boardKeys.all, 'remanufacturings'] as const,
   departmentRemanufacturings: (departmentId: number) =>
     [...boardKeys.remanufacturings(), departmentId] as const
@@ -1947,6 +1947,11 @@ const coilLotSchema = z.object({
   core_od: z._default(z.nullable(z.number()), null),
   linear_feet: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
+  // What `weight` is worked out with: the gauge's weight in Settings × the width, or EBMS's own.
+  weight_per_foot: z._default(z.nullable(z.number()), null),
+  // The inventory location it stands on, the app's own: EBMS keeps a location per product, not lot.
+  location_id: z._default(z.nullable(z.number()), null),
+  location: z._default(z.nullable(z.string()), null),
   in_trim: z._default(z.boolean(), false),
   in_rollforming: z._default(z.boolean(), false),
   in_slinet: z._default(z.boolean(), false),
@@ -1970,6 +1975,39 @@ export const cutlistCoilsQuery = (cutlistId: number | null) =>
     enabled: cutlistId !== null,
     queryFn: async () =>
       z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
+  })
+
+const cutlistCoilSummarySchema = z.object({
+  cutlist_id: z.number(),
+  // Coils of the list's colour and gauge the Coil Filter admits, outside the Slinet.
+  available: z._default(z.number(), 0),
+  linear_feet: z._default(z.number(), 0),
+  in_trim: z._default(z.number(), 0),
+  in_rollforming: z._default(z.number(), 0),
+  // In neither department.
+  elsewhere: z._default(z.number(), 0),
+  locations: z.catch(
+    z.array(z.object({ location: z.string(), coils: z._default(z.number(), 0) })),
+    []
+  )
+})
+
+export type CutlistCoilSummary = z.infer<typeof cutlistCoilSummarySchema>
+
+/** What each Slinet list could be cut from next, for every list on screen in one request. */
+export const cutlistCoilSummariesQuery = (cutlistIds: number[]) =>
+  queryOptions({
+    queryKey: [...boardKeys.cutlists(), 'coil-summary', cutlistIds] as const,
+    enabled: cutlistIds.length > 0,
+    queryFn: async () =>
+      z.array(cutlistCoilSummarySchema).parse(
+        await authApi
+          .get('coils/cutlist-summary/', {
+            searchParams: new URLSearchParams(cutlistIds.map(id => ['ids', String(id)]))
+          })
+          .json()
+      ),
+    select: summaries => new Map(summaries.map(summary => [summary.cutlist_id, summary]))
   })
 
 const completedOrderSchema = z.object({
@@ -2174,7 +2212,46 @@ export const useUpdateCoilLot = () =>
   })
 
 /** Where a coil stands. Send only what changed: the server moves one department at a time. */
-export type CoilLocation = { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
+export type CoilLocation = {
+  in_trim?: boolean
+  in_rollforming?: boolean
+  in_slinet?: boolean
+  /** An inventory location, which also puts the coil in that location's department. */
+  location_id?: number
+}
+
+const inventoryLocationSchema = z.object({
+  id: z.number(),
+  code: z._default(z.nullable(z.string()), null)
+})
+
+export type InventoryLocation = z.infer<typeof inventoryLocationSchema>
+
+/** The department's inventory locations: where its coils are put, and what the forklift scans. */
+export const coilLocationsQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: [...boardKeys.coils(), 'locations', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(inventoryLocationSchema)
+        .parse(
+          await authApi
+            .get('coils/locations/', { searchParams: { department_id: departmentId! } })
+            .json()
+        )
+  })
+
+/** Two scans on the forklift: the coil's lot number, then the location it is put on. */
+export const useScanMove = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil was not moved' },
+    mutationFn: async ({ coil, location }: { coil: string; location: string }) =>
+      coilLotSchema.parse(
+        await authApi.post('coils/scan-move/', { json: { coil, location } }).json()
+      ),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
+  })
 
 /**
  * One coil into or out of Trim, Rollforming or the Slinet — coils of one product stand wherever they
@@ -2355,6 +2432,10 @@ const wrappingRowSchema = z.object({
   customer: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
+  // The order is split here: each production day is a part, wrapped and completed on its own.
+  is_split: z._default(z.boolean(), false),
+  // This line's part is completed; it stays listed, locked, until the last part is.
+  part_completed: z._default(z.boolean(), false),
   priority: z._default(z.nullable(z.string()), null),
   status: z._default(z.nullable(z.string()), null),
   // Still true once a bypassed line is packed and reads Wrapped: it may never be remade.
@@ -2914,6 +2995,11 @@ export const useLocatePackage = () =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
+const partParams = (departmentId: number, part: string | null) =>
+  part === null
+    ? { department_id: departmentId }
+    : { department_id: departmentId, production_date: part }
+
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
   // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
@@ -2942,16 +3028,23 @@ const orderCompleteSchema = z.object({
   )
 })
 
-/** Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent. */
-export const orderCompleteQuery = (departmentId: number | undefined, order: string | null) =>
+/**
+ * Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent.
+ * `part` is the production day of one part of a split order; `null` is the whole order.
+ */
+export const orderCompleteQuery = (
+  departmentId: number | undefined,
+  order: string | null,
+  part: string | null
+) =>
   queryOptions({
-    queryKey: boardKeys.orderComplete(departmentId ?? 0, order ?? ''),
+    queryKey: boardKeys.orderComplete(departmentId ?? 0, order ?? '', part),
     enabled: departmentId !== undefined && !!order,
     queryFn: async () =>
       orderCompleteSchema.parse(
         await authApi
           .get(`wrapping/orders/${order}/complete/`, {
-            searchParams: { department_id: departmentId! }
+            searchParams: partParams(departmentId!, part)
           })
           .json()
       )
@@ -2965,18 +3058,36 @@ export const useCompleteOrder = (onSuccess: () => void) =>
   useMutation({
     // A refused batch answers 502 with EBMS's own reason, which goes under this title.
     meta: { errorTitle: 'The order was not completed' },
-    mutationFn: ({ order, departmentId }: { order: string; departmentId: number }) =>
-      authApi
-        .post(`wrapping/orders/${order}/complete/`, {
-          searchParams: { department_id: departmentId }
-        })
-        .json(),
-    onSuccess: (_, { order, departmentId }, __, { client }) => {
+    mutationFn: async ({
+      order,
+      departmentId,
+      part
+    }: {
+      order: string
+      departmentId: number
+      part: string | null
+    }) =>
+      z.object({ order_complete: z._default(z.boolean(), true) }).parse(
+        await authApi
+          .post(`wrapping/orders/${order}/complete/`, {
+            searchParams: partParams(departmentId, part)
+          })
+          .json()
+      ),
+    onSuccess: ({ order_complete }, { order, departmentId, part }, __, { client }) => {
       // The bench goes back to the list straight away, and the list's refetch is slow: left to it,
-      // the completed order sat there until the answer came.
+      // the completed order sat there until the answer came. A part leaves the order's other parts
+      // listed, its own lines locked.
       client.setQueriesData<WrappingRow[]>(
         { queryKey: [...boardKeys.wrapping(), departmentId] },
-        rows => rows?.filter(row => row.order !== order)
+        rows =>
+          order_complete || part === null
+            ? rows?.filter(row => row.order !== order)
+            : rows?.map(row =>
+                row.order === order && row.production_date === part
+                  ? { ...row, part_completed: true, can_wrap: false, auto_fill_available: false }
+                  : row
+              )
       )
       onSuccess()
     },

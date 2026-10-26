@@ -42,6 +42,9 @@ const lot = (patch: Partial<CoilLot> = {}): CoilLot => ({
   core_od: 20,
   linear_feet: 2260,
   weight: 6608,
+  weight_per_foot: null,
+  location_id: null,
+  location: null,
   in_trim: false,
   in_rollforming: false,
   in_slinet: false,
@@ -79,6 +82,8 @@ describe('the coil geometry', () => {
     expect(poundsPerFoot(lot(), 0.0358)).toBeCloseTo((2 * 6608) / 2260)
     expect(poundsPerFoot(lot({ weight: null }), 0.0179)).toBeNull()
     expect(poundsPerFoot(lot({ material_thickness: null }), 0.0179)).toBeCloseTo(6608 / 2260)
+    // The server's weight per foot, from the gauge's weight, wins over the figures on record.
+    expect(poundsPerFoot(lot({ weight_per_foot: 3 }), 0.0179)).toBeCloseTo(3)
   })
 })
 

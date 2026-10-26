@@ -6,6 +6,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { QrLabels } from '@/components/qr-labels'
+import {
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -27,22 +35,25 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, SlidersHorizontal } from 'lucide-react'
+import { ChevronRight, Database, Printer, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
+  coilLocationsQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
   useSetCoilLocation,
   useUpdateCoilLot,
   type CoilFilter,
-  type CoilLot
+  type CoilLot,
+  type InventoryLocation
 } from '../api'
-import { useViewOnly } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
+import { CoilScanDialog } from './coil-scan-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
@@ -170,6 +181,10 @@ type LotCellsProps = {
   onAdjust: (lot: CoilLot, focus: CoilFigure) => void
   onLocate: (lot: CoilLot, department: Department, checked: boolean) => void
   onSlinet: (lot: CoilLot, checked: boolean) => void
+  /** This department's inventory locations; `null` where the coil is not this department's to place. */
+  placesOf: (lot: CoilLot) => InventoryLocation[] | null
+  onPlace: (lot: CoilLot, locationId: number) => void
+  onPrint: (lot: CoilLot) => void
 }
 
 const SLINET_SHUT = 'Needs the coil in Trim and a Coil Thickness'
@@ -212,7 +227,44 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 }
 
 /** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
-const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
+/** Where a coil stands in its department: picked here, or by the forklift's two scans. */
+const LotPlace = ({
+  lot,
+  places,
+  onPlace
+}: { lot: CoilLot } & Pick<LotCellsProps, 'onPlace'> & {
+    places: InventoryLocation[] | null
+  }) => {
+  const viewOnly = useViewOnly()
+  if (viewOnly || !places?.length) return <span className='font-mono'>{lot.location ?? '—'}</span>
+  return (
+    <Select
+      value={lot.location_id === null ? null : String(lot.location_id)}
+      onValueChange={value => value && onPlace(lot, Number(value))}
+    >
+      <SelectTrigger size='sm' aria-label={`Location of coil ${coilName(lot)}`}>
+        <SelectValue placeholder='Pick…'>{() => lot.location ?? 'Pick…'}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {places.map(place => (
+          <SelectItem key={place.id} value={String(place.id)}>
+            {place.code ?? place.id}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+const LotCells = ({
+  lot,
+  onAdjust,
+  onLocate,
+  onSlinet,
+  placesOf,
+  onPlace,
+  onPrint
+}: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
   // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
   // figure is missing, not only in the Slinet box's hover.
@@ -222,7 +274,20 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
   return (
     <>
       <TableCell card='title'>
-        <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+        <span className='flex items-center gap-1'>
+          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+          {lot.lot_number ? (
+            <Button
+              variant='ghost'
+              size='icon-xs'
+              aria-label={`Print the label of coil ${coilName(lot)}`}
+              title='Print the label the forklift scans'
+              onClick={() => onPrint(lot)}
+            >
+              <Printer />
+            </Button>
+          ) : null}
+        </span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
           other two out, with the cursor in the one clicked. */}
@@ -260,6 +325,9 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
       <TableCell label='Trim'>
         <LotLocation lot={lot} department='in_trim' onTick={onLocate} />
       </TableCell>
+      <TableCell label='Location'>
+        <LotPlace lot={lot} places={placesOf(lot)} onPlace={onPlace} />
+      </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
         <span className='flex items-center gap-2' title={slinetShut ? SLINET_SHUT : undefined}>
@@ -288,6 +356,7 @@ const LotHead = () => (
       <TableHead>Weight (lbs.)</TableHead>
       <TableHead>Rollforming</TableHead>
       <TableHead>Trim</TableHead>
+      <TableHead>Location</TableHead>
       <TableHead>Slinet In / Out</TableHead>
       <TableHead>Note</TableHead>
     </TableRow>
@@ -304,6 +373,7 @@ const LotColumns = () => (
     <col className='w-36' />
     <col className='w-32' />
     <col className='w-20' />
+    <col className='w-32' />
     <col className='w-36' />
     <col />
   </>
@@ -592,6 +662,8 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   const viewOnly = useViewOnly()
+  const board = useBoard()
+  const [labelled, setLabelled] = useState<CoilLot | null>(null)
   const [assignment, setAssignment] = useState<Assignment>('all')
   const [pageSize, setPageSize] = useState(40)
   const [paging, setPaging] = useState({ view: '', page: 0 })
@@ -620,6 +692,9 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const match = ASSIGNMENT_MATCH[assignment]
   const inAssignment = indexed.filter(({ lot }) => match(lot))
   const placeLot = useSetCoilLocation()
+  const { data: places } = useQuery(coilLocationsQuery(departmentId))
+  // A coil is put on this department's racks only while it stands in this department.
+  const own: Department = board.code === 'rollforming' ? 'in_rollforming' : 'in_trim'
 
   const moveLot = (lot: CoilLot, location: Partial<Record<Department, boolean>>) =>
     placeLot.mutate({ lotId: lot.id, location }, { onSuccess: () => setMoving(null) })
@@ -630,7 +705,12 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
       checked && lot[otherOf(department)]
         ? setMoving({ lot, to: department })
         : moveLot(lot, { [department]: checked }),
-    onSlinet: (lot, checked) => placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } })
+    onSlinet: (lot, checked) =>
+      placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } }),
+    placesOf: lot => (lot[own] ? (places ?? null) : null),
+    onPlace: (lot, locationId) =>
+      placeLot.mutate({ lotId: lot.id, location: { location_id: locationId } }),
+    onPrint: setLabelled
   }
 
   const shown = searched(inAssignment, term)
@@ -702,6 +782,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
       <StickyTop className='flex-row flex-wrap items-center'>
         {scopeTabs}
         {filterButton}
+        {viewOnly ? null : <CoilScanDialog />}
 
         {/* A row of its own on a phone, under the scope switch; one row with it on a desk. */}
         <div className='flex flex-wrap items-center gap-x-2 gap-y-3 max-md:w-full md:contents'>
@@ -778,6 +859,27 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
       />
 
       {filterDialog}
+
+      {/* The coil # is what the forklift scans before the rack it sets the coil on. */}
+      {labelled?.lot_number ? (
+        <QrLabels
+          labels={[
+            {
+              key: labelled.id,
+              code: labelled.lot_number,
+              title: `Coil # ${labelled.lot_number}`,
+              detail: [
+                labelled.product_id,
+                labelled.color,
+                labelled.gauge && `${labelled.gauge} ga`
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            }
+          ]}
+          onDone={() => setLabelled(null)}
+        />
+      ) : null}
 
       <MoveConfirm
         moving={moving}

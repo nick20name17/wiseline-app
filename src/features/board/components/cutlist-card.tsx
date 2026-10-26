@@ -6,6 +6,7 @@ import { useState } from 'react'
 import {
   useFinishCutlist,
   type Cutlist,
+  type CutlistCoilSummary,
   type Machine,
   type Remanufacturing,
   type WrappingRow
@@ -26,6 +27,8 @@ type CutlistCardProps = {
   /** The bending machines, which are the Slinet cutlist's columns. */
   machines: Machine[]
   isSlinet: boolean
+  /** On an open Slinet list: the coils it could be cut from next. */
+  coilSummary?: CutlistCoilSummary
   /** The Slinet has started cutting the release this bendlist came from. */
   slinetStarted: boolean
   lines: ReadonlyMap<string, WrappingRow>
@@ -43,6 +46,7 @@ export const CutlistCard = ({
   remakes,
   machines,
   isSlinet,
+  coilSummary,
   slinetStarted,
   lines,
   onOpenTotal,
@@ -176,7 +180,7 @@ export const CutlistCard = ({
         </span>
       </div>
 
-      {isSlinet && !done ? <SlinetCoils cutlistId={cutlist.id} /> : null}
+      {isSlinet && !done ? <SlinetCoils cutlistId={cutlist.id} summary={coilSummary} /> : null}
 
       {expanded ? (
         <div className='border-t border-border'>

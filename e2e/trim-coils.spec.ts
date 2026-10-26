@@ -135,6 +135,50 @@ test('one coil is moved on its own, after asking', async ({ page }) => {
     .toEqual([{ path: '/coils/lots/LOT-42/location/', body: { in_trim: true } }])
 })
 
+test('a coil in Trim is put on one of Trim’s racks', async ({ page }) => {
+  const placed: unknown[] = []
+  await page.route(`${API_URL}/coils/locations/?*`, route =>
+    route.fulfill({
+      json: [
+        { id: 5, code: 'T-1' },
+        { id: 6, code: 'T-2' }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/coils/lots/*/location/`, route => {
+    placed.push(route.request().postDataJSON())
+    return route.fulfill({ json: { ...LOTS[0], location_id: 6, location: 'T-2' } })
+  })
+  await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
+  await openProduct(page, 'CB4826R')
+  await openProduct(page, 'CB4828B')
+
+  // A Rollforming coil is not Trim's to place.
+  await expect(page.getByRole('combobox', { name: 'Location of coil 3797401' })).toBeHidden()
+  await page.getByRole('combobox', { name: 'Location of coil 3782201' }).click()
+  await page.getByRole('option', { name: 'T-2' }).click()
+  await expect.poll(() => placed).toEqual([{ location_id: 6 }])
+})
+
+test('the forklift scans a coil, then the rack it goes on', async ({ page }) => {
+  const scans: unknown[] = []
+  await page.route(`${API_URL}/coils/scan-move/`, route => {
+    scans.push(route.request().postDataJSON())
+    return route.fulfill({ json: { ...LOTS[0], location_id: 5, location: 'T-1' } })
+  })
+  await page.getByRole('button', { name: 'Scan' }).click()
+  const dialog = page.getByRole('dialog')
+  // A scanner types into whatever has focus, so the box has it from the start.
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
+  await page.keyboard.type('3782201\n')
+  await expect(dialog.getByLabel('Location code')).toBeFocused()
+  await page.keyboard.type('t-1\n')
+  await expect.poll(() => scans).toEqual([{ coil: '3782201', location: 't-1' }])
+  await expect(page.getByText('Coil 3782201 is on T-1')).toBeVisible()
+  // Ready for the next coil.
+  await expect(dialog.getByLabel('Coil lot number')).toHaveValue('')
+})
+
 test('the search narrows the list to one coil', async ({ page }) => {
   // The header's box searches the coils; the tab has none of its own beside it.
   await expect(page.getByRole('searchbox')).toHaveCount(1)

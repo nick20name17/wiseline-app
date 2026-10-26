@@ -131,15 +131,15 @@ test('a machine is dragged into place between the Slinet and Wrapping', async ({
     { ...MACHINES[0], id: 9, name: 'Wrapping', position: 3, kind: 'wrapping' }
   ]
   await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: machines }))
-  const saved: { path: string; body: unknown }[] = []
-  await page.route(`${API_URL}/flows/*/`, route => {
-    if (route.request().method() !== 'PATCH') return route.fallback()
-    const path = new URL(route.request().url()).pathname
-    const body = route.request().postDataJSON()
-    saved.push({ path, body })
-    const machine = machines.find(({ id }) => path === `/flows/${id}/`)
-    if (machine) Object.assign(machine, body)
-    return route.fulfill({ json: machine ?? {} })
+  const saved: unknown[] = []
+  await page.route(`${API_URL}/flows/reorder/`, route => {
+    const { ids } = route.request().postDataJSON() as { ids: number[] }
+    saved.push(route.request().postDataJSON())
+    ids.forEach((id, index) => {
+      const machine = machines.find(entry => entry.id === id)
+      if (machine) machine.position = index + 1
+    })
+    return route.fulfill({ json: [] })
   })
   await page.reload()
 
@@ -158,12 +158,5 @@ test('a machine is dragged into place between the Slinet and Wrapping', async ({
   await page.mouse.up()
 
   await expect(trim.getByRole('listitem')).toHaveText([/Slinet/, /V1/, /Press Brake/, /Wrapping/])
-  // Only the numbers that change are sent; V1 already held 2.
-  await expect
-    .poll(() => saved.toSorted((a, b) => a.path.localeCompare(b.path)))
-    .toEqual([
-      { path: '/flows/1/', body: { position: 3 } },
-      { path: '/flows/8/', body: { position: 1 } },
-      { path: '/flows/9/', body: { position: 4 } }
-    ])
+  await expect.poll(() => saved).toEqual([{ department: 1, ids: [8, 2, 1, 9] }])
 })

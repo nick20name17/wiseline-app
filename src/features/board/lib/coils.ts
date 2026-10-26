@@ -44,11 +44,15 @@ export const feetFromThickness = (thickness: number, material: number, core: num
  * being set up has no Material Thickness on record yet p1 (292,630), so its current weight per foot
  * stands as it is; one with no weight or length on record has nothing to read it from.
  */
-export const poundsPerFoot = (lot: CoilLot, material: number) =>
-  lot.weight && lot.linear_feet
-    ? (lot.weight / lot.linear_feet) *
-      (lot.material_thickness ? material / lot.material_thickness : 1)
-    : null
+export const poundsPerFoot = (lot: CoilLot, material: number) => {
+  // The server's own, from the gauge's weight in Settings where one is set; otherwise read off
+  // the figures on record.
+  const perFoot =
+    lot.weight_per_foot ?? (lot.weight && lot.linear_feet ? lot.weight / lot.linear_feet : null)
+  return perFoot === null
+    ? null
+    : perFoot * (lot.material_thickness ? material / lot.material_thickness : 1)
+}
 
 /** Linear Feet and Weight at a typed Coil Thickness, for a coil whose build is on record. */
 export const figuresAtThickness = (lot: CoilLot, thickness: number) => {

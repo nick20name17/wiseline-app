@@ -88,7 +88,7 @@ const MACHINES = [
 
 const BENDERS = MACHINES.filter(entry => entry.kind !== 'cutting' && entry.kind !== 'wrapping')
 
-const SCHEDULED_DAY = '2026-09-23'
+export const SCHEDULED_DAY = '2026-09-23'
 
 const scheduledLine = (
   id: string,
@@ -484,7 +484,7 @@ const COIL_FILTERS = [
   }
 ]
 
-const wrappingRow = (
+export const wrappingRow = (
   originItem: string,
   description: string,
   qty: number,
