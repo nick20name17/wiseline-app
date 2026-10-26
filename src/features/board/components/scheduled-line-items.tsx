@@ -44,7 +44,7 @@ import {
   type BoardOrder
 } from '../api'
 import { withoutStock } from '../lib/columns'
-import { isBender } from '../lib/cutlists'
+import { drawingOf, isBender } from '../lib/cutlists'
 import { editedDescription, shownDescription } from '../lib/descriptions'
 import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
@@ -59,6 +59,7 @@ import { PackagesDialog } from './packages-dialog'
 import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 import { CoilName } from './coil-name'
+import { DrawingCell } from './drawing-cell'
 
 type ScheduledLineItemsProps = {
   order: BoardOrder
@@ -565,6 +566,14 @@ export const ScheduledLineItems = ({
                           <span className={cn(otherDay && 'opacity-50')}>
                             <StatusPill status={itemStatus(status)} />
                           </span>
+                        </TableCell>
+                      ),
+                      image: (
+                        <TableCell>
+                          <DrawingCell
+                            drawing={drawingOf(item.product_files)}
+                            product={item.id_inven}
+                          />
                         </TableCell>
                       ),
                       pid: (

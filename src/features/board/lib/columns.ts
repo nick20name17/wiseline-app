@@ -35,6 +35,8 @@ export const UNSCHEDULED_LINES_TABLE: ColumnTable = {
   table: 'unscheduled-lines',
   columns: [
     { key: 'qty', label: 'Qty', width: 'w-20' },
+    // The trim's drawing, to check what was ordered before it is put on a day.
+    { key: 'image', label: 'Image', width: 'w-20' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'notes', label: 'Notes', width: 'w-20', hideLabel: true }
@@ -71,6 +73,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     // A stock order is what puts trims on the shelf, so its lines leave this one out.
     { key: 'stock', label: 'Stock', width: 'w-20' },
     { key: 'status', label: 'Status', width: 'w-38' },
+    { key: 'image', label: 'Image', width: 'w-20' },
     { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'desc', label: 'Description', card: 'subtitle' },
     { key: 'w', label: 'W"', width: 'w-24' },
