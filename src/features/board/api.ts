@@ -181,6 +181,14 @@ const itemSchema = z.object({
   unit_coils: z._default(z.array(unitCoilSchema), [])
 })
 
+const productFileSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  url: z._default(z.nullable(z.string()), null)
+})
+
+export type ProductFile = z.infer<typeof productFileSchema>
+
 const lineItemSchema = z.object({
   id: z.string(),
   category: z._default(z.nullable(z.string()), null),
@@ -200,7 +208,8 @@ const lineItemSchema = z.object({
   profile: z._default(z.nullable(z.string()), null),
   machine_id: z._default(z.nullable(z.number()), null),
   // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
-  item: z._default(z.nullable(itemSchema), null)
+  item: z._default(z.nullable(itemSchema), null),
+  product_files: z._default(z.array(productFileSchema), [])
 })
 
 export type BoardLineItem = z.infer<typeof lineItemSchema>
@@ -1755,14 +1764,6 @@ type CutlistKind = 'cutlist' | 'bendlist'
 // share; the rest describes the line itself.
 // A file EBMS holds on a product — its drawing among them. `url` is a signed link that expires, so it
 // is read when the list is, never kept.
-const productFileSchema = z.object({
-  id: z.number(),
-  name: z._default(z.string(), ''),
-  url: z._default(z.nullable(z.string()), null)
-})
-
-export type ProductFile = z.infer<typeof productFileSchema>
-
 const cutlistSourceSchema = z.object({
   order: z._default(z.nullable(z.string()), null),
   // The printed number — a stock order's own «S» number — and «Stock» for its customer.

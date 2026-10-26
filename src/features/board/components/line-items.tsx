@@ -16,7 +16,9 @@ import { useQuery } from '@tanstack/react-query'
 import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { byProduct, lineDay, newProduct } from '../lib/parts'
+import { drawingOf } from '../lib/cutlists'
 import { contentName } from '../lib/wrapping'
+import { DrawingCell } from './drawing-cell'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -133,6 +135,14 @@ export const LineItems = ({
                     qty: (
                       <TableCell>
                         <span className='font-mono'>{item.quantity}</span>
+                      </TableCell>
+                    ),
+                    image: (
+                      <TableCell>
+                        <DrawingCell
+                          drawing={drawingOf(item.product_files)}
+                          product={item.id_inven}
+                        />
                       </TableCell>
                     ),
                     pid: (
