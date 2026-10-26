@@ -66,6 +66,9 @@ export const REQUIRED_KINDS = [
   'wrapping'
 ] as const satisfies readonly MachineKind[]
 
+export const isRequired = (kind: string | null) =>
+  REQUIRED_KINDS.some(required => required === kind)
+
 export const KIND_LABELS: Record<MachineKind, string> = {
   cutting: 'Cutting',
   bending: 'Bending',

@@ -97,11 +97,13 @@ test('deleting a machine says what goes with it', async ({ page }) => {
   await expect(page.getByText(/left without a machine/)).toBeVisible()
 })
 
-test('the Slinet cannot be deleted, and says why', async ({ page }) => {
-  await page.getByRole('button', { name: 'Delete Slinet' }).click()
+test('the Slinet cannot be deleted, nor given other work', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Edit Slinet' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Delete Slinet' })).toHaveCount(0)
 
-  await expect(page.getByText(/work passes through Slinet/)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled()
+  await page.getByRole('button', { name: 'Edit Slinet' }).click()
+  await expect(page.getByLabel('What it does')).toBeDisabled()
+  await expect(page.getByLabel('EBMS category')).toBeDisabled()
 })
 
 test('a rollformer runs every EBMS profile listed on it, one a line', async ({ page }) => {
