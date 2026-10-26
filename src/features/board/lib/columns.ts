@@ -86,7 +86,8 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
 export const WRAPPING_TABLE: ColumnTable = {
   table: 'wrapping',
   columns: [
-    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    // Wide enough for the order # beside a split order's Part done badge.
+    { key: 'order', label: 'Order #', width: 'w-44', card: 'title' },
     { key: 'customer', label: 'Customer', width: 'w-48', card: 'subtitle' },
     { key: 'qty', label: 'Qty', width: 'w-20' },
     { key: 'stock', label: 'Stock', width: 'w-20' },

@@ -179,6 +179,20 @@ test('the forklift scans a coil, then the rack it goes on', async ({ page }) => 
   await expect(dialog.getByLabel('Coil lot number')).toHaveValue('')
 })
 
+test('a refused scan starts over from the coil', async ({ page }) => {
+  await page.route(`${API_URL}/coils/scan-move/`, route =>
+    route.fulfill({ status: 404, json: { detail: 'No coil with lot number 9999999.' } })
+  )
+  await page.getByRole('button', { name: 'Scan' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
+  await page.keyboard.type('9999999\n')
+  await expect(dialog.getByLabel('Location code')).toBeFocused()
+  await page.keyboard.type('T-1\n')
+  await expect(page.getByText('No coil with lot number 9999999.')).toBeVisible()
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
+})
+
 test('the search narrows the list to one coil', async ({ page }) => {
   // The header's box searches the coils; the tab has none of its own beside it.
   await expect(page.getByRole('searchbox')).toHaveCount(1)

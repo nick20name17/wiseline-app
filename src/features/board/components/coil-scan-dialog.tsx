@@ -43,8 +43,9 @@ export const CoilScanDialog = () => {
             type: 'success',
             title: `Coil ${coilName(lot)} is on ${lot.location ?? scanned}`
           }),
-        // A wrong location keeps the coil, so the next scan can be the right location.
-        onSettled: (_, error) => !error && setCoil(null)
+        // A refusal starts over too: the server answers an unknown coil and an unknown location
+        // alike, and keeping an unknown coil would fail every location scanned after it.
+        onSettled: () => setCoil(null)
       }
     )
   }
