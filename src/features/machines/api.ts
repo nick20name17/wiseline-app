@@ -152,6 +152,43 @@ export const useUpsertMachine = (onSuccess: () => void) =>
     }
   })
 
+/**
+ * A department's machines saved in the order given, numbered from 1. Only the ones whose number
+ * changes are sent; the boards read the same numbers for their machine tabs.
+ */
+export const useReorderMachines = () =>
+  useMutation({
+    meta: { errorTitle: 'The order was not saved' },
+    mutationFn: (machines: Machine[]) =>
+      Promise.all(
+        machines.flatMap((machine, index) =>
+          machine.position === index + 1
+            ? []
+            : [authApi.patch(`flows/${machine.id}/`, { json: { position: index + 1 } }).json()]
+        )
+      ),
+    onMutate: async (machines, { client }) => {
+      await client.cancelQueries({ queryKey: machinesKeys.list() })
+      const previous = client.getQueryData<Machine[]>(machinesKeys.list())
+      const positions = new Map(machines.map(({ id }, index) => [id, index + 1]))
+      client.setQueryData<Machine[]>(machinesKeys.list(), all =>
+        all?.map(machine => ({
+          ...machine,
+          position: positions.get(machine.id) ?? machine.position
+        }))
+      )
+      return { previous }
+    },
+    onError: (_, __, result, { client }) =>
+      client.setQueryData(machinesKeys.list(), result?.previous),
+    onSettled: (_, __, ___, ____, { client }) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: machinesKeys.all }),
+        // The boards' machine tabs follow the same order.
+        client.invalidateQueries({ queryKey: ['board'] })
+      ])
+  })
+
 export const useDeleteMachine = () =>
   useMutation({
     // The API refuses a machine that still holds work, and only it knows that.

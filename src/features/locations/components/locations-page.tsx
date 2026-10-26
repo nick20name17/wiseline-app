@@ -14,11 +14,14 @@ import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { SortHead } from '@/components/table/sort-head'
+import { sortRows, type Sort } from '@/lib/sort-rows'
 import {
   allLocationTypesQuery,
   departmentsQuery,
   locationsQuery,
-  warehousePickerQuery
+  warehousePickerQuery,
+  type Location
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
@@ -26,6 +29,8 @@ import { LocationActions } from './location-actions'
 import { CreateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
+
+type SortKey = 'name' | 'warehouse' | 'type' | 'weight'
 
 type LocationsPageProps = {
   search: string | undefined
@@ -50,6 +55,8 @@ export const LocationsPage = ({
   const { data: departments } = useQuery(departmentsQuery)
 
   const [term, setTerm] = useState(search ?? '')
+  // By name, numbers as numbers: a location added to a series lands in it, not at the bottom.
+  const [sort, setSort] = useState<Sort<SortKey>>({ key: 'name', desc: false })
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleSearch = (value: string) => {
@@ -60,10 +67,20 @@ export const LocationsPage = ({
 
   const racked = rackedDepartments(departments)
   const active = departmentByCode(racked, department)
-  const locations = (page?.results ?? []).filter(
-    location =>
-      !active ||
-      types?.find(type => type.id === location.location_type_id)?.department_id === active.id
+  const typeOf = (location: Location) => types?.find(type => type.id === location.location_type_id)
+  const locations = sortRows(
+    (page?.results ?? []).filter(
+      location => !active || typeOf(location)?.department_id === active.id
+    ),
+    sort,
+    (location, key) =>
+      key === 'name'
+        ? location.code
+        : key === 'warehouse'
+          ? (warehouses?.find(warehouse => warehouse.id === location.warehouse_id)?.name ?? null)
+          : key === 'type'
+            ? (typeOf(location)?.name ?? null)
+            : location.weight
   )
 
   return (
@@ -117,10 +134,18 @@ export const LocationsPage = ({
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead>Location Type</TableHead>
-                <TableHead>Max Weight</TableHead>
+                <SortHead column='name' sort={sort} onSort={setSort}>
+                  Name
+                </SortHead>
+                <SortHead column='warehouse' sort={sort} onSort={setSort}>
+                  Warehouse
+                </SortHead>
+                <SortHead column='type' sort={sort} onSort={setSort}>
+                  Location Type
+                </SortHead>
+                <SortHead column='weight' sort={sort} onSort={setSort}>
+                  Max Weight
+                </SortHead>
                 <TableHead>Multi Order</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>

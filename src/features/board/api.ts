@@ -2190,31 +2190,6 @@ export const useSetCoilLocation = () =>
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
-/**
- * Every coil of a product with coil left, moved in one go — a shortcut over the per-coil boxes. All
- * or none: one coil in the Slinet refuses Rollforming for the lot. A coil EBMS adds later starts with
- * no location.
- */
-export const useSetCoilProductLocation = () =>
-  useMutation({
-    meta: { errorTitle: 'The coils stayed where they were' },
-    mutationFn: async ({
-      productId,
-      location
-    }: {
-      productId: string
-      location: Omit<CoilLocation, 'in_slinet'>
-    }) =>
-      z
-        .object({ lots: z._default(z.number(), 0) })
-        .parse(
-          await authApi
-            .post(`coils/products/${encodeURIComponent(productId)}/location/`, { json: location })
-            .json()
-        ),
-    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
-  })
-
 /** Enter exactly one of the three; the other two follow from the Material Thickness and Core OD. */
 export type CoilFigures = { coil_thickness?: number; linear_feet?: number; weight?: number }
 

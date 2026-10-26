@@ -123,3 +123,47 @@ test('a rollformer runs every EBMS profile listed on it, one a line', async ({ p
     .poll(() => (saved as { ebms_profile_names?: string[] } | undefined)?.ebms_profile_names)
     .toEqual(['Tuff Rib', 'Diamond Rib', 'REVERSED Diamond Rib'])
 })
+
+test('a machine is dragged into place between the Slinet and Wrapping', async ({ page }) => {
+  const machines = [
+    ...MACHINES.map(machine => ({ ...machine })),
+    { ...MACHINES[0], id: 2, name: 'V1', position: 2 },
+    { ...MACHINES[0], id: 9, name: 'Wrapping', position: 3, kind: 'wrapping' }
+  ]
+  await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: machines }))
+  const saved: { path: string; body: unknown }[] = []
+  await page.route(`${API_URL}/flows/*/`, route => {
+    if (route.request().method() !== 'PATCH') return route.fallback()
+    const path = new URL(route.request().url()).pathname
+    const body = route.request().postDataJSON()
+    saved.push({ path, body })
+    const machine = machines.find(({ id }) => path === `/flows/${id}/`)
+    if (machine) Object.assign(machine, body)
+    return route.fulfill({ json: machine ?? {} })
+  })
+  await page.reload()
+
+  const trim = page.getByRole('list').filter({ hasText: 'Press Brake' })
+  await expect(trim.getByRole('listitem')).toHaveText([/Slinet/, /Press Brake/, /V1/, /Wrapping/])
+  // The ends hold: they have nothing to pick up.
+  await expect(page.getByRole('button', { name: 'Move Slinet' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Move Wrapping' })).toHaveCount(0)
+
+  const from = (await page.getByRole('button', { name: 'Move V1' }).boundingBox())!
+  const to = (await page.getByRole('button', { name: 'Move Press Brake' }).boundingBox())!
+  await page.mouse.move(from.x + 4, from.y + from.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(from.x + 4, from.y - 10, { steps: 5 })
+  await page.mouse.move(from.x + 4, to.y + 2, { steps: 10 })
+  await page.mouse.up()
+
+  await expect(trim.getByRole('listitem')).toHaveText([/Slinet/, /V1/, /Press Brake/, /Wrapping/])
+  // Only the numbers that change are sent; V1 already held 2.
+  await expect
+    .poll(() => saved.toSorted((a, b) => a.path.localeCompare(b.path)))
+    .toEqual([
+      { path: '/flows/1/', body: { position: 3 } },
+      { path: '/flows/8/', body: { position: 1 } },
+      { path: '/flows/9/', body: { position: 4 } }
+    ])
+})
