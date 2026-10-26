@@ -131,7 +131,7 @@ export const COIL_GROUPS_TABLE: ColumnTable = {
     { key: 'count', label: 'Count', width: 'w-20' },
     { key: 'lf', label: 'Total L/F', width: 'w-30' },
     { key: 'weight', label: 'Total lbs', width: 'w-30' },
-    // Shortcuts that move every coil of the product; each coil also has its own boxes. The labels
+    // How many of the product's coils each department holds; coils are placed one by one. The labels
     // stay short, or the table outgrows the floor's screen width.
     { key: 'rollforming', label: 'Rollforming', width: 'w-32' },
     { key: 'trim', label: 'Trim', width: 'w-20' }

@@ -109,6 +109,17 @@ export const BoardPage = ({
       )
   })
 
+  // The bar's height, for the tab's own top to stick under it: the strip row comes and goes with the tab.
+  const measureBar = (bar: HTMLDivElement | null) => {
+    const page = bar?.parentElement
+    if (!bar || !page) return
+    const observer = new ResizeObserver(() =>
+      page.style.setProperty('--board-bar', `${bar.offsetHeight}px`)
+    )
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }
+
   // A role that cannot see the tab in the URL is moved to the first one it can.
   useEffect(() => {
     if (!canAccess(board, view, role)) onViewChange(defaultView(board, role))
@@ -117,63 +128,69 @@ export const BoardPage = ({
   return (
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
     <section className='flex min-w-0 flex-1 flex-col gap-3'>
-      <DeptBar
-        views={viewsFor(board, role).filter(tab => !slitInStrip || tab !== 'slit')}
-        view={view === 'slit' && slitInStrip ? slitFrom : view}
-        counts={{
-          unscheduled: counts?.unscheduled,
-          scheduled: counts?.scheduled,
-          // Rollforming's Production lists orders, not cutlists, so it carries no figure — nor the
-          // placeholder the strip keeps for a figure still loading.
-          ...(board.machineTabs ? {} : { production: cutlists?.length }),
-          coils
-        }}
-        onNavigate={next => {
-          setOpenDay(undefined)
-          onViewChange(next)
-        }}
-        // The station a label is made at checks one too p2 (980,536), p3 (1216,364); Trim's Wrapping
-        // offers it among its machine tabs.
-        actions={
-          role === 'viewer' ? (
-            <Badge variant='secondary'>
-              <Eye data-icon='inline-start' />
-              View only
-            </Badge>
-          ) : view === 'wrapping' || view === 'packaging' ? (
-            <ScanPackageDialog iconOnPhone className='mb-1.5' />
-          ) : null
-        }
-      />
+      {/* The tabs stay in reach while a list scrolls, and each tab's own top sticks under them. */}
+      <div
+        ref={measureBar}
+        className='flex flex-col gap-3 bg-background md:sticky md:top-13 md:z-6 md:-mx-6 md:-mb-3 md:px-6 md:pb-3'
+      >
+        <DeptBar
+          views={viewsFor(board, role).filter(tab => !slitInStrip || tab !== 'slit')}
+          view={view === 'slit' && slitInStrip ? slitFrom : view}
+          counts={{
+            unscheduled: counts?.unscheduled,
+            scheduled: counts?.scheduled,
+            // Rollforming's Production lists orders, not cutlists, so it carries no figure — nor the
+            // placeholder the strip keeps for a figure still loading.
+            ...(board.machineTabs ? {} : { production: cutlists?.length }),
+            coils
+          }}
+          onNavigate={next => {
+            setOpenDay(undefined)
+            onViewChange(next)
+          }}
+          // The station a label is made at checks one too p2 (980,536), p3 (1216,364); Trim's Wrapping
+          // offers it among its machine tabs.
+          actions={
+            role === 'viewer' ? (
+              <Badge variant='secondary'>
+                <Eye data-icon='inline-start' />
+                View only
+              </Badge>
+            ) : view === 'wrapping' || view === 'packaging' ? (
+              <ScanPackageDialog iconOnPhone className='mb-1.5' />
+            ) : null
+          }
+        />
 
-      {showStrip && (machines.length || machinesPending) ? (
-        // A tab's toolbar shares the row: on a laptop the board's list starts a row higher.
-        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
-          <div className='min-w-0 grow basis-80'>
-            {machines.length ? (
-              <MachineStrip
-                machines={machines}
-                value={view === 'slit' ? 'slit' : ((withNone ? machine : machineId) ?? 'none')}
-                withNone={withNone}
-                withSlit={offersSlit}
-                onChange={tab => {
-                  if (tab === 'slit') {
-                    setSlitFrom(view)
-                    onViewChange('slit')
-                    return
-                  }
-                  setPicked(tab)
-                  if (view === 'slit') onViewChange(slitFrom)
-                }}
-              />
-            ) : (
-              // The row's room is kept while the machines load, so the tab below does not drop into it.
-              <MachineStripSkeleton />
-            )}
+        {showStrip && (machines.length || machinesPending) ? (
+          // A tab's toolbar shares the row: on a laptop the board's list starts a row higher.
+          <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
+            <div className='min-w-0 grow basis-80'>
+              {machines.length ? (
+                <MachineStrip
+                  machines={machines}
+                  value={view === 'slit' ? 'slit' : ((withNone ? machine : machineId) ?? 'none')}
+                  withNone={withNone}
+                  withSlit={offersSlit}
+                  onChange={tab => {
+                    if (tab === 'slit') {
+                      setSlitFrom(view)
+                      onViewChange('slit')
+                      return
+                    }
+                    setPicked(tab)
+                    if (view === 'slit') onViewChange(slitFrom)
+                  }}
+                />
+              ) : (
+                // The row's room is kept while the machines load, so the tab below does not drop into it.
+                <MachineStripSkeleton />
+              )}
+            </div>
+            <div ref={setStripSlot} className='ml-auto empty:hidden max-md:w-full' />
           </div>
-          <div ref={setStripSlot} className='ml-auto empty:hidden max-md:w-full' />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <StripSlotContext value={stripSlot}>
         {view === 'unscheduled' ? (

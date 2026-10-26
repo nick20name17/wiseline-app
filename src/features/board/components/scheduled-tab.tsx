@@ -1,3 +1,4 @@
+import { StickyTop } from './sticky-top'
 import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -336,35 +337,39 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3'>
-      <ScheduledDayTabs
-        departmentId={departmentId}
-        day={day}
-        total={everything ?? 0}
-        onDayChange={changeDay}
-        onOpenCapacities={setCapacitiesDay}
-      />
+      <StickyTop>
+        <ScheduledDayTabs
+          departmentId={departmentId}
+          day={day}
+          total={everything ?? 0}
+          onDayChange={changeDay}
+          onOpenCapacities={setCapacitiesDay}
+        />
 
-      {/* Only where lines are put on machines by hand, and only for one day. */}
-      {board.assignsMachines && day ? <MachineLoads departmentId={departmentId} day={day} /> : null}
+        {/* Only where lines are put on machines by hand, and only for one day. */}
+        {board.assignsMachines && day ? (
+          <MachineLoads departmentId={departmentId} day={day} />
+        ) : null}
 
-      <ScheduledToolbar
-        total={parts.length}
-        day={day}
-        selectedCount={selected.length}
-        selectionKind={selectionKind}
-        canRelease={canRelease}
-        isReleasing={release.isPending}
-        onAllocatedStock={() => setStockOpen(true)}
-        onRelease={() => {
-          const dayOf = (part: Part) =>
-            part.order.sales_order
-              ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
-              : []
-          const days = selected.flatMap(dayOf)
-          const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
-          if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
-        }}
-      />
+        <ScheduledToolbar
+          total={parts.length}
+          day={day}
+          selectedCount={selected.length}
+          selectionKind={selectionKind}
+          canRelease={canRelease}
+          isReleasing={release.isPending}
+          onAllocatedStock={() => setStockOpen(true)}
+          onRelease={() => {
+            const dayOf = (part: Part) =>
+              part.order.sales_order
+                ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
+                : []
+            const days = selected.flatMap(dayOf)
+            const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
+            if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
+          }}
+        />
+      </StickyTop>
 
       {!isPending && whole && !parts.length ? (
         <Empty>

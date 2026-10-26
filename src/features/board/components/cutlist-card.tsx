@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CutlistRows } from './cutlist-rows'
 import { PriorityPill } from '@/components/priority-pill'
 import { RemakePill } from './reman-badge'
+import { SlinetCoils } from './slinet-coils'
 
 type CutlistCardProps = {
   cutlist: Cutlist
@@ -174,6 +175,8 @@ export const CutlistCard = ({
           )}
         </span>
       </div>
+
+      {isSlinet && !done ? <SlinetCoils cutlistId={cutlist.id} /> : null}
 
       {expanded ? (
         <div className='border-t border-border'>

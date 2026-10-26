@@ -1,3 +1,4 @@
+import { StickyTop } from './sticky-top'
 import { cn } from 'cn'
 import { useBoard, useStripSlot } from '../lib/board-context'
 import { formatLongDate, today } from '@/lib/days'
@@ -117,9 +118,10 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
 
   return (
     <div className='flex min-w-0 flex-1 flex-col gap-3'>
-      {slot ? createPortal(toolbar, slot) : toolbar}
-
-      <DayStrip departmentId={departmentId} />
+      <StickyTop>
+        {slot ? createPortal(toolbar, slot) : toolbar}
+        <DayStrip departmentId={departmentId} />
+      </StickyTop>
 
       {isError && !page ? (
         <QueryError

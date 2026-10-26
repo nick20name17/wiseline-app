@@ -302,6 +302,11 @@
   padding: calc(var(--spacing) * 1.5);
 }
 
+/* Just under the app header and the board's bar, whose height the board sets in `--board-bar`. */
+@utility top-under-board {
+  top: calc(var(--spacing) * 13 + var(--board-bar, 0px));
+}
+
 /**
  * An expanded row in a table wider than the screen: its panel stays over the part of the table in
  * view and is as wide as it, so the panel's actions are not off past the right edge. The element
