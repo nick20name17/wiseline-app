@@ -29,6 +29,7 @@ import {
   DEPARTMENT_KINDS,
   departmentCategoryQuery,
   departmentsQuery,
+  isRequired,
   KIND_LABELS,
   MACHINE_KINDS,
   machineFormSchema,
@@ -104,6 +105,9 @@ const MachineForm = ({ machine, department, category, onSuccess }: MachineFormPr
   // Only Rollforming's day is counted in feet, so only its machines are asked for a figure in them.
   const inFeet = code === 'rollforming'
   const kinds = DEPARTMENT_KINDS[code] ?? MACHINE_KINDS
+  // Moving the Slinet, the Slit Line or Wrapping to other work would take it off the line it is
+  // required on, as a delete would; its name and capacity stay editable.
+  const required = !!machine && isRequired(machine.kind)
   const mutation = useUpsertMachine(onSuccess)
   const { errors } = form.formState
 
@@ -173,7 +177,7 @@ const MachineForm = ({ machine, department, category, onSuccess }: MachineFormPr
             control={form.control}
             name='category'
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select value={field.value} onValueChange={field.onChange} disabled={required}>
                 <SelectTrigger id='machine-category'>
                   <SelectValue>
                     {(id: string) =>
@@ -201,7 +205,7 @@ const MachineForm = ({ machine, department, category, onSuccess }: MachineFormPr
             control={form.control}
             name='kind'
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select value={field.value} onValueChange={field.onChange} disabled={required}>
                 <SelectTrigger id='machine-kind'>
                   <SelectValue>
                     {(kind: string) => KIND_LABELS[kind as MachineKind] ?? 'Pick one'}
@@ -217,6 +221,12 @@ const MachineForm = ({ machine, department, category, onSuccess }: MachineFormPr
               </Select>
             )}
           />
+          {required ? (
+            <FieldDescription>
+              The department's work passes through it, so its category and what it does stay as they
+              are.
+            </FieldDescription>
+          ) : null}
           <FieldError errors={[errors.kind]} />
         </Field>
 
