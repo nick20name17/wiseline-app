@@ -1,0 +1,18 @@
+pre-commit:
+  commands:
+    format:
+      glob: '*.{ts,tsx,js,mjs,json,jsonc,md,css,html,yml,yaml}'
+      exclude:
+        - src/routeTree.gen.ts
+      run: bunx oxfmt {staged_files}
+      stage_fixed: true
+    lint:
+      glob: '*.{ts,tsx}'
+      exclude:
+        - src/routeTree.gen.ts
+      run: bunx oxlint --deny-warnings {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}

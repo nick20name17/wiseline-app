@@ -1,180 +1,63 @@
-import { RiArrowLeftSLine, RiArrowRightSLine, RiCalendar2Line } from '@remixicon/react'
-import { addDays, format, subDays } from 'date-fns'
-import { useState } from 'react'
-import { type Matcher } from 'react-day-picker'
-
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { DATE_FORMAT } from '@/constants/date'
-import { cn } from '@/lib/utils'
+import { cn } from 'cn'
+import { CalendarIcon } from 'lucide-react'
+import { useState } from 'react'
 
 interface DatePickerProps {
+  id?: string
+  value: Date
+  /** The last month the dropdowns offer; react-day-picker stops at this year otherwise. */
+  endMonth?: Date
+  onChange: (date: Date) => void
+  format?: (date: Date) => string
   className?: string
-  date: Date | undefined
-  setDate: (date: Date | undefined) => void
-  disabledDays?: Matcher | Matcher[]
-  align?: 'center' | 'start' | 'end'
-  showArrows?: boolean
-  disabled?: boolean
+  /** Days the calendar reads red: ones that need attention, such as late shipments. */
+  flagged?: Date[]
 }
 
-const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6
-
-const shiftDate = (
-  date: Date | undefined,
-  direction: 'prev' | 'next',
-  includeWeekends: boolean
-): Date | undefined => {
-  if (!date) return undefined
-
-  const step = direction === 'prev' ? subDays : addDays
-
-  const nextValid = (current: Date): Date => {
-    const next = step(current, 1)
-    return !includeWeekends && isWeekend(next) ? nextValid(next) : next
-  }
-
-  return nextValid(date)
-}
+const defaultFormat = (date: Date) => date.toLocaleDateString()
 
 export const DatePicker = ({
+  id,
+  value,
+  endMonth,
+  onChange,
+  format = defaultFormat,
   className,
-  disabledDays,
-  date,
-  setDate,
-  align = 'start',
-  showArrows = false,
-  disabled = false
+  flagged = []
 }: DatePickerProps) => {
-  const includeWeekends = false
   const [open, setOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(date)
-
-  const handleCancel = () => {
-    setSelectedDate(date)
-    setOpen(false)
-  }
-
-  const handleSetProductionDate = () => {
-    setDate(selectedDate)
-    setOpen(false)
-  }
-
-  const onPreviousDay = () => {
-    const newDate = shiftDate(date, 'prev', includeWeekends)
-
-    setDate(newDate)
-    setSelectedDate(newDate)
-  }
-
-  const onNextDay = () => {
-    const newDate = shiftDate(date, 'next', includeWeekends)
-
-    setDate(newDate)
-    setSelectedDate(newDate)
-  }
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-    >
-      {showArrows ? (
-        <div className='flex items-center gap-1.5'>
-          <Button
-            disabled={disabled}
-            size='icon'
-            variant='outline'
-            onClick={onPreviousDay}
-          >
-            <RiArrowLeftSLine />
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button id={id} variant='outline' className={cn('justify-between', className)}>
+            {format(value)}
+            <CalendarIcon data-icon='inline-end' />
           </Button>
-
-          <PopoverTrigger asChild>
-            <Button
-              size='sm'
-              variant='outline'
-              id='date'
-              disabled={disabled}
-              className={cn(
-                'text-muted-foreground flex items-center justify-start gap-2',
-                className
-              )}
-            >
-              <RiCalendar2Line />
-              {date ? (
-                <span className={disabled ? 'text-muted-foreground' : 'text-foreground'}>
-                  {format(date, DATE_FORMAT.weekdayShort)}
-                </span>
-              ) : (
-                <span>Choose date</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <Button
-            disabled={disabled}
-            size='icon'
-            variant='outline'
-            onClick={onNextDay}
-          >
-            <RiArrowRightSLine />
-          </Button>
-        </div>
-      ) : (
-        <PopoverTrigger asChild>
-          <Button
-            size='sm'
-            variant='outline'
-            id='date'
-            disabled={disabled}
-            className={cn('text-muted-foreground flex items-center justify-start gap-2', className)}
-          >
-            <RiCalendar2Line />
-            {date ? (
-              <span className={disabled ? 'text-muted-foreground' : 'text-foreground'}>
-                {format(date, DATE_FORMAT.weekdayShort)}
-              </span>
-            ) : (
-              <span>Choose date</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-      )}
-
-      <PopoverContent
-        className='w-auto p-3'
-        align={showArrows ? 'center' : align}
-      >
+        }
+      />
+      <PopoverContent align='start' className='w-auto'>
         <Calendar
           mode='single'
-          disabled={
-            disabledDays || {
-              dayOfWeek: includeWeekends ? [] : [0, 6]
-            }
-          }
-          selected={selectedDate}
-          onSelect={setSelectedDate}
+          required
+          selected={value}
+          defaultMonth={value}
+          endMonth={endMonth}
+          captionLayout='dropdown'
+          modifiers={{ flagged }}
+          modifiersClassNames={{
+            flagged: '[&>button]:bg-destructive/10 [&>button]:text-destructive'
+          }}
+          onSelect={next => {
+            if (!next) return
+            onChange(next)
+            setOpen(false)
+          }}
         />
-
-        <div className='mt-3 flex items-center gap-2'>
-          <Button
-            onClick={handleCancel}
-            variant='outline'
-            className='flex-1'
-            size='sm'
-          >
-            Cancel
-          </Button>
-          <Button
-            disabled={!selectedDate}
-            className='flex-1'
-            size='sm'
-            onClick={handleSetProductionDate}
-          >
-            Set date
-          </Button>
-        </div>
       </PopoverContent>
     </Popover>
   )

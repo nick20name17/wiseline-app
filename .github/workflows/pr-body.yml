@@ -1,0 +1,30 @@
+name: PR body
+
+# The template's hints are for the author; a body that still carries them, or leaves Summary empty,
+# reads as an unfilled form. Re-checked on every edit of the description.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  body:
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check the description
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          body=$(printf '%s' "$BODY" | tr -d '\r')
+          case "$body" in *'<!--'*) fail 'The PR body still has the template hints (<!-- -->). Delete them.' ;; esac
+          printf '%s\n' "$body" | grep -qx '## Summary' || fail 'The PR body needs a «## Summary» heading on a line of its own.'
+          # Summary's text: what sits between «## Summary» and the next heading.
+          summary=$(printf '%s\n' "$body" | awk '/^## Summary$/{on=1; next} /^## /{on=0} on' | tr -d '[:space:]')
+          [ -n "$summary" ] || fail 'Summary is empty: say what changed and why.'
+          printf '%s\n' "$body" | grep -Eq '[^[:space:]]## ' && fail 'A heading is glued to the text before it; put it on a line of its own.'
+          echo 'PR body is filled in.'
