@@ -1,0 +1,162 @@
+import { expect, test } from '@playwright/test'
+import { API_URL, mockAuthApi, password, user } from './api.ts'
+
+const DEPARTMENTS = [
+  { id: 1, name: 'Trim', code: 'trim', position: 1 },
+  { id: 2, name: 'Rollforming', code: 'rollforming', position: 2 },
+  { id: 3, name: 'Accessories', code: 'accessories', position: 3 }
+]
+
+const CATEGORIES = [
+  { id: 'CAT-TRIM', name: 'Trim' },
+  { id: 'CAT-ROLL', name: 'Rollforming' }
+]
+
+const MACHINES = [
+  {
+    id: 1,
+    name: 'Press Brake',
+    description: null,
+    position: 1,
+    category: 'CAT-TRIM',
+    department: 1,
+    kind: 'bending',
+    daily_max_pieces: null,
+    daily_max_bends: 1200
+  },
+  {
+    id: 85,
+    name: 'Tuff Rib & Diamond Rib',
+    description: null,
+    position: 1,
+    category: 'CAT-ROLL',
+    department: 2,
+    kind: 'rollforming',
+    ebms_profile_names: ['Tuff Rib'],
+    daily_max_pieces: null,
+    daily_max_bends: null
+  },
+  {
+    id: 8,
+    name: 'Slinet',
+    description: null,
+    position: 0,
+    category: 'CAT-TRIM',
+    department: 1,
+    kind: 'cutting',
+    daily_max_pieces: null,
+    daily_max_bends: null
+  }
+]
+
+test.beforeEach(async ({ page }) => {
+  await mockAuthApi(page)
+  await page.route(`${API_URL}/departments/all/`, route => route.fulfill({ json: DEPARTMENTS }))
+  await page.route(`${API_URL}/ebms/categories/all/*`, route => route.fulfill({ json: CATEGORIES }))
+  await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: MACHINES }))
+  await page.route(`${API_URL}/departments/1/`, route =>
+    route.fulfill({ json: { id: 1, code: 'trim', category: 'CAT-TRIM' } })
+  )
+  await page.goto('/settings/machines')
+  await page.getByLabel('Email').fill(user.email)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Continue' }).click()
+})
+
+test('each department is an open card, counted, with its machines’ daily max', async ({ page }) => {
+  await expect(page.getByText('machines across departments')).toContainText('3')
+  // A department with none offers to add one rather than showing an empty card.
+  await expect(page.getByRole('button', { name: 'Add one' })).toBeVisible()
+
+  const press = page.getByRole('listitem').filter({ hasText: 'Press Brake' })
+  await expect(press).toContainText('1200 bends / day')
+  await expect(page.getByRole('listitem').filter({ hasText: 'Slinet' })).toContainText('Gateway')
+
+  await page.getByRole('button', { name: 'Collapse Trim' }).click()
+  await expect(press).toBeHidden()
+})
+
+test('a machine is added from its department’s card, as one of the kinds it runs', async ({
+  page
+}) => {
+  const trim = page.getByRole('button', { name: 'Add machine' }).first()
+  await trim.click()
+
+  const dialog = page.getByRole('dialog', { name: 'Add Trim machine' })
+  await expect(dialog.getByLabel('Department')).toHaveCount(0)
+  // A new machine routes by its department's EBMS category until told otherwise.
+  await expect(dialog.getByLabel('EBMS category')).toContainText('Trim')
+  await dialog.getByLabel('What it does').click()
+  await expect(page.getByRole('option')).toHaveText(['Bending', 'Cutting', 'Wrapping'])
+})
+
+test('deleting a machine says what goes with it', async ({ page }) => {
+  await page.getByRole('button', { name: 'Delete Press Brake' }).click()
+
+  await expect(page.getByText('Delete machine Press Brake?')).toBeVisible()
+  await expect(page.getByText(/left without a machine/)).toBeVisible()
+})
+
+test('the Slinet cannot be deleted, nor given other work', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Edit Slinet' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Delete Slinet' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Edit Slinet' }).click()
+  await expect(page.getByLabel('What it does')).toBeDisabled()
+  await expect(page.getByLabel('EBMS category')).toBeDisabled()
+})
+
+test('a rollformer runs every EBMS profile listed on it, one a line', async ({ page }) => {
+  let saved: unknown
+  await page.route(`${API_URL}/flows/85/`, route => {
+    saved = route.request().postDataJSON()
+    return route.fulfill({ json: {} })
+  })
+  await page.getByRole('button', { name: 'Edit Tuff Rib & Diamond Rib' }).click()
+
+  const profiles = page.getByLabel('EBMS profiles')
+  await expect(profiles).toHaveValue('Tuff Rib')
+  await profiles.fill('Tuff Rib\n  Diamond Rib \n\nREVERSED Diamond Rib')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await expect
+    .poll(() => (saved as { ebms_profile_names?: string[] } | undefined)?.ebms_profile_names)
+    .toEqual(['Tuff Rib', 'Diamond Rib', 'REVERSED Diamond Rib'])
+})
+
+test('a machine is dragged into place between the Slinet and Wrapping', async ({ page }) => {
+  const machines = [
+    ...MACHINES.map(machine => ({ ...machine })),
+    { ...MACHINES[0], id: 2, name: 'V1', position: 2 },
+    { ...MACHINES[0], id: 9, name: 'Wrapping', position: 3, kind: 'wrapping' }
+  ]
+  await page.route(`${API_URL}/flows/all/*`, route => route.fulfill({ json: machines }))
+  const saved: unknown[] = []
+  await page.route(`${API_URL}/flows/reorder/`, route => {
+    const { ids } = route.request().postDataJSON() as { ids: number[] }
+    saved.push(route.request().postDataJSON())
+    ids.forEach((id, index) => {
+      const machine = machines.find(entry => entry.id === id)
+      if (machine) machine.position = index + 1
+    })
+    return route.fulfill({ json: [] })
+  })
+  await page.reload()
+
+  const trim = page.getByRole('list').filter({ hasText: 'Press Brake' })
+  await expect(trim.getByRole('listitem')).toHaveText([/Slinet/, /Press Brake/, /V1/, /Wrapping/])
+  // The ends hold: they have nothing to pick up.
+  await expect(page.getByRole('button', { name: 'Move Slinet' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Move Wrapping' })).toHaveCount(0)
+
+  const from = (await page.getByRole('button', { name: 'Move V1' }).boundingBox())!
+  const to = (await page.getByRole('button', { name: 'Move Press Brake' }).boundingBox())!
+  await page.mouse.move(from.x + 4, from.y + from.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(from.x + 4, from.y - 10, { steps: 5 })
+  await page.mouse.move(from.x + 4, to.y + 2, { steps: 10 })
+  await page.mouse.up()
+
+  await expect(trim.getByRole('listitem')).toHaveText([/Slinet/, /V1/, /Press Brake/, /Wrapping/])
+  await expect.poll(() => saved).toEqual([{ department: 1, ids: [8, 2, 1, 9] }])
+})

@@ -1,0 +1,425 @@
+import { QueryError } from '@/components/query-error'
+import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
+import { TableSkeletonRows } from '@/components/table-skeleton-rows'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useHeldWhileClosed } from '@/hooks/use-held-while-closed'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
+import { byDay, formatLongDate, today } from '@/lib/days'
+import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useQuery } from '@tanstack/react-query'
+import { cn } from 'cn'
+import { GripVertical, Layers, Pencil, Scissors } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import {
+  prioritiesQuery,
+  queueQuery,
+  useReorderQueue,
+  useSetCurrentCoil,
+  type Priority,
+  type QueueRow,
+  type UnitCoil
+} from '../api'
+import { unitRuns } from '../lib/unit-coils'
+import { useViewOnly } from '../lib/board-context'
+import { formatCount } from '../lib/format'
+import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
+import { CoilLock } from './coil-lock'
+import { CoilName } from './coil-name'
+import { PriorityPill } from '@/components/priority-pill'
+
+const COLUMNS = 11
+
+type QueueTabProps = {
+  departmentId: number | undefined
+  machineId: number | undefined
+  /** The Worker sees the same rows p2 (935,297), but only the Manager moves them p2 (530,641). */
+  worker: boolean
+}
+
+type QueueLineProps = {
+  row: QueueRow
+  priority: Priority | null
+  movable: boolean
+  /** Ticks the row's coil into the machine, or takes it out p2 (902,356). */
+  onInMachine: ((row: QueueRow, inMachine: boolean) => void) | null
+  /** Names the coil the Manager left Undefined, which the Worker may after release p2 (894,313). */
+  onFill: ((row: QueueRow) => void) | null
+}
+
+/** Only a coil that is named can go in the machine p2 (895,300); the Slit Line's is not yet. */
+const hasCoil = (row: QueueRow) =>
+  !!row.supplier && !!row.coil_number && row.coil_icon !== 'waiting_to_slit'
+
+const NEEDS_COIL = 'Needs a Supplier and Coil Number first'
+
+const currentOf = (row: QueueRow): CoilCurrent => ({
+  supplier: row.supplier,
+  coil_number: row.coil_number,
+  supplier_locked: row.supplier_locked,
+  coil_number_locked: row.coil_number_locked
+})
+
+/** A line on the row for some of its units fills in just those; the rest roll off other coils. */
+const unitsOf = (row: QueueRow) => {
+  const current = currentOf(row)
+  return Object.fromEntries(
+    row.lines.flatMap(line =>
+      line.units
+        ? [[line.origin_item, line.units.map((unit): UnitCoil => ({ unit, ...current }))]]
+        : []
+    )
+  )
+}
+
+type LockedProps = { value: string | null; locked: boolean; row: QueueRow }
+
+const Locked = ({ value, locked, row }: LockedProps) => (
+  <span className='inline-flex items-center gap-1.5'>
+    <span className='truncate font-mono'>
+      <CoilName value={value} waiting={row.coil_icon === 'waiting_to_slit'} />
+    </span>
+    <CoilLock locked={locked} />
+  </span>
+)
+
+// The same coil can head several rows of a day; its coil and orders tell them apart. The Supplier
+// counts too: units of a line given only a Supplier make a row of their own beside the rest.
+const rowName = (row: QueueRow) =>
+  `${row.material_id ?? 'material'} · ${
+    [row.supplier, row.coil_number].filter(Boolean).join(' ') || 'no coil'
+  } · ${
+    [...new Set(row.lines.map(line => line.order_number).filter(Boolean))].join(', ') || 'no order'
+  }`
+
+/** The row's box for the coil in the machine, and the way to name that coil where none is. */
+const InMachine = ({
+  row,
+  onInMachine,
+  onFill
+}: Pick<QueueLineProps, 'row' | 'onInMachine' | 'onFill'>) => (
+  <span className='inline-flex items-center gap-2'>
+    <Checkbox
+      aria-label={`${rowName(row)} is in the machine`}
+      title={hasCoil(row) ? undefined : NEEDS_COIL}
+      checked={row.current}
+      disabled={!onInMachine || !hasCoil(row)}
+      // The row drags from anywhere, by pointer or by Space; on the box either is a toggle.
+      onPointerDown={event => event.stopPropagation()}
+      onKeyDown={event => event.stopPropagation()}
+      onCheckedChange={checked => onInMachine?.(row, checked)}
+    />
+    {/* The Slit Line names its own coil once it slits it. */}
+    {onFill && !hasCoil(row) && row.coil_icon !== 'waiting_to_slit' ? (
+      <Button
+        variant='ghost'
+        size='icon-sm'
+        aria-label={`Supplier and Coil Number for ${rowName(row)}`}
+        title='Choose the Supplier and Coil Number'
+        onPointerDown={event => event.stopPropagation()}
+        onKeyDown={event => event.stopPropagation()}
+        onClick={() => onFill(row)}
+      >
+        <Pencil />
+      </Button>
+    ) : null}
+    {/* The box's title, for a finger that cannot hover for it. */}
+    {onInMachine && !hasCoil(row) ? (
+      <span className='text-xs text-muted-foreground pointer-fine:hidden'>{NEEDS_COIL}</span>
+    ) : null}
+  </span>
+)
+
+const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLineProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: row.key, disabled: !movable })
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      // dnd-kit computes both every frame of a drag; no class can carry them.
+      // oxlint-disable-next-line shadcn/no-inline-styles
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      data-state={isDragging ? 'selected' : undefined}
+      data-overdue={row.is_overdue || undefined}
+      className={cn(movable && 'cursor-grab', isDragging && 'relative z-10 cursor-grabbing')}
+      {...listeners}
+    >
+      {/* On a card the grip sits in the corner by the thumb, sized for one. */}
+      <TableCell card='trail'>
+        {movable ? (
+          <button
+            ref={setActivatorNodeRef}
+            type='button'
+            aria-label={`Move ${rowName(row)}`}
+            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:p-3'
+            {...attributes}
+          >
+            <GripVertical className='size-3.5 pointer-coarse:size-4' />
+          </button>
+        ) : null}
+      </TableCell>
+      <TableCell card='title'>
+        <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
+      </TableCell>
+      <TableCell label='Profile'>{row.profile ?? '—'}</TableCell>
+      <TableCell label='L/F'>
+        <span className='font-mono'>{formatCount(row.linear_feet)}</span>
+      </TableCell>
+      <TableCell label='Weight'>
+        <span className='font-mono'>{formatCount(row.weight)}</span>
+      </TableCell>
+      <TableCell label='Priority'>
+        {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
+        {priority ? (
+          <PriorityPill priority={priority} />
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        )}
+      </TableCell>
+      <TableCell label='Supplier'>
+        <Locked value={row.supplier} locked={row.supplier_locked} row={row} />
+      </TableCell>
+      <TableCell label='Coil Number'>
+        <Locked value={row.coil_number} locked={row.coil_number_locked} row={row} />
+      </TableCell>
+      <TableCell label='Slit Line'>
+        {row.coil_icon === 'waiting_to_slit' ? (
+          <Scissors className='size-3.5 text-warning' aria-label='Waiting for the Slit Line' />
+        ) : row.coil_icon === 'slit' ? (
+          <Scissors className='size-3.5 text-success' aria-label='Slit' />
+        ) : null}
+      </TableCell>
+      <TableCell label='In Machine'>
+        <InMachine row={row} onInMachine={onInMachine} onFill={onFill} />
+      </TableCell>
+      <TableCell label='Orders' card='full'>
+        <span className='truncate text-xs text-muted-foreground'>
+          {/* A line split by coil is on this row for some of its units p2 (679,416). */}
+          {[
+            ...new Set(
+              row.lines
+                .filter(line => line.order_number)
+                .map(line =>
+                  line.units
+                    ? `${line.order_number} (units ${unitRuns(line.units)})`
+                    : line.order_number
+                )
+            )
+          ].join(', ')}
+        </span>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+/**
+ * A machine's Queue p2 (493,630): what is left to roll, a row per run of material, the days apart
+ * p2 (499,635). The Manager drags a row within its day p2 (530,641); its day it keeps.
+ */
+export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => {
+  const { data, isPending, isError, error, refetch } = useQuery(queueQuery(departmentId, machineId))
+  const { data: priorities } = useQuery(prioritiesQuery(departmentId))
+  const priorityOf = new Map(priorities?.map(entry => [entry.id, entry]))
+  const viewOnly = useViewOnly()
+  const reorder = useReorderQueue()
+  const inMachine = useSetCurrentCoil()
+  const [filling, setFilling] = useState<QueueRow | null>(null)
+  // The row stays in the dialog while it closes, or it would fade out as «0 lines of —».
+  const shownFilling = useHeldWhileClosed(filling, !!filling)
+  const sensors = useDragSensors()
+  // The order a drop left, until the save settles — see the priorities table.
+  const [dropped, setDropped] = useState<QueueRow[] | null>(null)
+  const rows = dropped ?? data ?? []
+  const days = byDay(rows, row => row.production_date)
+  const movable = !worker && !viewOnly && !reorder.isPending
+
+  const announcements = dragAnnouncements({
+    name: id => {
+      const row = rows.find(found => found.key === id)
+      return row && rowName(row)
+    },
+    place: id => {
+      const row = rows.find(found => found.key === id)
+      const day = rows.filter(found => found.production_date === row?.production_date)
+      return `${day.findIndex(found => found.key === id) + 1} of ${day.length}`
+    },
+    noun: 'material',
+    area: 'its day'
+  })
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    const from = rows.find(row => row.key === active.id)
+    const to = rows.find(row => row.key === over?.id)
+    if (!from || !to || from === to || departmentId === undefined || machineId === undefined) return
+    // A row moves within its day only p2 (530,641).
+    if (from.production_date !== to.production_date || !from.production_date) return
+    const day = rows.filter(row => row.production_date === from.production_date)
+    const moved = arrayMove(day, day.indexOf(from), day.indexOf(to))
+    const next = rows.flatMap(row =>
+      row.production_date === from.production_date ? (row === day[0] ? moved : []) : [row]
+    )
+    setDropped(next)
+    reorder.mutate(
+      {
+        departmentId,
+        flowId: machineId,
+        productionDate: from.production_date,
+        keys: moved.map(row => row.key)
+      },
+      { onSettled: () => setDropped(null) }
+    )
+  }
+
+  if (isError && !data)
+    return (
+      <QueryError title='The Queue did not load' error={error} onRetry={() => void refetch()} />
+    )
+
+  if (!isPending && !rows.length)
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant='icon'>
+            <Layers />
+          </EmptyMedia>
+          <EmptyTitle>Nothing in the Queue</EmptyTitle>
+          <EmptyDescription>
+            Material shows here once its orders are released to production.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+
+  return (
+    <div className='flex flex-col gap-2'>
+      {/* A finger has no grab cursor to say the rows move. */}
+      {movable ? (
+        <p className='text-xs text-muted-foreground pointer-fine:hidden'>
+          Hold a row, then drag it to move it within its day.
+        </p>
+      ) : null}
+      <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          // Kept inside the body: a row dragged past the table's foot grows its scroll box, which
+          // dnd-kit then scrolls into, leaving the rows out of sight above.
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          accessibility={{ announcements }}
+          onDragEnd={handleDragEnd}
+        >
+          <Table data-cards className='min-w-320 table-fixed'>
+            <colgroup>
+              <col className='w-10' />
+              <col className='w-48' />
+              <col className='w-40' />
+              <col className='w-24' />
+              <col className='w-24' />
+              <col className='w-28' />
+              <col className='w-36' />
+              <col className='w-36' />
+              <col className='w-20' />
+              <col className='w-24' />
+              <col />
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead />
+                <TableHead>Material</TableHead>
+                <TableHead>Profile</TableHead>
+                <TableHead>L/F</TableHead>
+                <TableHead>Weight</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead>Coil Number</TableHead>
+                <TableHead>Slit Line</TableHead>
+                <TableHead>In Machine</TableHead>
+                <TableHead>Orders</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isPending ? (
+                <TableSkeletonRows columns={COLUMNS} />
+              ) : (
+                days.map(day => (
+                  <Fragment key={day.date ?? 'undated'}>
+                    <TableRow data-divider>
+                      <TableCell colSpan={COLUMNS}>
+                        <span className='text-xs font-semibold tracking-wider uppercase'>
+                          {day.date ? formatLongDate(day.date) : '—'}
+                          {day.date === today() ? ' · today' : ''}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    <SortableContext
+                      items={day.items.map(row => row.key)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {day.items.map(row => (
+                        <QueueLine
+                          key={row.key}
+                          row={row}
+                          priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
+                          movable={movable}
+                          onInMachine={
+                            viewOnly || departmentId === undefined || machineId === undefined
+                              ? null
+                              : (picked, checked) =>
+                                  inMachine.mutate({
+                                    departmentId,
+                                    flowId: machineId,
+                                    key: checked ? picked.key : null
+                                  })
+                          }
+                          onFill={viewOnly ? null : setFilling}
+                        />
+                      ))}
+                    </SortableContext>
+                  </Fragment>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </DndContext>
+      </div>
+
+      <CoilAssignDialog
+        lines={
+          shownFilling?.lines.map(line => ({ id: line.origin_item, id_inven: line.product_id })) ??
+          []
+        }
+        action='fill'
+        departmentId={departmentId}
+        current={shownFilling ? currentOf(shownFilling) : undefined}
+        units={{ fill: shownFilling ? unitsOf(shownFilling) : undefined }}
+        open={!!filling}
+        onOpenChange={open => !open && setFilling(null)}
+        onAssigned={() => setFilling(null)}
+      />
+    </div>
+  )
+}

@@ -12,8 +12,6 @@ dist
 dist-ssr
 *.local
 
-.env
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -24,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Reference material, not source
+docs
+.claude/settings.local.json
+
+# Playwright MCP snapshots from live checks
+.playwright-mcp
+
+# Coverage and mutation testing reports
+coverage
+.stryker-tmp
+reports/mutation

@@ -9,493 +9,508 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DriverRouteRouteImport } from './routes/driver/route'
-import { Route as ShippingRouteRouteImport } from './routes/_shipping/route'
-import { Route as SettingsRouteRouteImport } from './routes/_settings/route'
-import { Route as ScannerIndexRouteImport } from './routes/scanner/index'
-import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as LoadingIndexRouteImport } from './routes/loading/index'
-import { Route as DriverIndexRouteImport } from './routes/driver/index'
-import { Route as ProductionIndexRouteImport } from './routes/_production/index'
-import { Route as PasswordResetIndexRouteImport } from './routes/password/reset/index'
-import { Route as DriverNotificationsIndexRouteImport } from './routes/driver/notifications/index'
-import { Route as DriverLoadIndexRouteImport } from './routes/driver/$load/index'
-import { Route as ShippingShippingIndexRouteImport } from './routes/_shipping/shipping/index'
-import { Route as ShippingDispatchIndexRouteImport } from './routes/_shipping/dispatch/index'
-import { Route as SettingsWarehousesIndexRouteImport } from './routes/_settings/warehouses/index'
-import { Route as SettingsUsersIndexRouteImport } from './routes/_settings/users/index'
-import { Route as SettingsTrucksIndexRouteImport } from './routes/_settings/trucks/index'
-import { Route as SettingsPrioritiesIndexRouteImport } from './routes/_settings/priorities/index'
-import { Route as SettingsLocationsIndexRouteImport } from './routes/_settings/locations/index'
-import { Route as SettingsFlowsIndexRouteImport } from './routes/_settings/flows/index'
-import { Route as DriverLoadScannerIndexRouteImport } from './routes/driver/$load/scanner/index'
-import { Route as PasswordResetTokenUid64RouteImport } from './routes/password/reset/$token.$uid64'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
+import { Route as AppDriverRouteImport } from './routes/_app/driver'
+import { Route as AppLoadingRouteImport } from './routes/_app/loading'
+import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
+import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
+import { Route as AppShippingRouteImport } from './routes/_app/shipping'
+import { Route as AppTrimRouteImport } from './routes/_app/trim'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsGaugeWeightsRouteImport } from './routes/_app/settings/gauge-weights'
+import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
+import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
+import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
+import { Route as AppSettingsPrioritiesRouteImport } from './routes/_app/settings/priorities'
+import { Route as AppSettingsTrucksRouteImport } from './routes/_app/settings/trucks'
+import { Route as AppSettingsUsersRouteImport } from './routes/_app/settings/users'
+import { Route as AppSettingsWarehousesRouteImport } from './routes/_app/settings/warehouses'
+import { Route as AppSettingsWorkDaysRouteImport } from './routes/_app/settings/work-days'
+import { Route as PasswordResetUid64TokenRouteImport } from './routes/password-reset.$uid64.$token'
 
-const DriverRouteRoute = DriverRouteRouteImport.update({
-  id: '/driver',
-  path: '/driver',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShippingRouteRoute = ShippingRouteRouteImport.update({
-  id: '/_shipping',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRouteRoute = SettingsRouteRouteImport.update({
-  id: '/_settings',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ScannerIndexRoute = ScannerIndexRouteImport.update({
-  id: '/scanner/',
-  path: '/scanner/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoadingIndexRoute = LoadingIndexRouteImport.update({
-  id: '/loading/',
-  path: '/loading/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriverIndexRoute = DriverIndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DriverRouteRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const ProductionIndexRoute = ProductionIndexRouteImport.update({
-  id: '/_production/',
+const AppAccessoriesRoute = AppAccessoriesRouteImport.update({
+  id: '/accessories',
+  path: '/accessories',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppDriverRoute = AppDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppLoadingRoute = AppLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppRollformingRoute = AppRollformingRouteImport.update({
+  id: '/rollforming',
+  path: '/rollforming',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppShippingRoute = AppShippingRouteImport.update({
+  id: '/shipping',
+  path: '/shipping',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppTrimRoute = AppTrimRouteImport.update({
+  id: '/trim',
+  path: '/trim',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const PasswordResetIndexRoute = PasswordResetIndexRouteImport.update({
-  id: '/password/reset/',
-  path: '/password/reset/',
-  getParentRoute: () => rootRouteImport,
+const AppSettingsGaugeWeightsRoute = AppSettingsGaugeWeightsRouteImport.update({
+  id: '/gauge-weights',
+  path: '/gauge-weights',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const DriverNotificationsIndexRoute =
-  DriverNotificationsIndexRouteImport.update({
-    id: '/notifications/',
-    path: '/notifications/',
-    getParentRoute: () => DriverRouteRoute,
+const AppSettingsLocationTypesRoute =
+  AppSettingsLocationTypesRouteImport.update({
+    id: '/location-types',
+    path: '/location-types',
+    getParentRoute: () => AppSettingsRouteRoute,
   } as any)
-const DriverLoadIndexRoute = DriverLoadIndexRouteImport.update({
-  id: '/$load/',
-  path: '/$load/',
-  getParentRoute: () => DriverRouteRoute,
+const AppSettingsLocationsRoute = AppSettingsLocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const ShippingShippingIndexRoute = ShippingShippingIndexRouteImport.update({
-  id: '/shipping/',
-  path: '/shipping/',
-  getParentRoute: () => ShippingRouteRoute,
+const AppSettingsMachinesRoute = AppSettingsMachinesRouteImport.update({
+  id: '/machines',
+  path: '/machines',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const ShippingDispatchIndexRoute = ShippingDispatchIndexRouteImport.update({
-  id: '/dispatch/',
-  path: '/dispatch/',
-  getParentRoute: () => ShippingRouteRoute,
+const AppSettingsPrioritiesRoute = AppSettingsPrioritiesRouteImport.update({
+  id: '/priorities',
+  path: '/priorities',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const SettingsWarehousesIndexRoute = SettingsWarehousesIndexRouteImport.update({
-  id: '/warehouses/',
-  path: '/warehouses/',
-  getParentRoute: () => SettingsRouteRoute,
+const AppSettingsTrucksRoute = AppSettingsTrucksRouteImport.update({
+  id: '/trucks',
+  path: '/trucks',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const SettingsUsersIndexRoute = SettingsUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
-  getParentRoute: () => SettingsRouteRoute,
+const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const SettingsTrucksIndexRoute = SettingsTrucksIndexRouteImport.update({
-  id: '/trucks/',
-  path: '/trucks/',
-  getParentRoute: () => SettingsRouteRoute,
+const AppSettingsWarehousesRoute = AppSettingsWarehousesRouteImport.update({
+  id: '/warehouses',
+  path: '/warehouses',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const SettingsPrioritiesIndexRoute = SettingsPrioritiesIndexRouteImport.update({
-  id: '/priorities/',
-  path: '/priorities/',
-  getParentRoute: () => SettingsRouteRoute,
+const AppSettingsWorkDaysRoute = AppSettingsWorkDaysRouteImport.update({
+  id: '/work-days',
+  path: '/work-days',
+  getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const SettingsLocationsIndexRoute = SettingsLocationsIndexRouteImport.update({
-  id: '/locations/',
-  path: '/locations/',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const SettingsFlowsIndexRoute = SettingsFlowsIndexRouteImport.update({
-  id: '/flows/',
-  path: '/flows/',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const DriverLoadScannerIndexRoute = DriverLoadScannerIndexRouteImport.update({
-  id: '/$load/scanner/',
-  path: '/$load/scanner/',
-  getParentRoute: () => DriverRouteRoute,
-} as any)
-const PasswordResetTokenUid64Route = PasswordResetTokenUid64RouteImport.update({
-  id: '/password/reset/$token/$uid64',
-  path: '/password/reset/$token/$uid64',
+const PasswordResetUid64TokenRoute = PasswordResetUid64TokenRouteImport.update({
+  id: '/password-reset/$uid64/$token',
+  path: '/password-reset/$uid64/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ProductionIndexRoute
-  '/driver': typeof DriverRouteRouteWithChildren
-  '/driver/': typeof DriverIndexRoute
-  '/loading/': typeof LoadingIndexRoute
-  '/login/': typeof LoginIndexRoute
-  '/scanner/': typeof ScannerIndexRoute
-  '/flows/': typeof SettingsFlowsIndexRoute
-  '/locations/': typeof SettingsLocationsIndexRoute
-  '/priorities/': typeof SettingsPrioritiesIndexRoute
-  '/trucks/': typeof SettingsTrucksIndexRoute
-  '/users/': typeof SettingsUsersIndexRoute
-  '/warehouses/': typeof SettingsWarehousesIndexRoute
-  '/dispatch/': typeof ShippingDispatchIndexRoute
-  '/shipping/': typeof ShippingShippingIndexRoute
-  '/driver/$load/': typeof DriverLoadIndexRoute
-  '/driver/notifications/': typeof DriverNotificationsIndexRoute
-  '/password/reset/': typeof PasswordResetIndexRoute
-  '/password/reset/$token/$uid64': typeof PasswordResetTokenUid64Route
-  '/driver/$load/scanner/': typeof DriverLoadScannerIndexRoute
+  '/': typeof AppIndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/settings': typeof AppSettingsRouteRouteWithChildren
+  '/accessories': typeof AppAccessoriesRoute
+  '/driver': typeof AppDriverRoute
+  '/loading': typeof AppLoadingRoute
+  '/rollforming': typeof AppRollformingRoute
+  '/shipping': typeof AppShippingRoute
+  '/trim': typeof AppTrimRoute
+  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/settings/locations': typeof AppSettingsLocationsRoute
+  '/settings/machines': typeof AppSettingsMachinesRoute
+  '/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/settings/trucks': typeof AppSettingsTrucksRoute
+  '/settings/users': typeof AppSettingsUsersRoute
+  '/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/settings/work-days': typeof AppSettingsWorkDaysRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof ProductionIndexRoute
-  '/driver': typeof DriverIndexRoute
-  '/loading': typeof LoadingIndexRoute
-  '/login': typeof LoginIndexRoute
-  '/scanner': typeof ScannerIndexRoute
-  '/flows': typeof SettingsFlowsIndexRoute
-  '/locations': typeof SettingsLocationsIndexRoute
-  '/priorities': typeof SettingsPrioritiesIndexRoute
-  '/trucks': typeof SettingsTrucksIndexRoute
-  '/users': typeof SettingsUsersIndexRoute
-  '/warehouses': typeof SettingsWarehousesIndexRoute
-  '/dispatch': typeof ShippingDispatchIndexRoute
-  '/shipping': typeof ShippingShippingIndexRoute
-  '/driver/$load': typeof DriverLoadIndexRoute
-  '/driver/notifications': typeof DriverNotificationsIndexRoute
-  '/password/reset': typeof PasswordResetIndexRoute
-  '/password/reset/$token/$uid64': typeof PasswordResetTokenUid64Route
-  '/driver/$load/scanner': typeof DriverLoadScannerIndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/accessories': typeof AppAccessoriesRoute
+  '/driver': typeof AppDriverRoute
+  '/loading': typeof AppLoadingRoute
+  '/rollforming': typeof AppRollformingRoute
+  '/shipping': typeof AppShippingRoute
+  '/trim': typeof AppTrimRoute
+  '/': typeof AppIndexRoute
+  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/settings/locations': typeof AppSettingsLocationsRoute
+  '/settings/machines': typeof AppSettingsMachinesRoute
+  '/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/settings/trucks': typeof AppSettingsTrucksRoute
+  '/settings/users': typeof AppSettingsUsersRoute
+  '/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/settings/work-days': typeof AppSettingsWorkDaysRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_settings': typeof SettingsRouteRouteWithChildren
-  '/_shipping': typeof ShippingRouteRouteWithChildren
-  '/driver': typeof DriverRouteRouteWithChildren
-  '/_production/': typeof ProductionIndexRoute
-  '/driver/': typeof DriverIndexRoute
-  '/loading/': typeof LoadingIndexRoute
-  '/login/': typeof LoginIndexRoute
-  '/scanner/': typeof ScannerIndexRoute
-  '/_settings/flows/': typeof SettingsFlowsIndexRoute
-  '/_settings/locations/': typeof SettingsLocationsIndexRoute
-  '/_settings/priorities/': typeof SettingsPrioritiesIndexRoute
-  '/_settings/trucks/': typeof SettingsTrucksIndexRoute
-  '/_settings/users/': typeof SettingsUsersIndexRoute
-  '/_settings/warehouses/': typeof SettingsWarehousesIndexRoute
-  '/_shipping/dispatch/': typeof ShippingDispatchIndexRoute
-  '/_shipping/shipping/': typeof ShippingShippingIndexRoute
-  '/driver/$load/': typeof DriverLoadIndexRoute
-  '/driver/notifications/': typeof DriverNotificationsIndexRoute
-  '/password/reset/': typeof PasswordResetIndexRoute
-  '/password/reset/$token/$uid64': typeof PasswordResetTokenUid64Route
-  '/driver/$load/scanner/': typeof DriverLoadScannerIndexRoute
+  '/_app': typeof AppRouteRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/_app/settings': typeof AppSettingsRouteRouteWithChildren
+  '/_app/accessories': typeof AppAccessoriesRoute
+  '/_app/driver': typeof AppDriverRoute
+  '/_app/loading': typeof AppLoadingRoute
+  '/_app/rollforming': typeof AppRollformingRoute
+  '/_app/shipping': typeof AppShippingRoute
+  '/_app/trim': typeof AppTrimRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
+  '/_app/settings/locations': typeof AppSettingsLocationsRoute
+  '/_app/settings/machines': typeof AppSettingsMachinesRoute
+  '/_app/settings/priorities': typeof AppSettingsPrioritiesRoute
+  '/_app/settings/trucks': typeof AppSettingsTrucksRoute
+  '/_app/settings/users': typeof AppSettingsUsersRoute
+  '/_app/settings/warehouses': typeof AppSettingsWarehousesRoute
+  '/_app/settings/work-days': typeof AppSettingsWorkDaysRoute
+  '/password-reset/$uid64/$token': typeof PasswordResetUid64TokenRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/driver'
-    | '/driver/'
-    | '/loading/'
-    | '/login/'
-    | '/scanner/'
-    | '/flows/'
-    | '/locations/'
-    | '/priorities/'
-    | '/trucks/'
-    | '/users/'
-    | '/warehouses/'
-    | '/dispatch/'
-    | '/shipping/'
-    | '/driver/$load/'
-    | '/driver/notifications/'
-    | '/password/reset/'
-    | '/password/reset/$token/$uid64'
-    | '/driver/$load/scanner/'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/settings'
+    | '/accessories'
     | '/driver'
     | '/loading'
-    | '/login'
-    | '/scanner'
-    | '/flows'
-    | '/locations'
-    | '/priorities'
-    | '/trucks'
-    | '/users'
-    | '/warehouses'
-    | '/dispatch'
+    | '/rollforming'
     | '/shipping'
-    | '/driver/$load'
-    | '/driver/notifications'
-    | '/password/reset'
-    | '/password/reset/$token/$uid64'
-    | '/driver/$load/scanner'
+    | '/trim'
+    | '/settings/gauge-weights'
+    | '/settings/location-types'
+    | '/settings/locations'
+    | '/settings/machines'
+    | '/settings/priorities'
+    | '/settings/trucks'
+    | '/settings/users'
+    | '/settings/warehouses'
+    | '/settings/work-days'
+    | '/password-reset/$uid64/$token'
+    | '/settings/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/forgot-password'
+    | '/login'
+    | '/accessories'
+    | '/driver'
+    | '/loading'
+    | '/rollforming'
+    | '/shipping'
+    | '/trim'
+    | '/'
+    | '/settings/gauge-weights'
+    | '/settings/location-types'
+    | '/settings/locations'
+    | '/settings/machines'
+    | '/settings/priorities'
+    | '/settings/trucks'
+    | '/settings/users'
+    | '/settings/warehouses'
+    | '/settings/work-days'
+    | '/password-reset/$uid64/$token'
+    | '/settings'
   id:
     | '__root__'
-    | '/_settings'
-    | '/_shipping'
-    | '/driver'
-    | '/_production/'
-    | '/driver/'
-    | '/loading/'
-    | '/login/'
-    | '/scanner/'
-    | '/_settings/flows/'
-    | '/_settings/locations/'
-    | '/_settings/priorities/'
-    | '/_settings/trucks/'
-    | '/_settings/users/'
-    | '/_settings/warehouses/'
-    | '/_shipping/dispatch/'
-    | '/_shipping/shipping/'
-    | '/driver/$load/'
-    | '/driver/notifications/'
-    | '/password/reset/'
-    | '/password/reset/$token/$uid64'
-    | '/driver/$load/scanner/'
+    | '/_app'
+    | '/forgot-password'
+    | '/login'
+    | '/_app/settings'
+    | '/_app/accessories'
+    | '/_app/driver'
+    | '/_app/loading'
+    | '/_app/rollforming'
+    | '/_app/shipping'
+    | '/_app/trim'
+    | '/_app/'
+    | '/_app/settings/gauge-weights'
+    | '/_app/settings/location-types'
+    | '/_app/settings/locations'
+    | '/_app/settings/machines'
+    | '/_app/settings/priorities'
+    | '/_app/settings/trucks'
+    | '/_app/settings/users'
+    | '/_app/settings/warehouses'
+    | '/_app/settings/work-days'
+    | '/password-reset/$uid64/$token'
+    | '/_app/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
-  ShippingRouteRoute: typeof ShippingRouteRouteWithChildren
-  DriverRouteRoute: typeof DriverRouteRouteWithChildren
-  ProductionIndexRoute: typeof ProductionIndexRoute
-  LoadingIndexRoute: typeof LoadingIndexRoute
-  LoginIndexRoute: typeof LoginIndexRoute
-  ScannerIndexRoute: typeof ScannerIndexRoute
-  PasswordResetIndexRoute: typeof PasswordResetIndexRoute
-  PasswordResetTokenUid64Route: typeof PasswordResetTokenUid64Route
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  PasswordResetUid64TokenRoute: typeof PasswordResetUid64TokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/driver': {
-      id: '/driver'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/accessories': {
+      id: '/_app/accessories'
+      path: '/accessories'
+      fullPath: '/accessories'
+      preLoaderRoute: typeof AppAccessoriesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/driver': {
+      id: '/_app/driver'
       path: '/driver'
       fullPath: '/driver'
-      preLoaderRoute: typeof DriverRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppDriverRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_shipping': {
-      id: '/_shipping'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ShippingRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_settings': {
-      id: '/_settings'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof SettingsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/scanner/': {
-      id: '/scanner/'
-      path: '/scanner'
-      fullPath: '/scanner/'
-      preLoaderRoute: typeof ScannerIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login/': {
-      id: '/login/'
-      path: '/login'
-      fullPath: '/login/'
-      preLoaderRoute: typeof LoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/loading/': {
-      id: '/loading/'
+    '/_app/loading': {
+      id: '/_app/loading'
       path: '/loading'
-      fullPath: '/loading/'
-      preLoaderRoute: typeof LoadingIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/loading'
+      preLoaderRoute: typeof AppLoadingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/driver/': {
-      id: '/driver/'
-      path: '/'
-      fullPath: '/driver/'
-      preLoaderRoute: typeof DriverIndexRouteImport
-      parentRoute: typeof DriverRouteRoute
+    '/_app/rollforming': {
+      id: '/_app/rollforming'
+      path: '/rollforming'
+      fullPath: '/rollforming'
+      preLoaderRoute: typeof AppRollformingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_production/': {
-      id: '/_production/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof ProductionIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/password/reset/': {
-      id: '/password/reset/'
-      path: '/password/reset'
-      fullPath: '/password/reset/'
-      preLoaderRoute: typeof PasswordResetIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/driver/notifications/': {
-      id: '/driver/notifications/'
-      path: '/notifications'
-      fullPath: '/driver/notifications/'
-      preLoaderRoute: typeof DriverNotificationsIndexRouteImport
-      parentRoute: typeof DriverRouteRoute
-    }
-    '/driver/$load/': {
-      id: '/driver/$load/'
-      path: '/$load'
-      fullPath: '/driver/$load/'
-      preLoaderRoute: typeof DriverLoadIndexRouteImport
-      parentRoute: typeof DriverRouteRoute
-    }
-    '/_shipping/shipping/': {
-      id: '/_shipping/shipping/'
+    '/_app/shipping': {
+      id: '/_app/shipping'
       path: '/shipping'
-      fullPath: '/shipping/'
-      preLoaderRoute: typeof ShippingShippingIndexRouteImport
-      parentRoute: typeof ShippingRouteRoute
+      fullPath: '/shipping'
+      preLoaderRoute: typeof AppShippingRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_shipping/dispatch/': {
-      id: '/_shipping/dispatch/'
-      path: '/dispatch'
-      fullPath: '/dispatch/'
-      preLoaderRoute: typeof ShippingDispatchIndexRouteImport
-      parentRoute: typeof ShippingRouteRoute
+    '/_app/trim': {
+      id: '/_app/trim'
+      path: '/trim'
+      fullPath: '/trim'
+      preLoaderRoute: typeof AppTrimRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/_settings/warehouses/': {
-      id: '/_settings/warehouses/'
-      path: '/warehouses'
-      fullPath: '/warehouses/'
-      preLoaderRoute: typeof SettingsWarehousesIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_settings/users/': {
-      id: '/_settings/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof SettingsUsersIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/_app/settings/gauge-weights': {
+      id: '/_app/settings/gauge-weights'
+      path: '/gauge-weights'
+      fullPath: '/settings/gauge-weights'
+      preLoaderRoute: typeof AppSettingsGaugeWeightsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_settings/trucks/': {
-      id: '/_settings/trucks/'
-      path: '/trucks'
-      fullPath: '/trucks/'
-      preLoaderRoute: typeof SettingsTrucksIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/_app/settings/location-types': {
+      id: '/_app/settings/location-types'
+      path: '/location-types'
+      fullPath: '/settings/location-types'
+      preLoaderRoute: typeof AppSettingsLocationTypesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_settings/priorities/': {
-      id: '/_settings/priorities/'
-      path: '/priorities'
-      fullPath: '/priorities/'
-      preLoaderRoute: typeof SettingsPrioritiesIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/_settings/locations/': {
-      id: '/_settings/locations/'
+    '/_app/settings/locations': {
+      id: '/_app/settings/locations'
       path: '/locations'
-      fullPath: '/locations/'
-      preLoaderRoute: typeof SettingsLocationsIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+      fullPath: '/settings/locations'
+      preLoaderRoute: typeof AppSettingsLocationsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_settings/flows/': {
-      id: '/_settings/flows/'
-      path: '/flows'
-      fullPath: '/flows/'
-      preLoaderRoute: typeof SettingsFlowsIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
+    '/_app/settings/machines': {
+      id: '/_app/settings/machines'
+      path: '/machines'
+      fullPath: '/settings/machines'
+      preLoaderRoute: typeof AppSettingsMachinesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/driver/$load/scanner/': {
-      id: '/driver/$load/scanner/'
-      path: '/$load/scanner'
-      fullPath: '/driver/$load/scanner/'
-      preLoaderRoute: typeof DriverLoadScannerIndexRouteImport
-      parentRoute: typeof DriverRouteRoute
+    '/_app/settings/priorities': {
+      id: '/_app/settings/priorities'
+      path: '/priorities'
+      fullPath: '/settings/priorities'
+      preLoaderRoute: typeof AppSettingsPrioritiesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
-    '/password/reset/$token/$uid64': {
-      id: '/password/reset/$token/$uid64'
-      path: '/password/reset/$token/$uid64'
-      fullPath: '/password/reset/$token/$uid64'
-      preLoaderRoute: typeof PasswordResetTokenUid64RouteImport
+    '/_app/settings/trucks': {
+      id: '/_app/settings/trucks'
+      path: '/trucks'
+      fullPath: '/settings/trucks'
+      preLoaderRoute: typeof AppSettingsTrucksRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/users': {
+      id: '/_app/settings/users'
+      path: '/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof AppSettingsUsersRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/warehouses': {
+      id: '/_app/settings/warehouses'
+      path: '/warehouses'
+      fullPath: '/settings/warehouses'
+      preLoaderRoute: typeof AppSettingsWarehousesRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/_app/settings/work-days': {
+      id: '/_app/settings/work-days'
+      path: '/work-days'
+      fullPath: '/settings/work-days'
+      preLoaderRoute: typeof AppSettingsWorkDaysRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
+    '/password-reset/$uid64/$token': {
+      id: '/password-reset/$uid64/$token'
+      path: '/password-reset/$uid64/$token'
+      fullPath: '/password-reset/$uid64/$token'
+      preLoaderRoute: typeof PasswordResetUid64TokenRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface SettingsRouteRouteChildren {
-  SettingsFlowsIndexRoute: typeof SettingsFlowsIndexRoute
-  SettingsLocationsIndexRoute: typeof SettingsLocationsIndexRoute
-  SettingsPrioritiesIndexRoute: typeof SettingsPrioritiesIndexRoute
-  SettingsTrucksIndexRoute: typeof SettingsTrucksIndexRoute
-  SettingsUsersIndexRoute: typeof SettingsUsersIndexRoute
-  SettingsWarehousesIndexRoute: typeof SettingsWarehousesIndexRoute
+interface AppSettingsRouteRouteChildren {
+  AppSettingsGaugeWeightsRoute: typeof AppSettingsGaugeWeightsRoute
+  AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
+  AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
+  AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
+  AppSettingsPrioritiesRoute: typeof AppSettingsPrioritiesRoute
+  AppSettingsTrucksRoute: typeof AppSettingsTrucksRoute
+  AppSettingsUsersRoute: typeof AppSettingsUsersRoute
+  AppSettingsWarehousesRoute: typeof AppSettingsWarehousesRoute
+  AppSettingsWorkDaysRoute: typeof AppSettingsWorkDaysRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
-const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
-  SettingsFlowsIndexRoute: SettingsFlowsIndexRoute,
-  SettingsLocationsIndexRoute: SettingsLocationsIndexRoute,
-  SettingsPrioritiesIndexRoute: SettingsPrioritiesIndexRoute,
-  SettingsTrucksIndexRoute: SettingsTrucksIndexRoute,
-  SettingsUsersIndexRoute: SettingsUsersIndexRoute,
-  SettingsWarehousesIndexRoute: SettingsWarehousesIndexRoute,
+const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsGaugeWeightsRoute: AppSettingsGaugeWeightsRoute,
+  AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
+  AppSettingsLocationsRoute: AppSettingsLocationsRoute,
+  AppSettingsMachinesRoute: AppSettingsMachinesRoute,
+  AppSettingsPrioritiesRoute: AppSettingsPrioritiesRoute,
+  AppSettingsTrucksRoute: AppSettingsTrucksRoute,
+  AppSettingsUsersRoute: AppSettingsUsersRoute,
+  AppSettingsWarehousesRoute: AppSettingsWarehousesRoute,
+  AppSettingsWorkDaysRoute: AppSettingsWorkDaysRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
-const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
-  SettingsRouteRouteChildren,
-)
+const AppSettingsRouteRouteWithChildren =
+  AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
 
-interface ShippingRouteRouteChildren {
-  ShippingDispatchIndexRoute: typeof ShippingDispatchIndexRoute
-  ShippingShippingIndexRoute: typeof ShippingShippingIndexRoute
+interface AppRouteRouteChildren {
+  AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
+  AppAccessoriesRoute: typeof AppAccessoriesRoute
+  AppDriverRoute: typeof AppDriverRoute
+  AppLoadingRoute: typeof AppLoadingRoute
+  AppRollformingRoute: typeof AppRollformingRoute
+  AppShippingRoute: typeof AppShippingRoute
+  AppTrimRoute: typeof AppTrimRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
-const ShippingRouteRouteChildren: ShippingRouteRouteChildren = {
-  ShippingDispatchIndexRoute: ShippingDispatchIndexRoute,
-  ShippingShippingIndexRoute: ShippingShippingIndexRoute,
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
+  AppAccessoriesRoute: AppAccessoriesRoute,
+  AppDriverRoute: AppDriverRoute,
+  AppLoadingRoute: AppLoadingRoute,
+  AppRollformingRoute: AppRollformingRoute,
+  AppShippingRoute: AppShippingRoute,
+  AppTrimRoute: AppTrimRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 
-const ShippingRouteRouteWithChildren = ShippingRouteRoute._addFileChildren(
-  ShippingRouteRouteChildren,
-)
-
-interface DriverRouteRouteChildren {
-  DriverIndexRoute: typeof DriverIndexRoute
-  DriverLoadIndexRoute: typeof DriverLoadIndexRoute
-  DriverNotificationsIndexRoute: typeof DriverNotificationsIndexRoute
-  DriverLoadScannerIndexRoute: typeof DriverLoadScannerIndexRoute
-}
-
-const DriverRouteRouteChildren: DriverRouteRouteChildren = {
-  DriverIndexRoute: DriverIndexRoute,
-  DriverLoadIndexRoute: DriverLoadIndexRoute,
-  DriverNotificationsIndexRoute: DriverNotificationsIndexRoute,
-  DriverLoadScannerIndexRoute: DriverLoadScannerIndexRoute,
-}
-
-const DriverRouteRouteWithChildren = DriverRouteRoute._addFileChildren(
-  DriverRouteRouteChildren,
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  SettingsRouteRoute: SettingsRouteRouteWithChildren,
-  ShippingRouteRoute: ShippingRouteRouteWithChildren,
-  DriverRouteRoute: DriverRouteRouteWithChildren,
-  ProductionIndexRoute: ProductionIndexRoute,
-  LoadingIndexRoute: LoadingIndexRoute,
-  LoginIndexRoute: LoginIndexRoute,
-  ScannerIndexRoute: ScannerIndexRoute,
-  PasswordResetIndexRoute: PasswordResetIndexRoute,
-  PasswordResetTokenUid64Route: PasswordResetTokenUid64Route,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  PasswordResetUid64TokenRoute: PasswordResetUid64TokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
