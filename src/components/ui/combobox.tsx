@@ -23,11 +23,11 @@ function ComboboxTrigger({ className, children, ...props }: ComboboxPrimitive.Tr
   return (
     <ComboboxPrimitive.Trigger
       data-slot='combobox-trigger'
-      className={cn("[&_svg:not([class*='size-'])]:size-4", className)}
+      className={cn("[&_svg:not([class*='size-'])]:size-3.25", className)}
       {...props}
     >
       {children}
-      <ChevronDownIcon className='pointer-events-none size-4 text-muted-foreground' />
+      <ChevronDownIcon className='pointer-events-none size-3.25 text-muted-foreground' />
     </ComboboxPrimitive.Trigger>
   )
 }
@@ -66,6 +66,9 @@ function ComboboxInput({
             variant='ghost'
             render={<ComboboxTrigger />}
             data-slot='input-group-button'
+            // Out of the tab order: the box opens its own list, and a field typed through with Tab
+            // should not stop on the arrow beside it.
+            tabIndex={-1}
             className='group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent'
             disabled={disabled}
           />
@@ -132,7 +135,7 @@ function ComboboxItem({ className, children, ...props }: ComboboxPrimitive.Item.
     <ComboboxPrimitive.Item
       data-slot='combobox-item'
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-[variant=destructive]:data-highlighted:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground not-data-[variant=destructive]:data-highlighted:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.25",
         className
       )}
       {...props}

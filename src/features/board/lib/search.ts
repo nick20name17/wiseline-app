@@ -16,6 +16,16 @@ export const boardSearchSchema = z.object({
 
 export type BoardSearch = z.infer<typeof boardSearchSchema>
 
+/**
+ * The search a tab opens with. The order tabs share one term; Coils searches coils, so a term does not
+ * cross between them, where an order number would empty the coil list.
+ */
+export const withView = (previous: BoardSearch, view: BoardSearch['view']): BoardSearch => ({
+  ...previous,
+  view,
+  search: (previous.view === 'coils') === (view === 'coils') ? previous.search : undefined
+})
+
 /** Whether any of a row's fields holds the header search; no search keeps every row. */
 export const matchesSearch = (
   search: string | undefined,

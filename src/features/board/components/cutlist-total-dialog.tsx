@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useColumnOrder } from '@/components/table/column-order'
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { useRetained } from '@/lib/use-retained'
 import { Layers } from 'lucide-react'
 import { CUTLIST_TOTAL_TABLE } from '../lib/columns'
 import { drawingOf, linesOf, type CutlistGroup } from '../lib/cutlists'
+import { formatWidth } from '../lib/format'
 import { DrawingCell } from './drawing-cell'
 import { Figure } from './figure'
 
@@ -49,7 +51,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
           <DialogTitle>Orders using this size</DialogTitle>
           <DialogDescription>
             {group
-              ? `${group.width?.toFixed(1) ?? '—'}" × ${group.length ?? '—'}" — the orders behind this Total.`
+              ? `${group.width === null ? '—' : formatWidth(group.width)}" × ${group.length ?? '—'}" — the orders behind this Total.`
               : ''}
           </DialogDescription>
         </DialogHeader>
@@ -87,9 +89,10 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                         ),
                         desc: (
                           <TableCell>
-                            <span className='truncate text-muted-foreground'>
-                              {entry.description ?? '—'}
-                            </span>
+                            <Description
+                              text={entry.description}
+                              className='text-muted-foreground'
+                            />
                           </TableCell>
                         ),
                         qtyord: (

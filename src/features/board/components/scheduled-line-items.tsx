@@ -1,5 +1,7 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
+import { DECIMAL_INPUT } from '@/lib/form'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,6 +13,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -42,16 +45,22 @@ import {
   type BoardOrder
 } from '../api'
 import { withoutStock } from '../lib/columns'
-import { isBender } from '../lib/cutlists'
+import { drawingOf, isBender } from '../lib/cutlists'
+import { editedDescription, shownDescription } from '../lib/descriptions'
+import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
-import { itemStatus } from '../lib/status'
-import { unitCoils } from '../lib/unit-coils'
+import { itemStatus } from '@/lib/status'
+import { coilSummary, unitCoils } from '../lib/unit-coils'
 import { NoteButton } from '@/components/note-button'
-import { CoilAssignDialog } from './coil-assign-dialog'
+import { useTabSelect } from '@/components/tab-select'
+import { contentName } from '../lib/wrapping'
+import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { PackagesDialog } from './packages-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
+import { CoilName } from './coil-name'
+import { DrawingCell } from './drawing-cell'
 
 type ScheduledLineItemsProps = {
   order: BoardOrder
@@ -79,8 +88,10 @@ const commitNumber = (
   const revert = () => {
     input.value = current === null ? '' : String(current)
   }
-  if (input.value.trim() === '' || Number.isNaN(input.valueAsNumber)) return revert()
-  const next = Math.min(range.max ?? Infinity, Math.max(range.min, input.valueAsNumber))
+  // Read off the text: a decimal box is a text box, which has no `valueAsNumber`.
+  const typed = Number(input.value)
+  if (input.value.trim() === '' || Number.isNaN(typed)) return revert()
+  const next = Math.min(range.max ?? Infinity, Math.max(range.min, typed))
   input.value = String(next)
   if (next !== current) write(next, revert)
 }
@@ -89,18 +100,33 @@ const commitNumber = (
 const isAllFromStock = (item: BoardLineItem) =>
   item.quantity > 0 && (item.item?.pull_from_stock ?? 0) >= item.quantity
 
+// A split line whose units roll off more than one coil names none of them on its own row.
+const MIXED = 'Mixed'
+
 /**
  * A Rollforming line's coil as its cells print it p2 (1051,333), (1086,349). A line pulled from stock
  * is rolled off nothing, so it carries no coil p2 (542,453) — whether the server says Stock or the
  * figure already does.
  */
-const coilOf = (item: BoardLineItem, stock: boolean) => {
-  const waiting = item.item?.coil_icon === 'waiting_to_slit'
+const coilOf = (item: BoardLineItem, stock: boolean, released: boolean) => {
+  const own = item.item
+  const waiting = own?.coil_icon === 'waiting_to_slit'
+  // The line's own coil is only what its units without one take; the row says what they all run off.
+  const units = own?.unit_coils.length ? unitCoils(own, item.quantity) : null
+  const shared = (pick: (coil: CoilCurrent) => string | null) => {
+    if (!units) return own ? pick(own) : null
+    const values = new Set(units.map(pick))
+    return values.size === 1 ? ([...values][0] ?? null) : MIXED
+  }
   return {
-    icon: stock ? null : (item.item?.coil_icon ?? null),
-    locked: item.item?.coil_fields_locked ?? false,
-    supplier: item.item?.supplier ?? (waiting ? 'waiting...' : 'Undefined'),
-    coilNumber: item.item?.coil_number ?? (waiting ? 'waiting...' : 'Undefined')
+    icon: stock ? null : (own?.coil_icon ?? null),
+    // What the Manager assigns locks it for the Worker, and the Manager can still change it until
+    // release; only the Slit Line's hold is a lock here before then.
+    locked: released ? (own?.coil_fields_locked ?? false) : waiting,
+    waiting,
+    supplier: shared(coil => coil.supplier),
+    coilNumber: shared(coil => coil.coil_number),
+    summary: units ? coilSummary(units).join('\n') : undefined
   }
 }
 
@@ -141,6 +167,8 @@ export const ScheduledLineItems = ({
   const slit = useSlitRequest()
   // The lines ticked for a coil, all of one Product ID p2 (540,467).
   const [picked, setPicked] = useState<Set<string>>(() => new Set())
+  // One for every row's machine menu: only one is ever open.
+  const tabSelect = useTabSelect()
   const [assigning, setAssigning] = useState(false)
   // Assign rolls the lines off a coil; request sends them to the Slit Line with the coil chosen. Kept
   // apart from `assigning` so the closing dialog keeps its title.
@@ -189,6 +217,39 @@ export const ScheduledLineItems = ({
   const coilLines = [...pickedLines, ...unitLines]
   const pickedProduct = coilLines[0]?.id_inven ?? null
   const pickedWaiting = pickedLines.filter(item => item.item?.coil_icon === 'waiting_to_slit')
+  // Choosing again starts from the coil already on what is ticked, when it is one coil, so a slip is
+  // corrected rather than typed over from Undefined. Before release the Manager's choice is open.
+  // A whole split line runs off its units' coils, and a request covers only the whole lines.
+  const pickedCoils: CoilCurrent[] = [
+    ...pickedLines.flatMap((item): CoilCurrent[] =>
+      !item.item
+        ? []
+        : item.item.unit_coils.length
+          ? unitCoils(item.item, item.quantity)
+          : [item.item]
+    ),
+    ...(coilAction === 'assign'
+      ? unitLines.flatMap(item => {
+          const ticked = new Set(pickedUnits.get(item.id))
+          return item.item
+            ? unitCoils(item.item, item.quantity).filter(unit => ticked.has(unit.unit))
+            : []
+        })
+      : [])
+  ]
+  const [firstCoil] = pickedCoils
+  const pickedCurrent: CoilCurrent | undefined =
+    firstCoil &&
+    pickedCoils.every(
+      coil => coil.supplier === firstCoil.supplier && coil.coil_number === firstCoil.coil_number
+    )
+      ? {
+          supplier: firstCoil.supplier,
+          coil_number: firstCoil.coil_number,
+          supplier_locked: false,
+          coil_number_locked: false
+        }
+      : undefined
 
   if (!order.origin_items.length) {
     return (
@@ -199,7 +260,7 @@ export const ScheduledLineItems = ({
   }
 
   return (
-    <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+    <div className='sticky-view space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {/* Before release the Manager can still move the whole part to another day; after it, the two
           actions the board leaves here are gone and the rows are a record. */}
       {/* Once released the coil buttons give way to the packages the floor makes p2 (541,647). */}
@@ -263,7 +324,9 @@ export const ScheduledLineItems = ({
       )}
 
       <div className='overflow-hidden rounded-lg border border-border bg-card'>
-        <Table data-cards className='min-w-4xl table-fixed'>
+        {/* The fixed columns take about 1000px; the rest is the Description's. Narrower than this,
+            the table scrolls inside the panel and the actions above stay in view. */}
+        <Table data-cards className='min-w-7xl table-fixed'>
           <colgroup>
             <col className='w-10' />
             {columns.cols}
@@ -298,7 +361,11 @@ export const ScheduledLineItems = ({
                 board.standardLength !== null &&
                 item.length !== null &&
                 item.length !== board.standardLength
-              const coil = coilOf(item, status === 'stock' || item.item?.status === 'stock')
+              const coil = coilOf(
+                item,
+                status === 'stock' || item.item?.status === 'stock',
+                released
+              )
               const pickable =
                 board.coils &&
                 editable &&
@@ -312,6 +379,11 @@ export const ScheduledLineItems = ({
               const open = splittable && (unfolded.has(item.id) || !!item.item?.unit_coils.length)
               const units = open && item.item ? unitCoils(item.item, item.quantity) : []
               const ticked = pickedUnits.get(item.id) ?? []
+              const name = contentName({
+                product_id: item.id_inven,
+                origin_item: item.id,
+                length: item.length
+              })
 
               return (
                 <Fragment key={item.id}>
@@ -323,7 +395,7 @@ export const ScheduledLineItems = ({
                       {/* Nothing to roll, so nothing to put on a coil p2 (542,453). */}
                       {board.coils && editable && status !== 'stock' ? (
                         <Checkbox
-                          aria-label={`Select ${item.id_inven ?? item.id}`}
+                          aria-label={`Select ${name}`}
                           checked={picked.has(item.id)}
                           disabled={!pickable}
                           onCheckedChange={() =>
@@ -419,7 +491,11 @@ export const ScheduledLineItems = ({
                                 <span className='truncate'>{machine?.name ?? 'Assign'}</span>
                                 <ChevronDown data-icon='inline-end' />
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align='start' className='min-w-40'>
+                              <DropdownMenuContent
+                                align='start'
+                                className='min-w-40'
+                                {...tabSelect}
+                              >
                                 <DropdownMenuRadioGroup
                                   value={machine ? String(machine.id) : ''}
                                   onValueChange={value => edit(item, { flow: Number(value) })}
@@ -493,6 +569,14 @@ export const ScheduledLineItems = ({
                           </span>
                         </TableCell>
                       ),
+                      image: (
+                        <TableCell>
+                          <DrawingCell
+                            drawing={drawingOf(item.product_files)}
+                            product={item.id_inven}
+                          />
+                        </TableCell>
+                      ),
                       pid: (
                         <TableCell>
                           <span className='font-mono'>{item.id_inven ?? '—'}</span>
@@ -501,21 +585,26 @@ export const ScheduledLineItems = ({
                       desc: (
                         <TableCell>
                           {editable ? (
-                            <Input
+                            // A textarea, as an input drops the memo's line breaks and a blur would
+                            // save the description run together.
+                            <Textarea
                               key={description ?? ''}
-                              aria-label={`Description for ${item.id_inven ?? item.id}`}
+                              rows={1}
+                              size='sm'
+                              aria-label={`Description for ${name}`}
                               placeholder='Add a description'
-                              defaultValue={description ?? ''}
+                              defaultValue={shownDescription(description)}
                               onBlur={event => {
                                 const input = event.currentTarget
-                                if (input.value !== (description ?? ''))
-                                  edit(item, { description: input.value }, () => {
-                                    input.value = description ?? ''
+                                const next = editedDescription(description, input.value)
+                                if (next !== null)
+                                  edit(item, { description: next }, () => {
+                                    input.value = shownDescription(description)
                                   })
                               }}
                             />
                           ) : (
-                            <span className='truncate'>{description ?? '—'}</span>
+                            <Description text={description} />
                           )}
                         </TableCell>
                       ),
@@ -524,9 +613,7 @@ export const ScheduledLineItems = ({
                           {editable ? (
                             <Input
                               key={width ?? ''}
-                              type='number'
-                              min={0}
-                              step={0.1}
+                              {...DECIMAL_INPUT}
                               aria-label={`Width for ${item.id_inven ?? item.id}`}
                               placeholder='0'
                               defaultValue={width ?? ''}
@@ -541,7 +628,7 @@ export const ScheduledLineItems = ({
                             />
                           ) : (
                             <span className='font-mono'>
-                              {width === null ? '—' : width.toFixed(1)}
+                              {width === null ? '—' : formatWidth(width)}
                             </span>
                           )}
                         </TableCell>
@@ -565,11 +652,11 @@ export const ScheduledLineItems = ({
                       ),
                       supplier: (
                         <TableCell>
-                          <span className='flex items-center gap-1.5'>
+                          <span className='flex items-center gap-1.5' title={coil.summary}>
                             <span
                               className={cn('truncate', coil.locked && 'text-muted-foreground')}
                             >
-                              {coil.supplier}
+                              <CoilName value={coil.supplier} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -577,7 +664,7 @@ export const ScheduledLineItems = ({
                       ),
                       coil: (
                         <TableCell>
-                          <span className='flex items-center gap-1.5'>
+                          <span className='flex items-center gap-1.5' title={coil.summary}>
                             <CoilIcon icon={coil.icon} />
                             <span
                               className={cn(
@@ -585,7 +672,7 @@ export const ScheduledLineItems = ({
                                 coil.locked && 'text-muted-foreground'
                               )}
                             >
-                              {coil.coilNumber}
+                              <CoilName value={coil.coilNumber} waiting={coil.waiting} />
                             </span>
                             <CoilLock locked={coil.locked} />
                           </span>
@@ -595,7 +682,7 @@ export const ScheduledLineItems = ({
                         <TableCell>
                           <NoteButton
                             state={noteState(item.id)}
-                            label='Line item notes'
+                            label={`Line notes for ${name}`}
                             onClick={() => onOpenNotes(item, otherDay)}
                           />
                         </TableCell>
@@ -607,7 +694,7 @@ export const ScheduledLineItems = ({
                       <TableCell>
                         {editable ? (
                           <Checkbox
-                            aria-label={`Select unit ${unit.unit} of ${item.id_inven ?? item.id}`}
+                            aria-label={`Select unit ${unit.unit} of ${name}`}
                             checked={picked.has(item.id) || ticked.includes(unit.unit)}
                             disabled={
                               picked.has(item.id) ||
@@ -640,7 +727,9 @@ export const ScheduledLineItems = ({
                         supplier: (
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
-                              <span className='truncate'>{unit.supplier ?? 'Undefined'}</span>
+                              <span className='truncate'>
+                                <CoilName value={unit.supplier} waiting={false} />
+                              </span>
                             </span>
                           </TableCell>
                         ),
@@ -648,7 +737,7 @@ export const ScheduledLineItems = ({
                           <TableCell>
                             <span className='flex items-center gap-1.5'>
                               <span className='truncate font-mono'>
-                                {unit.coil_number ?? 'Undefined'}
+                                <CoilName value={unit.coil_number} waiting={false} />
                               </span>
                             </span>
                           </TableCell>
@@ -669,7 +758,8 @@ export const ScheduledLineItems = ({
           number={order.invoice}
           rows={order.origin_items.map(item => ({
             origin_item: item.id,
-            product_id: item.id_inven
+            product_id: item.id_inven,
+            length: item.length
           }))}
           open={seeing}
           onOpenChange={setSeeing}
@@ -680,6 +770,7 @@ export const ScheduledLineItems = ({
           lines={coilAction === 'assign' ? coilLines : pickedLines}
           action={coilAction}
           departmentId={departmentId}
+          current={pickedCurrent}
           units={{
             assign: unitLines.length
               ? Object.fromEntries(unitLines.map(item => [item.id, pickedUnits.get(item.id) ?? []]))

@@ -137,12 +137,17 @@ export const groupRows = (rows: CutlistRow[], { byProduct = false } = {}): Cutli
   }
 
   // "Primarily sorted by width and then length. The smallest width goes on top." A remake's row
-  // follows the line's of its size.
+  // follows the line's of its size. The server sorts by size alone, so rows of one size come in the
+  // order Postgres last wrote them, and ticking one moved it; the oldest row of a group holds it still.
+  const firstId = new Map(
+    [...groups.values()].map(group => [group, Math.min(...group.rows.map(row => row.id))])
+  )
   return [...groups.values()].sort(
     (a, b) =>
       (a.width ?? 0) - (b.width ?? 0) ||
       (a.length ?? 0) - (b.length ?? 0) ||
-      Number(a.remakeId !== null) - Number(b.remakeId !== null)
+      Number(a.remakeId !== null) - Number(b.remakeId !== null) ||
+      firstId.get(a)! - firstId.get(b)!
   )
 }
 
@@ -192,21 +197,32 @@ export const slinetColumns = (machines: Machine[]): SlinetColumn[] => {
 
 /**
  * What the Slinet cuts on one day: every piece on that day's cutlists, the ones already Done
- * included — the material was cut either way, and the strip is the day's work, not what is left.
+ * included — the material was cut either way, and the strip is the day's work, not what is left —
+ * and how much of it is cut, stock orders' share too: the rows signed off, and every row of a list
+ * marked Done.
  */
 export const slinetTotals = (cutlists: Cutlist[], day: string) => {
   let pieces = 0
   let stockPieces = 0
+  let cut = 0
+  let stockCut = 0
 
   for (const cutlist of cutlists) {
     if (cutlist.production_date !== day) continue
+    const listDone = cutlist.is_complete || cutlist.completed_at !== null
     for (const row of cutlist.rows) {
       pieces += row.quantity
-      for (const source of row.sources) if (source.is_stock) stockPieces += source.quantity
+      const done = listDone || row.complete
+      if (done) cut += row.quantity
+      for (const source of row.sources) {
+        if (!source.is_stock) continue
+        stockPieces += source.quantity
+        if (done) stockCut += source.quantity
+      }
     }
   }
 
-  return { pieces, stockPieces }
+  return { pieces, stockPieces, cut, stockCut }
 }
 
 /**

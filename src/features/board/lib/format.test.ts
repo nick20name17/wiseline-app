@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DayStripEntry } from '../api'
-import { dayLoad, dayLoadHint, dayUsed } from './format'
+import { dayLoad, dayLoadHint, dayUsed, formatWidth } from './format'
 
 const day = (entry: Partial<DayStripEntry>): DayStripEntry => ({
   date: '2026-10-08',
@@ -54,5 +54,18 @@ describe('dayLoadHint', () => {
     expect(
       dayLoadHint(day({ capacity_unit: 'pieces', used: 320, capacity: 300, over_capacity: true }))
     ).toBe('320 of 300 pieces scheduled — over the daily capacity')
+  })
+})
+
+describe('formatWidth', () => {
+  it('keeps the width as ordered rather than rounding it to a tenth', () => {
+    expect(formatWidth(4.25)).toBe('4.25')
+    expect(formatWidth(9.6875)).toBe('9.6875')
+    expect(formatWidth(10.03125)).toBe('10.03125')
+  })
+
+  it('drops trailing zeros', () => {
+    expect(formatWidth(4)).toBe('4')
+    expect(formatWidth(12.5)).toBe('12.5')
   })
 })

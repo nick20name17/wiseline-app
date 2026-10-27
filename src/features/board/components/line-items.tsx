@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -16,6 +17,9 @@ import { useQuery } from '@tanstack/react-query'
 import { wholeOrderQuery, type BoardLineItem, type BoardOrder } from '../api'
 import { UNSCHEDULED_LINES_TABLE } from '../lib/columns'
 import { byProduct, lineDay, newProduct } from '../lib/parts'
+import { drawingOf } from '../lib/cutlists'
+import { contentName } from '../lib/wrapping'
+import { DrawingCell } from './drawing-cell'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 
@@ -57,7 +61,7 @@ export const LineItems = ({
   }
 
   return (
-    <div className='space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+    <div className='sticky-view space-y-2 border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
       {viewOnly ? null : (
         <div className='flex flex-wrap items-center gap-x-3 gap-y-2'>
           <span className='flex items-center gap-1.5 text-sm font-medium'>
@@ -98,6 +102,11 @@ export const LineItems = ({
             {rows.map((item, index) => {
               const day = lineDay(item)
               const locked = !!day
+              const name = contentName({
+                product_id: item.id_inven,
+                origin_item: item.id,
+                length: item.length
+              })
 
               return (
                 // A line already on a day is read-only here; the mute says so before the lock does.
@@ -111,7 +120,7 @@ export const LineItems = ({
                       <Lock className='size-3.5' aria-label={`Scheduled ${formatDate(day)}`} />
                     ) : (
                       <Checkbox
-                        aria-label={`Select line item ${item.id_inven ?? item.id}`}
+                        aria-label={`Select line item ${name}`}
                         checked={picked.has(item.id)}
                         disabled={scheduling || viewOnly}
                         title={
@@ -129,6 +138,14 @@ export const LineItems = ({
                         <span className='font-mono'>{item.quantity}</span>
                       </TableCell>
                     ),
+                    image: (
+                      <TableCell>
+                        <DrawingCell
+                          drawing={drawingOf(item.product_files)}
+                          product={item.id_inven}
+                        />
+                      </TableCell>
+                    ),
                     pid: (
                       <TableCell>
                         <span className='font-mono'>{item.id_inven ?? '—'}</span>
@@ -136,14 +153,14 @@ export const LineItems = ({
                     ),
                     desc: (
                       <TableCell>
-                        <span className='truncate'>{item.description ?? '—'}</span>
+                        <Description text={item.description} />
                       </TableCell>
                     ),
                     notes: (
                       <TableCell>
                         <NoteButton
                           state={noteState(item.id)}
-                          label='Line item notes'
+                          label={`Line notes for ${name}`}
                           onClick={() => onOpenNotes(item, locked)}
                         />
                       </TableCell>

@@ -1,4 +1,6 @@
+import { Description } from '@/components/description'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
+import { formatWidth } from '../lib/format'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -17,7 +19,13 @@ import { SelectionBar } from '@/components/selection-bar'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import { slitLineQuery, useScheduleSlit, useSlitRequest, type SlitStage } from '../api'
+import {
+  slitLineQuery,
+  useScheduleSlit,
+  useSlitRequest,
+  type SlitLine,
+  type SlitStage
+} from '../api'
 import { useViewOnly } from '../lib/board-context'
 import { matchesSearch } from '../lib/search'
 import { CoilAssignDialog } from './coil-assign-dialog'
@@ -25,8 +33,10 @@ import { LineNotesDialog } from './line-notes-dialog'
 import { ScheduleDialog } from './schedule-dialog'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
+import { CoilName } from './coil-name'
 
-const COLUMNS = 10
+// Every column, the select one included.
+const COLUMNS = 11
 
 const ONE_PRODUCT = 'One Product ID at a time: it is slit off one coil'
 
@@ -40,6 +50,25 @@ const EMPTY: Record<SlitStage, [string, string]> = {
 }
 
 type SlitLineTabProps = { search: string | undefined; departmentId: number }
+
+/**
+ * Mark slit starts from what the Manager asked for, when the picked lines agree on it; Undefined
+ * still leaves the Slit Line free to slit off any coil p2 (709,408). Unlocked: the Worker records
+ * what was really used, and the server takes that over the request.
+ */
+const requestedCoil = (rows: SlitLine[]) => {
+  const one = (values: (string | null)[]) => {
+    const [value = null] = values
+    return new Set(values).size === 1 ? value : null
+  }
+  const supplier = one(rows.map(row => row.supplier))
+  return {
+    supplier,
+    coil_number: supplier ? one(rows.map(row => row.coil_number)) : null,
+    supplier_locked: false,
+    coil_number_locked: false
+  }
+}
 
 /**
  * The Slit Line: material a machine asked to have slit p2 (754,297). The Manager gives a request its
@@ -90,7 +119,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2.5'>
         <div className='border-b border-border'>
           <Tabs
@@ -165,7 +194,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards className='min-w-5xl table-fixed'>
+          <Table data-cards className='min-w-7xl table-fixed'>
             <colgroup>
               <col className='w-10' />
               <col className='w-36' />
@@ -174,6 +203,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
               <col className='w-32' />
               <col />
               <col className='w-16' />
+              <col className='w-20' />
               <col className='w-36' />
               <col className='w-40' />
               <col className='w-16' />
@@ -187,6 +217,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 <TableHead>Product ID</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Qty</TableHead>
+                <TableHead>Length</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Coil Number</TableHead>
                 <TableHead>Notes</TableHead>
@@ -194,7 +225,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={COLUMNS} />
+                <TableSkeletonRows columns={COLUMNS - 1} />
               ) : (
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>
@@ -208,6 +239,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                     </TableRow>
                     {day.items.map(row => {
                       const product = row.product_id
+                      const waiting = row.icon === 'waiting_to_slit'
                       return (
                         <TableRow
                           key={row.origin_item}
@@ -246,19 +278,24 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             <span className='font-mono'>{product ?? '—'}</span>
                           </TableCell>
                           <TableCell card='subtitle'>
-                            <span className='truncate text-muted-foreground'>
-                              {row.description ?? '—'}
-                            </span>
+                            <Description text={row.description} className='text-muted-foreground' />
                           </TableCell>
                           <TableCell label='Qty'>
                             <span className='font-mono'>{row.quantity ?? '—'}</span>
                           </TableCell>
+                          <TableCell label='Length'>
+                            <span className='font-mono'>
+                              {row.length === null ? '—' : `${formatWidth(row.length)}"`}
+                            </span>
+                          </TableCell>
                           <TableCell label='Supplier'>
-                            <span className='truncate'>{row.supplier ?? 'Undefined'}</span>
+                            <span className='truncate'>
+                              <CoilName value={row.supplier} waiting={waiting} />
+                            </span>
                           </TableCell>
                           <TableCell label='Coil Number'>
                             <span className='truncate font-mono'>
-                              {row.coil_number ?? 'Undefined'}
+                              <CoilName value={row.coil_number} waiting={waiting} />
                             </span>
                           </TableCell>
                           <TableCell label='Notes'>
@@ -283,6 +320,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
         action='slit'
         departmentId={departmentId}
         lines={chosen.map(row => ({ id: row.origin_item, id_inven: row.product_id }))}
+        current={requestedCoil(chosen)}
         open={marking}
         onOpenChange={setMarking}
         onAssigned={() => setPicked(new Set())}

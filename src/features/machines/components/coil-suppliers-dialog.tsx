@@ -1,3 +1,4 @@
+import { SearchInput } from '@/components/search-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -7,12 +8,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/dialog'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Database, Search } from 'lucide-react'
+import { Database } from 'lucide-react'
 import { useState } from 'react'
 import { coilSuppliersQuery } from '../api'
 
@@ -31,18 +31,7 @@ const SupplierList = () => {
 
   return (
     <div className='flex min-h-0 flex-col gap-3'>
-      <InputGroup>
-        <InputGroupAddon>
-          <Search />
-        </InputGroupAddon>
-        <InputGroupInput
-          type='search'
-          aria-label='Search coil suppliers'
-          placeholder='Search...'
-          value={term}
-          onChange={event => setTerm(event.target.value)}
-        />
-      </InputGroup>
+      <SearchInput label='Search coil suppliers' value={term} onValueChange={setTerm} />
 
       {isPending ? (
         <div className='flex flex-col gap-2'>

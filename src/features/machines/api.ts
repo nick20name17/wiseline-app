@@ -49,6 +49,26 @@ export const MACHINE_KINDS = [
 
 export type MachineKind = (typeof MACHINE_KINDS)[number]
 
+/**
+ * The kinds each department's machines can be, the one a new machine starts as first: Trim never
+ * slits a coil, Accessories only packs. A department not named here may hold any.
+ */
+export const DEPARTMENT_KINDS: Record<string, readonly MachineKind[]> = {
+  trim: ['bending', 'cutting', 'wrapping'],
+  rollforming: ['rollforming', 'slit_line', 'wrapping'],
+  accessories: ['packaging']
+}
+
+/** Every applicable piece passes through these, so the API refuses to delete one. */
+export const REQUIRED_KINDS = [
+  'cutting',
+  'slit_line',
+  'wrapping'
+] as const satisfies readonly MachineKind[]
+
+export const isRequired = (kind: string | null) =>
+  REQUIRED_KINDS.some(required => required === kind)
+
 export const KIND_LABELS: Record<MachineKind, string> = {
   cutting: 'Cutting',
   bending: 'Bending',
@@ -78,15 +98,17 @@ const machineSchema = z.object({
 
 export type Machine = z.infer<typeof machineSchema>
 
+const WHOLE = 'Enter a number, e.g. 1000'
+
 export const machineFormSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
   category: z.string().check(z.minLength(1, 'Category is required')),
   department: z.number(),
   kind: z.string(),
   ebms_profile_names: z.array(z.string().check(z.maxLength(100, 'At most 100 characters'))),
-  daily_max_pieces: z.nullable(z.number()),
-  daily_max_bends: z.nullable(z.number()),
-  daily_max_feet: z.nullable(z.number())
+  daily_max_pieces: z.nullable(z.number(WHOLE)),
+  daily_max_bends: z.nullable(z.number(WHOLE)),
+  daily_max_feet: z.nullable(z.number(WHOLE))
 })
 
 export type MachineForm = z.infer<typeof machineFormSchema>
@@ -128,6 +150,39 @@ export const useUpsertMachine = (onSuccess: () => void) =>
       await client.invalidateQueries({ queryKey: machinesKeys.all })
       onSuccess()
     }
+  })
+
+/**
+ * A department's machines saved in the order given, in one write. The server numbers them 1..n and
+ * keeps the cutter first and Wrapping last whatever is sent; the boards read the same numbers.
+ */
+export const useReorderMachines = () =>
+  useMutation({
+    meta: { errorTitle: 'The order was not saved' },
+    mutationFn: ({ department, machines }: { department: number; machines: Machine[] }) =>
+      authApi
+        .post('flows/reorder/', { json: { department, ids: machines.map(({ id }) => id) } })
+        .json(),
+    onMutate: async ({ machines }, { client }) => {
+      await client.cancelQueries({ queryKey: machinesKeys.list() })
+      const previous = client.getQueryData<Machine[]>(machinesKeys.list())
+      const positions = new Map(machines.map(({ id }, index) => [id, index + 1]))
+      client.setQueryData<Machine[]>(machinesKeys.list(), all =>
+        all?.map(machine => ({
+          ...machine,
+          position: positions.get(machine.id) ?? machine.position
+        }))
+      )
+      return { previous }
+    },
+    onError: (_, __, result, { client }) =>
+      client.setQueryData(machinesKeys.list(), result?.previous),
+    onSettled: (_, __, ___, ____, { client }) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: machinesKeys.all }),
+        // The boards' machine tabs follow the same order.
+        client.invalidateQueries({ queryKey: ['board'] })
+      ])
   })
 
 export const useDeleteMachine = () =>
@@ -176,30 +231,42 @@ export const capacitiesQuery = queryOptions({
 // The form starts empty where nothing is set yet, but the server keeps no capacity without a figure.
 export const dailyCapacityFormSchema = z.object({
   per_day: z
-    .nullable(z.number().check(z.positive('Enter a number above 0')))
+    .nullable(z.number('Enter a number above 0').check(z.positive('Enter a number above 0')))
     .check(z.refine(value => value !== null, 'Enter a number above 0'))
 })
 
 export type DailyCapacityForm = z.infer<typeof dailyCapacityFormSchema>
 
+/**
+ * The EBMS category a department's work arrives under, which the shared department list does not
+ * carry: what a capacity row is keyed by, and what a new machine of the department routes by.
+ */
+export const departmentCategoryQuery = (departmentId: number) =>
+  queryOptions({
+    queryKey: ['departments', departmentId, 'category'] as const,
+    queryFn: async () =>
+      z
+        .object({ category: z.nullable(z.string()) })
+        .parse(await authApi.get(`departments/${departmentId}/`).json()).category
+  })
+
 export const useSaveDailyCapacity = (onSuccess: () => void) =>
   useMutation({
     meta: { errorTitle: 'The daily capacity was not saved' },
-    mutationFn: async ({
-      department,
-      capacity,
-      values
-    }: {
-      department: Department
-      capacity: DepartmentCapacity | undefined
-      values: DailyCapacityForm
-    }) => {
+    mutationFn: async (
+      {
+        department,
+        capacity,
+        values
+      }: {
+        department: Department
+        capacity: DepartmentCapacity | undefined
+        values: DailyCapacityForm
+      },
+      { client }
+    ) => {
       if (capacity) return authApi.patch(`capacities/${capacity.id}/`, { json: values }).json()
-      // A capacity row is keyed by the department's EBMS category too, which the shared
-      // department list does not carry.
-      const { category } = z
-        .object({ category: z.nullable(z.string()) })
-        .parse(await authApi.get(`departments/${department.id}/`).json())
+      const category = await client.fetchQuery(departmentCategoryQuery(department.id))
       return authApi
         .post('capacities/', { json: { ...values, category, department: department.id } })
         .json()

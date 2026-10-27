@@ -88,7 +88,7 @@ const MACHINES = [
 
 const BENDERS = MACHINES.filter(entry => entry.kind !== 'cutting' && entry.kind !== 'wrapping')
 
-const SCHEDULED_DAY = '2026-09-23'
+export const SCHEDULED_DAY = '2026-09-23'
 
 const scheduledLine = (
   id: string,
@@ -484,7 +484,7 @@ const COIL_FILTERS = [
   }
 ]
 
-const wrappingRow = (
+export const wrappingRow = (
   originItem: string,
   description: string,
   qty: number,
@@ -615,21 +615,37 @@ export const mockTrimApi = async (page: Page) => {
           pieces_from_stock: 4,
           bends: 1000,
           bends_from_stock: 0,
+          pieces_cut: 18,
+          pieces_cut_from_stock: 2,
+          bends_done: 250,
+          vented_pieces: 3,
           capacity: 5000,
           capacity_unit: 'bends',
           used: 1000
         },
-        machines: BENDERS.map(station => ({
-          flow_id: station.id,
-          name: station.name,
-          pieces: 8,
-          pieces_from_stock: 0,
-          max_pieces: null,
-          bends: 300,
-          bends_from_stock: 0,
-          max_bends: 1200,
-          over_bends: false
-        })),
+        // Every machine of the department, the Slinet and Wrapping too, as the server lists them. The
+        // Slinet's row is the whole day's pieces.
+        machines: MACHINES.map(station => {
+          const bends = BENDERS.includes(station)
+          const slinet = station === SLINET
+          return {
+            flow_id: station.id,
+            name: station.name,
+            kind: station.kind,
+            pieces: slinet ? 24 : bends ? 8 : 0,
+            pieces_from_stock: slinet ? 4 : 0,
+            pieces_cut: slinet ? 18 : 0,
+            pieces_cut_from_stock: slinet ? 2 : 0,
+            max_pieces: slinet ? 1200 : null,
+            over_pieces: false,
+            bends: bends ? 300 : 0,
+            bends_from_stock: bends ? 100 : 0,
+            bends_done: bends ? 75 : 0,
+            bends_from_stock_done: bends ? 40 : 0,
+            max_bends: station.daily_max_bends,
+            over_bends: false
+          }
+        }),
         pieces_without_a_machine: 0
       }
     })

@@ -9,6 +9,11 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.ts'],
+    // The logic the unit tests are for, and the same files `stryker.config.mjs` mutates.
+    coverage: {
+      include: ['src/**/lib/**/*.ts', 'src/api/**/*.ts'],
+      exclude: ['src/**/*.test.ts']
+    },
     environment: 'node',
     env: {
       // Pinned so local-date assertions hold on any machine, including a UTC CI runner.

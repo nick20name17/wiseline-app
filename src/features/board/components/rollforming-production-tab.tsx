@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -33,12 +34,13 @@ import {
   runsOffCoil,
   sourceOf
 } from '../lib/rollforming'
-import { itemStatus, orderStatus } from '../lib/status'
+import { itemStatus, orderStatus } from '@/lib/status'
 import { CoilLock } from './coil-lock'
 import { CurrentCoil } from './current-coil'
 import { PriorityPill } from '@/components/priority-pill'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { WrapOrder } from './wrap-order'
+import { CoilName } from './coil-name'
 
 const COLUMNS = 13
 
@@ -67,7 +69,7 @@ type CoilProps = { value: string | null; item: BoardLineItem['item']; mono?: boo
 const Coil = ({ value, item, mono = false }: CoilProps) => (
   <span className='inline-flex items-center gap-1.5'>
     <span className={cn('truncate', mono && 'font-mono')}>
-      {value ?? (item?.coil_icon === 'waiting_to_slit' ? 'waiting...' : 'Undefined')}
+      <CoilName value={value} waiting={item?.coil_icon === 'waiting_to_slit'} />
     </span>
     <CoilLock locked={item?.coil_fields_locked ?? false} />
   </span>
@@ -111,9 +113,10 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
                   <span className='font-mono'>{line.id_inven ?? '—'}</span>
                 </TableCell>
                 <TableCell card='subtitle'>
-                  <span className='truncate text-muted-foreground'>
-                    {line.item?.description ?? line.description ?? '—'}
-                  </span>
+                  <Description
+                    text={line.item?.description ?? line.description}
+                    className='text-muted-foreground'
+                  />
                 </TableCell>
                 <TableCell label='L"'>
                   <span className='font-mono'>

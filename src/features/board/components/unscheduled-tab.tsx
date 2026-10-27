@@ -1,5 +1,6 @@
+import { StickyTop } from './sticky-top'
 import { cn } from 'cn'
-import { useBoard } from '../lib/board-context'
+import { useBoard, useStripSlot } from '../lib/board-context'
 import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -13,6 +14,7 @@ import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { Inbox } from 'lucide-react'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   isPartial,
   unscheduledOrdersQuery,
@@ -48,6 +50,7 @@ type OpenDialog = 'schedule' | 'split' | 'bypass' | 'cards' | 'stock' | null
 
 export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTabProps) => {
   const board = useBoard()
+  const slot = useStripSlot()
   const {
     data: page,
     isPending,
@@ -101,19 +104,24 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
       return lineIds.length ? { orderId, lineIds } : null
     })
 
-  return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
-      <UnscheduledToolbar
-        total={orders.length}
-        selectedCount={selected.length}
-        ready={departmentId !== undefined}
-        onStockCards={() => setDialog('cards')}
-        onCreateStockOrder={() => setDialog('stock')}
-        onBypass={() => setDialog('bypass')}
-        onSchedule={() => setDialog('schedule')}
-      />
+  const toolbar = (
+    <UnscheduledToolbar
+      total={orders.length}
+      selectedCount={selected.length}
+      ready={departmentId !== undefined}
+      onStockCards={() => setDialog('cards')}
+      onCreateStockOrder={() => setDialog('stock')}
+      onBypass={() => setDialog('bypass')}
+      onSchedule={() => setDialog('schedule')}
+    />
+  )
 
-      <DayStrip departmentId={departmentId} />
+  return (
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+      <StickyTop>
+        {slot ? createPortal(toolbar, slot) : toolbar}
+        <DayStrip departmentId={departmentId} />
+      </StickyTop>
 
       {isError && !page ? (
         <QueryError
@@ -136,14 +144,14 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           {/* The widths come from the layout rather than from the widest cell, so the columns hold
-              still between the skeleton, the data and every search. Rollforming's Gauge / Color
-              column takes room of its own: 1108px fixed, which would leave the customer nothing. */}
+              still between the skeleton, the data and every search. The fixed columns take 756px,
+              Rollforming's Gauge / Color 980px; the rest, about 156px at the least, is the customer's. */}
           <Table
             ref={tableRef}
             data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-7xl' : 'min-w-5xl')}
+            className={cn('table-fixed', board.coils ? 'min-w-284' : 'min-w-5xl')}
           >
             <colgroup>
               <col className='w-10' />
@@ -219,6 +227,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
         title={`Set ${board.dateLabel.toLowerCase()}`}
         description={`Scheduling ${selected.length} order${selected.length === 1 ? '' : 's'} entirely.`}
         actionLabel='Set date'
+        ships={selected.map(order => ({ order: order.invoice, date: order.ship_date }))}
         departmentId={departmentId}
         isPending={schedule.isPending}
         onPick={productionDate =>
@@ -240,6 +249,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
             : ''
         }
         actionLabel='Set date'
+        ships={splitting ? [{ order: splitting.invoice, date: splitting.ship_date }] : undefined}
         departmentId={departmentId}
         isPending={splitOrder.isPending}
         onPick={productionDate =>

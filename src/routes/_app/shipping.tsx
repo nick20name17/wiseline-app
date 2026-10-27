@@ -1,12 +1,6 @@
-import { meQuery } from '@/features/auth'
-import {
-  ShippingPage,
-  shippingSearchSchema,
-  shippingFallback,
-  shippingPages,
-  shippingRoleQuery
-} from '@/features/shipping'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { guardPage } from '@/app/pages'
+import { ShippingPage, shippingSearchSchema } from '@/features/shipping'
+import { createFileRoute } from '@tanstack/react-router'
 
 const ShippingRoute = () => {
   const { view, search, day, shipFrom, shipTo } = Route.useSearch()
@@ -27,12 +21,7 @@ const ShippingRoute = () => {
 
 export const Route = createFileRoute('/_app/shipping')({
   staticData: { crumb: 'Shipping' },
-  beforeLoad: async ({ context }) => {
-    const me = await context.queryClient.ensureQueryData(meQuery)
-    const role = await context.queryClient.ensureQueryData(shippingRoleQuery(me))
-    if (!shippingPages(me.role, role).shipping)
-      throw redirect({ to: shippingFallback(me.role, role), replace: true })
-  },
+  beforeLoad: ({ context }) => guardPage(context.queryClient, '/shipping'),
   validateSearch: shippingSearchSchema,
   component: ShippingRoute
 })

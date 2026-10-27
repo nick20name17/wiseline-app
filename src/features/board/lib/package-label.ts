@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react'
 import type { Reprint } from '../api'
 
 /** What a package label carries, named the way the bench reads it. */
@@ -25,3 +26,13 @@ export const reprintLabel = (
     quantity: line.quantity
   }))
 })
+
+/** Prints a label; `PackageLabelProvider` holds the sheet. */
+export const PrintLabelContext = createContext<((label: PackageLabel) => void) | null>(null)
+
+/** One label at a time: printing mounts the sheet, which unmounts itself once the dialog closes. */
+export const usePackageLabel = () => {
+  const print = useContext(PrintLabelContext)
+  if (!print) throw new Error('usePackageLabel outside PackageLabelProvider')
+  return print
+}

@@ -1,3 +1,4 @@
+import { StickyTop } from './sticky-top'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { byDay, formatDate, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
@@ -9,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, Database, Factory, History, Layers } from 'lucide-react'
 import { useState } from 'react'
 import {
+  cutlistCoilSummariesQuery,
   cutlistsQuery,
   machineCapacitiesQuery,
   machinesQuery,
@@ -27,6 +29,7 @@ import {
   type CutlistGroup
 } from '../lib/cutlists'
 import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
+import { Cap, Progress } from './capacity-parts'
 import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
@@ -46,30 +49,29 @@ const stockNote = (value: number) => (value ? ` (${value} of them from stock ord
 type TotalsProps = {
   departmentId: number | undefined
   machine: Machine | null
+  /** The Slinet, whose Daily Piece Cap its strip reads against. */
+  cutterId: number | undefined
   /** Every Slinet list, active and completed; only read on the Slinet's own strip. */
   slinetLists: Cutlist[]
 }
 
 /**
- * What this station has in front of it today. The Slinet cuts rather than bends, so neither Total
- * Bends nor a daily max it has none of belongs on its strip.
+ * What this station has in front of it today, how much of it is done, and how full that makes its
+ * day — what the capacity report says, where the station works. The Slinet cuts rather than bends,
+ * so it counts pieces against its piece cap where a machine counts bends against its daily max.
  */
-const Totals = ({ departmentId, machine, slinetLists }: TotalsProps) => {
+const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) => {
   const day = today()
-  const { data } = useQuery({
-    ...machineCapacitiesQuery(departmentId, day),
-    enabled: departmentId !== undefined && !!machine
-  })
-  const station = machine ? data?.machines.find(row => row.flow_id === machine.id) : null
+  const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
+  const station = data?.machines.find(row => row.flow_id === (machine?.id ?? cutterId))
   // The capacity report counts everything scheduled for the day, routed or not; the Slinet cuts only
   // what has been released onto its lists.
   const slinet = slinetTotals(slinetLists, day)
   const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
-  const over = !!station?.over_bends
   const where = machine ? 'Assigned to this machine for today' : 'Cut on the Slinet today'
 
   return (
-    <div className='flex flex-wrap items-center gap-6 rounded-lg border border-border bg-card px-4 py-3'>
+    <div className='flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
       <span className='flex items-center gap-2 text-sm font-medium'>
         <CalendarCheck className='size-3.5' />
         {formatDate(day)}
@@ -88,29 +90,44 @@ const Totals = ({ departmentId, machine, slinetLists }: TotalsProps) => {
         </span>
       </span>
 
-      {machine ? (
-        <>
-          <span className='flex flex-col'>
-            <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-              Total Bends
-            </span>
-            <span
-              className={over ? 'font-mono text-lg text-destructive' : 'font-mono text-lg'}
-              title={`${where}${stockNote(station?.bends_from_stock ?? 0)}${over ? ' — over the daily max' : ''}`}
-            >
-              {station?.bends ?? 0}
-            </span>
-          </span>
-          <span className='flex flex-col'>
-            <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-              Daily Max (bends)
-            </span>
-            <span className='font-mono text-lg' title='Set in Settings › Machines'>
-              {station?.max_bends ?? '—'}
-            </span>
-          </span>
-        </>
-      ) : null}
+      <span className='flex w-48 flex-col gap-1'>
+        <span className='text-xs tracking-wider text-muted-foreground uppercase'>
+          {machine ? 'Bends done' : 'Pieces cut'}
+        </span>
+        {machine ? (
+          <Progress
+            done={station?.bends_done ?? 0}
+            value={station?.bends ?? 0}
+            fromStock={station?.bends_from_stock ?? 0}
+            fromStockDone={station?.bends_from_stock_done ?? 0}
+          />
+        ) : (
+          <Progress
+            done={slinet.cut}
+            value={slinet.pieces}
+            fromStock={slinet.stockPieces}
+            fromStockDone={slinet.stockCut}
+          />
+        )}
+      </span>
+
+      <span className='w-56' title='Set in Settings › Machines'>
+        {machine ? (
+          <Cap
+            label='Daily Max (bends)'
+            cap={station?.max_bends}
+            used={station?.bends ?? 0}
+            over={!!station?.over_bends}
+          />
+        ) : (
+          <Cap
+            label='Daily Piece Cap'
+            cap={station?.max_pieces}
+            used={slinet.pieces}
+            over={!!station?.max_pieces && slinet.pieces > station.max_pieces}
+          />
+        )}
+      </span>
     </div>
   )
 }
@@ -189,6 +206,13 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
     select: page => new Map(page.results.map(reman => [reman.id, reman]))
   })
 
+  // Under each open Slinet list: the coils it could be cut from next.
+  const { data: coilSummaries } = useQuery({
+    ...cutlistCoilSummariesQuery(
+      isSlinet && !done ? (lists.data ?? []).map(cutlist => cutlist.id) : []
+    )
+  })
+
   const word = isSlinet ? 'cutlists' : 'bendlists'
   // Production date, then priority, then gauge/colour.
   const days = byDay(lists.data ?? [], cutlist => cutlist.production_date)
@@ -262,6 +286,7 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
               remakes={remakes}
               machines={benders}
               isSlinet={isSlinet}
+              coilSummary={coilSummaries?.get(cutlist.id)}
               slinetStarted={!isSlinet && hasSlinetStarted(slinetList, slinetLoaded)}
               lines={lines}
               onOpenTotal={setTotal}
@@ -275,11 +300,8 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
   }
 
   return (
-    <div className='flex flex-1 flex-col gap-4'>
-      {/* From the station strip to the totals stays put while the lists scroll under it, so the
-          day's totals and the station switch are in reach at the bottom of a long list. A phone
-          has no height to spare for it. */}
-      <div className='flex flex-col gap-4 bg-background md:sticky md:top-13 md:z-5 md:-mx-6 md:px-6 md:pb-2'>
+    <div className='flex flex-1 flex-col gap-3'>
+      <StickyTop>
         {/* On a phone the buttons share a row of their own above the stations, in equal parts, so the
           strip keeps the whole width and still sits on the rule. */}
         <div className='flex items-center gap-3 border-b border-border max-md:flex-wrap'>
@@ -357,12 +379,13 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
               <Totals
                 departmentId={departmentId}
                 machine={activeMachine}
+                cutterId={cutter?.id}
                 slinetLists={slinetLists}
               />
             )}
           </>
         )}
-      </div>
+      </StickyTop>
 
       {isWrapping ? (
         <WrappingTab search={search} departmentId={departmentId} />

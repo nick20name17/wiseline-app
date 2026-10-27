@@ -8,6 +8,7 @@ const SETTINGS_TABS = [
   { to: '/settings/warehouses', label: 'Warehouses' },
   { to: '/settings/location-types', label: 'Location Types' },
   { to: '/settings/locations', label: 'Locations' },
+  { to: '/settings/gauge-weights', label: 'Gauge Weights' },
   { to: '/settings/trucks', label: 'Trucks' },
   { to: '/settings/priorities', label: 'Priorities' },
   { to: '/settings/work-days', label: 'Work Days' }

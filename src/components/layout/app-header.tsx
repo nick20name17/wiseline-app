@@ -10,15 +10,10 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useMatches } from '@tanstack/react-router'
 import { cn } from 'cn'
 import { Search } from 'lucide-react'
-import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
-type AppHeaderProps = {
-  /** Rendered at the trailing edge — the user menu in this app. */
-  actions?: ReactNode
-}
-
-export const AppHeader = ({ actions }: AppHeaderProps) => {
+export const AppHeader = () => {
   const routeCrumbs = useMatches({
     select: matches => matches.map(match => match.staticData.crumb).filter(crumb => !!crumb)
   })
@@ -108,7 +103,6 @@ export const AppHeader = ({ actions }: AppHeaderProps) => {
             ) : null}
           </Button>
         ) : null}
-        <div className={cn(searching && 'max-md:hidden')}>{actions}</div>
       </div>
     </header>
   )

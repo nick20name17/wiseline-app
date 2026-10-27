@@ -28,7 +28,9 @@ test('an order opens with its line items and packages', async ({ page }) => {
   const stock = dialog.getByRole('row').filter({ hasText: 'TRAKE24' })
   await expect(stock.getByText('4', { exact: true })).toBeVisible()
   await expect(dialog.getByText('01-338008-01')).toBeVisible()
-  await expect(dialog.getByText('36 × TSWB262')).toBeVisible()
+  await expect(dialog.getByRole('row').filter({ hasText: '01-338008-01' })).toContainText(
+    'TSWB26236 pcs'
+  )
   // The board's Length and Line Item Notes p1 (878,571).
   const flashing = dialog.getByRole('row').filter({ hasText: 'Sidewall Flashing' })
   await expect(flashing).toContainText('120"')

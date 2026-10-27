@@ -11,7 +11,9 @@ export const TruckActions = ({ truck }: { truck: Truck }) => {
       edit={dialog => <UpdateTruckDialog truck={truck} {...dialog} />}
       remove={{
         title: `Delete truck ${truck.name}?`,
-        description: 'The truck and its loads are removed. This cannot be undone.',
+        description:
+          // The server refuses a truck that ever had a Load or a planned order, naming the latest day.
+          'Only a truck with no Loads or planned orders can be deleted. This cannot be undone.',
         isPending: deletion.isPending,
         onConfirm: () => deletion.mutateAsync(truck.id)
       }}

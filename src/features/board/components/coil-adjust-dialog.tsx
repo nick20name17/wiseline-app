@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { asNumber, DECIMAL_INPUT } from '@/lib/form'
 import {
   Dialog,
   DialogContent,
@@ -35,18 +36,17 @@ const DEPLETE = 'deplete_and_delete'
 
 export type CoilFigure = keyof CoilFigures
 
-type Measure<Key> = { key: Key; label: string; unit: string; step: string; placeholder: string }
+type Measure<Key> = { key: Key; label: string; unit: string; placeholder: string }
 
 const MEASURES: Measure<CoilFigure>[] = [
   {
     key: 'coil_thickness',
     label: 'Coil Thickness',
     unit: 'inches',
-    step: '0.01',
     placeholder: 'e.g. 0.02'
   },
-  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', step: '1', placeholder: 'e.g. 3500' },
-  { key: 'weight', label: 'Weight', unit: 'lbs', step: '1', placeholder: 'e.g. 5000' }
+  { key: 'linear_feet', label: 'Linear Feet', unit: 'feet', placeholder: 'e.g. 3500' },
+  { key: 'weight', label: 'Weight', unit: 'lbs', placeholder: 'e.g. 5000' }
 ]
 
 type BuildField = 'material_thickness' | 'core_od'
@@ -57,15 +57,15 @@ const BUILD: Measure<BuildField>[] = [
     key: 'material_thickness',
     label: 'Material Thickness',
     unit: 'inches',
-    step: '0.001',
     placeholder: 'e.g. 0.018'
   },
-  { key: 'core_od', label: 'Core OD', unit: 'inches', step: '0.1', placeholder: 'e.g. 20' }
+  { key: 'core_od', label: 'Core OD', unit: 'inches', placeholder: 'e.g. 20' }
 ]
 
 type Draft = Record<CoilFigure | BuildField, string>
 
-const num = (value: string) => Number.parseFloat(value)
+// Whole text or nothing: `parseFloat` read «0,02» as 0 and «12abc» as 12, and pushed those to EBMS.
+const num = (value: string) => asNumber(value) ?? Number.NaN
 
 // Inches, as the server bounds them: steel coil runs about 0.014–0.03 thick on a core about 20
 // across, so a figure past these is a typo — 229" of coil on a 20" core came of one.
@@ -80,6 +80,27 @@ const buildOf = (draft: Draft) => {
   return material > 0 && material < MAX_MATERIAL && core > 0 && core <= MAX_CORE
     ? { material, core }
     : null
+}
+
+/** Why Apply is off, or what to check before pressing it. */
+const AdjustHint = ({ draft, built }: { draft: Draft; built: boolean }) => {
+  if (!built)
+    return (
+      <p className='text-sm text-warning'>
+        Enter a Material Thickness under {MAX_MATERIAL}″ and a Core OD up to {MAX_CORE}″ to unlock
+        the three fields above and the Apply button.
+      </p>
+    )
+  // Apply stays off for it, and without a word the Manager would not know why.
+  if (MEASURES.some(measure => Number.isNaN(num(draft[measure.key]))))
+    return <p className='text-sm text-warning'>Enter each figure as a number, e.g. 0.02.</p>
+  if (num(draft.coil_thickness) > MAX_COIL)
+    return (
+      <p className='text-sm text-warning'>
+        Coil Thickness is over {MAX_COIL}″ — check the Material Thickness.
+      </p>
+    )
+  return null
 }
 
 /**
@@ -144,9 +165,7 @@ const MeasureField = ({ measure, value, disabled, inputRef, onChange }: MeasureF
     <div className='flex items-center gap-2'>
       <Input
         id={`coil-${measure.key}`}
-        type='number'
-        inputMode='decimal'
-        step={measure.step}
+        {...DECIMAL_INPUT}
         placeholder={measure.placeholder}
         ref={inputRef}
         disabled={disabled}
@@ -252,18 +271,7 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         ))}
       </div>
 
-      {build ? (
-        num(draft.coil_thickness) > MAX_COIL ? (
-          <p className='text-sm text-warning'>
-            Coil Thickness is over {MAX_COIL}″ — check the Material Thickness.
-          </p>
-        ) : null
-      ) : (
-        <p className='text-sm text-warning'>
-          Enter a Material Thickness under {MAX_MATERIAL}″ and a Core OD up to {MAX_CORE}″ to unlock
-          the three fields above and the Apply button.
-        </p>
-      )}
+      <AdjustHint draft={draft} built={!!build} />
 
       <CoilFacts lot={lot} />
 

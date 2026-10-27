@@ -18,7 +18,9 @@ export type Truck = z.infer<typeof truckSchema>
 export const truckPayloadSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
   plate: z.nullable(z.string().check(z.maxLength(32, 'At most 32 characters'))),
-  max_weight: z.nullable(z.number().check(z.minimum(0, 'Must be zero or more')))
+  max_weight: z.nullable(
+    z.number('Enter the weight as a number, e.g. 18000').check(z.minimum(0, 'Must be zero or more'))
+  )
 })
 
 export type TruckPayload = z.infer<typeof truckPayloadSchema>
@@ -54,6 +56,7 @@ export const useUpsertTruck = (onSuccess: () => void) =>
 
 export const useDeleteTruck = () =>
   useMutation({
+    meta: { errorTitle: 'The truck was not deleted' },
     mutationFn: (id: number) => authApi.delete(`trucks/${id}/`),
     onSuccess: (_, __, ___, { client }) => client.invalidateQueries({ queryKey: trucksKeys.all })
   })

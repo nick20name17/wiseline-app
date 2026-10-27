@@ -1,4 +1,4 @@
-import { formatDate, today } from '@/lib/days'
+import { formatLongDate, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,10 +12,9 @@ import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { Printer } from 'lucide-react'
-import { machineCapacitiesQuery, machineLoad } from '../api'
-
-// Feet come back to the hundredth; the report reads whole ones.
-const whole = (value: number) => Math.round(value)
+import { isMaker, machineCapacitiesQuery, machineLoad } from '../api'
+import { formatCount as count } from '../lib/format'
+import { Cap, Heading, Progress } from './capacity-parts'
 
 type MachineCapacitiesDialogProps = {
   departmentId: number | undefined
@@ -26,85 +25,81 @@ type MachineCapacitiesDialogProps = {
 
 type FigureProps = {
   value: number
-  /** Pieces have no ceiling; bends do. */
-  max?: number | null
-  /** The server's verdict against `max`, not worked out here. */
-  over?: boolean
   /** Part of the value beside it, never an addition to it. */
   fromStock?: number
-  /** The day still has trim with no machine, which is what the gap below this row is. */
+  /** The day still has work with no machine, which is what the gap below this card is. */
   unrouted?: boolean
 }
 
-/**
- * The figure, its limit and how much of it comes off the shelf, on one line.
- *
- * Value, slash, max and the parenthetical are tracks of one fixed-width row, so the slashes and the
- * «(n - Stock)» notes line up down the column without the slash being dragged from its own number.
- */
-const Figure = ({ value, max, over = false, fromStock = 0, unrouted }: FigureProps) => (
-  // A phone has no room for two fixed tracks beside the names, so there the note wraps under them.
-  <span className='inline-flex w-40 items-baseline font-mono text-sm font-semibold max-sm:w-auto max-sm:flex-wrap'>
-    {/* Over the max outranks not-yet-routed: it is the harder warning of the two. */}
-    <span className={cn(over && 'text-destructive', !over && unrouted && 'text-warning')}>
-      {whole(value)}
-    </span>
-    {max ? (
-      <>
-        <span className='mx-1.5 text-muted-foreground'>/</span>
-        <span className={cn(over && 'text-destructive')}>{whole(max)}</span>
-      </>
-    ) : null}
+/** A total, with how much of it comes off Stock Orders underneath in the small blue line. */
+const Figure = ({ value, fromStock = 0, unrouted }: FigureProps) => (
+  <span className='flex flex-col items-center font-mono'>
+    <span className={cn('text-sm', unrouted && 'text-warning')}>{count(value)}</span>
     {fromStock ? (
-      <span className='ml-auto pl-2 text-xs font-normal text-primary'>({fromStock} - Stock)</span>
+      <span className='text-xs whitespace-nowrap text-primary max-sm:whitespace-normal'>
+        ({count(fromStock)} - Stock)
+      </span>
     ) : null}
   </span>
 )
 
-const Row = ({
-  name,
-  isDay,
-  title,
-  children
-}: {
-  name: React.ReactNode
-  isDay?: boolean
-  title?: string
-  children: React.ReactNode
-}) => (
-  <tr title={title}>
-    {/* Each cell paints its own edges, so a row reads as one card. The day is the report's headline
-        figure, so its card is white against the machines' grey. */}
-    <th
-      scope='row'
-      className={cn(
-        'w-2/5 rounded-l-lg border border-r-0 border-input px-3.5 py-2 text-left text-sm font-semibold max-sm:px-2.5',
-        isDay ? 'bg-card' : 'bg-muted'
-      )}
-    >
-      {name}
-    </th>
-    {children}
-  </tr>
-)
+// The day is the report's headline, the Slinet cuts for every machine, the rest are the machines;
+// Vented is a count of the day's vented pieces, not a machine.
+const TONES = {
+  day: 'border-foreground bg-muted',
+  slinet: 'border-primary/40 bg-primary/5',
+  machine: 'border-input bg-card',
+  vented: 'border-warning/40 bg-warning/10'
+} as const
 
-const Cell = ({ isDay, children }: { isDay?: boolean; children: React.ReactNode }) => (
-  <td
-    className={cn(
-      'border-y border-input px-3.5 py-2 text-left whitespace-nowrap last:rounded-r-lg last:border-r max-sm:px-2.5 max-sm:whitespace-normal',
-      isDay ? 'bg-card' : 'bg-muted'
-    )}
-  >
-    {children}
-  </td>
-)
+type CardProps = {
+  tone: keyof typeof TONES
+  name: React.ReactNode
+  title?: string
+  measure: React.ReactNode
+  /** Left out, the measure spans both columns — the Slinet's pieces are its measure. */
+  pieces?: React.ReactNode
+}
+
+/** One machine, the day or the Slinet: its row header carries the ceiling, its cells the totals. */
+const Card = ({ tone, name, title, measure, pieces }: CardProps) => {
+  // Each cell paints its own edges, so a row reads as one card.
+  const cell = cn('border-y px-3.5 py-2 align-top max-sm:px-2', TONES[tone])
+  const end = 'rounded-r-lg border-r'
+  return (
+    <tr title={title}>
+      <th
+        scope='row'
+        className={cn(
+          'rounded-l-lg border border-r-0 px-3.5 py-2 text-left font-normal max-sm:px-2.5',
+          TONES[tone]
+        )}
+      >
+        {name}
+      </th>
+      {pieces === undefined ? (
+        <td colSpan={2} className={cn(cell, end)}>
+          {measure}
+        </td>
+      ) : (
+        <>
+          <td className={cell}>{measure}</td>
+          <td className={cn(cell, end)}>{pieces}</td>
+        </>
+      )}
+    </tr>
+  )
+}
 
 /**
- * One production day, read-only.
+ * One production day, read-only, laid out as the shop's paper report.
  *
- * The top row is everything the day has scheduled; the machine rows are only what has been routed to
- * a machine. The two are deliberately not the same number — the gap is trim with a day and no machine
- * yet, and summing the machines instead would hide exactly the work nobody has claimed.
+ * The top card is everything the day has scheduled; the machine cards are only what has been routed
+ * to a machine. The two are deliberately not the same number — the gap is work with a day and no
+ * machine yet, and summing the machines instead would hide exactly the work nobody has claimed.
+ *
+ * The Slinet cuts every piece the day has, routed or not, so its card reads the day's pieces against
+ * its own Daily Piece Cap; Wrapping comes after the machines and holds no ceiling, so it has none.
  *
  * Daily maxes are not set here. They belong to Settings › Machines, and a report that let you edit its
  * own limits would be a second place for them to disagree.
@@ -116,20 +111,28 @@ export const MachineCapacitiesDialog = ({
 }: MachineCapacitiesDialogProps) => {
   const [day, release] = useRetained(current)
   const { data, isPending } = useQuery(machineCapacitiesQuery(departmentId, day))
-  // Trim's machines are held to bends, Rollforming's to linear feet: the second column is the day's
-  // own unit, the one its Daily Max is set in.
+  const slinet = data?.machines.find(machine => machine.kind === 'cutting')
+  const makers = data?.machines.filter(isMaker) ?? []
+  // Trim's machines are held to bends, Rollforming's to linear feet: the measure is the day's own
+  // unit, the one its Daily Max is set in.
   const unit = data?.total.capacity_unit ?? 'bends'
   const feet = unit === 'linear_feet'
+  const measure = feet ? 'Linear Feet' : 'Bends'
+  const capLabel = feet ? 'Daily Feet Cap' : 'Daily Bend Cap'
   const total = data ? (feet ? data.total.linear_feet : data.total.bends) : 0
+  const totalDone = data ? (feet ? data.total.linear_feet_done : data.total.bends_done) : 0
   // The report names the pieces with no machine; the rest is whatever the machines do not add up to.
   const unroutedPieces = data?.pieces_without_a_machine ?? 0
   const unroutedMeasure = data
     ? Math.max(
         0,
+        // Every routed row, the Slinet and Wrapping included: what they hold is routed, only not
+        // shown as a machine card.
         total - data.machines.reduce((sum, machine) => sum + machineLoad(machine, unit).value, 0)
       )
     : 0
   const unrouted = unroutedPieces > 0 || unroutedMeasure >= 1
+  const unroutedNote = `${count(unroutedMeasure)} ${feet ? 'ft' : 'bends'} (${count(unroutedPieces)} pcs) scheduled but not routed to a machine yet`
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
@@ -153,77 +156,159 @@ export const MachineCapacitiesDialog = ({
           {isPending || !data ? (
             <Skeleton className='h-64' />
           ) : (
-            <table className='w-full border-separate border-spacing-y-1'>
-              <thead>
-                <tr>
-                  {/* The row names sit under this one; it heads nothing of its own. */}
-                  <th>
-                    <span className='sr-only'>Machine</span>
-                  </th>
-                  {/* Each heading is ruled on its own, so the two lines have a gap between them. */}
-                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                    Pieces
-                  </th>
-                  <th className='border-b-2 border-foreground px-3.5 pb-1 text-center text-sm font-bold'>
-                    {feet ? 'Linear Feet' : 'Bends'}
-                  </th>
-                </tr>
-              </thead>
+            <table className='w-full table-fixed border-separate border-spacing-y-1.5'>
+              <colgroup>
+                <col className='w-1/2' />
+                <col />
+                <col className='w-32 max-sm:w-20' />
+              </colgroup>
               <tbody>
-                <Row
-                  isDay
-                  title={
-                    unrouted
-                      ? `${whole(unroutedMeasure)} ${feet ? 'ft' : 'bends'} (${unroutedPieces} pcs) scheduled but not routed to a machine yet`
-                      : undefined
-                  }
+                <Card
+                  tone='day'
+                  title={unrouted ? unroutedNote : undefined}
                   name={
+                    <Cap
+                      heading={
+                        <>
+                          {formatLongDate(data.date)}
+                          {data.date === today() ? (
+                            <span className='font-normal text-muted-foreground'> · today</span>
+                          ) : null}
+                        </>
+                      }
+                      label={`${capLabel}:`}
+                      cap={data.total.capacity}
+                      used={data.total.used}
+                      over={data.total.over_capacity}
+                    />
+                  }
+                  measure={
                     <>
-                      {formatDate(data.date)}
-                      {data.date === today() ? (
-                        <span className='font-normal text-muted-foreground'> · today</span>
-                      ) : null}
+                      <Heading>{measure}</Heading>
+                      <Progress
+                        done={totalDone}
+                        value={total}
+                        fromStock={
+                          feet ? data.total.linear_feet_from_stock : data.total.bends_from_stock
+                        }
+                        fromStockDone={
+                          feet
+                            ? data.total.linear_feet_from_stock_done
+                            : data.total.bends_from_stock_done
+                        }
+                        unrouted={unrouted}
+                      />
                     </>
                   }
-                >
-                  <Cell isDay>
-                    <Figure
-                      value={data.total.pieces}
-                      fromStock={data.total.pieces_from_stock}
-                      unrouted={unrouted}
-                    />
-                  </Cell>
-                  <Cell isDay>
-                    <Figure
-                      value={total}
-                      max={data.total.capacity}
-                      over={data.total.over_capacity}
-                      fromStock={feet ? 0 : data.total.bends_from_stock}
-                      unrouted={unrouted}
-                    />
-                  </Cell>
-                </Row>
+                  pieces={
+                    <>
+                      <Heading>Pieces</Heading>
+                      <Figure
+                        value={data.total.pieces}
+                        fromStock={data.total.pieces_from_stock}
+                        unrouted={unrouted}
+                      />
+                    </>
+                  }
+                />
 
-                {data.machines.map(machine => (
-                  <Row key={machine.flow_id} name={machine.name ?? `Machine ${machine.flow_id}`}>
-                    <Cell>
-                      <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
-                    </Cell>
-                    <Cell>
-                      <Figure {...machineLoad(machine, unit)} />
-                    </Cell>
-                  </Row>
-                ))}
+                {slinet ? (
+                  <Card
+                    tone='slinet'
+                    name={
+                      <Cap
+                        heading={slinet.name ?? 'Slinet'}
+                        label='Daily Piece Cap:'
+                        cap={slinet.max_pieces}
+                        used={slinet.pieces}
+                        over={slinet.over_pieces}
+                      />
+                    }
+                    measure={
+                      <>
+                        <Heading>Pieces</Heading>
+                        <Progress
+                          done={slinet.pieces_cut}
+                          value={slinet.pieces}
+                          fromStock={slinet.pieces_from_stock}
+                          fromStockDone={slinet.pieces_cut_from_stock}
+                        />
+                      </>
+                    }
+                  />
+                ) : null}
+
+                <tr>
+                  <th scope='col' className='px-3.5 pt-2 text-sm font-bold max-sm:px-2.5'>
+                    <span className='flex flex-wrap justify-between gap-x-2 border-b border-foreground pb-0.5'>
+                      Machine
+                      <span className='pr-14 max-sm:pr-0'>{capLabel}</span>
+                    </span>
+                  </th>
+                  <th scope='col' className='px-3.5 pt-2 align-bottom max-sm:px-2'>
+                    <Heading>{measure}</Heading>
+                  </th>
+                  <th scope='col' className='px-3.5 pt-2 align-bottom max-sm:px-2'>
+                    <Heading>Pieces</Heading>
+                  </th>
+                </tr>
+
+                {makers.map(machine => {
+                  const load = machineLoad(machine, unit)
+                  return (
+                    <Card
+                      key={machine.flow_id}
+                      tone='machine'
+                      name={
+                        <Cap
+                          label={
+                            <span className='font-semibold'>
+                              {machine.name ?? `Machine ${machine.flow_id}`}
+                            </span>
+                          }
+                          cap={load.max}
+                          used={load.value}
+                          over={load.over}
+                        />
+                      }
+                      measure={
+                        <Progress
+                          done={load.done}
+                          value={load.value}
+                          fromStock={load.fromStock}
+                          fromStockDone={load.fromStockDone}
+                        />
+                      }
+                      pieces={
+                        <Figure value={machine.pieces} fromStock={machine.pieces_from_stock} />
+                      }
+                    />
+                  )
+                })}
+
+                {/* Venting is a Trim step; Rollforming's lines are never vented. */}
+                {feet ? null : (
+                  <Card
+                    tone='vented'
+                    name={<span className='text-sm font-semibold'>Vented</span>}
+                    measure={null}
+                    pieces={
+                      <Figure
+                        value={data.total.vented_pieces}
+                        fromStock={data.total.vented_pieces_from_stock}
+                      />
+                    }
+                  />
+                )}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* The day row's title says what is unrouted; a finger cannot hover for it. */}
+        {/* The day card's title says what is unrouted; a finger cannot hover for it. */}
         {data && unrouted ? (
           <p data-print-hide className='text-xs text-warning pointer-fine:hidden'>
-            {whole(unroutedMeasure)} {feet ? 'ft' : 'bends'} ({unroutedPieces} pcs) scheduled but
-            not routed to a machine yet
+            {unroutedNote}
           </p>
         ) : null}
 

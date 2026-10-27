@@ -1,6 +1,7 @@
+import { Badge } from '@/components/ui/badge'
+import { SearchInput } from '@/components/search-input'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -11,9 +12,14 @@ import {
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Tags } from 'lucide-react'
+import { Tags } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { departmentsQuery, locationTypesQuery, warehousePickerQuery } from '../api'
+import {
+  departmentsQuery,
+  locationTypesQuery,
+  warehousePickerQuery,
+  LOCATION_KIND_LABELS
+} from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
 import { LocationTypeActions } from './location-actions'
@@ -63,18 +69,12 @@ export const LocationTypesPage = ({
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
         <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
-          <InputGroup className='sm:max-w-60'>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='search'
-              aria-label='Search location types'
-              placeholder='Search...'
-              value={term}
-              onChange={event => handleSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            className='sm:max-w-60'
+            label='Search location types'
+            value={term}
+            onValueChange={handleSearch}
+          />
 
           {types.length ? (
             <p className='shrink-0 text-sm text-muted-foreground'>
@@ -105,9 +105,11 @@ export const LocationTypesPage = ({
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           <Table data-cards className='min-w-3xl table-fixed'>
             <colgroup>
-              <col className='w-64' />
-              <col className='w-56' />
-              {active ? null : <col className='w-44' />}
+              <col className='w-48' />
+              <col className='w-40' />
+              {active ? null : <col className='w-36' />}
+              {/* Wide enough for the Inventory badge. */}
+              <col className='w-36' />
               <col />
               <col className='w-24' />
             </colgroup>
@@ -117,6 +119,7 @@ export const LocationTypesPage = ({
                 <TableHead>Warehouse</TableHead>
                 {/* Under one department the pill already says which; under All it is a column. */}
                 {active ? null : <TableHead>Department</TableHead>}
+                <TableHead>Holds</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>
                   {/* The column is obvious from its buttons; the label is for screen readers. */}
@@ -126,7 +129,7 @@ export const LocationTypesPage = ({
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={active ? 3 : 4} />
+                <TableSkeletonRows columns={active ? 4 : 5} />
               ) : (
                 types.map(type => (
                   <TableRow key={type.id}>
@@ -140,6 +143,13 @@ export const LocationTypesPage = ({
                         {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
                       </TableCell>
                     )}
+                    <TableCell label='Holds'>
+                      {type.kind === 'inventory' ? (
+                        <Badge variant='muted'>Inventory</Badge>
+                      ) : (
+                        LOCATION_KIND_LABELS[type.kind]
+                      )}
+                    </TableCell>
                     <TableCell label='Description' card='full'>
                       <span className='truncate text-muted-foreground'>
                         {type.description ?? '—'}

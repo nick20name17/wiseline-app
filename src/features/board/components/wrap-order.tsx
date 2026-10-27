@@ -1,5 +1,7 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { formatDate } from '@/lib/days'
+import { formatDate, formatDayLabel } from '@/lib/days'
+import { Badge } from '@/components/ui/badge'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,7 +30,7 @@ import {
   type UnitCoil,
   type WrappingRow
 } from '../api'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import {
   benchLocations,
   orderOverdue,
@@ -41,6 +43,7 @@ import {
   remanState,
   stagedQuantity,
   wrapAllowed,
+  contentName,
   lineName,
   type CellRoom,
   type HeldLocation
@@ -57,12 +60,12 @@ import {
   RemoveJobLocationDialog,
   RemoveLocationDialog
 } from './location-dialog'
-import { usePackageLabel } from './use-package-label'
+import { usePackageLabel } from '../lib/package-label'
 import { NoteButton } from '@/components/note-button'
 import { PackagesDialog } from './packages-dialog'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
 import { RemanufactureDialog } from './remanufacture-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
 // The statuses a line is wrapped from: the floor has finished it, or it came off the shelf.
@@ -97,7 +100,7 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
         <Button
           variant='ghost'
           size='icon-sm'
-          aria-label={`Remanufacture ${lineName(row)}`}
+          aria-label={`Remanufacture ${contentName(row)}`}
           disabled={!room}
           title={room ? again : `All ${row.qty_ordered} pcs. are already awaiting remanufacture`}
           onClick={onRemake}
@@ -144,7 +147,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
           max={allowed}
           step={1}
           inputMode='numeric'
-          aria-label={`${pack.verb} from ${lineName(row)}`}
+          aria-label={`${pack.verb} from ${contentName(row)}`}
           title={`Qty to ${pack.verb.toLowerCase()} (1–${allowed})`}
           placeholder='0'
           value={staged || ''}
@@ -247,8 +250,8 @@ const WrapLines = ({
     <>
       <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
         {/* Description keeps room of its own; a narrower screen scrolls rather than squeezing it.
-            Rollforming's fixed columns, Supplier / Coil Number among them, take 1312px. */}
-        <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-360' : 'min-w-300')}>
+            Rollforming's fixed columns, Supplier / Coil Number among them, take 1376px. */}
+        <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-376' : 'min-w-320')}>
           <colgroup>{columns.cols}</colgroup>
           <TableHeader>
             <TableRow>{columns.headers}</TableRow>
@@ -268,9 +271,7 @@ const WrapLines = ({
                     ),
                     desc: (
                       <TableCell>
-                        <span className='truncate text-muted-foreground'>
-                          {row.description ?? '—'}
-                        </span>
+                        <Description text={row.description} className='text-muted-foreground' />
                       </TableCell>
                     ),
                     // Anything but the standard 120" is worth a second look, as on the
@@ -304,7 +305,7 @@ const WrapLines = ({
                         {board.stockCards && !viewOnly && !row.is_stock && row.item_id !== null ? (
                           <Button
                             variant='link'
-                            aria-label={`Stock for ${lineName(row)}`}
+                            aria-label={`Stock for ${contentName(row)}`}
                             title='Pull from stock'
                             onClick={() => setStocking(row)}
                           >
@@ -369,7 +370,7 @@ const WrapLines = ({
                       <TableCell>
                         <NoteButton
                           state={noteState(row.origin_item)}
-                          label={`Line notes for ${lineName(row)}`}
+                          label={`Line notes for ${contentName(row)}`}
                           onClick={() => setNoteLine(row)}
                         />
                       </TableCell>
@@ -387,7 +388,9 @@ const WrapLines = ({
         action='fill'
         departmentId={departmentId}
         current={filling ? coils?.get(filling.row.origin_item) : undefined}
-        units={{ fill: filling?.units ?? null }}
+        units={{
+          fill: filling?.units ? { [filling.row.origin_item]: filling.units } : undefined
+        }}
         open={!!filling}
         onOpenChange={open => !open && setFilling(null)}
         onAssigned={() => setFilling(null)}
@@ -411,7 +414,7 @@ const WrapLines = ({
         target={
           stocking
             ? {
-                title: `Stock for ${lineName(stocking)}`,
+                title: `Stock for ${contentName(stocking)}`,
                 current: stocking.from_stock,
                 max: stocking.qty_ordered
               }
@@ -480,6 +483,8 @@ const LocationRoom = ({ slot, max, over }: { slot: CellRoom; max: number; over: 
 type CompleteOrderButtonProps = {
   departmentId: number | undefined
   order: string
+  /** The production day of the part being completed, or `null` for the whole order. */
+  part: string | null
   number: string
   owesReman: boolean
   onDone: () => void
@@ -493,36 +498,43 @@ type CompleteOrderButtonProps = {
 const CompleteOrderButton = ({
   departmentId,
   order,
+  part,
   number,
   owesReman,
   onDone
 }: CompleteOrderButtonProps) => {
   const [completing, setCompleting] = useState(false)
   const { makes } = useBoard()
-  const { data: completion } = useQuery(orderCompleteQuery(departmentId, order))
+  const { data: completion } = useQuery(orderCompleteQuery(departmentId, order, part))
   const batch = (completion?.manufacturing_batch ?? []).reduce(
     (total, line) => total + line.manufactured,
     0
   )
   // Completing early leaves lines short; EBMS hears only of what went into packages.
   const short = completion?.outstanding.length ?? 0
+  // What is being completed: one part of a split order, or the order.
+  const what = part === null ? `order ${number}` : `the ${formatDayLabel(part)} part of ${number}`
+  const sentenceStart =
+    part === null ? `Order ${number}` : `The ${formatDayLabel(part)} part of ${number}`
   const shut = completion?.can_complete
     ? undefined
-    : completion?.reason
-      ? completion.reason
-      : owesReman
-        ? 'Waiting on a remanufacture — available once the machine marks it Bent'
-        : makes
-          ? 'Available once Left To Wrap is zero on every line'
-          : 'Available once the first package is created'
+    : completion?.part_completed
+      ? 'This part is complete — it leaves Wrapping with the rest of the order'
+      : completion?.reason
+        ? completion.reason
+        : owesReman
+          ? 'Waiting on a remanufacture — available once the machine marks it Bent'
+          : makes
+            ? 'Available once Left To Wrap is zero on every line'
+            : 'Available once the first package is created'
 
   const complete = useCompleteOrder(() => {
     setCompleting(false)
     toast.add({
       type: 'success',
       title: batch
-        ? `Order ${number} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
-        : `Order ${number} complete`
+        ? `${sentenceStart} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
+        : `${sentenceStart} complete`
     })
     onDone()
   })
@@ -546,10 +558,10 @@ const CompleteOrderButton = ({
       <ConfirmDialog
         open={completing}
         onOpenChange={setCompleting}
-        title={`Complete order ${number}?`}
+        title={`Complete ${what}?`}
         description={[
           batch
-            ? `Are you sure you are done with this order and that you want to create a manufacturing batch for it (${batch} pcs)?`
+            ? `Are you sure you are done with ${part === null ? 'this order' : 'this part'} and that you want to create a manufacturing batch for it (${batch} pcs)?`
             : `Are you sure you are done with this order? It leaves ${makes ? 'Wrapping' : 'Packaging'} for Completed Orders.`,
           short
             ? `${short} line${short === 1 ? ' is' : 's are'} not fully packed; only what is in the packages goes to EBMS.`
@@ -560,7 +572,7 @@ const CompleteOrderButton = ({
         confirmLabel={batch ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'}
         cancelLabel='No'
         isPending={complete.isPending}
-        onConfirm={() => departmentId && complete.mutate({ order, departmentId })}
+        onConfirm={() => departmentId && complete.mutate({ order, departmentId, part })}
       />
     </>
   )
@@ -605,10 +617,27 @@ const CreatePrintButton = ({
   onPrinted
 }: CreatePrintButtonProps) => {
   const [confirming, setConfirming] = useState(false)
-  const label = usePackageLabel()
-  const createPackage = useCreatePackage(() => {
+  const printLabel = usePackageLabel()
+  const createPackage = useCreatePackage(created => {
     setConfirming(false)
     onPrinted()
+    toast.add({
+      type: 'success',
+      title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
+    })
+    if (!created.name)
+      return toast.add({
+        type: 'error',
+        title: 'The package has no barcode yet',
+        description: 'Print its label from See packages once it has one.'
+      })
+    printLabel({
+      name: created.name,
+      orderNumber: number,
+      location: labelLocation,
+      weight,
+      contents: lines.map(line => ({ product: contentName(line.row), quantity: line.quantity }))
+    })
   })
   // The board's own questions p1 (951,365) and p1 (861,440); both at once reads as one.
   const question = overPackage
@@ -621,40 +650,14 @@ const CreatePrintButton = ({
   const print = (override: boolean) =>
     departmentId &&
     (target || locationless) &&
-    createPackage.mutate(
-      {
-        order,
-        department_id: departmentId,
-        ...(target ? { location_id: target.location_id } : {}),
-        lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
-        ...(weight === null ? {} : { weight }),
-        ...(override ? { override_weight: true } : {})
-      },
-      {
-        onSuccess: created => {
-          toast.add({
-            type: 'success',
-            title: `Created ${created.name ?? 'the package'} · ${pieces} pcs${target ? ` → ${target.name ?? target.location_id}` : ''}`
-          })
-          if (!created.name)
-            return toast.add({
-              type: 'error',
-              title: 'The package has no barcode yet',
-              description: 'Print its label from See packages once it has one.'
-            })
-          label.print({
-            name: created.name,
-            orderNumber: number,
-            location: labelLocation,
-            weight,
-            contents: lines.map(line => ({
-              product: lineName(line.row),
-              quantity: line.quantity
-            }))
-          })
-        }
-      }
-    )
+    createPackage.mutate({
+      order,
+      department_id: departmentId,
+      ...(target ? { location_id: target.location_id } : {}),
+      lines: lines.map(line => ({ origin_item: line.row.origin_item, quantity: line.quantity })),
+      ...(weight === null ? {} : { weight }),
+      ...(override ? { override_weight: true } : {})
+    })
 
   return (
     <>
@@ -683,23 +686,32 @@ const CreatePrintButton = ({
         isPending={createPackage.isPending}
         onConfirm={() => print(true)}
       />
-      {label.sheet}
     </>
   )
 }
 
 type BenchHeaderProps = {
   number: string
+  /** The production day of the split order's part on the bench. */
+  part?: string | null
   rows: WrappingRow[]
   /** What is wrapped, when the bench knows better than the Wrapping list's rows. */
   wrapped?: number
   onBack: () => void
 }
 
-export const BenchHeader = ({ number, rows, wrapped: known, onBack }: BenchHeaderProps) => {
+export const BenchHeader = ({
+  number,
+  part = null,
+  rows,
+  wrapped: known,
+  onBack
+}: BenchHeaderProps) => {
   const { pack } = useBoard()
-  const ordered = rows.reduce((total, row) => total + row.qty_ordered, 0)
-  const wrapped = known ?? rows.reduce((total, row) => total + row.wrapped, 0)
+  // A split order's part is counted on its own: the other parts are wrapped and completed apart.
+  const counted = part === null ? rows : rows.filter(row => row.production_date === part)
+  const ordered = counted.reduce((total, row) => total + row.qty_ordered, 0)
+  const wrapped = known ?? counted.reduce((total, row) => total + row.wrapped, 0)
 
   return (
     <span className='flex flex-wrap items-center gap-3'>
@@ -709,7 +721,8 @@ export const BenchHeader = ({ number, rows, wrapped: known, onBack }: BenchHeade
         <span className='max-md:hidden'>Back to {pack.station}</span>
       </Button>
       <span className='font-mono font-medium'>{number}</span>
-      {orderOverdue(rows) ? (
+      {part ? <Badge variant='muted'>Part · {formatDayLabel(part)}</Badge> : null}
+      {orderOverdue(counted) ? (
         <span className='rounded-md border border-destructive px-1.5 py-0.5 text-xs font-semibold tracking-wider text-destructive uppercase'>
           Overdue
         </span>
@@ -777,6 +790,11 @@ type WrapOrderProps = {
   departmentId: number | undefined
   /** Every released line of this one order, as the Wrapping list holds them. */
   rows: WrappingRow[]
+  /**
+   * A split order's part on the bench, by its production day: the order's other lines show, locked,
+   * and Order Complete finishes this part only. `null` is the whole order.
+   */
+  part?: string | null
   /** At the machine: each line's coil, which the Worker fills in where the Manager left it Undefined. */
   coils?: ReadonlyMap<string, CoilItem>
   onBack: () => void
@@ -786,7 +804,18 @@ type WrapOrderProps = {
  * One order at the wrapping bench and the three gates it walks: a quantity opens Select location, a
  * location opens Create & print, and only every line wrapped opens Order Complete.
  */
-export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps) => {
+export const WrapOrder = ({
+  departmentId,
+  rows: orderRows,
+  part = null,
+  coils,
+  onBack
+}: WrapOrderProps) => {
+  const rows = orderRows.map(row =>
+    part !== null && row.production_date !== part
+      ? { ...row, can_wrap: false, auto_fill_available: false }
+      : row
+  )
   const order = rows[0]
   const board = useBoard()
   const atMachine = board.packsAtMachine
@@ -865,7 +894,7 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
-      <BenchHeader number={number} rows={rows} onBack={onBack} />
+      <BenchHeader number={number} part={part} rows={rows} onBack={onBack} />
 
       <WrapLines
         departmentId={departmentId}
@@ -953,8 +982,11 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
           <CompleteOrderButton
             departmentId={departmentId}
             order={order.order}
+            part={part}
             number={number}
-            owesReman={rows.some(row => remanOwed(remansOf(row)) > 0)}
+            owesReman={rows.some(
+              row => (part === null || row.production_date === part) && remanOwed(remansOf(row)) > 0
+            )}
             onDone={onBack}
           />
         )}
@@ -1006,6 +1038,7 @@ export const WrapOrder = ({ departmentId, rows, coils, onBack }: WrapOrderProps)
         order={order.order}
         number={number}
         rows={rows}
+        part={part}
         open={seeing}
         onOpenChange={setSeeing}
       />

@@ -8,7 +8,7 @@ import {
   type QueryClient
 } from '@tanstack/react-query'
 import { HTTPError } from 'ky'
-import { departmentByCode } from '@/lib/departments'
+import { departmentByCode, departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
 
 /**
@@ -56,6 +56,27 @@ export const departmentRoleQuery = (userId: number | undefined, departmentId: nu
         )
         // The filter is the server's, but a role handed to the wrong person is not worth trusting it.
         .find(row => row.user === userId && row.department === departmentId)?.role ?? null
+  })
+
+/**
+ * The role a user works a board in, or `null` when they have none there — nor does anyone, when the
+ * department is not set up. The sidebar and the route guards read it before any board mounts.
+ */
+export const boardRoleQuery = (user: { id: number; role: string }, code: string) =>
+  queryOptions({
+    queryKey: ['departments', 'board-role', code, user.id, user.role] as const,
+    queryFn: async ({ client }) => {
+      const department = departmentByCode(
+        await client.fetchQuery({ ...departmentsQuery, retry: false }),
+        code
+      )
+      if (!department) return null
+      const assigned = await client.fetchQuery({
+        ...departmentRoleQuery(user.id, department.id),
+        retry: false
+      })
+      return departmentRole(user.role, assigned)
+    }
   })
 
 /**
@@ -160,6 +181,14 @@ const itemSchema = z.object({
   unit_coils: z._default(z.array(unitCoilSchema), [])
 })
 
+const productFileSchema = z.object({
+  id: z.number(),
+  name: z._default(z.string(), ''),
+  url: z._default(z.nullable(z.string()), null)
+})
+
+export type ProductFile = z.infer<typeof productFileSchema>
+
 const lineItemSchema = z.object({
   id: z.string(),
   category: z._default(z.nullable(z.string()), null),
@@ -179,7 +208,8 @@ const lineItemSchema = z.object({
   profile: z._default(z.nullable(z.string()), null),
   machine_id: z._default(z.nullable(z.number()), null),
   // The list's own `production_date` is the order's earliest day, not the line's, so it is not read.
-  item: z._default(z.nullable(itemSchema), null)
+  item: z._default(z.nullable(itemSchema), null),
+  product_files: z._default(z.array(productFileSchema), [])
 })
 
 export type BoardLineItem = z.infer<typeof lineItemSchema>
@@ -243,8 +273,10 @@ const boardKeys = {
   counts: (departmentId: number) => [...boardKeys.orders(), 'counts', departmentId] as const,
   machines: (category: string) => [...boardKeys.all, 'machines', category] as const,
   overdue: (departmentId: number) => [...boardKeys.all, 'overdue', departmentId] as const,
+  // Under `orders()`: a line put on another machine, or taken off stock, moves the day's machine
+  // loads the Scheduled tab shows as it is assigned.
   machineCapacities: (departmentId: number, day: string) =>
-    [...boardKeys.all, 'machine-capacities', departmentId, day] as const,
+    [...boardKeys.orders(), 'machine-capacities', departmentId, day] as const,
   allocatedStock: (departmentId: number, search: string | undefined) =>
     [...boardKeys.all, 'allocated-stock', departmentId, { search: search ?? '' }] as const,
   dayStrip: (departmentId: number, start: string, days: number) =>
@@ -294,8 +326,8 @@ const boardKeys = {
   orderLocations: (order: string) => [...boardKeys.wrapping(), 'order-locations', order] as const,
   jobLocations: (departmentId: number, order: string) =>
     [...boardKeys.wrapping(), 'job-locations', departmentId, order] as const,
-  orderComplete: (departmentId: number, order: string) =>
-    [...boardKeys.wrapping(), 'complete', departmentId, order] as const,
+  orderComplete: (departmentId: number, order: string, part: string | null) =>
+    [...boardKeys.wrapping(), 'complete', departmentId, order, part] as const,
   remanufacturings: () => [...boardKeys.all, 'remanufacturings'] as const,
   departmentRemanufacturings: (departmentId: number) =>
     [...boardKeys.remanufacturings(), departmentId] as const
@@ -384,6 +416,31 @@ export const countsQuery = (departmentId: number | undefined) =>
     queryFn: async () =>
       countsSchema.parse(await authApi.get(`departments/${departmentId}/counts/`).json())
   })
+
+/**
+ * Every department's tab counts as the counts socket pushes them after a change, keyed by department
+ * id: the same figures `countsQuery` reads, written into its cache.
+ */
+export const applyDepartmentCounts = (client: QueryClient, pushed: unknown) => {
+  const departments = z.record(z.string(), countsSchema).safeParse(pushed).data
+  for (const [id, counts] of Object.entries(departments ?? {}))
+    client.setQueryData(boardKeys.counts(Number(id)), counts)
+}
+
+/**
+ * The days whose capacity moved, by department, as the counts socket signals them: the day strips
+ * and the Machine Capacities of those days are read again. A strip is keyed by its range rather than
+ * its days, so each of the department's is.
+ */
+export const refetchCapacity = (client: QueryClient, pushed: unknown) => {
+  const changed = z.record(z.string(), z.array(z.string())).safeParse(pushed).data
+  for (const [id, days] of Object.entries(changed ?? {})) {
+    const departmentId = Number(id)
+    void client.invalidateQueries({ queryKey: [...boardKeys.all, 'day-strip', departmentId] })
+    for (const day of days)
+      void client.invalidateQueries({ queryKey: boardKeys.machineCapacities(departmentId, day) })
+  }
+}
 
 export const unscheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
@@ -521,6 +578,18 @@ const machineCapacitySchema = z.object({
     bends: z._default(z.number(), 0),
     bends_from_stock: z._default(z.number(), 0),
     linear_feet: z._default(z.number(), 0),
+    linear_feet_from_stock: z._default(z.number(), 0),
+    // How much of the day is done: cut by the Slinet, bent, rolled. A line counts once it has passed
+    // its own stage, so a line pulled whole from the shelf is in none of these.
+    pieces_cut: z._default(z.number(), 0),
+    bends_done: z._default(z.number(), 0),
+    linear_feet_done: z._default(z.number(), 0),
+    vented_pieces: z._default(z.number(), 0),
+    // The Stock Orders' share of each done figure: the small blue line under it.
+    pieces_cut_from_stock: z._default(z.number(), 0),
+    bends_from_stock_done: z._default(z.number(), 0),
+    linear_feet_from_stock_done: z._default(z.number(), 0),
+    vented_pieces_from_stock: z._default(z.number(), 0),
     // The day's ceiling in `capacity_unit`: the machines' daily max bends in Trim, feet in
     // Rollforming.
     capacity: z._default(z.nullable(z.number()), null),
@@ -533,14 +602,25 @@ const machineCapacitySchema = z.object({
       z.object({
         flow_id: z.number(),
         name: z._default(z.nullable(z.string()), null),
+        // `cutting` is the Slinet, whose row is the whole day's pieces against its own Daily Max;
+        // its bends are 0.
+        kind: z._default(z.nullable(z.string()), null),
         pieces: z._default(z.number(), 0),
         pieces_from_stock: z._default(z.number(), 0),
+        pieces_cut: z._default(z.number(), 0),
+        pieces_cut_from_stock: z._default(z.number(), 0),
         max_pieces: z._default(z.nullable(z.number()), null),
+        over_pieces: z._default(z.boolean(), false),
         bends: z._default(z.number(), 0),
         bends_from_stock: z._default(z.number(), 0),
+        bends_done: z._default(z.number(), 0),
+        bends_from_stock_done: z._default(z.number(), 0),
         max_bends: z._default(z.nullable(z.number()), null),
         over_bends: z._default(z.boolean(), false),
         linear_feet: z._default(z.number(), 0),
+        linear_feet_from_stock: z._default(z.number(), 0),
+        linear_feet_done: z._default(z.number(), 0),
+        linear_feet_from_stock_done: z._default(z.number(), 0),
         max_feet: z._default(z.nullable(z.number()), null),
         over_feet: z._default(z.boolean(), false)
       })
@@ -552,15 +632,31 @@ const machineCapacitySchema = z.object({
 
 type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
 
+/**
+ * The machines lines are assigned to. The Slinet cuts for all of them and Wrapping comes after, so
+ * neither is one.
+ */
+export const isMaker = (machine: MachineCapacity) =>
+  machine.kind !== 'cutting' && machine.kind !== 'wrapping'
+
 /** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */
 export const machineLoad = (machine: MachineCapacity, unit: CapacityUnit) =>
   unit === 'linear_feet'
-    ? { value: machine.linear_feet, max: machine.max_feet, over: machine.over_feet, fromStock: 0 }
+    ? {
+        value: machine.linear_feet,
+        done: machine.linear_feet_done,
+        max: machine.max_feet,
+        over: machine.over_feet,
+        fromStock: machine.linear_feet_from_stock,
+        fromStockDone: machine.linear_feet_from_stock_done
+      }
     : {
         value: machine.bends,
+        done: machine.bends_done,
         max: machine.max_bends,
         over: machine.over_bends,
-        fromStock: machine.bends_from_stock
+        fromStock: machine.bends_from_stock,
+        fromStockDone: machine.bends_from_stock_done
       }
 
 /** One day broken down by machine — what the gear on a day tab opens. */
@@ -1134,10 +1230,13 @@ export const useSetPriority = (orderId: string) =>
       patchCachedOrder(client, order.id, cached =>
         withPriority(cached, departmentId, departmentStateOf(order, departmentId)?.priority ?? null)
       ),
-    // The lists are already patched, so this only settles their order; nothing else on the board
-    // reads a priority, and nothing waits for it.
-    onSettled: (_, __, ___, ____, { client }) =>
+    // The order lists are already patched, so this only settles their order. A released order's
+    // lines move to the cutlists and bendlists of their new priority, under new ids, so those are
+    // read again too. Nothing waits for either.
+    onSettled: (_, __, ___, ____, { client }) => {
       void client.invalidateQueries({ queryKey: boardKeys.orders() })
+      void client.invalidateQueries({ queryKey: boardKeys.cutlists() })
+    }
   })
 
 /**
@@ -1503,7 +1602,7 @@ export const stockCardOptionsQuery = (search: string) =>
       z
         .array(stockCardOptionSchema)
         .parse(
-          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 20 } }).json()
+          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 50 } }).json()
         )
   })
 
@@ -1665,14 +1764,6 @@ type CutlistKind = 'cutlist' | 'bendlist'
 // share; the rest describes the line itself.
 // A file EBMS holds on a product — its drawing among them. `url` is a signed link that expires, so it
 // is read when the list is, never kept.
-const productFileSchema = z.object({
-  id: z.number(),
-  name: z._default(z.string(), ''),
-  url: z._default(z.nullable(z.string()), null)
-})
-
-export type ProductFile = z.infer<typeof productFileSchema>
-
 const cutlistSourceSchema = z.object({
   order: z._default(z.nullable(z.string()), null),
   // The printed number — a stock order's own «S» number — and «Stock» for its customer.
@@ -1856,6 +1947,11 @@ const coilLotSchema = z.object({
   core_od: z._default(z.nullable(z.number()), null),
   linear_feet: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
+  // What `weight` is worked out with: the gauge's weight in Settings × the width, or EBMS's own.
+  weight_per_foot: z._default(z.nullable(z.number()), null),
+  // The inventory location it stands on, the app's own: EBMS keeps a location per product, not lot.
+  location_id: z._default(z.nullable(z.number()), null),
+  location: z._default(z.nullable(z.string()), null),
   in_trim: z._default(z.boolean(), false),
   in_rollforming: z._default(z.boolean(), false),
   in_slinet: z._default(z.boolean(), false),
@@ -1879,6 +1975,39 @@ export const cutlistCoilsQuery = (cutlistId: number | null) =>
     enabled: cutlistId !== null,
     queryFn: async () =>
       z.array(coilLotSchema).parse(await authApi.get(`cutlists/${cutlistId}/coils/`).json())
+  })
+
+const cutlistCoilSummarySchema = z.object({
+  cutlist_id: z.number(),
+  // Coils of the list's colour and gauge the Coil Filter admits, outside the Slinet.
+  available: z._default(z.number(), 0),
+  linear_feet: z._default(z.number(), 0),
+  in_trim: z._default(z.number(), 0),
+  in_rollforming: z._default(z.number(), 0),
+  // In neither department.
+  elsewhere: z._default(z.number(), 0),
+  locations: z.catch(
+    z.array(z.object({ location: z.string(), coils: z._default(z.number(), 0) })),
+    []
+  )
+})
+
+export type CutlistCoilSummary = z.infer<typeof cutlistCoilSummarySchema>
+
+/** What each Slinet list could be cut from next, for every list on screen in one request. */
+export const cutlistCoilSummariesQuery = (cutlistIds: number[]) =>
+  queryOptions({
+    queryKey: [...boardKeys.cutlists(), 'coil-summary', cutlistIds] as const,
+    enabled: cutlistIds.length > 0,
+    queryFn: async () =>
+      z.array(cutlistCoilSummarySchema).parse(
+        await authApi
+          .get('coils/cutlist-summary/', {
+            searchParams: new URLSearchParams(cutlistIds.map(id => ['ids', String(id)]))
+          })
+          .json()
+      ),
+    select: summaries => new Map(summaries.map(summary => [summary.cutlist_id, summary]))
   })
 
 const completedOrderSchema = z.object({
@@ -2083,7 +2212,46 @@ export const useUpdateCoilLot = () =>
   })
 
 /** Where a coil stands. Send only what changed: the server moves one department at a time. */
-export type CoilLocation = { in_trim?: boolean; in_rollforming?: boolean; in_slinet?: boolean }
+export type CoilLocation = {
+  in_trim?: boolean
+  in_rollforming?: boolean
+  in_slinet?: boolean
+  /** An inventory location, which also puts the coil in that location's department. */
+  location_id?: number
+}
+
+const inventoryLocationSchema = z.object({
+  id: z.number(),
+  code: z._default(z.nullable(z.string()), null)
+})
+
+export type InventoryLocation = z.infer<typeof inventoryLocationSchema>
+
+/** The department's inventory locations: where its coils are put, and what the forklift scans. */
+export const coilLocationsQuery = (departmentId: number | undefined) =>
+  queryOptions({
+    queryKey: [...boardKeys.coils(), 'locations', departmentId ?? 0] as const,
+    enabled: departmentId !== undefined,
+    queryFn: async () =>
+      z
+        .array(inventoryLocationSchema)
+        .parse(
+          await authApi
+            .get('coils/locations/', { searchParams: { department_id: departmentId! } })
+            .json()
+        )
+  })
+
+/** Two scans on the forklift: the coil's lot number, then the location it is put on. */
+export const useScanMove = () =>
+  useMutation({
+    meta: { errorTitle: 'The coil was not moved' },
+    mutationFn: async ({ coil, location }: { coil: string; location: string }) =>
+      coilLotSchema.parse(
+        await authApi.post('coils/scan-move/', { json: { coil, location } }).json()
+      ),
+    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
+  })
 
 /**
  * One coil into or out of Trim, Rollforming or the Slinet — coils of one product stand wherever they
@@ -2096,31 +2264,6 @@ export const useSetCoilLocation = () =>
     meta: { errorTitle: 'The coil stayed where it was' },
     mutationFn: ({ lotId, location }: { lotId: string; location: CoilLocation }) =>
       authApi.post(`coils/lots/${lotId}/location/`, { json: location }).json(),
-    onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
-  })
-
-/**
- * Every coil of a product with coil left, moved in one go — a shortcut over the per-coil boxes. All
- * or none: one coil in the Slinet refuses Rollforming for the lot. A coil EBMS adds later starts with
- * no location.
- */
-export const useSetCoilProductLocation = () =>
-  useMutation({
-    meta: { errorTitle: 'The coils stayed where they were' },
-    mutationFn: async ({
-      productId,
-      location
-    }: {
-      productId: string
-      location: Omit<CoilLocation, 'in_slinet'>
-    }) =>
-      z
-        .object({ lots: z._default(z.number(), 0) })
-        .parse(
-          await authApi
-            .post(`coils/products/${encodeURIComponent(productId)}/location/`, { json: location })
-            .json()
-        ),
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
@@ -2289,6 +2432,10 @@ const wrappingRowSchema = z.object({
   customer: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
+  // The order is split here: each production day is a part, wrapped and completed on its own.
+  is_split: z._default(z.boolean(), false),
+  // This line's part is completed; it stays listed, locked, until the last part is.
+  part_completed: z._default(z.boolean(), false),
   priority: z._default(z.nullable(z.string()), null),
   status: z._default(z.nullable(z.string()), null),
   // Still true once a bypassed line is packed and reads Wrapped: it may never be remade.
@@ -2310,6 +2457,8 @@ const wrappingRowSchema = z.object({
   is_standard_length: z._default(z.boolean(), true),
   // lb per piece, what a package's weight is worked out from.
   unit_weight: z._default(z.nullable(z.number()), null),
+  // The product's pictures in EBMS, for the Image column.
+  product_files: z._default(z.array(productFileSchema), []),
   // The order info block; a stock order has none of it.
   po: z._default(z.nullable(z.string()), null),
   salesman: z._default(z.nullable(z.string()), null),
@@ -2544,13 +2693,26 @@ export const useRemoveJobLocation = () =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
-/** The packages made for an order still at the bench — See Packages. */
-export const orderPackagesQuery = (order: string | null, enabled: boolean) =>
+/**
+ * The packages made for an order still at the bench — See Packages. `part`, a split order's
+ * production day, narrows them to that part's; under the order's key, so a change refetches both.
+ */
+export const orderPackagesQuery = (
+  order: string | null,
+  enabled: boolean,
+  part: string | null = null
+) =>
   queryOptions({
-    queryKey: boardKeys.orderPackages(order ?? ''),
+    queryKey: [...boardKeys.orderPackages(order ?? ''), part] as const,
     enabled: enabled && !!order,
     queryFn: async () =>
-      z.array(packageSchema).parse(await authApi.get(`wrapping/orders/${order}/packages/`).json())
+      z.array(packageSchema).parse(
+        await authApi
+          .get(`wrapping/orders/${order}/packages/`, {
+            searchParams: part === null ? undefined : { production_date: part }
+          })
+          .json()
+      )
   })
 
 // --- Stock window (a stock order at the bench) ---------------------------
@@ -2792,8 +2954,11 @@ type PackageLine = { origin_item: string; quantity: number }
 /**
  * Create & Print. A location is required, a quantity above Left To Wrap is refused, and an
  * over-weight package needs the override the board puts a confirmation behind.
+ *
+ * `onSuccess` is the hook's own, not `mutate`'s: those wait for the refetch below, and the last
+ * package completes the order, so the refetch unmounts the bench and they never run.
  */
-export const useCreatePackage = (onSuccess: () => void) =>
+export const useCreatePackage = (onSuccess: (created: { name: string | null }) => void) =>
   useMutation({
     meta: { errorTitle: 'Nothing was packed' },
     mutationFn: async (parcel: {
@@ -2843,10 +3008,17 @@ export const useLocatePackage = () =>
       client.invalidateQueries({ queryKey: boardKeys.all })
   })
 
+const partParams = (departmentId: number, part: string | null) =>
+  part === null
+    ? { department_id: departmentId }
+    : { department_id: departmentId, production_date: part }
+
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
   // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
   reason: z._default(z.nullable(z.string()), null),
+  // The asked-for part of a split order is done; it stays listed until the whole order is.
+  part_completed: z._default(z.boolean(), false),
   // A stock order is finished through its own Stock window, never through Order Complete.
   is_stock: z._default(z.boolean(), false),
   outstanding: z.catch(
@@ -2871,16 +3043,23 @@ const orderCompleteSchema = z.object({
   )
 })
 
-/** Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent. */
-export const orderCompleteQuery = (departmentId: number | undefined, order: string | null) =>
+/**
+ * Whether Order Complete is available yet, what is outstanding, and the batch EBMS would be sent.
+ * `part` is the production day of one part of a split order; `null` is the whole order.
+ */
+export const orderCompleteQuery = (
+  departmentId: number | undefined,
+  order: string | null,
+  part: string | null
+) =>
   queryOptions({
-    queryKey: boardKeys.orderComplete(departmentId ?? 0, order ?? ''),
+    queryKey: boardKeys.orderComplete(departmentId ?? 0, order ?? '', part),
     enabled: departmentId !== undefined && !!order,
     queryFn: async () =>
       orderCompleteSchema.parse(
         await authApi
           .get(`wrapping/orders/${order}/complete/`, {
-            searchParams: { department_id: departmentId! }
+            searchParams: partParams(departmentId!, part)
           })
           .json()
       )
@@ -2894,18 +3073,36 @@ export const useCompleteOrder = (onSuccess: () => void) =>
   useMutation({
     // A refused batch answers 502 with EBMS's own reason, which goes under this title.
     meta: { errorTitle: 'The order was not completed' },
-    mutationFn: ({ order, departmentId }: { order: string; departmentId: number }) =>
-      authApi
-        .post(`wrapping/orders/${order}/complete/`, {
-          searchParams: { department_id: departmentId }
-        })
-        .json(),
-    onSuccess: (_, { order, departmentId }, __, { client }) => {
+    mutationFn: async ({
+      order,
+      departmentId,
+      part
+    }: {
+      order: string
+      departmentId: number
+      part: string | null
+    }) =>
+      z.object({ order_complete: z._default(z.boolean(), true) }).parse(
+        await authApi
+          .post(`wrapping/orders/${order}/complete/`, {
+            searchParams: partParams(departmentId, part)
+          })
+          .json()
+      ),
+    onSuccess: ({ order_complete }, { order, departmentId, part }, __, { client }) => {
       // The bench goes back to the list straight away, and the list's refetch is slow: left to it,
-      // the completed order sat there until the answer came.
+      // the completed order sat there until the answer came. A part leaves the order's other parts
+      // listed, its own lines locked.
       client.setQueriesData<WrappingRow[]>(
         { queryKey: [...boardKeys.wrapping(), departmentId] },
-        rows => rows?.filter(row => row.order !== order)
+        rows =>
+          order_complete || part === null
+            ? rows?.filter(row => row.order !== order)
+            : rows?.map(row =>
+                row.order === order && row.production_date === part
+                  ? { ...row, part_completed: true, can_wrap: false, auto_fill_available: false }
+                  : row
+              )
       )
       onSuccess()
     },
@@ -3050,6 +3247,8 @@ const slitLineSchema = z.object({
   product_id: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
   quantity: z._default(z.nullable(z.number()), null),
+  /** Inches. */
+  length: z._default(z.nullable(z.number()), null),
   production_date: z._default(z.nullable(z.string()), null),
   // The Slit Line's own day for a machine's request p2 (754,297); none until the Manager gives one.
   slit_production_date: z._default(z.nullable(z.string()), null),
@@ -3069,7 +3268,7 @@ export type SlitStage = 'unscheduled' | 'scheduled' | 'slit'
 /**
  * The Slit Line tab: the machines' requests with no slit day yet, those with one, or what has been
  * slit, by slit day (else Production Date) then Priority p2 (754,297), (1204,296). A line carries the
- * Supplier and Coil Number the Slit Line filled in, or «waiting...».
+ * Supplier and Coil Number the Slit Line filled in, or null while it owes them.
  */
 export const slitLineQuery = (departmentId: number | undefined, stage: SlitStage) =>
   queryOptions({
@@ -3241,10 +3440,14 @@ const queueRowSchema = z.object({
   linear_feet: z._default(z.number(), 0),
   weight: z._default(z.number(), 0),
   priority: z._default(z.nullable(z.object({ id: z.number(), name: z.string() })), null),
+  // `null`: no coil named — Undefined, or «waiting...» while the Slit Line owes it.
   supplier: z._default(z.nullable(z.string()), null),
   coil_number: z._default(z.nullable(z.string()), null),
   coil_icon: z._default(z.nullable(z.string()), null),
+  // Either field locked; each also on its own — a row for some units takes those units' locks.
   coil_fields_locked: z._default(z.boolean(), false),
+  supplier_locked: z._default(z.boolean(), false),
+  coil_number_locked: z._default(z.boolean(), false),
   gauge: z._default(z.nullable(z.string()), null),
   color: z._default(z.nullable(z.string()), null),
   // Runs off the coil in the machine — every row of that Supplier and Coil Number, whatever the day.

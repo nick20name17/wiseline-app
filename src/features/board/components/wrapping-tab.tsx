@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/badge'
+import { Description } from '@/components/description'
 import { useBoard } from '../lib/board-context'
 import { byDay, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -17,15 +19,17 @@ import {
   type WrappingRow
 } from '../api'
 import { machineByLine, rowsOnMachine, type MachineTab } from '../lib/machines'
-import { itemStatus } from '../lib/status'
-import { matchesWrapSearch, remanState } from '../lib/wrapping'
+import { itemStatus } from '@/lib/status'
+import { contentName, matchesWrapSearch, remanState } from '../lib/wrapping'
+import { drawingOf } from '../lib/cutlists'
+import { DrawingCell } from './drawing-cell'
 import { Figure } from './figure'
 import { LineNotesDialog } from './line-notes-dialog'
 import { LocatePackages } from './locate-packages'
 import { NoteButton } from '@/components/note-button'
 import { PriorityPill } from '@/components/priority-pill'
 import { RemanBadge, RemanNotApplicable } from './reman-badge'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { StockWrap } from './stock-wrap'
 import { useLineNoteState } from './use-line-note-state'
 import { WrapOrder } from './wrap-order'
@@ -46,7 +50,8 @@ type WrappingTabProps = {
  * into its order, which is where packages are built — a package carries one order, never two.
  */
 export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps) => {
-  const [order, setOrder] = useState<string | null>(null)
+  // A split order opens one part at a time, by its production day.
+  const [order, setOrder] = useState<{ order: string; part: string | null } | null>(null)
   const [noteLine, setNoteLine] = useState<WrappingRow | null>(null)
   const board = useBoard()
   const {
@@ -74,7 +79,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
   const columns = useColumnOrder(board.tables.wrapping)
 
   if (order) {
-    const onOrder = (rows ?? []).filter(row => row.order === order)
+    const onOrder = (rows ?? []).filter(row => row.order === order.order)
     const back = () => setOrder(null)
     // A stock order opens its Stock window instead of the package modal; a board that packs at the
     // machine only locates the packages here.
@@ -84,7 +89,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
       ) : board.packsAtMachine ? (
         <LocatePackages departmentId={departmentId} rows={onOrder} onBack={back} />
       ) : (
-        <WrapOrder departmentId={departmentId} rows={onOrder} onBack={back} />
+        <WrapOrder departmentId={departmentId} rows={onOrder} part={order.part} onBack={back} />
       )
   }
 
@@ -163,7 +168,12 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                       // A late line outranks its remake: it stays red rather than orange or green.
                       data-overdue={isOverdue(row) || undefined}
                       data-reman={isOverdue(row) ? undefined : remanState(lineRemans)}
-                      onClick={() => setOrder(row.order)}
+                      onClick={() =>
+                        setOrder({
+                          order: row.order,
+                          part: row.is_split ? row.production_date : null
+                        })
+                      }
                     >
                       {columns.cells({
                         order: (
@@ -179,6 +189,13 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                                   className='size-3.5 shrink-0 text-muted-foreground'
                                   aria-label='Stock order'
                                 />
+                              ) : null}
+                              {/* A split order's parts are wrapped and completed apart; a done part
+                                  stays listed until the whole order is. */}
+                              {row.part_completed ? (
+                                <Badge variant='muted'>Part done</Badge>
+                              ) : row.is_split ? (
+                                <Badge variant='muted'>Split</Badge>
                               ) : null}
                             </span>
                           </TableCell>
@@ -196,6 +213,20 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                         stock: (
                           <TableCell>
                             <Figure value={row.from_stock || null} />
+                          </TableCell>
+                        ),
+                        image: (
+                          // The picture opens on its own; the row would open the order under it. With no
+                          // picture the cell is the row's, like any other.
+                          <TableCell
+                            onClick={event =>
+                              drawingOf(row.product_files)?.url && event.stopPropagation()
+                            }
+                          >
+                            <DrawingCell
+                              drawing={drawingOf(row.product_files)}
+                              product={row.product_id}
+                            />
                           </TableCell>
                         ),
                         pid: (
@@ -243,15 +274,24 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           </TableCell>
                         ),
                         desc: (
-                          <TableCell>
-                            <span className='truncate'>{row.description ?? '—'}</span>
+                          // Stacked rather than cut off, so a long description is read without
+                          // scrolling sideways, a custom length under it.
+                          <TableCell className='whitespace-normal'>
+                            <Description text={row.description} />
+                            {board.standardLength !== null &&
+                            row.length !== null &&
+                            !row.is_standard_length ? (
+                              <p className='font-mono text-xs text-destructive'>
+                                Custom length {row.length}"
+                              </p>
+                            ) : null}
                           </TableCell>
                         ),
                         notes: (
                           <TableCell onClick={event => event.stopPropagation()}>
                             <NoteButton
                               state={noteState(row.origin_item)}
-                              label={`Line notes for ${row.origin_item}`}
+                              label={`Line notes for ${contentName(row)}`}
                               onClick={() => setNoteLine(row)}
                             />
                           </TableCell>

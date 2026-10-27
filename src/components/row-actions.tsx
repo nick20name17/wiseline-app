@@ -14,7 +14,8 @@ type RowActionsProps = {
   name: string
   /** The row's edit dialog, opened by the pencil. */
   edit: (dialog: { open: boolean; onOpenChange: (open: boolean) => void }) => ReactNode
-  remove: {
+  /** None for a row that cannot be deleted: it has no delete button. */
+  remove?: {
     title: string
     description: string
     /** The API would refuse the delete; the description says why. */
@@ -43,15 +44,17 @@ export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
       >
         <Pencil />
       </Button>
-      <Button
-        variant='ghost'
-        size='icon-sm'
-        className='max-lg:hidden'
-        aria-label={`Delete ${name}`}
-        onClick={() => setDialog('delete')}
-      >
-        <Trash2 />
-      </Button>
+      {remove ? (
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          className='max-lg:hidden'
+          aria-label={`Delete ${name}`}
+          onClick={() => setDialog('delete')}
+        >
+          <Trash2 />
+        </Button>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -70,32 +73,36 @@ export const RowActions = ({ name, edit, remove }: RowActionsProps) => {
             <Pencil />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem variant='destructive' onClick={() => setDialog('delete')}>
-            <Trash2 />
-            Delete
-          </DropdownMenuItem>
+          {remove ? (
+            <DropdownMenuItem variant='destructive' onClick={() => setDialog('delete')}>
+              <Trash2 />
+              Delete
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {edit({ open: dialog === 'edit', onOpenChange: open => setDialog(open ? 'edit' : null) })}
-      <ConfirmDialog
-        open={dialog === 'delete'}
-        onOpenChange={open => setDialog(open ? 'delete' : null)}
-        title={remove.title}
-        description={remove.description}
-        confirmLabel='Delete'
-        cancelLabel='Cancel'
-        destructive
-        disabled={remove.blocked}
-        isPending={remove.isPending}
-        onConfirm={() =>
-          remove.onConfirm().then(
-            // Only the delete dialog: the edit one may have been opened while the request was out.
-            () => setDialog(open => (open === 'delete' ? null : open)),
-            () => {}
-          )
-        }
-      />
+      {remove ? (
+        <ConfirmDialog
+          open={dialog === 'delete'}
+          onOpenChange={open => setDialog(open ? 'delete' : null)}
+          title={remove.title}
+          description={remove.description}
+          confirmLabel='Delete'
+          cancelLabel='Cancel'
+          destructive
+          disabled={remove.blocked}
+          isPending={remove.isPending}
+          onConfirm={() =>
+            remove.onConfirm().then(
+              // Only the delete dialog: the edit one may have been opened while the request was out.
+              () => setDialog(open => (open === 'delete' ? null : open)),
+              () => {}
+            )
+          }
+        />
+      ) : null}
     </div>
   )
 }

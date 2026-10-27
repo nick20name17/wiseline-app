@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch'
 import { formatLongDate } from '@/lib/days'
 import { useState } from 'react'
 import { WEEKDAYS, useSetCalendarDay, type CalendarDay } from '../api'
+import { DayLoadWarning } from './day-load-warning'
 
 type DayFormProps = {
   day: CalendarDay
@@ -71,6 +72,8 @@ const DayForm = ({ day, usual, onDone }: DayFormProps) => {
           </p>
         </Field>
       </FieldGroup>
+
+      {day.is_work_day && !worked ? <DayLoadWarning date={day.date} /> : null}
 
       <DialogFooter bare className='mt-6'>
         <DialogClose render={<Button variant='ghost' />}>Cancel</DialogClose>

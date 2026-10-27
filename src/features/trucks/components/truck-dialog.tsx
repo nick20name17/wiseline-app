@@ -12,7 +12,7 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
-import { asNumber, invalid } from '@/lib/form'
+import { asAmount, invalid, WHOLE_INPUT } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
@@ -75,14 +75,12 @@ const TruckForm = ({ truck, onSuccess }: TruckFormProps) => {
           <InputGroup>
             <InputGroupInput
               id='truck-max-weight'
-              type='number'
-              min={0}
-              inputMode='numeric'
+              {...WHOLE_INPUT}
               placeholder='e.g. 18000'
               aria-invalid={invalid(errors.max_weight)}
               // An empty weight is genuinely unknown, so it goes back as null rather than a zero
               // the floor would read as "this truck carries nothing".
-              {...form.register('max_weight', { setValueAs: asNumber })}
+              {...form.register('max_weight', { setValueAs: asAmount })}
             />
           </InputGroup>
           <FieldError errors={[errors.max_weight]} />

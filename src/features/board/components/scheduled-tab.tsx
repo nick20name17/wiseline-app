@@ -1,4 +1,5 @@
-import { useBoard } from '../lib/board-context'
+import { StickyTop } from './sticky-top'
+import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -37,6 +38,7 @@ import { ScheduledDayTabs } from './scheduled-day-tabs'
 import { ScheduledRow, type Part } from './scheduled-row'
 import { ScheduledToolbar } from './scheduled-toolbar'
 import { MachineCapacitiesDialog } from './machine-capacities-dialog'
+import { MachineLoads } from './machine-loads'
 import { useOrderNotes } from './use-line-note-state'
 import { onMachine, type MachineTab } from '../lib/machines'
 
@@ -92,6 +94,7 @@ const ReschedulePartDialog = ({
         title={`Reschedule order ${shown?.order.invoice ?? ''}`}
         description={`Pick any ${useBoard().dayWord}. Rescheduling resets Manager edits.`}
         actionLabel='Reschedule'
+        ships={shown ? [{ order: shown.order.invoice, date: shown.order.ship_date }] : undefined}
         departmentId={departmentId}
         initialDay={shown?.day ?? null}
         isPending={reschedule.isPending}
@@ -240,6 +243,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   }
 
   const board = useBoard()
+  const selectable = useScheduledSelectable()
   const {
     data: page,
     isPending,
@@ -332,33 +336,40 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
-      <ScheduledDayTabs
-        departmentId={departmentId}
-        day={day}
-        total={everything ?? 0}
-        onDayChange={changeDay}
-        onOpenCapacities={setCapacitiesDay}
-      />
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+      <StickyTop>
+        <ScheduledDayTabs
+          departmentId={departmentId}
+          day={day}
+          total={everything ?? 0}
+          onDayChange={changeDay}
+          onOpenCapacities={setCapacitiesDay}
+        />
 
-      <ScheduledToolbar
-        total={parts.length}
-        day={day}
-        selectedCount={selected.length}
-        selectionKind={selectionKind}
-        canRelease={canRelease}
-        isReleasing={release.isPending}
-        onAllocatedStock={() => setStockOpen(true)}
-        onRelease={() => {
-          const dayOf = (part: Part) =>
-            part.order.sales_order
-              ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
-              : []
-          const days = selected.flatMap(dayOf)
-          const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
-          if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
-        }}
-      />
+        {/* Only where lines are put on machines by hand, and only for one day. */}
+        {board.assignsMachines && day ? (
+          <MachineLoads departmentId={departmentId} day={day} />
+        ) : null}
+
+        <ScheduledToolbar
+          total={parts.length}
+          day={day}
+          selectedCount={selected.length}
+          selectionKind={selectionKind}
+          canRelease={canRelease}
+          isReleasing={release.isPending}
+          onAllocatedStock={() => setStockOpen(true)}
+          onRelease={() => {
+            const dayOf = (part: Part) =>
+              part.order.sales_order
+                ? [{ sales_order_id: part.order.sales_order.id, production_date: part.day }]
+                : []
+            const days = selected.flatMap(dayOf)
+            const exportDays = selected.filter(part => exportIds.has(part.key)).flatMap(dayOf)
+            if (departmentId && days.length) release.mutate({ days, exportDays, departmentId })
+          }}
+        />
+      </StickyTop>
 
       {!isPending && whole && !parts.length ? (
         <Empty>
@@ -377,31 +388,34 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns add up to less than the minimum width, so the customer name always has
-              room left over — crush it to nothing and two headers print on top of each other. */}
-          {/* Rollforming's Export and wider Rollforming Location take room of their own: 1468px fixed. */}
+        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+          {/* The fixed columns take 1228px, with Rollforming's Export and wider Rollforming Location
+              1388px; the minimum width leaves the customer name 160px over them — crush it to nothing
+              and two headers print on top of each other. */}
           <Table
             ref={tableRef}
             data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-400' : 'min-w-360')}
+            className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}
           >
             <colgroup>
-              <col className='w-12' />
+              {selectable ? <col className='w-12' /> : null}
               {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
               <col className='w-15' />
               {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead />
+                {selectable ? <TableHead /> : null}
                 <TableHead />
                 {columns.headers}
               </TableRow>
             </TableHeader>
             {isPending ? (
               <TableBody>
-                <TableSkeletonRows columns={10} />
+                {/* Every column but the expand one, which the skeleton draws as its trailing cell. */}
+                <TableSkeletonRows
+                  columns={(selectable ? 1 : 0) + board.tables.scheduled.columns.length}
+                />
               </TableBody>
             ) : (
               <>

@@ -15,14 +15,14 @@ import {
 } from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
-import { useBoard, useViewOnly } from '../lib/board-context'
+import { useBoard, useScheduledSelectable, useViewOnly } from '../lib/board-context'
 import { toMake, type partState, type splitOf } from '../lib/parts'
-import { orderStatus } from '../lib/status'
+import { orderStatus } from '@/lib/status'
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { PriorityCell } from './priority-cell'
 import { ReviewedToggle } from './reviewed-toggle'
 import { ScheduledLineItems } from './scheduled-line-items'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 
 /**
  * One production day of one order — what a row stands for: a split order is one row per day it has
@@ -173,6 +173,8 @@ export const ScheduledRow = ({
   const stopRowClick = (event: { stopPropagation: () => void }) => event.stopPropagation()
   const board = useBoard()
   const viewOnly = useViewOnly()
+  // Elsewhere the select column is left out rather than drawn empty.
+  const selectable = useScheduledSelectable()
   const { cells } = useColumnCells(board.tables.scheduled)
 
   // Gate 1: every line of this part that still has to be made carries a machine — on a board that
@@ -188,9 +190,8 @@ export const ScheduledRow = ({
         data-state={selected ? 'selected' : undefined}
         onClick={toggleExpanded}
       >
-        <TableCell card='lead' onClick={stopRowClick}>
-          {/* Only a department that makes what it packs reviews and releases it p3 (1103,281). */}
-          {board.makes && !viewOnly ? (
+        {selectable ? (
+          <TableCell card='lead' onClick={stopRowClick}>
             <SelectCell
               released={released}
               reviewed={reviewed}
@@ -199,8 +200,8 @@ export const ScheduledRow = ({
               invoice={order.invoice}
               onToggle={checked => onSelect(key, checked)}
             />
-          ) : null}
-        </TableCell>
+          </TableCell>
+        ) : null}
         <TableCell card='trail' onClick={stopRowClick}>
           <Button
             variant='ghost'
@@ -330,7 +331,11 @@ export const ScheduledRow = ({
 
       {expanded ? (
         <TableRow>
-          <TableCell colSpan={11}>
+          {/* The select column where there is one, the expand column and the table's own. */}
+          <TableCell
+            colSpan={(selectable ? 2 : 1) + board.tables.scheduled.columns.length}
+            className='lg:overflow-visible'
+          >
             <ScheduledLineItems
               order={order}
               departmentId={departmentId}

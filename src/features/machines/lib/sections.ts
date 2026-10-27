@@ -1,5 +1,6 @@
 import { inBoardOrder } from '@/lib/departments'
 import type { Department, Machine } from '../api'
+import { inMachineOrder } from './order'
 
 // A machine whose department the API no longer lists still has to be reachable.
 const NO_DEPARTMENT = 'none'
@@ -36,7 +37,7 @@ export const machineSections = ({ machines, departments }: Input): MachineSectio
     code: department.code,
     department,
     unit: UNITS[department.code] ?? 'pieces',
-    machines: all.filter(machine => machine.department === department.id)
+    machines: inMachineOrder(all.filter(machine => machine.department === department.id))
   }))
 
   const orphans = all.filter(

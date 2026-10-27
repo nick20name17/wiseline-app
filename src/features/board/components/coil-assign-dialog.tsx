@@ -74,10 +74,10 @@ export type CoilCurrent = Pick<
 >
 
 /**
- * A line split by coil p2 (679,416): the Manager assigns the units ticked, per line; the Worker fills
- * in the units still without one.
+ * A line split by coil p2 (679,416): the Manager assigns the units ticked, the Worker fills in the
+ * units still without one — per line, and a line left out is set whole.
  */
-type CoilUnits = { assign?: Record<string, number[]>; fill?: UnitCoil[] | null }
+type CoilUnits = { assign?: Record<string, number[]>; fill?: Record<string, UnitCoil[]> }
 
 type CoilAssignFormProps = {
   lines: CoilLine[]
@@ -104,7 +104,8 @@ const CoilAssignForm = ({
   units,
   onDone
 }: CoilAssignFormProps) => {
-  const current = units?.fill?.length ? currentOf(units.fill) : lineCurrent
+  const filled = Object.values(units?.fill ?? {}).flat()
+  const current = filled.length ? currentOf(filled) : lineCurrent
   // The lines are one Product ID p2 (540,467), so any of them names the coils.
   const first = lines[0]?.id ?? null
   const { data: choices, isPending: choicesPending } = useQuery(coilChoicesQuery(first))
@@ -154,7 +155,7 @@ const CoilAssignForm = ({
           assign.mutate({ ...choice, units: units?.assign }, { onSuccess: onDone })
         else if (action === 'fill')
           fillIn.mutate(
-            lines.flatMap(line => fillEntries(line.id, units?.fill ?? null, choice)),
+            lines.flatMap(line => fillEntries(line.id, units?.fill?.[line.id] ?? null, choice)),
             { onSuccess: onDone }
           )
         else markSlit.mutate(choice, { onSuccess: onDone })
@@ -217,7 +218,9 @@ const CoilAssignForm = ({
           <FieldDescription>
             {coilLocked
               ? 'Set by the Manager — locked.'
-              : 'Type it, or pick a Lot Number from a coil below.'}
+              : supplier
+                ? 'Type it, or pick a Lot Number from a coil below.'
+                : 'Pick a Supplier first.'}
           </FieldDescription>
         </Field>
 
@@ -286,7 +289,11 @@ const CoilAssignForm = ({
                     <li key={lot.coil_number}>
                       <button
                         type='button'
-                        className='flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-muted'
+                        className={cn(
+                          'flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-muted',
+                          coilNumber === lot.coil_number && 'bg-primary/10'
+                        )}
+                        aria-pressed={coilNumber === lot.coil_number}
                         onClick={() => setCoilNumber(lot.coil_number)}
                       >
                         <span className='font-mono'>{lot.coil_number}</span>
@@ -316,6 +323,21 @@ const CoilAssignForm = ({
       </DialogFooter>
     </form>
   )
+}
+
+/** What the coil is for: the units when it is set per unit, the lines otherwise. */
+const describe = (lines: CoilLine[], units: CoilUnits | undefined) => {
+  const product = lines[0]?.id_inven ?? '—'
+  // Units name the choice only when every line is set per unit; a whole line among them is a line.
+  const picked = lines.map(
+    line => units?.assign?.[line.id] ?? units?.fill?.[line.id]?.map(unit => unit.unit) ?? []
+  )
+  if (!picked.length || !picked.every(numbers => numbers.length))
+    return `${lines.length} line${lines.length === 1 ? '' : 's'} of ${product}`
+  const [only] = picked
+  if (picked.length === 1 && only) return `Units ${unitRuns(only)} of ${product}`
+  const count = picked.reduce((total, numbers) => total + numbers.length, 0)
+  return `${count} units on ${picked.length} lines of ${product}`
 }
 
 type CoilAssignDialogProps = {
@@ -348,13 +370,9 @@ export const CoilAssignDialog = ({
     <DialogContent className='sm:max-w-2xl'>
       <DialogHeader>
         <DialogTitle>{TITLE[action]}</DialogTitle>
-        <DialogDescription>
-          {units?.fill?.length
-            ? `Units ${unitRuns(units.fill.map(unit => unit.unit))} of ${lines[0]?.id_inven ?? '—'}`
-            : `${lines.length} line${lines.length === 1 ? '' : 's'} of ${lines[0]?.id_inven ?? '—'}`}
-        </DialogDescription>
+        <DialogDescription>{describe(lines, units)}</DialogDescription>
       </DialogHeader>
-      {/* The popup unmounts once closed, so the next opening starts from Undefined. */}
+      {/* The popup unmounts once closed, so the next opening starts again from `current`. */}
       <CoilAssignForm
         lines={lines}
         action={action}

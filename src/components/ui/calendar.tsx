@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cn } from 'cn'
 import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from 'react-day-picker'
+import { enUS } from 'react-day-picker/locale'
 
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'lucide-react'
@@ -11,7 +12,8 @@ function Calendar({
   showOutsideDays = true,
   captionLayout = 'label',
   buttonVariant = 'ghost',
-  locale,
+  // The app speaks English; left to the browser, the month dropdown read «жовт.» on a Ukrainian one.
+  locale = enUS,
   formatters,
   components,
   ...props

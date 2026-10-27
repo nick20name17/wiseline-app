@@ -1,4 +1,5 @@
 import { authApi } from '@/api/client'
+import { toast } from '@/components/ui/toast'
 import {
   infiniteQueryOptions,
   keepPreviousData,
@@ -12,12 +13,19 @@ import * as z from 'zod/mini'
 
 const shippingKeys = {
   all: ['shipping'] as const,
-  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.all, 'unscheduled', filter] as const,
+  // The lists and their count under one prefix, so whatever refreshes one refreshes both; only the
+  // lists hold rows to patch.
+  unscheduledLists: () => [...shippingKeys.all, 'unscheduled', 'list'] as const,
+  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.unscheduledLists(), filter] as const,
+  // Under the list's own key, so whatever refreshes the list refreshes its count.
+  unscheduledCount: () => [...shippingKeys.all, 'unscheduled', 'count'] as const,
   totals: (selection: Selection) => [...shippingKeys.all, 'totals', selection] as const,
   selection: (selection: Selection, shipDate: string | null) =>
     [...shippingKeys.all, 'selection', { ...selection, shipDate }] as const,
   scheduledDays: () => [...shippingKeys.all, 'scheduled'] as const,
   scheduled: (shipDate: string) => [...shippingKeys.scheduledDays(), shipDate] as const,
+  // Apart from the days: a Load action awaits the days' refetch, and the count need not hold it up.
+  scheduledCount: () => [...shippingKeys.all, 'scheduled-count'] as const,
   allLoads: () => [...shippingKeys.all, 'loads'] as const,
   loads: (truckId: number, shipDate: string) =>
     [...shippingKeys.allLoads(), truckId, shipDate] as const,
@@ -52,10 +60,13 @@ const NO_NOTE: OrderNote = {
 // carries no order, so 0 of 0.
 const readinessShape = {
   lines_total: z._default(z.number(), 0),
-  lines_ready: z._default(z.number(), 0)
+  lines_ready: z._default(z.number(), 0),
+  // The lines a department makes: with none, the order has nothing to package and is Loaded once
+  // its Load is released.
+  lines_made: z._default(z.number(), 0)
 }
 
-export type Readiness = { lines_total: number; lines_ready: number }
+export type Readiness = { lines_total: number; lines_ready: number; order_number: string | null }
 
 const unscheduledOrderSchema = z.object({
   ...readinessShape,
@@ -129,6 +140,48 @@ export const unscheduledQuery = ({ search, shipFrom, shipTo }: UnscheduledFilter
     }
   })
 
+/** How many deliveries wait on the Unscheduled tab, whatever it is searched or filtered to. */
+export const unscheduledCountQuery = queryOptions({
+  queryKey: shippingKeys.unscheduledCount(),
+  queryFn: async () =>
+    unscheduledPageSchema.parse(
+      await authApi.get('shipping/unscheduled/', { searchParams: { limit: 1 } }).json()
+    ).count
+})
+
+/**
+ * How much is on a truck and not delivered yet, overdue included: the Scheduled tab's count. Pickups
+ * count too, since the tab lists them beside the orders.
+ */
+export const scheduledCountQuery = queryOptions({
+  queryKey: shippingKeys.scheduledCount(),
+  queryFn: async () => {
+    const { orders, pickups } = z
+      .object({ orders: z._default(z.number(), 0), pickups: z._default(z.number(), 0) })
+      .parse(await authApi.get('shipping/scheduled/count/').json())
+    return orders + pickups
+  }
+})
+
+const liveCountsSchema = z.object({
+  unscheduled: z.number(),
+  scheduled: z.object({ orders: z.number(), pickups: z.number() })
+})
+
+/**
+ * The tabs' counts as the counts socket pushes them after a change: the same figures the two count
+ * queries read, written into their caches.
+ */
+export const applyShippingCounts = (client: QueryClient, pushed: unknown) => {
+  const counts = liveCountsSchema.safeParse(pushed).data
+  if (!counts) return
+  client.setQueryData(shippingKeys.unscheduledCount(), counts.unscheduled)
+  client.setQueryData(
+    shippingKeys.scheduledCount(),
+    counts.scheduled.orders + counts.scheduled.pickups
+  )
+}
+
 const shipmentTotalsSchema = z.object({
   count: z._default(z.number(), 0),
   total_weight: z._default(z.number(), 0),
@@ -198,11 +251,13 @@ export const truckPanelsQuery = (selection: Selection, shipDate: string | null) 
 
 // Awaited, so a button stays busy until the Loads it moved are read back: a second click on a stale
 // Load would be refused by the server.
-const refreshLoads = (client: QueryClient) =>
-  Promise.all([
+const refreshLoads = (client: QueryClient) => {
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledCount() })
+  return Promise.all([
     client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() }),
     client.invalidateQueries({ queryKey: shippingKeys.allLoads() })
   ])
+}
 
 /** A POST on the day's Loads: they and the truck cards are read back, nothing else. */
 const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>) =>
@@ -211,6 +266,19 @@ const useLoadPost = <T>(errorTitle: string, post: (input: T) => Promise<unknown>
     mutationFn: post,
     onSettled: (_, __, ___, ____, { client }) => refreshLoads(client)
   })
+
+/** Orders moved between Unscheduled and a day: both lists are read back. */
+const refreshSchedule = (client: QueryClient) => {
+  void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
+  void client.invalidateQueries({ queryKey: shippingKeys.scheduledCount() })
+}
+
+// EBMS takes a Ship Date only on an Open order; one already invoiced still ships, its date kept
+// only in the app.
+const appliedSchema = z.object({
+  ship_date_not_in_ebms: z._default(z.array(z.string()), [])
+})
 
 /**
  * Apply: the selection goes on the truck for the day, leaves Unscheduled and shows under that date and
@@ -230,12 +298,18 @@ export const useApplyShipping = (onSuccess: () => void) =>
             truck_id: input.truckId
           }
         })
-        .json(),
+        .json()
+        .then(data => appliedSchema.parse(data)),
     // Closed first: the refetch takes the scheduled orders out of the open window's selection.
-    onSuccess: (_, __, ___, { client }) => {
+    onSuccess: ({ ship_date_not_in_ebms: kept }, __, ___, { client }) => {
       onSuccess()
-      void client.invalidateQueries({ queryKey: [...shippingKeys.all, 'unscheduled'] })
-      void client.invalidateQueries({ queryKey: shippingKeys.scheduledDays() })
+      refreshSchedule(client)
+      if (kept.length)
+        toast.add({
+          type: 'warning',
+          title: 'Ship Date not written to EBMS',
+          description: `${kept.join(', ')}: no longer Open in EBMS, so the date is kept only here.`
+        })
     }
   })
 
@@ -258,6 +332,9 @@ const assignmentSchema = z.object({
   weight: z._default(z.number(), 0),
   load_id: z._default(z.nullable(z.number()), null),
   status: z._default(z.nullable(z.string()), null),
+  // A supplier pickup's own particulars, for its edit form; the scheduled rows do not carry them yet.
+  description: z._default(z.nullable(z.string()), null),
+  length: z._default(z.nullable(z.number()), null),
   // Past its ship date and not delivered p3 (605,628).
   is_overdue: z._default(z.boolean(), false)
 })
@@ -369,6 +446,21 @@ export const dayLoadsQuery = (shipDate: string, statuses: readonly string[]) =>
       )
   })
 
+/**
+ * Back to Unscheduled — «hold it, we will call». EBMS's Ship Date stays as it is; the server refuses
+ * an order on a Load.
+ */
+export const useUnschedule = (onSuccess: () => void) =>
+  useMutation({
+    meta: { errorTitle: 'The orders stayed scheduled' },
+    mutationFn: (orders: string[]) =>
+      authApi.post('shipping/unschedule/', { json: { orders } }).json(),
+    onSuccess: (_, __, ___, { client }) => {
+      onSuccess()
+      refreshSchedule(client)
+    }
+  })
+
 /** Add To Load: the ticked orders go on the Load; `loadId` is the tab being filled, `null` a new one. */
 export const useAddToLoad = () =>
   useLoadPost(
@@ -393,6 +485,15 @@ export const useRemoveFromLoad = () =>
 export const useReleaseLoad = () =>
   useLoadPost('The Load was not released', (loadId: number) =>
     authApi.post(`shipping/loads/${loadId}/release/`).json()
+  )
+
+/**
+ * Takes a release back so a Load can be changed: Unreleased again, its orders' statuses blank, every
+ * package ticked onto it off the truck. The server refuses once the Driver has left.
+ */
+export const useUnreleaseLoad = () =>
+  useLoadPost('The Load stayed released', (loadId: number) =>
+    authApi.post(`shipping/loads/${loadId}/unrelease/`).json()
   )
 
 const shippingLineSchema = z.object({
@@ -569,11 +670,20 @@ export const pickupPayloadSchema = z.object({
       z.maxLength(255, 'At most 255 characters')
     ),
   description: z.string().check(z.trim(), z.maxLength(255, 'At most 255 characters')),
-  weight: z.nullable(z.number().check(z.nonnegative('Cannot be negative'))),
-  length: z.nullable(z.number().check(z.nonnegative('Cannot be negative')))
+  // A typed «abc» reaches here as NaN, which zod words «Invalid input».
+  weight: z.nullable(
+    z.number({ error: 'Enter a number' }).check(z.nonnegative('Cannot be negative'))
+  ),
+  length: z.nullable(
+    z.number({ error: 'Enter a number' }).check(z.nonnegative('Cannot be negative'))
+  )
 })
 
 export type PickupPayload = z.infer<typeof pickupPayloadSchema>
+
+// The server keeps no description as null, not an empty string.
+const pickupJson = (fields: Partial<PickupPayload>) =>
+  'description' in fields ? { ...fields, description: fields.description || null } : fields
 
 /**
  * A supplier pickup — «things that a delivery driver needs to pickup for a supplier», not a customer
@@ -586,15 +696,38 @@ export const useCreatePickup = () =>
       authApi
         .post('shipping/pickups/', {
           json: {
-            supplier: input.supplier,
-            description: input.description || null,
-            weight: input.weight,
-            length: input.length,
+            ...pickupJson({
+              supplier: input.supplier,
+              description: input.description,
+              weight: input.weight,
+              length: input.length
+            }),
             ship_date: input.shipDate,
             truck_id: input.truckId
           }
         })
         .json()
+  )
+
+/**
+ * A pickup typed wrong, corrected until its Load is released. Only the fields changed are sent: the
+ * rest stay as the server has them.
+ */
+export const useUpdatePickup = () =>
+  useLoadPost(
+    'The pickup was not saved',
+    ({ id, ...fields }: Partial<PickupPayload> & { id: number }) =>
+      authApi
+        .patch(`shipping/pickups/${id}/`, {
+          json: pickupJson(fields)
+        })
+        .json()
+  )
+
+/** A pickup the supplier cancelled: off the day and its Load, until that Load is released. */
+export const useDeletePickup = () =>
+  useLoadPost('The pickup was not deleted', (id: number) =>
+    authApi.delete(`shipping/pickups/${id}/`).json()
   )
 
 /** Every order's note on a page of Unscheduled, keyed as the shared Order Notes window reads them. */
@@ -729,7 +862,7 @@ const patchUnscheduled = (
   patch: (row: UnscheduledOrder) => UnscheduledOrder
 ) =>
   client.setQueriesData<UnscheduledPages>(
-    { queryKey: [...shippingKeys.all, 'unscheduled'] },
+    { queryKey: shippingKeys.unscheduledLists() },
     data =>
       data && {
         ...data,
@@ -751,7 +884,7 @@ export const useSetShippingPriority = (order: string) =>
     mutationFn: async (input: { departmentId: number; priority: Priority | null }, { client }) => {
       // Read now, not when clicked: a pick queued behind the one that made the sales order uses it.
       let id = client
-        .getQueriesData<UnscheduledPages>({ queryKey: [...shippingKeys.all, 'unscheduled'] })
+        .getQueriesData<UnscheduledPages>({ queryKey: shippingKeys.unscheduledLists() })
         .flatMap(([, data]) => data?.pages.flatMap(page => page.results) ?? [])
         .find(row => row.order === order)?.sales_order_id
       if (!id) {

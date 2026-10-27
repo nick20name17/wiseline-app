@@ -22,16 +22,18 @@ import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { lineName, packageContents } from '../lib/wrapping'
+import { contentNames } from '../lib/wrapping'
+import { PackageContents } from './package-contents'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { reprintLabel } from '../lib/package-label'
-import { usePackageLabel } from './use-package-label'
+import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
 type PackagesDialogProps = {
   order: string
   number: string
   /** The order's lines on this board, which name a package's contents and say which are its own. */
-  rows: { origin_item: string; product_id: string | null }[]
+  rows: { origin_item: string; product_id: string | null; length: number | null }[]
+  /** A split order's part on the bench, by its production day: only its packages are listed. */
+  part?: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -45,17 +47,18 @@ export const PackagesDialog = ({
   order,
   number,
   rows,
+  part = null,
   open,
   onOpenChange
 }: PackagesDialogProps) => {
   const { pack } = useBoard()
-  const { data: all, isPending } = useQuery(orderPackagesQuery(order, open))
+  const { data: all, isPending } = useQuery(orderPackagesQuery(order, open, part))
   const [deleting, setDeleting] = useState<Package | null>(null)
   const remove = useDeletePackage()
   const reprint = useReprintPackage()
-  const label = usePackageLabel()
+  const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
-  const names = new Map(rows.map(row => [row.origin_item, lineName(row)]))
+  const names = contentNames(rows)
   // The order's packages across every department come back; the bench deletes only its own.
   const packages = all?.filter(parcel =>
     parcel.contents.every(line => line.origin_item !== null && names.has(line.origin_item))
@@ -98,9 +101,7 @@ export const PackagesDialog = ({
                         <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                       </TableCell>
                       <TableCell label='Contents' card='full'>
-                        <span className='text-muted-foreground'>
-                          {packageContents(parcel.contents, names)}
-                        </span>
+                        <PackageContents contents={parcel.contents} rows={rows} />
                       </TableCell>
                       <TableCell label='Weight'>
                         <span className='font-mono'>
@@ -127,7 +128,7 @@ export const PackagesDialog = ({
                               disabled={reprint.isPending}
                               onClick={() =>
                                 reprint.mutate(parcel.package_id, {
-                                  onSuccess: data => label.print(reprintLabel(data, names))
+                                  onSuccess: data => printLabel(reprintLabel(data, names))
                                 })
                               }
                             >
@@ -184,7 +185,6 @@ export const PackagesDialog = ({
             })
           }
         />
-        {label.sheet}
       </DialogContent>
     </Dialog>
   )

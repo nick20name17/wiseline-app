@@ -1,10 +1,18 @@
-import { Badge } from '@/components/ui/badge'
+import { Description } from '@/components/description'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { orderLinesQuery, type Readiness } from '../api'
-import { statusLabel } from '../lib/status'
+import { StatusPill } from '@/components/status-pill'
+import { itemStatus, lineReadiness } from '@/lib/status'
 
 const count = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -23,11 +31,11 @@ export const OrderLines = ({ order }: { order: string }) => {
   return (
     <ul className='divide-y divide-border'>
       {lines.map(line => (
-        // Two lines rather than six columns: a popover row is too narrow for the description.
+        // Two lines rather than six columns: a dialog's row is too narrow for the description.
         <li key={line.origin_item} className='flex items-start gap-3 px-3 py-2 text-sm'>
-          <Badge variant={line.ready ? 'muted' : 'destructive'} className='w-24 justify-center'>
-            {line.ready ? 'Ready' : 'Not ready'}
-          </Badge>
+          <span className='w-24 shrink-0'>
+            <StatusPill status={lineReadiness(line.ready)} />
+          </span>
           <div className='min-w-0 flex-1'>
             <div className='flex gap-3'>
               <span className='truncate font-mono'>{line.product_id ?? '—'}</span>
@@ -35,13 +43,10 @@ export const OrderLines = ({ order }: { order: string }) => {
                 {count.format(line.packaged)} / {count.format(line.quantity)}
               </span>
             </div>
-            <p className='truncate text-muted-foreground' title={line.description ?? undefined}>
-              {line.description ?? '—'}
-            </p>
-            <p className='text-xs text-muted-foreground'>
-              {[line.department ?? 'Bought in', statusLabel(line.status)]
-                .filter(Boolean)
-                .join(' · ')}
+            <Description text={line.description} className='text-muted-foreground' />
+            <p className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
+              {line.department ?? 'Bought in'}
+              {line.status ? <StatusPill status={itemStatus(line.status)} /> : null}
             </p>
           </div>
         </li>
@@ -54,22 +59,34 @@ type ReadyCountProps = { order: string | null; readiness: Readiness; className?:
 
 /**
  * «2 of 3 ready» on an order row, opening into its lines. A tap rather than a hover: the floor's
- * screens are touch. Nothing for a pickup, which has no order lines.
+ * screens are touch. A dialog rather than a popover: an order of thirty lines ran a popover off the
+ * screen, with nothing to scroll it by. Nothing for a pickup, which has no order lines.
  */
 export const ReadyCount = ({ order, readiness, className }: ReadyCountProps) => {
   if (!order || !readiness.lines_total) return null
   const all = readiness.lines_ready === readiness.lines_total
 
   return (
-    <Popover>
-      <PopoverTrigger
+    <Dialog>
+      <DialogTrigger
         render={<Button variant={all ? 'ghost' : 'destructive'} size='sm' className={className} />}
       >
         {all ? 'All ready' : `${readiness.lines_ready} of ${readiness.lines_total} ready`}
-      </PopoverTrigger>
-      <PopoverContent align='end' className='w-96 max-w-(--available-width)'>
-        <OrderLines order={order} />
-      </PopoverContent>
-    </Popover>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Lines · Order {readiness.order_number ?? '—'}</DialogTitle>
+          <DialogDescription>
+            {all
+              ? `All ${readiness.lines_total} ready.`
+              : `${readiness.lines_ready} of ${readiness.lines_total} ready, the ones not ready first.`}
+          </DialogDescription>
+        </DialogHeader>
+        {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
+        <div className='scrollport rounded-lg border border-border md:max-h-96 md:overflow-y-auto'>
+          <OrderLines order={order} />
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

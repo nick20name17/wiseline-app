@@ -1,12 +1,17 @@
 import { authApi, publicApi } from '@/api/client'
 import { queryClient } from '@/lib/query-client'
+import { isLogin, LOGIN_RULE } from '@/lib/login'
+import { loadPreferences } from '@/lib/preferences'
 import { sessionStore } from '@/lib/session-store'
 import { queryOptions } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 import { userIdFromToken } from './lib/jwt'
 
 export const credentialsSchema = z.object({
-  email: z.string().check(z.minLength(1, 'Email is required'), z.email('Enter a valid email')),
+  // `email` carries a login word too, for a worker without an address.
+  email: z
+    .string()
+    .check(z.trim(), z.minLength(1, 'Email or login is required'), z.refine(isLogin, LOGIN_RULE)),
   password: z.string().check(z.minLength(1, 'Password is required'))
 })
 
@@ -25,10 +30,7 @@ const userSchema = z.object({
   first_name: z._default(z.string(), ''),
   last_name: z._default(z.string(), ''),
   role: z.string(),
-  is_active: z._default(z.boolean(), true),
-  // Null for roles that have none, admin's included.
-  prod_types: z.catch(z.array(z.string()), []),
-  process_types: z.catch(z.array(z.string()), [])
+  is_active: z._default(z.boolean(), true)
 })
 
 export const login = async (credentials: Credentials) => {
@@ -115,3 +117,24 @@ export const resetPassword = ({ uid64, token }: ResetPasswordLink, values: Reset
       }
     })
     .json()
+
+const preferenceUrl = (key: string) => `users/me/preferences/${encodeURIComponent(key)}/`
+
+/**
+ * The signed-in user's own settings — each table's column order and widths — read once as the app
+ * opens. If they cannot be read, the tables keep their declared layout and the next page asks again.
+ */
+export const openPreferences = async () => {
+  try {
+    const all = z
+      .record(z.string(), z.unknown())
+      .parse(await authApi.get('users/me/preferences/').json())
+    loadPreferences(all, (key, value) =>
+      value === null
+        ? authApi.delete(preferenceUrl(key))
+        : authApi.put(preferenceUrl(key), { json: value })
+    )
+  } catch {
+    // Left unloaded: nothing to show but the declared layouts.
+  }
+}

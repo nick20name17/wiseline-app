@@ -1,7 +1,8 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from 'cn'
 import { formatWeight } from '../lib/format'
-import { statusLabel } from '../lib/status'
+import { StatusPill } from '@/components/status-pill'
+import { loadStatus, orderStatus } from '@/lib/status'
 import type { Assignment, DayLoad } from '../api'
 import { ReadyCount } from './order-readiness'
 
@@ -11,6 +12,14 @@ type OrderLineProps = {
   lead?: React.ReactNode
   /** After the status: the row's action. */
   trail?: React.ReactNode
+}
+
+// A pickup is collected, not delivered: the row says what its Driver button said.
+const assignmentStatus = (order: Assignment) => {
+  const status = orderStatus(order.status)
+  return status && order.kind === 'pickup' && order.status === 'delivered'
+    ? { ...status, label: 'Picked Up' }
+    : status
 }
 
 /** An order on a truck, the same row in Shipping, Loading and Driver. */
@@ -42,8 +51,8 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
     <span className='w-28 text-right font-mono text-muted-foreground max-md:w-auto'>
       {formatWeight(order.weight)}
     </span>
-    <span className='w-24 text-right text-xs text-muted-foreground max-md:w-auto'>
-      {statusLabel(order.status) ?? ''}
+    <span className='flex w-28 justify-end max-md:w-auto'>
+      {order.status ? <StatusPill status={assignmentStatus(order)} /> : null}
     </span>
     {/* The shipper sends what is done when the customer needs it (round 10, C1). */}
     <span className='flex w-32 justify-end max-md:w-auto'>
@@ -69,7 +78,7 @@ export const LoadCard = ({ load, action, children }: LoadCardProps) => (
         {load.name}
       </span>
       <span className='font-mono text-sm text-muted-foreground'>{formatWeight(load.weight)}</span>
-      <Badge variant='muted'>{statusLabel(load.status)}</Badge>
+      {load.status ? <StatusPill status={loadStatus(load.status)} /> : null}
       {/* On a phone the action takes the card's width: it is what the Driver came to press. */}
       {action ? <span className='ml-auto max-md:w-full max-md:*:w-full'>{action}</span> : null}
     </header>

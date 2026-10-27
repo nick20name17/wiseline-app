@@ -1,7 +1,9 @@
+import { QrLabels } from '@/components/qr-labels'
+import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/search-input'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -12,13 +14,16 @@ import {
 } from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin, Printer } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { SortHead } from '@/components/table/sort-head'
+import { sortRows, type Sort } from '@/lib/sort-rows'
 import {
   allLocationTypesQuery,
   departmentsQuery,
   locationsQuery,
-  warehousePickerQuery
+  warehousePickerQuery,
+  type Location
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
@@ -26,6 +31,8 @@ import { LocationActions } from './location-actions'
 import { CreateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
+
+type SortKey = 'name' | 'warehouse' | 'type' | 'weight'
 
 type LocationsPageProps = {
   search: string | undefined
@@ -50,6 +57,9 @@ export const LocationsPage = ({
   const { data: departments } = useQuery(departmentsQuery)
 
   const [term, setTerm] = useState(search ?? '')
+  // By name, numbers as numbers: a location added to a series lands in it, not at the bottom.
+  const [printing, setPrinting] = useState(false)
+  const [sort, setSort] = useState<Sort<SortKey>>({ key: 'name', desc: false })
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleSearch = (value: string) => {
@@ -60,10 +70,25 @@ export const LocationsPage = ({
 
   const racked = rackedDepartments(departments)
   const active = departmentByCode(racked, department)
-  const locations = (page?.results ?? []).filter(
-    location =>
-      !active ||
-      types?.find(type => type.id === location.location_type_id)?.department_id === active.id
+  const typeOf = (location: Location) => types?.find(type => type.id === location.location_type_id)
+  const locations = sortRows(
+    (page?.results ?? []).filter(
+      location => !active || typeOf(location)?.department_id === active.id
+    ),
+    sort,
+    (location, key) =>
+      key === 'name'
+        ? location.code
+        : key === 'warehouse'
+          ? (warehouses?.find(warehouse => warehouse.id === location.warehouse_id)?.name ?? null)
+          : key === 'type'
+            ? (typeOf(location)?.name ?? null)
+            : location.weight
+  )
+
+  // The ones a coil is put on, which the forklift scans: each gets a label with its code.
+  const inventory = locations.filter(
+    location => typeOf(location)?.kind === 'inventory' && location.code
   )
 
   return (
@@ -73,18 +98,12 @@ export const LocationsPage = ({
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
         <div className='flex min-w-0 flex-1 items-center gap-3 max-sm:order-1 max-sm:basis-full'>
-          <InputGroup className='sm:max-w-60'>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='search'
-              aria-label='Search locations'
-              placeholder='Search...'
-              value={term}
-              onChange={event => handleSearch(event.target.value)}
-            />
-          </InputGroup>
+          <SearchInput
+            className='sm:max-w-60'
+            label='Search locations'
+            value={term}
+            onValueChange={handleSearch}
+          />
 
           {locations.length ? (
             <p className='shrink-0 text-sm text-muted-foreground'>
@@ -94,8 +113,26 @@ export const LocationsPage = ({
           ) : null}
         </div>
 
+        {inventory.length ? (
+          <Button variant='outline' onClick={() => setPrinting(true)}>
+            <Printer data-icon='inline-start' />
+            Print inventory labels
+          </Button>
+        ) : null}
         <CreateLocationDialog department={active} />
       </div>
+
+      {printing ? (
+        <QrLabels
+          labels={inventory.map(location => ({
+            key: String(location.id),
+            code: location.code ?? '',
+            title: location.code ?? '',
+            detail: typeOf(location)?.name
+          }))}
+          onDone={() => setPrinting(false)}
+        />
+      ) : null}
 
       {!isPending && !locations.length ? (
         <Empty>
@@ -111,22 +148,30 @@ export const LocationsPage = ({
         </Empty>
       ) : (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards className='min-w-6xl table-fixed'>
+          <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>
               <col className='w-40' />
-              <col className='w-48' />
-              <col className='w-48' />
-              <col className='w-36' />
               <col className='w-40' />
+              <col className='w-36' />
+              <col className='w-32' />
+              <col className='w-32' />
               <col />
               <col className='w-24' />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead>Location Type</TableHead>
-                <TableHead>Max Weight</TableHead>
+                <SortHead column='name' sort={sort} onSort={setSort}>
+                  Name
+                </SortHead>
+                <SortHead column='warehouse' sort={sort} onSort={setSort}>
+                  Warehouse
+                </SortHead>
+                <SortHead column='type' sort={sort} onSort={setSort}>
+                  Location Type
+                </SortHead>
+                <SortHead column='weight' sort={sort} onSort={setSort}>
+                  Max Weight
+                </SortHead>
                 <TableHead>Multi Order</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>

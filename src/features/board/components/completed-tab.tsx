@@ -1,4 +1,4 @@
-import { formatLongDate } from '@/lib/days'
+import { formatDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
@@ -53,7 +53,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const columns = useColumnOrder(tables.completed)
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-4'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3'>
       {isError && !page ? (
         <QueryError
           title='The completed orders did not load'
@@ -96,14 +96,14 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       ship: (
                         <TableCell>
                           <span className='text-muted-foreground'>
-                            {order.ship_date ? formatLongDate(order.ship_date) : 'N/A'}
+                            {formatDate(order.ship_date)}
                           </span>
                         </TableCell>
                       ),
                       prod: (
                         <TableCell>
                           <span className='text-muted-foreground'>
-                            {order.production_date ? formatLongDate(order.production_date) : '—'}
+                            {order.production_date ? formatDate(order.production_date) : '—'}
                           </span>
                         </TableCell>
                       ),

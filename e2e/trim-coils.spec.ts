@@ -100,9 +100,6 @@ test('Trim Coils are the coils inside the Coil Filter, All Coils ignores it', as
 test('a coil on the Slinet stays out of Rollforming, and the Slinet waits on a thickness', async ({
   page
 }) => {
-  await expect(
-    page.getByRole('checkbox', { name: 'Every coil of CB4826R in Rollforming' })
-  ).toBeDisabled()
   await openProduct(page, 'CB4826R')
   await openProduct(page, 'CB4828B')
   await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3782201/ })).toBeEnabled()
@@ -138,24 +135,67 @@ test('one coil is moved on its own, after asking', async ({ page }) => {
     .toEqual([{ path: '/coils/lots/LOT-42/location/', body: { in_trim: true } }])
 })
 
-test('moving a product from Rollforming to Trim asks first', async ({ page }) => {
+test('a coil in Trim is put on one of Trim’s racks', async ({ page }) => {
+  const placed: unknown[] = []
+  await page.route(`${API_URL}/coils/locations/?*`, route =>
+    route.fulfill({
+      json: [
+        { id: 5, code: 'T-1' },
+        { id: 6, code: 'T-2' }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/coils/lots/*/location/`, route => {
+    placed.push(route.request().postDataJSON())
+    return route.fulfill({ json: { ...LOTS[0], location_id: 6, location: 'T-2' } })
+  })
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
-  await page.getByRole('checkbox', { name: 'Every coil of CB4828B in Trim' }).click()
+  await openProduct(page, 'CB4826R')
+  await openProduct(page, 'CB4828B')
 
-  const dialog = page.getByRole('alertdialog')
-  await expect(
-    dialog.getByText(
-      'Have you checked with the Rollforming department to ensure that it is ok to move every coil of CB4828B to the Trim department?'
-    )
-  ).toBeVisible()
-  await expect(
-    dialog.getByText(/Yes moves every coil of CB4828B .* a coil can only be in one department/)
-  ).toBeVisible()
-  await dialog.getByRole('button', { name: 'No' }).click()
-  await expect(dialog).toBeHidden()
+  // A Rollforming coil is not Trim's to place.
+  await expect(page.getByRole('combobox', { name: 'Location of coil 3797401' })).toBeHidden()
+  await page.getByRole('combobox', { name: 'Location of coil 3782201' }).click()
+  await page.getByRole('option', { name: 'T-2' }).click()
+  await expect.poll(() => placed).toEqual([{ location_id: 6 }])
+})
+
+test('the forklift scans a coil, then the rack it goes on', async ({ page }) => {
+  const scans: unknown[] = []
+  await page.route(`${API_URL}/coils/scan-move/`, route => {
+    scans.push(route.request().postDataJSON())
+    return route.fulfill({ json: { ...LOTS[0], location_id: 5, location: 'T-1' } })
+  })
+  await page.getByRole('button', { name: 'Scan' }).click()
+  const dialog = page.getByRole('dialog')
+  // A scanner types into whatever has focus, so the box has it from the start.
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
+  await page.keyboard.type('3782201\n')
+  await expect(dialog.getByLabel('Location code')).toBeFocused()
+  await page.keyboard.type('t-1\n')
+  await expect.poll(() => scans).toEqual([{ coil: '3782201', location: 't-1' }])
+  await expect(page.getByText('Coil 3782201 is on T-1')).toBeVisible()
+  // Ready for the next coil.
+  await expect(dialog.getByLabel('Coil lot number')).toHaveValue('')
+})
+
+test('a refused scan starts over from the coil', async ({ page }) => {
+  await page.route(`${API_URL}/coils/scan-move/`, route =>
+    route.fulfill({ status: 404, json: { detail: 'No coil with lot number 9999999.' } })
+  )
+  await page.getByRole('button', { name: 'Scan' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
+  await page.keyboard.type('9999999\n')
+  await expect(dialog.getByLabel('Location code')).toBeFocused()
+  await page.keyboard.type('T-1\n')
+  await expect(page.getByText('No coil with lot number 9999999.')).toBeVisible()
+  await expect(dialog.getByLabel('Coil lot number')).toBeFocused()
 })
 
 test('the search narrows the list to one coil', async ({ page }) => {
+  // The header's box searches the coils; the tab has none of its own beside it.
+  await expect(page.getByRole('searchbox')).toHaveCount(1)
   const search = page.getByLabel('Search coils')
   await expect(search).toHaveAttribute('placeholder', 'Search — product / colour / gauge / coil #')
   await search.fill('3797401')
@@ -167,30 +207,27 @@ test('the search narrows the list to one coil', async ({ page }) => {
   await expect(page.getByText('No coils match')).toBeVisible()
 })
 
-test('a search that misses in one folder points to the others', async ({ page }) => {
-  await page.route(`${API_URL}/coils/folders/?*`, route =>
-    route.fulfill({
-      json: [
-        { folder_id: 'F-1', name: '26 Ga. B&B Coils', products: 1, lots: 1 },
-        { folder_id: 'F-2', name: '28 Ga. Coils', products: 1, lots: 1 }
-      ]
-    })
-  )
+test('the assignment filter splits the coils a department holds from the ones none does', async ({
+  page
+}) => {
   await page.route(`${API_URL}/coils/lots/?*`, route => {
-    const lots = [
-      { ...LOTS[0], folder_id: 'F-1' },
-      { ...LOTS[1], folder_id: 'F-2' }
-    ]
+    const lots = [LOTS[0], coil(44, 'CB4830G', '3811101')]
     return route.fulfill({ json: { count: lots.length, results: lots } })
   })
   await page.reload()
 
-  await page.getByRole('tab', { name: /26 Ga\. B&B Coils/ }).click()
-  await page.getByLabel('Search coils').fill('3797401')
+  await page.getByRole('tab', { name: 'Unassigned' }).click()
+  await expect(page.getByText('CB4830G')).toBeVisible()
+  await expect(page.getByText('CB4826R')).toBeHidden()
 
-  await expect(page.getByText('None in this folder — 1 in other folders.')).toBeVisible()
-  await page.getByRole('button', { name: 'Search all folders' }).click()
-  await expect(page.getByText('3797401')).toBeVisible()
+  await page.getByRole('tab', { name: 'Assigned', exact: true }).click()
+  await expect(page.getByText('CB4826R')).toBeVisible()
+  await expect(page.getByText('CB4830G')).toBeHidden()
+
+  await page.getByLabel('Search coils').fill('3811101')
+  await expect(page.getByText('None assigned — 1 is unassigned.')).toBeVisible()
+  await page.getByRole('button', { name: 'Show all coils' }).click()
+  await expect(page.getByText('CB4830G')).toBeVisible()
 })
 
 test('the list holds one row per product, opening into its coils', async ({ page }) => {
@@ -200,27 +237,10 @@ test('the list holds one row per product, opening into its coils', async ({ page
   await expect(page.getByText('3782201')).toBeVisible()
 })
 
-test('a product is put in a department in one call, its coils with it', async ({ page }) => {
-  const moved: { path: string; body: unknown }[] = []
-  await page.route(`${API_URL}/coils/products/*/location/`, route => {
-    moved.push({
-      path: new URL(route.request().url()).pathname,
-      body: route.request().postDataJSON()
-    })
-    return route.fulfill({
-      json: { product_id: 'CB4828B', in_trim: true, in_rollforming: false, lots: 2 }
-    })
-  })
+test('a product row counts its coils in each department, and moves none', async ({ page }) => {
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
-
-  await expect(
-    page.getByRole('checkbox', { name: 'Every coil of CB4828B in Rollforming' })
-  ).toBeChecked()
-  await page.getByRole('checkbox', { name: 'Every coil of CB4828B in Trim' }).click()
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Yes' }).click()
-  await expect
-    .poll(() => moved)
-    .toEqual([{ path: '/coils/products/CB4828B/location/', body: { in_trim: true } }])
+  await expect(page.getByLabel(/^\d+ of \d+ coils in Rollforming$/).first()).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /^Every coil of/ })).toHaveCount(0)
 })
 
 test('a figure opens the adjustment window, works the others out, and asks before it goes', async ({

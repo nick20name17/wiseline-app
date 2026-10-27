@@ -9,10 +9,30 @@
       "autoPort": true
     },
     {
+      "name": "review",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/Users/nazar1337/Desktop/EBMS/wiseline-design-review/node_modules/vite/bin/vite.js",
+        "/Users/nazar1337/Desktop/EBMS/wiseline-design-review",
+        "--mode",
+        "review",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
       "name": "dev-5174",
       "runtimeExecutable": "bunx",
       "runtimeArgs": ["vite", "--port", "5174", "--strictPort"],
       "port": 5174
+    },
+    {
+      "name": "hub-sim",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["/tmp/hubsim/serve.ts"],
+      "port": 5176
     }
   ]
 }

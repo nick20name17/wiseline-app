@@ -1,3 +1,4 @@
+import { SearchInput } from '@/components/search-input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -11,7 +12,6 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -26,7 +26,7 @@ import { toast } from '@/components/ui/toast'
 import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
-import { ImageOff, Pencil, Plus, Printer, QrCode, Search, SearchX, Trash2 } from 'lucide-react'
+import { ImageOff, Pencil, Plus, Printer, QrCode, SearchX, Trash2 } from 'lucide-react'
 import { useDeferredValue, useState, type ReactNode } from 'react'
 import {
   stockCardsQuery,
@@ -360,18 +360,13 @@ export const StockCardsPanel = ({ enabled, actions }: StockCardsPanelProps) => {
           <span className='font-medium text-foreground'>{shown.length}</span> of{' '}
           {cards?.length ?? 0} cards
         </span>
-        <InputGroup className='max-md:basis-full'>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search stock cards'
-            placeholder='Search product ID or description…'
-            value={search}
-            onChange={event => setSearch(event.target.value)}
-          />
-        </InputGroup>
+        <SearchInput
+          className='max-md:basis-full'
+          label='Search stock cards'
+          placeholder='Search product ID or description…'
+          value={search}
+          onValueChange={setSearch}
+        />
         <FilterSelect
           label='Filter by colour'
           all='All colours'

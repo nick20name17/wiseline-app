@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,12 +24,12 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
-import { itemStatus } from '../lib/status'
+import { itemStatus } from '@/lib/status'
 import { lineName } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Figure } from './figure'
 import { KeypadDialog } from './keypad-dialog'
-import { StatusPill } from './status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { BenchHeader } from './wrap-order'
 import { SelectionBar } from '@/components/selection-bar'
 
@@ -164,9 +165,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     <span className='font-mono'>{line.product_id ?? '—'}</span>
                   </TableCell>
                   <TableCell card='subtitle'>
-                    <span className='truncate text-muted-foreground'>
-                      {line.description ?? '—'}
-                    </span>
+                    <Description text={line.description} className='text-muted-foreground' />
                   </TableCell>
                   <TableCell label='Length'>
                     <span

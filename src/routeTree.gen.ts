@@ -21,6 +21,7 @@ import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/rou
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsGaugeWeightsRouteImport } from './routes/_app/settings/gauge-weights'
 import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
 import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
 import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
@@ -90,6 +91,11 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
+const AppSettingsGaugeWeightsRoute = AppSettingsGaugeWeightsRouteImport.update({
+  id: '/gauge-weights',
+  path: '/gauge-weights',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
 const AppSettingsLocationTypesRoute =
   AppSettingsLocationTypesRouteImport.update({
     id: '/location-types',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
+  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
   '/': typeof AppIndexRoute
+  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_app/shipping': typeof AppShippingRoute
   '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
   '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/_app/settings/locations': typeof AppSettingsLocationsRoute
   '/_app/settings/machines': typeof AppSettingsMachinesRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/rollforming'
     | '/shipping'
     | '/trim'
+    | '/settings/gauge-weights'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/trim'
     | '/'
+    | '/settings/gauge-weights'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_app/shipping'
     | '/_app/trim'
     | '/_app/'
+    | '/_app/settings/gauge-weights'
     | '/_app/settings/location-types'
     | '/_app/settings/locations'
     | '/_app/settings/machines'
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
+    '/_app/settings/gauge-weights': {
+      id: '/_app/settings/gauge-weights'
+      path: '/gauge-weights'
+      fullPath: '/settings/gauge-weights'
+      preLoaderRoute: typeof AppSettingsGaugeWeightsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
     '/_app/settings/location-types': {
       id: '/_app/settings/location-types'
       path: '/location-types'
@@ -433,6 +452,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppSettingsRouteRouteChildren {
+  AppSettingsGaugeWeightsRoute: typeof AppSettingsGaugeWeightsRoute
   AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
   AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
   AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
@@ -445,6 +465,7 @@ interface AppSettingsRouteRouteChildren {
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsGaugeWeightsRoute: AppSettingsGaugeWeightsRoute,
   AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
   AppSettingsLocationsRoute: AppSettingsLocationsRoute,
   AppSettingsMachinesRoute: AppSettingsMachinesRoute,

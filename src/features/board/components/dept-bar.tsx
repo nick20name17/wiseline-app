@@ -1,6 +1,6 @@
+import { TabCount } from '@/components/tab-count'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from 'cn'
 import { History } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useActiveInView } from '@/hooks/use-active-in-view'
@@ -46,28 +46,15 @@ export const DeptBar = ({ views, view, counts, onNavigate, actions }: DeptBarPro
           <TabsList variant='line' className='h-9'>
             {/* A tab a role has no business with is not there at all, rather than there and dead. */}
             {strip.map(tab => (
-              <TabsTrigger key={tab} value={tab}>
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                // The Slit Line keeps lit the tab it was opened from, and Tabs report no change for
+                // the lit one: without this, clicking it would not leave the Slit Line.
+                onClick={tab === view ? () => onNavigate(tab) : undefined}
+              >
                 {VIEW_LABELS[tab]}
-                {tab in counts ? (
-                  // The count takes the tab's own colour, so the active one reads as one thing. It
-                  // holds its place while the list loads, rather than shunting the tabs beside it.
-                  <span
-                    className={cn(
-                      'ml-0.5 inline-grid justify-items-center rounded-full px-1.5 font-mono text-xs',
-                      tab === view
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-muted text-muted-foreground',
-                      counts[tab] === undefined && 'opacity-0'
-                    )}
-                  >
-                    <span className='col-start-1 row-start-1'>{counts[tab]}</span>
-                    {/* Three digits wide whatever the figure, the size the board's lists run to, so
-                        neither the placeholder nor a figure of one or two digits moves the tabs. */}
-                    <span aria-hidden className='invisible col-start-1 row-start-1'>
-                      000
-                    </span>
-                  </span>
-                ) : null}
+                {tab in counts ? <TabCount count={counts[tab]} active={tab === view} /> : null}
               </TabsTrigger>
             ))}
           </TabsList>

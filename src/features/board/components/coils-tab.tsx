@@ -1,9 +1,18 @@
+import { StickyTop } from './sticky-top'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Pager } from '@/components/table/pager'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { QrLabels } from '@/components/qr-labels'
 import {
   Empty,
   EmptyContent,
@@ -13,7 +22,6 @@ import {
   EmptyTitle
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Table,
   TableBody,
@@ -27,26 +35,26 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, Search, SlidersHorizontal } from 'lucide-react'
-import { Fragment, useDeferredValue, useRef, useState, type ReactNode } from 'react'
+import { ChevronRight, Database, Printer, SlidersHorizontal } from 'lucide-react'
+import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
-  coilFoldersQuery,
   coilFiltersQuery,
+  coilLocationsQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
   useSetCoilLocation,
-  useSetCoilProductLocation,
   useUpdateCoilLot,
   type CoilFilter,
-  type CoilLot
+  type CoilLot,
+  type InventoryLocation
 } from '../api'
-import { useViewOnly } from '../lib/board-context'
+import { useBoard, useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
+import { CoilScanDialog } from './coil-scan-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { toast } from '@/components/ui/toast'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
 const NOTE_SAVE_MS = 600
@@ -72,6 +80,17 @@ const indexLots = (lots: CoilLot[]): IndexedLot[] =>
 
 /** The two lists the board keeps: the coils standing in this department, and the plant's whole stock. */
 type CoilScope = 'trim' | 'all'
+
+/** Whether a coil is in a department yet: a coil new from EBMS is in none until someone ticks one. */
+type Assignment = 'all' | 'assigned' | 'unassigned'
+
+const assigned = (lot: CoilLot) => lot.in_trim || lot.in_rollforming
+
+const ASSIGNMENT_MATCH: Record<Assignment, (lot: CoilLot) => boolean> = {
+  all: () => true,
+  assigned,
+  unassigned: lot => !assigned(lot)
+}
 
 type Department = 'in_trim' | 'in_rollforming'
 
@@ -162,6 +181,10 @@ type LotCellsProps = {
   onAdjust: (lot: CoilLot, focus: CoilFigure) => void
   onLocate: (lot: CoilLot, department: Department, checked: boolean) => void
   onSlinet: (lot: CoilLot, checked: boolean) => void
+  /** This department's inventory locations; `null` where the coil is not this department's to place. */
+  placesOf: (lot: CoilLot) => InventoryLocation[] | null
+  onPlace: (lot: CoilLot, locationId: number) => void
+  onPrint: (lot: CoilLot) => void
 }
 
 const SLINET_SHUT = 'Needs the coil in Trim and a Coil Thickness'
@@ -191,7 +214,7 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 
   return (
     // The hint sits on a wrapper: a disabled control never shows its own.
-    <span className='inline-flex items-center gap-2' title={shut ? IN_SLINET : undefined}>
+    <span className='flex items-center gap-2' title={shut ? IN_SLINET : undefined}>
       <Checkbox
         aria-label={`${DEPARTMENT_LABEL[department]} holds coil ${coilName(lot)}`}
         checked={lot[department]}
@@ -204,45 +227,110 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
 }
 
 /** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
-const LotCells = ({ lot, onAdjust, onLocate, onSlinet }: LotCellsProps) => {
+/** Where a coil stands in its department: picked here, or by the forklift's two scans. */
+const LotPlace = ({
+  lot,
+  places,
+  onPlace
+}: { lot: CoilLot } & Pick<LotCellsProps, 'onPlace'> & {
+    places: InventoryLocation[] | null
+  }) => {
+  const viewOnly = useViewOnly()
+  if (viewOnly || !places?.length) return <span className='font-mono'>{lot.location ?? '—'}</span>
+  return (
+    <Select
+      value={lot.location_id === null ? null : String(lot.location_id)}
+      onValueChange={value => value && onPlace(lot, Number(value))}
+    >
+      <SelectTrigger size='sm' aria-label={`Location of coil ${coilName(lot)}`}>
+        <SelectValue placeholder='Pick…'>{() => lot.location ?? 'Pick…'}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {places.map(place => (
+          <SelectItem key={place.id} value={String(place.id)}>
+            {place.code ?? place.id}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+const LotCells = ({
+  lot,
+  onAdjust,
+  onLocate,
+  onSlinet,
+  placesOf,
+  onPlace,
+  onPrint
+}: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
+  // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
+  // figure is missing, not only in the Slinet box's hover.
+  const thicknessMissing = lot.in_trim && !lot.coil_thickness
   const viewOnly = useViewOnly()
 
   return (
     <>
       <TableCell card='title'>
-        <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+        <span className='flex items-center gap-1'>
+          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+          {lot.lot_number ? (
+            <Button
+              variant='ghost'
+              size='icon-xs'
+              aria-label={`Print the label of coil ${coilName(lot)}`}
+              title='Print the label the forklift scans'
+              onClick={() => onPrint(lot)}
+            >
+              <Printer />
+            </Button>
+          ) : null}
+        </span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
           other two out, with the cursor in the one clicked. */}
-      {FIGURES.map(({ key, label }) => (
-        <TableCell key={key} label={label}>
-          {viewOnly ? (
-            <span className='font-mono'>{figure(lot[key])}</span>
-          ) : (
-            <Button
-              variant='link'
-              aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
-              title='Click to open the Coil Adjustment window'
-              onClick={() => onAdjust(lot, key)}
-            >
-              <span className='font-mono'>{figure(lot[key])}</span>
-            </Button>
-          )}
-        </TableCell>
-      ))}
+      {FIGURES.map(({ key, label }) => {
+        const missing = key === 'coil_thickness' && thicknessMissing
+        const shown = (
+          <span className={cn('font-mono', missing && 'text-destructive')}>
+            {missing ? 'Missing' : figure(lot[key])}
+          </span>
+        )
+        return (
+          <TableCell key={key} label={label}>
+            {viewOnly ? (
+              shown
+            ) : (
+              <Button
+                variant='link'
+                aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
+                title={
+                  missing
+                    ? 'Add a Coil Thickness to put this coil in the Slinet'
+                    : 'Click to open the Coil Adjustment window'
+                }
+                onClick={() => onAdjust(lot, key)}
+              >
+                {shown}
+              </Button>
+            )}
+          </TableCell>
+        )
+      })}
       <TableCell label='Rollforming'>
         <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} />
       </TableCell>
       <TableCell label='Trim'>
         <LotLocation lot={lot} department='in_trim' onTick={onLocate} />
       </TableCell>
+      <TableCell label='Location'>
+        <LotPlace lot={lot} places={placesOf(lot)} onPlace={onPlace} />
+      </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
-        <span
-          className='inline-flex items-center gap-2'
-          title={slinetShut ? SLINET_SHUT : undefined}
-        >
+        <span className='flex items-center gap-2' title={slinetShut ? SLINET_SHUT : undefined}>
           <Checkbox
             aria-label={`Slinet holds coil ${coilName(lot)}`}
             checked={lot.in_slinet}
@@ -268,6 +356,7 @@ const LotHead = () => (
       <TableHead>Weight (lbs.)</TableHead>
       <TableHead>Rollforming</TableHead>
       <TableHead>Trim</TableHead>
+      <TableHead>Location</TableHead>
       <TableHead>Slinet In / Out</TableHead>
       <TableHead>Note</TableHead>
     </TableRow>
@@ -276,61 +365,31 @@ const LotHead = () => (
 
 const LotColumns = () => (
   <>
+    {/* A lot number runs to 16 characters (01-02-1484403-05). The rest are as wide as their heading
+        on one line: the headings, not the figures, are the longest. */}
+    <col className='w-40' />
+    <col className='w-36' />
     <col className='w-32' />
-    <col className='w-28' />
-    <col className='w-28' />
-    <col className='w-28' />
+    <col className='w-36' />
     <col className='w-32' />
     <col className='w-20' />
-    {/* Headed by words longer than the box under it, and the heading is what sets the width. */}
     <col className='w-32' />
+    <col className='w-36' />
     <col />
   </>
 )
 
 type CellHandlers = Omit<LotCellsProps, 'lot'>
 
-const MOUNTED = 'A coil of this product is mounted in the Slinet — take it off first'
-
-type GroupLocationProps = {
-  group: CoilGroup
-  department: Department
-  onTick: (group: CoilGroup, department: Department, checked: boolean) => void
-}
-
-/**
- * A shortcut over the coils' own boxes: ticked when every coil of the product stands in the
- * department, and ticking it moves all of them there. A mixed product shows how many are in.
- */
-const GroupLocation = ({ group, department, onTick }: GroupLocationProps) => {
-  const viewOnly = useViewOnly()
+/** How many of the product's coils stand in the department; each coil is placed on its own row. */
+const GroupCount = ({ group, department }: { group: CoilGroup; department: Department }) => {
   const inside = group.lots.filter(lot => lot[department]).length
-  const checked = inside === group.lots.length
-  // The server moves all of them or none, and a coil on the Slinet cannot go to Rollforming.
-  const shut = department === 'in_rollforming' && !checked && group.lots.some(lot => lot.in_slinet)
-  const label = DEPARTMENT_LABEL[department]
-
   return (
     <span
-      className='inline-flex items-center gap-2'
-      title={
-        shut
-          ? MOUNTED
-          : `${checked ? 'Take' : 'Put'} every coil of this product ${checked ? 'out of' : 'in'} ${label}`
-      }
+      className={cn('font-mono text-xs', !inside && 'text-muted-foreground')}
+      aria-label={`${inside} of ${group.lots.length} coils in ${DEPARTMENT_LABEL[department]}`}
     >
-      <Checkbox
-        aria-label={`Every coil of ${group.productId ?? 'this product'} in ${label}`}
-        checked={checked}
-        disabled={viewOnly || shut || !group.productId}
-        onCheckedChange={next => onTick(group, department, next)}
-      />
-      {inside && !checked ? (
-        <span className='font-mono text-xs text-muted-foreground'>
-          {inside}/{group.lots.length}
-        </span>
-      ) : null}
-      {shut && !viewOnly ? <TouchHint>{MOUNTED}</TouchHint> : null}
+      {inside}/{group.lots.length}
     </span>
   )
 }
@@ -340,17 +399,10 @@ type ProductGridProps = CellHandlers & {
   loading: boolean
   /** A search is on: the products it found open on their coils, which is what it was looking for. */
   searching: boolean
-  onTickGroup: GroupLocationProps['onTick']
 }
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
-const ProductGrid = ({
-  groups,
-  loading,
-  searching,
-  onTickGroup,
-  ...handlers
-}: ProductGridProps) => {
+const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridProps) => {
   // The rows turned against how they open by default — shut, or open under a search.
   const [flipped, setFlipped] = useState<Set<string>>(() => new Set())
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
@@ -359,9 +411,13 @@ const ProductGrid = ({
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-      <Table data-cards className='table-fixed'>
+      {/* The other columns' widths plus the longest Product ID (24 characters), which the table
+          scrolls sideways rather than cut — and wide enough that an opened product's coils, 928px
+          of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
+      <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
-          <col className='w-12' />
+          {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
+          <col className='w-15' />
           {columns.cols}
         </colgroup>
         <TableHeader>
@@ -415,7 +471,9 @@ const ProductGrid = ({
                       ),
                       color: (
                         <TableCell>
-                          <span className='truncate'>{group.color ?? '—'}</span>
+                          <span className='truncate' title={group.color ?? undefined}>
+                            {group.color ?? '—'}
+                          </span>
                         </TableCell>
                       ),
                       width: (
@@ -442,16 +500,12 @@ const ProductGrid = ({
                       ),
                       rollforming: (
                         <TableCell>
-                          <GroupLocation
-                            group={group}
-                            department='in_rollforming'
-                            onTick={onTickGroup}
-                          />
+                          <GroupCount group={group} department='in_rollforming' />
                         </TableCell>
                       ),
                       trim: (
                         <TableCell>
-                          <GroupLocation group={group} department='in_trim' onTick={onTickGroup} />
+                          <GroupCount group={group} department='in_trim' />
                         </TableCell>
                       )
                     })}
@@ -459,10 +513,11 @@ const ProductGrid = ({
 
                   {open ? (
                     <TableRow>
+                      {/* The expand column and the table's own. */}
                       <TableCell colSpan={COIL_GROUPS_TABLE.columns.length + 1}>
                         <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
                           <div className='overflow-hidden rounded-lg border border-border bg-card'>
-                            <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
+                            <Table data-cards className='table-fixed'>
                               <colgroup>
                                 <LotColumns />
                               </colgroup>
@@ -551,8 +606,8 @@ const searched = (lots: IndexedLot[], term: string) => {
   return lots.flatMap(({ lot, text }) => (!search || text.includes(search) ? [lot] : []))
 }
 
-/** A move about to displace the other department: one coil, or every coil of a product at once. */
-type Moving = { to: Department } & ({ lot: CoilLot } | { group: CoilGroup })
+/** A move about to displace the other department. */
+type Moving = { to: Department; lot: CoilLot }
 
 type MoveConfirmProps = {
   moving: Moving | null
@@ -569,11 +624,7 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
   const from = moved ? DEPARTMENT_LABEL[otherOf(moved.to)] : ''
-  const what = !moved
-    ? ''
-    : 'lot' in moved
-      ? `coil ${coilName(moved.lot)}`
-      : `every coil of ${moved.group.productId ?? 'this product'}`
+  const what = moved ? `coil ${coilName(moved.lot)}` : ''
 
   return (
     <ConfirmDialog
@@ -591,6 +642,8 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
 }
 
 type CoilsTabProps = {
+  /** The header's search, matched against product, colour, gauge and coil #. */
+  search: string | undefined
   departmentId: number | undefined
   /** A Worker works the coils but sees them through the Manager's filter: no scope switch, no filter. */
   worker: boolean
@@ -599,27 +652,26 @@ type CoilsTabProps = {
 /**
  * The coils EBMS has sent. Trim Coils are the ones inside the department's Coil Filter; All Coils is
  * every coil in the company, which the filter does not narrow. Each coil is checked into a
- * department and, inside Trim, into the Slinet — or a whole product at once; its figures are adjusted
+ * department and, inside Trim, into the Slinet; its figures are adjusted
  * from here and pushed back.
  */
-export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
+export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [scope, setScope] = useState<CoilScope>('trim')
-  const [term, setTerm] = useState('')
-  // The input keeps up with the typing; the list catches up when there is time for it.
-  const deferredTerm = useDeferredValue(term)
+  const term = search ?? ''
   const [adjusting, setAdjusting] = useState<{ lotId: string; focus: CoilFigure } | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   const viewOnly = useViewOnly()
-  // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
-  const [folder, setFolder] = useState<string | null>(null)
+  const board = useBoard()
+  const [labelled, setLabelled] = useState<CoilLot | null>(null)
+  const [assignment, setAssignment] = useState<Assignment>('all')
   const [pageSize, setPageSize] = useState(40)
   const [paging, setPaging] = useState({ view: '', page: 0 })
   const listTop = useRef<HTMLDivElement>(null)
 
   const scoped: CoilScope = worker ? 'trim' : scope
   const trim = scoped === 'trim'
-  // Trim Coils come narrowed by the server, folder filters included; the company-wide list is only
+  // Trim Coils come narrowed by the server; the company-wide list is only
   // fetched while All Coils is open, which a Worker never sees.
   const trimLots = useQuery({
     ...departmentCoilLotsQuery(departmentId),
@@ -637,38 +689,15 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   })
   const filter = trim ? departmentCoilFilter(filters) : null
   const loading = lotsPending || (trim && filterLoading)
-  const { data: folders } = useQuery({
-    ...coilFoldersQuery(departmentId),
-    enabled: trim && departmentId !== undefined
-  })
-  const inFolder = trim && folder ? indexed.filter(({ lot }) => lot.folder_id === folder) : indexed
-  const placeProduct = useSetCoilProductLocation()
+  const match = ASSIGNMENT_MATCH[assignment]
+  const inAssignment = indexed.filter(({ lot }) => match(lot))
   const placeLot = useSetCoilLocation()
+  const { data: places } = useQuery(coilLocationsQuery(departmentId))
+  // A coil is put on this department's racks only while it stands in this department.
+  const own: Department = board.code === 'rollforming' ? 'in_rollforming' : 'in_trim'
 
   const moveLot = (lot: CoilLot, location: Partial<Record<Department, boolean>>) =>
     placeLot.mutate({ lotId: lot.id, location }, { onSuccess: () => setMoving(null) })
-
-  const moveGroup = (group: CoilGroup, department: Department, checked: boolean) =>
-    group.productId &&
-    placeProduct.mutate(
-      { productId: group.productId, location: { [department]: checked } },
-      {
-        onSuccess: ({ lots }) => {
-          setMoving(null)
-          toast.add({
-            type: 'success',
-            title: `${lots} ${lots === 1 ? 'coil' : 'coils'} of ${group.productId} ${checked ? 'moved to' : 'taken out of'} ${DEPARTMENT_LABEL[department]}`
-          })
-        }
-      }
-    )
-
-  // Moving between departments asks; clearing a box, or ticking one with nothing to displace, does
-  // not. The question is only worth asking when an answer is being overwritten.
-  const tickGroup = (group: CoilGroup, department: Department, checked: boolean) =>
-    checked && group.lots.some(lot => lot[otherOf(department)])
-      ? setMoving({ group, to: department })
-      : moveGroup(group, department, checked)
 
   const handlers: CellHandlers = {
     onAdjust: (lot, focus) => setAdjusting({ lotId: lot.id, focus }),
@@ -676,21 +705,25 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       checked && lot[otherOf(department)]
         ? setMoving({ lot, to: department })
         : moveLot(lot, { [department]: checked }),
-    onSlinet: (lot, checked) => placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } })
+    onSlinet: (lot, checked) =>
+      placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } }),
+    placesOf: lot => (lot[own] ? (places ?? null) : null),
+    onPlace: (lot, locationId) =>
+      placeLot.mutate({ lotId: lot.id, location: { location_id: locationId } }),
+    onPrint: setLabelled
   }
 
-  const shown = searched(inFolder, deferredTerm)
+  const shown = searched(inAssignment, term)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, folder, deferredTerm, pageSize].join('|')
+  const view = [scoped, assignment, term, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
   // An edit can drop coils off the last page; the page then steps back rather than show nothing.
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
-  // A folder tab left open hides the coil being searched for, and nothing on screen says so.
-  const elsewhere =
-    !!folder && !!deferredTerm.trim() && !shown.length ? searched(indexed, deferredTerm).length : 0
+  // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
+  const elsewhere = assignment !== 'all' && !shown.length ? searched(indexed, term).length : 0
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -705,7 +738,7 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
       value={scope}
       onValueChange={value => setScope(value as CoilScope)}
     >
-      <TabsList className='h-10 max-md:w-full'>
+      <TabsList className='max-md:w-full'>
         <TabsTrigger value='trim'>Trim Coils</TabsTrigger>
         <TabsTrigger
           value='all'
@@ -719,7 +752,12 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
   const filterButton =
     !worker && !viewOnly && trim ? (
-      <Button variant='outline' className='ml-auto' onClick={() => setFilterOpen(true)}>
+      // Last on a desk, after the counts; beside the scope switch on a phone, where the rest wraps.
+      <Button
+        variant='outline'
+        className='max-md:ml-auto md:order-2'
+        onClick={() => setFilterOpen(true)}
+      >
         <SlidersHorizontal data-icon='inline-start' />
         Coil Filter
       </Button>
@@ -729,8 +767,8 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
   // scope switch too, or an empty Trim list would hide every other coil.
   if (!loading && !listed.length)
     return (
-      <div className='flex flex-1 flex-col gap-4'>
-        <div className='flex flex-wrap items-center gap-3'>
+      <div className='flex flex-1 flex-col gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           {scopeTabs}
           {filterButton}
         </div>
@@ -740,91 +778,61 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
-      {scopeTabs || filterButton ? (
-        <div className='flex flex-wrap items-center gap-3'>
-          {scopeTabs}
-          {filterButton}
-        </div>
-      ) : null}
+    <div className='flex min-w-0 flex-col gap-3'>
+      <StickyTop className='flex-row flex-wrap items-center'>
+        {scopeTabs}
+        {filterButton}
+        {viewOnly ? null : <CoilScanDialog />}
 
-      {/* p1 (253,624): each EBMS folder holding a qualifying coil is a tab. Brett may cut this to the
-          one Coil folder (round 10, A1). */}
-      {trim && folders?.length ? (
-        <Tabs
-          value={folder ?? 'all'}
-          onValueChange={value => setFolder(value === 'all' ? null : String(value))}
-        >
-          {/* A department has dozens of folders; they scroll on their own line rather than widen the
-              page under the sidebar. */}
-          <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
-            <TabsList variant='line'>
-              <TabsTrigger value='all'>All folders</TabsTrigger>
-              {folders.map(entry => (
-                <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
-                  {entry.name}
-                  <span
-                    className='font-mono text-xs text-muted-foreground'
-                    title={`${entry.products} products · ${entry.lots} coils`}
-                  >
-                    {entry.products}
-                  </span>
-                </TabsTrigger>
-              ))}
+        {/* A row of its own on a phone, under the scope switch; one row with it on a desk. */}
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-3 max-md:w-full md:contents'>
+          <Tabs value={assignment} onValueChange={value => setAssignment(value as Assignment)}>
+            <TabsList>
+              <TabsTrigger value='all'>All</TabsTrigger>
+              <TabsTrigger value='assigned' title='In Trim or Rollforming'>
+                Assigned
+              </TabsTrigger>
+              <TabsTrigger value='unassigned' title='In no department yet'>
+                Unassigned
+              </TabsTrigger>
             </TabsList>
-          </div>
-        </Tabs>
-      ) : null}
+          </Tabs>
 
-      <div className='flex flex-wrap items-center gap-3'>
-        <p className='text-sm text-muted-foreground'>
-          <span className='font-medium text-foreground'>{groups.length}</span>{' '}
-          {groups.length === 1 ? 'product' : 'products'} ·{' '}
-          <span className='font-medium text-foreground'>{shown.length}</span>{' '}
-          {shown.length === 1 ? 'coil' : 'coils'}
-        </p>
+          {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
 
-        {coilFilterActive(filter) ? <FilterBadge worker={worker} /> : null}
-
-        <InputGroup className='w-full md:ml-auto md:w-80'>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type='search'
-            aria-label='Search coils'
-            placeholder='Search — product / colour / gauge / coil #'
-            value={term}
-            onChange={event => setTerm(event.target.value)}
-          />
-        </InputGroup>
-      </div>
+          <p className='text-sm text-muted-foreground md:order-1 md:ml-auto'>
+            <span className='font-medium text-foreground'>{groups.length}</span>{' '}
+            {groups.length === 1 ? 'product' : 'products'} ·{' '}
+            <span className='font-medium text-foreground'>{shown.length}</span>{' '}
+            {shown.length === 1 ? 'coil' : 'coils'}
+          </p>
+        </div>
+      </StickyTop>
 
       {!loading && !shown.length ? (
         <NoCoils
           title='No coils match'
           description={
             elsewhere
-              ? `None in this folder — ${elsewhere} in other folders.`
+              ? `None ${assignment} — ${elsewhere} ${elsewhere === 1 ? 'is' : 'are'} ${assignment === 'assigned' ? 'unassigned' : 'assigned'}.`
               : 'Clear the search to see every coil.'
           }
           action={
             elsewhere ? (
-              <Button variant='outline' onClick={() => setFolder(null)}>
-                Search all folders
+              <Button variant='outline' onClick={() => setAssignment('all')}>
+                Show all coils
               </Button>
             ) : null
           }
         />
       ) : (
-        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-4'>
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
-            key={deferredTerm.trim() ? 'searching' : 'listing'}
+            key={term.trim() ? 'searching' : 'listing'}
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
-            searching={!!deferredTerm.trim()}
-            onTickGroup={tickGroup}
+            searching={!!term.trim()}
             {...handlers}
           />
           {loading ? null : (
@@ -852,15 +860,32 @@ export const CoilsTab = ({ departmentId, worker }: CoilsTabProps) => {
 
       {filterDialog}
 
+      {/* The coil # is what the forklift scans before the rack it sets the coil on. */}
+      {labelled?.lot_number ? (
+        <QrLabels
+          labels={[
+            {
+              key: labelled.id,
+              code: labelled.lot_number,
+              title: `Coil # ${labelled.lot_number}`,
+              detail: [
+                labelled.product_id,
+                labelled.color,
+                labelled.gauge && `${labelled.gauge} ga`
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            }
+          ]}
+          onDone={() => setLabelled(null)}
+        />
+      ) : null}
+
       <MoveConfirm
         moving={moving}
-        isPending={placeProduct.isPending || placeLot.isPending}
+        isPending={placeLot.isPending}
         onCancel={() => setMoving(null)}
-        onConfirm={next =>
-          'lot' in next
-            ? moveLot(next.lot, { [next.to]: true })
-            : moveGroup(next.group, next.to, true)
-        }
+        onConfirm={next => moveLot(next.lot, { [next.to]: true })}
       />
     </div>
   )

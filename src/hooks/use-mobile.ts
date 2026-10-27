@@ -11,7 +11,7 @@ const useMediaQuery = (query: string) =>
     () => false
   )
 
-/** A phone: the sidebar is a sheet and a dialog rises from the bottom as a drawer. Tailwind's `md`. */
+/** A phone: the menu and the dialogs rise from the bottom as drawers. Tailwind's `md`. */
 export const useIsMobile = () => useMediaQuery('(width < 48rem)')
 
 /** Wide enough for the full sidebar beside a board's tables. Tailwind's `xl`. */

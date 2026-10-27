@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatLongDate } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -40,15 +41,15 @@ import {
 } from '../api'
 import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
-import { packageContents, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { contentNames, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { PackageContents } from './package-contents'
 import {
   LocationChips,
   LocationDialog,
   RemoveJobLocationDialog,
   RemoveLocationDialog
 } from './location-dialog'
-import { reprintLabel } from '../lib/package-label'
-import { usePackageLabel } from './use-package-label'
+import { reprintLabel, usePackageLabel } from '../lib/package-label'
 
 const titleOf = (order: CompletedOrder, isStock: boolean) =>
   `Completed · ${order.order_number ?? order.order}${isStock ? '' : ` · ${order.customer ?? '—'}`}`
@@ -129,7 +130,7 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     desc: (
                       <TableCell>
-                        <span className='text-muted-foreground'>{line.description ?? '—'}</span>
+                        <Description text={line.description} className='text-muted-foreground' />
                       </TableCell>
                     ),
                     qty: (
@@ -205,9 +206,9 @@ type PackagesSectionProps = {
 /** The packages that carried the order out, each with a label the shop can print again. */
 const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => {
   const reprint = useReprintPackage()
-  const label = usePackageLabel()
+  const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
-  const names = new Map(lines.map(line => [line.origin_item, line.product_id]))
+  const names = contentNames(lines)
   const columns = useColumnOrder(COMPLETED_PACKAGES_TABLE)
 
   return (
@@ -263,9 +264,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                     ),
                     contents: (
                       <TableCell>
-                        <span className='text-muted-foreground'>
-                          {packageContents(parcel.contents, names)}
-                        </span>
+                        <PackageContents contents={parcel.contents} rows={lines} />
                       </TableCell>
                     ),
                     location: (
@@ -283,7 +282,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                           title='Reprint this package label'
                           onClick={() =>
                             reprint.mutate(parcel.package_id, {
-                              onSuccess: data => label.print(reprintLabel(data, names))
+                              onSuccess: data => printLabel(reprintLabel(data, names))
                             })
                           }
                         >
@@ -299,7 +298,6 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
           </Table>
         </div>
       )}
-      {label.sheet}
     </section>
   )
 }

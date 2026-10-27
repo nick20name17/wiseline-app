@@ -1,6 +1,8 @@
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -14,6 +16,7 @@ import {
 import { useIsWide } from '@/hooks/use-mobile'
 import { Link } from '@tanstack/react-router'
 import { Grid2x2, Layers, PackageCheck, Settings, Truck, Waypoints } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 const NAV_GROUPS = [
   {
@@ -46,6 +49,8 @@ type AppSidebarProps = {
    * placeholder row of its own height rather than left out and pushed in once the role arrives.
    */
   pending?: boolean
+  /** The signed-in user's row, held at the foot of the menu. */
+  footer?: ReactNode
 }
 
 // Lit by the link itself: `useMatchRoute` would re-render the whole sidebar on every search change.
@@ -53,18 +58,18 @@ type AppSidebarProps = {
 const ACTIVE = { 'data-active': '' }
 const ACTIVE_OPTIONS = { includeSearch: false }
 
-export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
-  const { setOpen, setOpenMobile } = useSidebar()
+export const AppSidebar = ({ hidden, pending = false, footer }: AppSidebarProps) => {
+  const { isMobile, openMobile, setOpen, setOpenMobile } = useSidebar()
   const wide = useIsWide()
-  // A phone's sheet and a tablet's opened rail lie over the page; a link that goes there puts them
+  // A phone's drawer and a tablet's opened rail lie over the page; a link that goes there puts them
   // away. A desk's sidebar stays as it is.
   const putAway = () => {
     setOpenMobile(false)
     if (!wide) setOpen(false)
   }
 
-  return (
-    <Sidebar collapsible='icon'>
+  const nav = (
+    <>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -82,40 +87,61 @@ export const AppSidebar = ({ hidden, pending = false }: AppSidebarProps) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map(group => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map(item =>
-                  !hidden.has(item.to) ? (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        render={
-                          <Link
-                            to={item.to}
-                            activeProps={ACTIVE}
-                            activeOptions={ACTIVE_OPTIONS}
-                            onClick={putAway}
-                          />
-                        }
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ) : pending ? (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuSkeleton showIcon />
-                    </SidebarMenuItem>
-                  ) : null
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {/* A group with nothing left to offer goes with its heading. */}
+        {NAV_GROUPS.filter(group => pending || group.items.some(item => !hidden.has(item.to))).map(
+          group => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map(item =>
+                    !hidden.has(item.to) ? (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          render={
+                            <Link
+                              to={item.to}
+                              activeProps={ACTIVE}
+                              activeOptions={ACTIVE_OPTIONS}
+                              onClick={putAway}
+                            />
+                          }
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ) : pending ? (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuSkeleton showIcon />
+                      </SidebarMenuItem>
+                    ) : null
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        )}
       </SidebarContent>
-    </Sidebar>
+
+      {footer ? <SidebarFooter>{footer}</SidebarFooter> : null}
+    </>
   )
+
+  // A phone's menu rises from the bottom like its dialogs, where the thumb is, and a swipe down puts
+  // it away, where the sidebar's own sheet would slide in from the side.
+  if (isMobile)
+    return (
+      <Drawer open={openMobile} onOpenChange={setOpenMobile} showSwipeHandle>
+        <DrawerContent data-sidebar='sidebar'>
+          <DrawerTitle className='sr-only'>Menu</DrawerTitle>
+          <div className='flex min-h-0 flex-col overflow-y-auto overscroll-contain pb-safe-4'>
+            {nav}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+
+  return <Sidebar collapsible='icon'>{nav}</Sidebar>
 }

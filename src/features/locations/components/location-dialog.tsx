@@ -22,7 +22,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { asNumber, invalid } from '@/lib/form'
+import { asAmount, invalid, WHOLE_INPUT } from '@/lib/form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { useQuery } from '@tanstack/react-query'
 import { PlusCircle } from 'lucide-react'
@@ -211,13 +211,11 @@ const LocationForm = ({ title, location, department: scope, onSuccess }: Locatio
           <InputGroup>
             <InputGroupInput
               id='location-weight'
-              type='number'
-              min={0}
-              inputMode='numeric'
+              {...WHOLE_INPUT}
               placeholder='e.g. 2000'
               aria-required
               aria-invalid={invalid(errors.weight)}
-              {...form.register('weight', { setValueAs: asNumber })}
+              {...form.register('weight', { setValueAs: asAmount })}
             />
           </InputGroup>
           <FieldError errors={[errors.weight]} />
@@ -240,13 +238,11 @@ const LocationForm = ({ title, location, department: scope, onSuccess }: Locatio
             <InputGroup>
               <InputGroupInput
                 id='location-max-orders'
-                type='number'
-                min={1}
-                inputMode='numeric'
+                {...WHOLE_INPUT}
                 placeholder='e.g. 12'
                 aria-required
                 aria-invalid={invalid(errors.max_orders)}
-                {...form.register('max_orders', { setValueAs: asNumber })}
+                {...form.register('max_orders', { setValueAs: asAmount })}
               />
             </InputGroup>
             <FieldError errors={[errors.max_orders]} />

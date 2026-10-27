@@ -33,9 +33,9 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
       {/* The actions column takes the leftover width, so the slack collects in front of its
           buttons instead of stretching Name into a void. */}
       <colgroup>
-        <col className='w-64' />
         <col className='w-48' />
-        <col className='w-48' />
+        <col className='w-32' />
+        <col className='w-36' />
         <col />
       </colgroup>
       <TableHeader>

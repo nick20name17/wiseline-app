@@ -42,6 +42,17 @@ export const warehousePickerQuery = queryOptions({
   select: (page: { results: Warehouse[] }) => page.results
 })
 
+/**
+ * What a type's locations hold: packages of an order, or coils kept in stock. An inventory location
+ * never takes a package, and only an inventory location takes a coil.
+ */
+export const LOCATION_KINDS = ['order', 'inventory'] as const
+export type LocationKind = (typeof LOCATION_KINDS)[number]
+export const LOCATION_KIND_LABELS: Record<LocationKind, string> = {
+  order: 'Order',
+  inventory: 'Inventory'
+}
+
 const locationTypeSchema = z.object({
   id: z.number(),
   name: z._default(z.nullable(z.string()), null),
@@ -49,7 +60,8 @@ const locationTypeSchema = z.object({
   // A location's department follows from its type, which is the only place it is set.
   department_id: z._default(z.nullable(z.number()), null),
   description: z._default(z.nullable(z.string()), null),
-  position: z._default(z.nullable(z.number()), null)
+  position: z._default(z.nullable(z.number()), null),
+  kind: z._default(z.enum(LOCATION_KINDS), 'order')
 })
 
 export type LocationType = z.infer<typeof locationTypeSchema>
@@ -58,6 +70,7 @@ export const locationTypeFormSchema = z.object({
   name: z.string().check(z.minLength(1, 'Name is required')),
   warehouse_id: z.number(),
   department_id: z.number(),
+  kind: z.enum(LOCATION_KINDS),
   description: z.nullable(z.string())
 })
 
@@ -138,10 +151,10 @@ export const locationFormSchema = z
     code: z.string().check(z.minLength(1, 'Name is required')),
     warehouse_id: picked('Warehouse is required'),
     location_type_id: picked('Location Type is required'),
-    weight: z.number('Max weight is required'),
+    weight: z.number('Enter the max weight as a number, e.g. 2000'),
     description: z.nullable(z.string()),
     multi_order: z.boolean(),
-    max_orders: z.nullable(z.number())
+    max_orders: z.nullable(z.number('Enter a number, e.g. 3'))
   })
   .check(
     // A multi-order location has to say how many orders it takes (p1 (731,91)).

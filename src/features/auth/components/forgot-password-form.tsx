@@ -55,7 +55,11 @@ export const ForgotPasswordForm = () => {
   }
 
   return (
-    <AuthCard title='Forgot password' description='Enter your email and we will send a reset link'>
+    <AuthCard
+      title='Forgot password'
+      // An account with a login word has no address to send the link to.
+      description='Enter your email and we will send a reset link. Signing in with a login instead? Ask an admin to set a new password.'
+    >
       <form noValidate onSubmit={form.handleSubmit(values => mutation.mutate(values))}>
         <FieldGroup>
           <Field data-invalid={errors.email ? true : undefined}>

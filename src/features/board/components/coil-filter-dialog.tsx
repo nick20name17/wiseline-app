@@ -9,10 +9,11 @@ import {
   DialogTitle
 } from '@/components/dialog'
 import { Input } from '@/components/ui/input'
+import { FieldError } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
-import { asNumber } from '@/lib/form'
+import { asNumber, DECIMAL_INPUT } from '@/lib/form'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
@@ -24,14 +25,14 @@ import {
 } from '../api'
 import { departmentCoilFilter, fieldText } from '../lib/coils'
 
-type Bound = { key: 'thickness' | 'width' | 'grade'; label: string; unit: string; step: string }
+type Bound = { key: 'thickness' | 'width' | 'grade'; label: string; unit: string }
 
 // "When the Thickness, Width and Grade ALL fall within the ranges set in the filter, then that coil
 // will show up in the Coils tab."
 const BOUNDS: Bound[] = [
-  { key: 'thickness', label: 'Thickness', unit: 'in', step: '0.01' },
-  { key: 'width', label: 'Width', unit: 'in', step: '1' },
-  { key: 'grade', label: 'Grade', unit: 'ksi', step: '1' }
+  { key: 'thickness', label: 'Thickness', unit: 'in' },
+  { key: 'width', label: 'Width', unit: 'in' },
+  { key: 'grade', label: 'Grade', unit: 'ksi' }
 ]
 
 type Range = { min: string; max: string; all: boolean }
@@ -81,6 +82,13 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
     grade_max: ranges.grade.all ? null : asNumber(ranges.grade.max),
     apply_all: BOUNDS.every(bound => ranges[bound.key].all)
   })
+  // Sent as is, a bound that is not a number goes out as null and saves as «no limit».
+  const notNumber = (text: string) => Number.isNaN(asNumber(text))
+  const typo = BOUNDS.some(
+    bound =>
+      !ranges[bound.key].all &&
+      (notNumber(ranges[bound.key].min) || notNumber(ranges[bound.key].max))
+  )
 
   return (
     <>
@@ -97,23 +105,21 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
               <Input
                 id={`coil-${bound.key}-min`}
                 className='w-24 max-sm:w-auto max-sm:min-w-0 max-sm:flex-1'
-                type='number'
-                inputMode='decimal'
-                step={bound.step}
+                {...DECIMAL_INPUT}
                 placeholder='0'
                 disabled={ranges[bound.key].all}
+                aria-invalid={notNumber(ranges[bound.key].min) || undefined}
                 value={ranges[bound.key].min}
                 onChange={event => edit(bound.key, { min: event.target.value })}
               />
               <span className='text-sm text-muted-foreground'>&amp;</span>
               <Input
                 className='w-24 max-sm:w-auto max-sm:min-w-0 max-sm:flex-1'
-                type='number'
-                inputMode='decimal'
-                step={bound.step}
+                {...DECIMAL_INPUT}
                 aria-label={`${bound.label} upper bound`}
                 placeholder='No limit'
                 disabled={ranges[bound.key].all}
+                aria-invalid={notNumber(ranges[bound.key].max) || undefined}
                 value={ranges[bound.key].max}
                 onChange={event => edit(bound.key, { max: event.target.value })}
               />
@@ -129,6 +135,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
             </span>
           </div>
         ))}
+        {typo ? <FieldError>Enter each bound as a number, e.g. 0.5.</FieldError> : null}
       </div>
 
       <DialogFooter>
@@ -150,9 +157,9 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
           Clear
         </Button>
         <Button
-          disabled={!departmentId || save.isPending}
+          disabled={!departmentId || typo || save.isPending}
           onClick={() => {
-            if (!departmentId) return
+            if (!departmentId || typo) return
             const next = values()
             save.mutate(
               { departmentId, filterId: current?.id, values: next },
@@ -161,7 +168,7 @@ const FilterForm = ({ departmentId, current, onClose }: FilterFormProps) => {
                   toast.add({
                     type: 'success',
                     title: next.apply_all
-                      ? 'Coil filter cleared — showing all folders'
+                      ? 'Coil filter cleared — showing every coil'
                       : 'Coil filter applied'
                   })
               }
@@ -196,8 +203,8 @@ export const CoilFilterDialog = ({ departmentId, open, onOpenChange }: CoilFilte
         <DialogHeader>
           <DialogTitle>Coil Filter</DialogTitle>
           <DialogDescription>
-            Coils whose Thickness, Width and Grade ALL fall in range show up under their EBMS
-            folder. Apply All makes that range limitless.
+            Coils whose Thickness, Width and Grade ALL fall in range show up in this department's
+            Coils. Apply All makes that range limitless.
           </DialogDescription>
         </DialogHeader>
 

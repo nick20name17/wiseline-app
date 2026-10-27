@@ -118,3 +118,27 @@ describe('runsOffCoil', () => {
     )
   })
 })
+
+describe('a line with no app row yet', () => {
+  const bare = { id: 'z', machine_id: 85, item: null } as unknown as BoardLineItem
+
+  it('is not on Production, names no coil and no source, and runs off no coil', () => {
+    const coil = { supplier: 'COLSTE', coil_number: 'J46A211' } as Parameters<typeof runsOffCoil>[1]
+    expect(productionParts([order('W1', [bare])], 85, 2)).toEqual([])
+    expect(coilNumbersOf([bare])).toEqual([])
+    expect(sourceOf([bare])).toBeNull()
+    expect(sourceOf([line('a', null)])).toBeNull()
+    expect(runsOffCoil([bare], coil)).toBe(false)
+  })
+})
+
+describe('runsOffCoil on what EBMS sends', () => {
+  const coil = { supplier: 'COLSTE', coil_number: 'J46A211' } as Parameters<typeof runsOffCoil>[1]
+
+  it('matches through the padding EBMS puts on its text, and on both supplier and coil', () => {
+    expect(runsOffCoil([line('a', null, { supplier: 'COLSTE  ', coil: 'J46A211 ' })], coil)).toBe(
+      true
+    )
+    expect(runsOffCoil([line('a', null, { supplier: 'OTHER', coil: 'J46A211' })], coil)).toBe(false)
+  })
+})

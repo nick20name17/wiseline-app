@@ -32,9 +32,17 @@ import {
   useUpsertLocationType,
   warehousePickerQuery,
   type LocationType,
-  type LocationTypeForm as LocationTypeFormValues
+  type LocationTypeForm as LocationTypeFormValues,
+  LOCATION_KIND_LABELS,
+  LOCATION_KINDS,
+  type LocationKind
 } from '../api'
 import { WarehouseOptions } from './warehouse-options'
+
+const KIND_HINTS: Record<LocationKind, string> = {
+  order: 'packages of orders',
+  inventory: 'coils in stock'
+}
 
 type LocationTypeFormProps = {
   locationType?: LocationType
@@ -53,6 +61,7 @@ const LocationTypeForm = ({ locationType, departmentId, onSuccess }: LocationTyp
       name: locationType?.name ?? '',
       warehouse_id: locationType?.warehouse_id ?? warehouses?.[0]?.id ?? 0,
       department_id: locationType?.department_id ?? departmentId ?? departments?.[0]?.id ?? 0,
+      kind: locationType?.kind ?? 'order',
       description: locationType?.description ?? null
     }
   })
@@ -136,6 +145,30 @@ const LocationTypeForm = ({ locationType, departmentId, onSuccess }: LocationTyp
             )}
           />
           <FieldError errors={[errors.department_id]} />
+        </Field>
+
+        <Field>
+          <RequiredLabel htmlFor='type-kind'>Holds</RequiredLabel>
+          <Controller
+            control={form.control}
+            name='kind'
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={value => field.onChange(value)}>
+                <SelectTrigger id='type-kind'>
+                  <SelectValue>
+                    {(kind: LocationKind) => `${LOCATION_KIND_LABELS[kind]} — ${KIND_HINTS[kind]}`}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_KINDS.map(kind => (
+                    <SelectItem key={kind} value={kind}>
+                      {LOCATION_KIND_LABELS[kind]} — {KIND_HINTS[kind]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </Field>
 
         <Field data-invalid={invalid(errors.description)}>

@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { WRAPPING_ROWS, capturePrints, mockTrimApi, signIn } from './trim-api.ts'
+import {
+  SCHEDULED_DAY,
+  WRAPPING_ROWS,
+  capturePrints,
+  mockTrimApi,
+  signIn,
+  wrappingRow
+} from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -226,4 +233,52 @@ test('a damaged piece is replaced from stock at the bench, on the keypad', async
   await keypad.getByRole('button', { name: 'Enter' }).click()
 
   await expect.poll(() => edits).toEqual([{ pull_from_stock: 5 }])
+})
+
+test('a part of a split order is wrapped and completed on its own', async ({ page }) => {
+  const LATER = '2026-09-24'
+  await page.route(`${API_URL}/wrapping/*`, route =>
+    route.fulfill({
+      json: [
+        wrappingRow('901', 'Sidewall Flashing', 40, 40, { is_split: true }),
+        wrappingRow('903', 'Gable Trim', 10, 0, { is_split: true, production_date: LATER })
+      ]
+    })
+  )
+  const completed: (string | null)[] = []
+  await page.route(`${API_URL}/wrapping/orders/*/complete/*`, route => {
+    const part = new URL(route.request().url()).searchParams.get('production_date')
+    if (route.request().method() === 'POST') {
+      completed.push(part)
+      return route.fulfill({ json: { order_complete: false, production_date: part } })
+    }
+    return route.fulfill({
+      json: { can_complete: part === SCHEDULED_DAY, outstanding: [], manufacturing_batch: [] }
+    })
+  })
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
+
+  await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
+  await expect(page.getByText(/^Part · /)).toBeVisible()
+  // The later part's line is on the bench too, but it is not this part's to wrap.
+  await expect(page.getByLabel('Wrap from 903')).toBeHidden()
+  // The counter is this part's alone: the later part's 10 pieces are not owed here.
+  await expect(page.getByText('40 / 40 wrapped')).toBeVisible()
+
+  // See packages lists this part's packages, not the later part's.
+  const listed: (string | null)[] = []
+  await page.route(`${API_URL}/wrapping/orders/*/packages/**`, route => {
+    listed.push(new URL(route.request().url()).searchParams.get('production_date'))
+    return route.fulfill({ json: [] })
+  })
+  await page.getByRole('button', { name: 'See packages' }).click()
+  await expect.poll(() => listed).toEqual([SCHEDULED_DAY])
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Order complete' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm.getByRole('heading')).toHaveText(/^Complete the .+ part of /)
+  await confirm.getByRole('button', { name: /^Yes/ }).click()
+  await expect.poll(() => completed).toEqual([SCHEDULED_DAY])
 })
