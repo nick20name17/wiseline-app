@@ -57,8 +57,11 @@ const FILTER = {
 }
 
 // The list is one row per product; its coils are inside it.
-const openProduct = (page: Page, productId: string) =>
-  page.getByRole('button', { name: `Coils of ${productId}` }).click()
+// The list shows no Product ID; the row's own button names it.
+const product = (page: Page, productId: string) =>
+  page.getByRole('button', { name: `Coils of ${productId}` })
+
+const openProduct = (page: Page, productId: string) => product(page, productId).click()
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -217,21 +220,21 @@ test('the assignment filter splits the coils a department holds from the ones no
   await page.reload()
 
   await page.getByRole('tab', { name: 'Unassigned' }).click()
-  await expect(page.getByText('CB4830G')).toBeVisible()
-  await expect(page.getByText('CB4826R')).toBeHidden()
+  await expect(product(page, 'CB4830G')).toBeVisible()
+  await expect(product(page, 'CB4826R')).toBeHidden()
 
   await page.getByRole('tab', { name: 'Assigned', exact: true }).click()
-  await expect(page.getByText('CB4826R')).toBeVisible()
-  await expect(page.getByText('CB4830G')).toBeHidden()
+  await expect(product(page, 'CB4826R')).toBeVisible()
+  await expect(product(page, 'CB4830G')).toBeHidden()
 
   await page.getByLabel('Search coils').fill('3811101')
   await expect(page.getByText('None assigned — 1 is unassigned.')).toBeVisible()
   await page.getByRole('button', { name: 'Show all coils' }).click()
-  await expect(page.getByText('CB4830G')).toBeVisible()
+  await expect(product(page, 'CB4830G')).toBeVisible()
 })
 
 test('the list holds one row per product, opening into its coils', async ({ page }) => {
-  await expect(page.getByText('CB4826R')).toBeVisible()
+  await expect(product(page, 'CB4826R')).toBeVisible()
   await expect(page.getByText('3782201')).toBeHidden()
   await openProduct(page, 'CB4826R')
   await expect(page.getByText('3782201')).toBeVisible()

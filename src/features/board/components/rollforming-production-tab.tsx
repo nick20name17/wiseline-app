@@ -81,7 +81,6 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
       <Table data-cards className='table-fixed'>
         <colgroup>
           <col className='w-16' />
-          <col className='w-32' />
           <col />
           <col className='w-20' />
           <col className='w-32' />
@@ -92,7 +91,6 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
         <TableHeader>
           <TableRow>
             <TableHead>Qty</TableHead>
-            <TableHead>Product ID</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>L&quot;</TableHead>
             <TableHead>Status</TableHead>
@@ -110,13 +108,7 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
                   <span className='font-mono'>{line.quantity}</span>
                 </TableCell>
                 <TableCell card='title'>
-                  <span className='font-mono'>{line.id_inven ?? '—'}</span>
-                </TableCell>
-                <TableCell card='subtitle'>
-                  <Description
-                    text={line.item?.description ?? line.description}
-                    className='text-muted-foreground'
-                  />
+                  <Description text={line.item?.description ?? line.description} />
                 </TableCell>
                 <TableCell label='L"'>
                   <span className='font-mono'>

@@ -1,4 +1,4 @@
-import { dayLoad, loadUnit } from '../lib/format'
+import { dayLoad, loadUnit, share } from '../lib/format'
 import { useBoard } from '../lib/board-context'
 import { formatDate, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
@@ -115,13 +115,12 @@ export const ScheduledDayTabs = ({
             <Skeleton key={index} className='h-13 w-44 md:max-xl:w-full' />
           ))
         : days.map(entry => {
+            // A full day is the load's alarm and a late one the whole tile's: a day over capacity
+            // has room to be rescheduled, a day with overdue orders needs somebody now (Kevin's notes
+            // of 2026-11-02, A14).
             const isOverdue = overdueDays.has(entry.date)
-            const warn = isOverdue || entry.over_capacity
             const active = entry.date === day
-            const used =
-              entry.capacity && entry.capacity > 0
-                ? Math.min(100, Math.round((entry.used / entry.capacity) * 100))
-                : 0
+            const percent = share(entry.used, entry.capacity)
 
             return (
               <div key={entry.date} className='group/day relative'>
@@ -133,17 +132,22 @@ export const ScheduledDayTabs = ({
                     // on a phone, where the gear grows to a finger's size.
                     'bg-background pr-9 whitespace-nowrap hover:border-input max-md:pr-12',
                     active && 'border-primary bg-primary/10',
-                    warn && 'border-destructive bg-destructive/5'
+                    isOverdue && 'border-destructive bg-destructive/5'
                   )}
                   onClick={() => onDayChange(entry.date)}
                 >
                   <span className='flex items-center gap-1 text-xs font-semibold'>
                     {formatDate(entry.date)}
-                    {warn ? <TriangleAlert className='size-3.5 text-destructive' /> : null}
+                    {isOverdue ? (
+                      <TriangleAlert
+                        className='size-3.5 text-destructive'
+                        aria-label='Has overdue orders'
+                      />
+                    ) : null}
                   </span>
                   <span
                     className={cn(
-                      'mt-0.5 block font-mono text-xs text-muted-foreground',
+                      'mt-0.5 flex justify-between gap-2 font-mono text-xs text-muted-foreground',
                       active && 'text-primary',
                       entry.over_capacity && 'text-destructive'
                     )}
@@ -155,20 +159,25 @@ export const ScheduledDayTabs = ({
                           : `Assigned ${loadUnit(entry.capacity_unit)} / the day's capacity`
                     }
                   >
-                    ({dayLoad(entry)})
-                    {/* Not printed: four-digit loads already fill the tile. Said for a screen reader,
-                        since the red and the triangle mean overdue too. */}
-                    {entry.over_capacity ? <span className='sr-only'> · over capacity</span> : null}
+                    <span>
+                      {dayLoad(entry)}
+                      {/* Not printed: four-digit loads already fill the tile. Said for a screen
+                          reader, which does not see the red. */}
+                      {entry.over_capacity ? (
+                        <span className='sr-only'> · over capacity</span>
+                      ) : null}
+                    </span>
+                    {percent === null ? null : <span>{percent}%</span>}
                   </span>
                   {/* A share of the day's capacity, where the department has set one. */}
-                  {entry.capacity ? (
+                  {percent !== null ? (
                     <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
                       <span
                         className={cn(
                           'block h-full w-(--used)',
-                          warn ? 'bg-destructive' : 'bg-primary'
+                          entry.over_capacity ? 'bg-destructive' : 'bg-primary'
                         )}
-                        style={{ '--used': `${used}%` } as CSSProperties}
+                        style={{ '--used': `${Math.min(100, percent)}%` } as CSSProperties}
                       />
                     </span>
                   ) : null}

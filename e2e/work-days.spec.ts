@@ -81,6 +81,14 @@ test('a month’s weeks start on Sunday', async ({ page }) => {
   await expect(cells('October').nth(11)).toHaveText('1')
 })
 
+test('the work week starts on Sunday too', async ({ page }) => {
+  const days = page.getByRole('group', { name: 'Work week' }).getByRole('checkbox')
+  await expect(days.first()).toHaveAccessibleName('Sunday')
+  await expect(days.first()).not.toBeChecked()
+  await expect(days.nth(1)).toHaveAccessibleName('Monday')
+  await expect(days.nth(1)).toBeChecked()
+})
+
 test('a Saturday picked on the calendar opens as a working day with its name', async ({ page }) => {
   let sent: unknown
   await page.route(`${API_URL}/work-calendar/2026-10-24/`, route => {

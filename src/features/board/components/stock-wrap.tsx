@@ -96,7 +96,6 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
               <TableHead>Wrapped</TableHead>
               <TableHead>Qty Manufactured</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>ID</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Length</TableHead>
             </TableRow>
@@ -104,7 +103,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
           <TableBody>
             {isPending ? (
               <TableRow>
-                <TableCell colSpan={9}>
+                <TableCell colSpan={8}>
                   <Skeleton className='h-16' />
                 </TableCell>
               </TableRow>
@@ -162,10 +161,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     <StatusPill status={itemStatus(line.status)} />
                   </TableCell>
                   <TableCell card='title'>
-                    <span className='font-mono'>{line.product_id ?? '—'}</span>
-                  </TableCell>
-                  <TableCell card='subtitle'>
-                    <Description text={line.description} className='text-muted-foreground' />
+                    <Description text={line.description} />
                   </TableCell>
                   <TableCell label='Length'>
                     <span

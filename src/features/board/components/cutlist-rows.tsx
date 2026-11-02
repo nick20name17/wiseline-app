@@ -515,9 +515,8 @@ export const CutlistRows = ({
           // now and then, as Wrapping has them; Qty Ordered and Stock open from the row, so the list
           // fits without a sideways scroll.
           [
-            { key: 'pid', label: 'ID', width: 'w-28', card: 'title' as const },
             // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
-            { key: 'desc', label: 'Description', minWidth: 48, card: 'subtitle' as const },
+            { key: 'desc', label: 'Description', minWidth: 48, card: 'title' as const },
             { key: 'status', label: 'Status', width: 'w-32' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
@@ -593,35 +592,30 @@ export const CutlistRows = ({
                       ) : null}
                     </TableCell>
                   ),
-                  pid: (
+                  desc: (
                     <TableCell>
                       {/* The keyboard's way into the row's details; a tap anywhere on it is the
-                          floor's. A row cutting several orders' pieces is opened through its Total. */}
-                      <Button
-                        variant='link'
-                        className='max-w-full'
-                        aria-label={`Details of ${about.productId ?? sizeOf(group)}`}
+                          floor's. */}
+                      <button
+                        type='button'
+                        className='flex max-w-full items-start gap-1.5 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+                        aria-label={`Details of ${about.description?.trim() || sizeOf(group)}`}
                         onClick={() => setDetailsKey(group.key)}
                       >
                         {about.isStock ? (
                           <Package
-                            className='size-3.5 text-muted-foreground'
+                            className='mt-0.5 size-3.5 shrink-0 text-muted-foreground'
                             aria-label='Stock order'
                           />
                         ) : null}
-                        {about.productId ? (
-                          <span className='truncate font-mono'>{about.productId}</span>
+                        {about.description ? (
+                          <Description text={about.description} />
                         ) : about.lines > 1 ? (
                           <span className='text-xs text-muted-foreground'>{about.lines} lines</span>
                         ) : (
                           '—'
                         )}
-                      </Button>
-                    </TableCell>
-                  ),
-                  desc: (
-                    <TableCell>
-                      <Description text={about.description} className='text-muted-foreground' />
+                      </button>
                     </TableCell>
                   ),
                   status: (
@@ -664,12 +658,16 @@ export const CutlistRows = ({
                   ),
                   qty: (
                     <TableCell>
+                      {/* What the machine makes, so it is the figure the eye lands on first (Kevin's
+                          notes of 2026-11-02, A3). */}
                       <Button
                         variant='link'
                         title='See orders using this size'
                         onClick={() => onOpenTotal(group)}
                       >
-                        <span className='font-mono'>{group.quantity}</span>
+                        <span className='rounded-sm border-2 border-foreground px-1.5 font-mono font-bold text-foreground'>
+                          {group.quantity}
+                        </span>
                       </Button>
                     </TableCell>
                   ),

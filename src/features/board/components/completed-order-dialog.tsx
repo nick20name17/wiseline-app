@@ -123,14 +123,9 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
               return (
                 <TableRow key={line.origin_item}>
                   {columns.cells({
-                    pid: (
-                      <TableCell>
-                        <span className='font-mono'>{line.product_id ?? '—'}</span>
-                      </TableCell>
-                    ),
                     desc: (
                       <TableCell>
-                        <Description text={line.description} className='text-muted-foreground' />
+                        <Description text={line.description} />
                       </TableCell>
                     ),
                     qty: (

@@ -51,6 +51,7 @@ import {
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
+import { productFacts } from '../lib/format'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
 import { CoilScanDialog } from './coil-scan-dialog'
@@ -111,6 +112,7 @@ type CoilGroup = {
   key: string
   productId: string | null
   color: string | null
+  gauge: number | null
   width: number | null
   lots: CoilLot[]
 }
@@ -123,6 +125,7 @@ const groupsOf = (lots: CoilLot[]) => {
       key,
       productId: lot.product_id,
       color: lot.color,
+      gauge: lot.gauge,
       width: lot.width,
       lots: []
     }
@@ -464,15 +467,12 @@ const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridPro
                       </Button>
                     </TableCell>
                     {columns.cells({
-                      pid: (
-                        <TableCell>
-                          <span className='font-mono'>{group.productId ?? '—'}</span>
-                        </TableCell>
-                      ),
+                      // With no Product ID column, the gauge is what tells apart two products of one
+                      // colour and width.
                       color: (
                         <TableCell>
-                          <span className='truncate' title={group.color ?? undefined}>
-                            {group.color ?? '—'}
+                          <span className='truncate' title={productFacts(group) || undefined}>
+                            {productFacts(group) || '—'}
                           </span>
                         </TableCell>
                       ),

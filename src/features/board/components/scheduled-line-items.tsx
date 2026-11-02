@@ -577,11 +577,6 @@ export const ScheduledLineItems = ({
                           />
                         </TableCell>
                       ),
-                      pid: (
-                        <TableCell>
-                          <span className='font-mono'>{item.id_inven ?? '—'}</span>
-                        </TableCell>
-                      ),
                       desc: (
                         <TableCell>
                           {editable ? (
