@@ -68,9 +68,6 @@ import { RemanufactureDialog } from './remanufacture-dialog'
 import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
 
-// The statuses a line is wrapped from: the floor has finished it, or it came off the shelf.
-const READY = ['bent', 'rolled', 'stock', 'bypassed']
-
 type RemanCellProps = {
   row: WrappingRow
   remans: Remanufacturing[]
@@ -188,8 +185,9 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
       </span>
     )
 
-  // The pieces left are the ones a remake still owes: they are wrapped once it is Bent.
-  const held = READY.includes(row.status ?? '') && allowed < row.left_to_wrap
+  // The line is open for packing, and the pieces left are the ones a remake still owes: they are
+  // wrapped once it is Bent.
+  const held = row.can_wrap && allowed < row.left_to_wrap
 
   return (
     <span
@@ -197,9 +195,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
       title={
         held
           ? 'Held until the machine marks the remanufacture Bent'
-          : pack.ready
-            ? `Needs ${pack.ready} or Stock status`
-            : 'Cannot be packaged'
+          : (pack.waitsFor ?? 'Cannot be packaged')
       }
     >
       <Ban className='size-3.5' />
