@@ -657,15 +657,15 @@ export const CutlistRows = ({
                     </TableCell>
                   ),
                   qty: (
-                    <TableCell>
-                      {/* What the machine makes, so it is the figure the eye lands on first (Kevin's
-                          notes of 2026-11-02, A3). */}
+                    // What the machine makes, so it is the figure the eye lands on first (Kevin's
+                    // notes of 2026-11-02, A3).
+                    <TableCell data-outline>
                       <Button
                         variant='link'
                         title='See orders using this size'
                         onClick={() => onOpenTotal(group)}
                       >
-                        <span className='rounded-sm border-2 border-foreground px-1.5 font-mono font-bold text-foreground'>
+                        <span className='font-mono font-bold text-foreground'>
                           {group.quantity}
                         </span>
                       </Button>
