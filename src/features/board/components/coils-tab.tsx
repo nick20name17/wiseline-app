@@ -39,6 +39,7 @@ import { ChevronRight, Database, Printer, SlidersHorizontal } from 'lucide-react
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
+  coilFoldersQuery,
   coilLocationsQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
@@ -93,6 +94,12 @@ const ASSIGNMENT_MATCH: Record<Assignment, (lot: CoilLot) => boolean> = {
   unassigned: lot => !assigned(lot)
 }
 
+const ASSIGNMENT_LABEL: Record<Assignment, string> = {
+  all: 'All',
+  assigned: 'Assigned',
+  unassigned: 'Unassigned'
+}
+
 type Department = 'in_trim' | 'in_rollforming'
 
 const DEPARTMENT_LABEL: Record<Department, string> = {
@@ -114,6 +121,7 @@ type CoilGroup = {
   color: string | null
   gauge: number | null
   width: number | null
+  folderId: string | null
   lots: CoilLot[]
 }
 
@@ -127,6 +135,7 @@ const groupsOf = (lots: CoilLot[]) => {
       color: lot.color,
       gauge: lot.gauge,
       width: lot.width,
+      folderId: lot.folder_id,
       lots: []
     }
     group.lots.push(lot)
@@ -402,10 +411,12 @@ type ProductGridProps = CellHandlers & {
   loading: boolean
   /** A search is on: the products it found open on their coils, which is what it was looking for. */
   searching: boolean
+  /** Names the EBMS folder on each row while the rows of every folder are listed together. */
+  folderName?: (folderId: string | null) => string | undefined
 }
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
-const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridProps) => {
+const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: ProductGridProps) => {
   // The rows turned against how they open by default — shut, or open under a search.
   const [flipped, setFlipped] = useState<Set<string>>(() => new Set())
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
@@ -467,13 +478,19 @@ const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridPro
                       </Button>
                     </TableCell>
                     {columns.cells({
-                      // With no Product ID column, the gauge is what tells apart two products of one
-                      // colour and width.
+                      // With no Product ID column, the gauge and the folder tell apart products of one
+                      // colour: EBMS leaves many coils without a width, and the folder name carries
+                      // it («21-1/4" Wide 26 Ga. SS Coils»).
                       color: (
                         <TableCell>
                           <span className='truncate' title={productFacts(group) || undefined}>
                             {productFacts(group) || '—'}
                           </span>
+                          {folderName?.(group.folderId) ? (
+                            <span className='block truncate text-xs text-muted-foreground'>
+                              {folderName(group.folderId)}
+                            </span>
+                          ) : null}
                         </TableCell>
                       ),
                       width: (
@@ -665,6 +682,8 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const board = useBoard()
   const [labelled, setLabelled] = useState<CoilLot | null>(null)
   const [assignment, setAssignment] = useState<Assignment>('all')
+  // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
+  const [folder, setFolder] = useState<string | null>(null)
   const [pageSize, setPageSize] = useState(40)
   const [paging, setPaging] = useState({ view: '', page: 0 })
   const listTop = useRef<HTMLDivElement>(null)
@@ -689,8 +708,16 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   })
   const filter = trim ? departmentCoilFilter(filters) : null
   const loading = lotsPending || (trim && filterLoading)
+  const { data: folders } = useQuery({
+    ...coilFoldersQuery(departmentId),
+    enabled: trim && departmentId !== undefined
+  })
+  // A folder the Coil Filter has since emptied is no longer a tab, so the list falls back to every folder.
+  const openFolder = (trim && folders?.find(entry => entry.folder_id === folder)?.folder_id) || null
   const match = ASSIGNMENT_MATCH[assignment]
-  const inAssignment = indexed.filter(({ lot }) => match(lot))
+  const narrowed = indexed.filter(
+    ({ lot }) => match(lot) && (!openFolder || lot.folder_id === openFolder)
+  )
   const placeLot = useSetCoilLocation()
   const { data: places } = useQuery(coilLocationsQuery(departmentId))
   // A coil is put on this department's racks only while it stands in this department.
@@ -713,17 +740,30 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
     onPrint: setLabelled
   }
 
-  const shown = searched(inAssignment, term)
+  const shown = searched(narrowed, term)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, assignment, term, pageSize].join('|')
+  const view = [scoped, assignment, openFolder, term, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
   // An edit can drop coils off the last page; the page then steps back rather than show nothing.
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
-  // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
-  const elsewhere = assignment !== 'all' && !shown.length ? searched(indexed, term).length : 0
+  // A folder tab or an assignment filter left on hides the coil being searched for, and nothing on
+  // screen says so.
+  const elsewhere =
+    (openFolder || assignment !== 'all') && !shown.length ? searched(indexed, term).length : 0
+  const hiddenBy = [
+    openFolder && 'this folder',
+    assignment !== 'all' && ASSIGNMENT_LABEL[assignment]
+  ]
+    .filter(Boolean)
+    .join(' and ')
+  // Rows of every folder are told apart by their folder, which a folder tab already names.
+  const folderName =
+    trim && !openFolder
+      ? (id: string | null) => folders?.find(entry => entry.folder_id === id)?.name
+      : undefined
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -807,6 +847,36 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
             {shown.length === 1 ? 'coil' : 'coils'}
           </p>
         </div>
+
+        {/* p1 (253,624), (300,589): each EBMS folder holding a qualifying coil is a tab. The folder,
+            not the Product ID, is what tells apart two coils of one colour and gauge (Kevin's notes
+            of 2026-11-02, A8). */}
+        {trim && folders?.length ? (
+          <Tabs
+            className='w-full min-w-0 md:order-3'
+            value={openFolder ?? 'all'}
+            onValueChange={value => setFolder(value === 'all' ? null : String(value))}
+          >
+            {/* A department has dozens of folders; they scroll on their own line rather than widen
+                the page under the sidebar. */}
+            <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
+              <TabsList variant='line'>
+                <TabsTrigger value='all'>All folders</TabsTrigger>
+                {folders.map(entry => (
+                  <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
+                    {entry.name}
+                    <span
+                      className='font-mono text-xs text-muted-foreground'
+                      title={`${entry.products} products · ${entry.lots} coils`}
+                    >
+                      {entry.products}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+        ) : null}
       </StickyTop>
 
       {!loading && !shown.length ? (
@@ -814,12 +884,18 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
           title='No coils match'
           description={
             elsewhere
-              ? `None ${assignment} — ${elsewhere} ${elsewhere === 1 ? 'is' : 'are'} ${assignment === 'assigned' ? 'unassigned' : 'assigned'}.`
+              ? `${elsewhere} ${elsewhere === 1 ? 'coil matches' : 'coils match'} outside ${hiddenBy}.`
               : 'Clear the search to see every coil.'
           }
           action={
             elsewhere ? (
-              <Button variant='outline' onClick={() => setAssignment('all')}>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setAssignment('all')
+                  setFolder(null)
+                }}
+              >
                 Show all coils
               </Button>
             ) : null
@@ -833,6 +909,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
             searching={!!term.trim()}
+            folderName={folderName}
             {...handlers}
           />
           {loading ? null : (
