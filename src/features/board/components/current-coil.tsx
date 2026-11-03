@@ -20,9 +20,11 @@ export const CurrentCoil = ({ machineId }: { machineId: number | undefined }) =>
   const { data: coil, isPending, isError, refetch } = useQuery(currentCoilQuery(machineId))
 
   return (
+    // As tall as a coil's two-line fields whatever it holds, so the list under it stays put while
+    // the coil loads.
     <section
       aria-label='Current coil in the rollformer'
-      className='flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border border-border bg-card px-4 py-3 shadow-xs'
+      className='flex min-h-15.5 flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border border-border bg-card px-4 py-3 shadow-xs'
     >
       <span className='flex items-center gap-2 text-sm font-medium'>
         <Disc3 className='size-4 text-muted-foreground' />

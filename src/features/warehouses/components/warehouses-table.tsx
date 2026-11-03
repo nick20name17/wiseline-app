@@ -45,7 +45,7 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={4} />
+            <TableSkeletonRows actions />
           ) : (
             warehouses.map(warehouse => (
               <TableRow key={warehouse.id}>

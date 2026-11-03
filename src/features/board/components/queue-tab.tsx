@@ -363,7 +363,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={COLUMNS} />
+                <TableSkeletonRows />
               ) : (
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>

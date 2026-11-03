@@ -636,7 +636,7 @@ type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
  * The machines lines are assigned to. The Slinet cuts for all of them and Wrapping comes after, so
  * neither is one.
  */
-export const isMaker = (machine: MachineCapacity) =>
+export const isMaker = (machine: Pick<MachineCapacity, 'kind'>) =>
   machine.kind !== 'cutting' && machine.kind !== 'wrapping'
 
 /** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */

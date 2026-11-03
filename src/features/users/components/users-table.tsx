@@ -81,7 +81,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
       </TableHeader>
       <TableBody>
         {isPending ? (
-          <TableSkeletonRows columns={4} />
+          <TableSkeletonRows actions />
         ) : (
           users.map(user => (
             <TableRow key={user.id}>

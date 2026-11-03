@@ -129,7 +129,7 @@ export const LocationTypesPage = ({
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={active ? 4 : 5} />
+                <TableSkeletonRows actions />
               ) : (
                 types.map(type => (
                   <TableRow key={type.id}>

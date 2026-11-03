@@ -49,11 +49,13 @@ export const BoardSkeleton = ({ machineTabs }: { machineTabs: boolean }) => (
       <Table className='table-fixed'>
         <TableHeader>
           <TableRow>
-            <TableHead />
+            {Array.from({ length: 7 }, (_, column) => (
+              <TableHead key={column} />
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableSkeletonRows columns={6} />
+          <TableSkeletonRows />
         </TableBody>
       </Table>
     </div>

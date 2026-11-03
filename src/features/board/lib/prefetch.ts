@@ -39,7 +39,10 @@ export const prefetchBoard = async (
 
     await Promise.all([
       client.prefetchQuery(countsQuery(department.id)),
-      board.machineTabs ? client.prefetchQuery(machinesQuery(board.name, department.id)) : null,
+      // A board that assigns machines lays its Scheduled tab's machine loads out from the list.
+      board.machineTabs || board.assignsMachines
+        ? client.prefetchQuery(machinesQuery(board.name, department.id))
+        : null,
       view === 'unscheduled'
         ? client.prefetchQuery(unscheduledOrdersQuery(board.name, search))
         : view === 'scheduled'
