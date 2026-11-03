@@ -121,9 +121,13 @@ export const ProductPicker = ({
             const reason = unavailable?.(option) ?? null
             return (
               <ComboboxItem key={option.product_id} value={option} disabled={reason !== null}>
-                <span className='w-28 shrink-0 font-mono'>{option.product_id}</span>
-                <span className='min-w-0 flex-1 truncate text-muted-foreground'>
-                  {reason ?? option.description ?? '—'}
+                {/* The description under the ID and whole: its end is often what tells two kits
+                    apart. */}
+                <span className='flex min-w-0 flex-col'>
+                  <span className='font-mono'>{option.product_id}</span>
+                  <span className='text-xs text-muted-foreground'>
+                    {reason ?? option.description ?? '—'}
+                  </span>
                 </span>
               </ComboboxItem>
             )

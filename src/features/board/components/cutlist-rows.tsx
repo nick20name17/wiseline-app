@@ -95,11 +95,9 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
           atomic inline box — which is how the sign-off itself stays unstruck. The hint sits on the
           label because a disabled box shows no tooltip of its own. */}
       <label
-        className={cn(
-          // A finger-sized target: the floor signs rows off on a touchscreen.
-          'inline-flex min-h-11 min-w-24 cursor-pointer items-center gap-2.5 rounded-md border px-3 has-disabled:cursor-not-allowed has-disabled:opacity-60',
-          group.complete ? 'border-success/40 bg-success/10' : 'border-border bg-background'
-        )}
+        // A finger-sized target with no frame of its own: the floor signs rows off on a touchscreen,
+        // and a boxed field crowded the column's rules.
+        className='inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 has-disabled:cursor-not-allowed has-disabled:opacity-60'
         title={
           group.complete
             ? 'Marked complete — uncheck to reopen (asks first)'
@@ -513,7 +511,7 @@ export const CutlistRows = ({
             {
               key: 'op',
               label: 'Operator Notes',
-              width: 'w-28',
+              width: 'w-44',
               align: 'start' as const,
               card: 'full' as const
             }
@@ -537,7 +535,7 @@ export const CutlistRows = ({
             { key: 'drawing', label: 'Drawing', width: 'w-24' },
             { key: 'notes', label: 'Notes', width: 'w-20' }
           ]),
-      { key: 'complete', label: 'Complete', width: isSlinet ? 'w-28' : 'w-32' }
+      { key: 'complete', label: 'Complete', width: 'w-28' }
     ]
   })
   // The row whose details are open, by key: the rows are rebuilt on every refetch, the key is not.

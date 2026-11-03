@@ -1602,7 +1602,9 @@ export const stockCardOptionsQuery = (search: string) =>
       z
         .array(stockCardOptionSchema)
         .parse(
-          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 50 } }).json()
+          await authApi
+            .get('stock-cards/products/', { searchParams: { search, limit: 100 } })
+            .json()
         )
   })
 

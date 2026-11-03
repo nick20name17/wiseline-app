@@ -10,7 +10,8 @@ function Table({
   ...props
 }: React.ComponentProps<'table'> & { size?: 'default' | 'lg' }) {
   return (
-    <div data-slot='table-container' className='relative w-full overflow-x-auto'>
+    // A wide table stops at its edge: no bounce, and a sideways swipe past it does not go Back.
+    <div data-slot='table-container' className='relative w-full overflow-x-auto overscroll-x-none'>
       <table
         data-slot='table'
         data-size={size}
@@ -77,8 +78,8 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         // The banding gives the eye a rail to follow across a wide table, and on the floor's screens a
         // faint one is lost (Kevin's notes of 2026-11-02, A5). It sits on the row, not the body, so
         // every state below is as specific as it is and wins by coming later; hover and selection
-        // sit above the band so they still show on a banded row.
-        'h-8.5 border-b transition-colors even:bg-foreground/6 hover:bg-foreground/10 has-aria-expanded:bg-foreground/10 data-[state=selected]:bg-primary/10',
+        // sit a clear step above the band so they still show on a banded row.
+        'h-8.5 border-b transition-colors even:bg-foreground/6 hover:bg-foreground/12 has-aria-expanded:bg-foreground/12 data-[state=selected]:bg-primary/10',
         // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
         // every one is back. A late line carries only the overdue mark, so it stays red.
         'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',
