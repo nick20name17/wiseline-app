@@ -321,9 +321,18 @@
   }
 }
 
-/* The least a table with movable columns takes to leave its flexible ones room: see `useColumnOrder`. */
+/*
+ * The least a table with movable columns takes to leave its flexible ones room, or, once this person
+ * has sized every column (`data-sized`), exactly their sum: see `useColumnOrder`. A sized table drops
+ * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width:
+ * the card rules below are as specific and come later.
+ */
 table[data-slot='table'] {
   width: max(100%, var(--fit-width, 0px));
+}
+table[data-sized] {
+  width: var(--fit-width);
+  min-width: 0;
 }
 
 /*
@@ -383,11 +392,14 @@ table[data-slot='table'] {
         border-top: 0;
       }
     }
+    /* A field on a card stands under its label: the columns' rules and centring have no column. */
     & > tbody > tr > td {
       display: block;
       min-width: 0;
       height: auto;
       padding: 0;
+      border-left: 0;
+      text-align: start;
       white-space: normal;
     }
     /* A desk's ellipsis leans on a `title` a touch screen never shows; a field on a card has the

@@ -40,7 +40,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
       </colgroup>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
+          <TableHead data-align='start'>Name</TableHead>
           <TableHead>Plate</TableHead>
           <TableHead>Max Weight</TableHead>
           <TableHead>
@@ -55,7 +55,9 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
         ) : (
           trucks.map(truck => (
             <TableRow key={truck.id}>
-              <TableCell card='title'>{truck.name}</TableCell>
+              <TableCell data-align='start' card='title'>
+                {truck.name}
+              </TableCell>
               <TableCell label='Plate'>
                 <span className='font-mono'>{truck.plate ?? '—'}</span>
               </TableCell>

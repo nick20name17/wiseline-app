@@ -91,7 +91,7 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
         <TableHeader>
           <TableRow>
             <TableHead>Qty</TableHead>
-            <TableHead>Description</TableHead>
+            <TableHead data-align='start'>Description</TableHead>
             <TableHead>L&quot;</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Supplier</TableHead>
@@ -107,7 +107,7 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
                 <TableCell label='Qty'>
                   <span className='font-mono'>{line.quantity}</span>
                 </TableCell>
-                <TableCell card='title'>
+                <TableCell data-align='start' card='title'>
                   <Description text={line.item?.description ?? line.description} />
                 </TableCell>
                 <TableCell label='L"'>
@@ -242,7 +242,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
             <TableHead />
             <TableHead>Production Date</TableHead>
             <TableHead>Order #</TableHead>
-            <TableHead>Customer</TableHead>
+            <TableHead data-align='start'>Customer</TableHead>
             <TableHead>PO</TableHead>
             <TableHead>Gauge / Color</TableHead>
             <TableHead>Profile</TableHead>
@@ -309,7 +309,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             ) : null}
                           </span>
                         </TableCell>
-                        <TableCell card='subtitle'>
+                        <TableCell data-align='start' card='subtitle'>
                           <span className='truncate'>{order.customer ?? '—'}</span>
                         </TableCell>
                         <TableCell label='PO'>

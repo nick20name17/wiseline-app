@@ -68,7 +68,9 @@ type FigureProps = {
 type ProgressProps = FigureProps & {
   done: number
   /** How much of `fromStock` is done. */
-  fromStockDone: number
+  fromStockDone?: number
+  /** `done` is past `value`, a ceiling: the server's verdict. */
+  over?: boolean
 }
 
 /**
@@ -79,20 +81,23 @@ export const Progress = ({
   done,
   value,
   fromStock = 0,
-  fromStockDone,
-  unrouted
+  fromStockDone = 0,
+  unrouted,
+  over = false
 }: ProgressProps) => {
   const percent = share(done, value)
   const stockPercent = share(fromStockDone, fromStock)
   return (
     <span className='flex flex-col items-center gap-1 font-mono'>
       <span className='flex items-baseline gap-2 text-sm max-sm:flex-col max-sm:items-center max-sm:gap-0'>
-        <span className={cn(unrouted && 'text-warning')}>
+        <span className={cn(unrouted && 'text-warning', over && 'text-destructive')}>
           {count(done)} / {count(value)}
         </span>
-        {percent === null ? null : <span className='font-bold'>{percent}%</span>}
+        {percent === null ? null : (
+          <span className={cn('font-bold', over && 'text-destructive')}>{percent}%</span>
+        )}
       </span>
-      <Bar percent={percent} over={false} />
+      <Bar percent={percent} over={over} />
       {fromStock ? (
         <span className='text-xs whitespace-nowrap text-primary max-sm:whitespace-normal'>
           {count(fromStockDone)} / {count(fromStock)}

@@ -399,8 +399,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           >
             <colgroup>
               {selectable ? <col className='w-12' /> : null}
-              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-              <col className='w-15' />
+              {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
+              <col className='w-16' />
               {columns.cols}
             </colgroup>
             <TableHeader>

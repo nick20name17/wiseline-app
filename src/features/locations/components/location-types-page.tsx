@@ -115,12 +115,12 @@ export const LocationTypesPage = ({
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead data-align='start'>Name</TableHead>
                 <TableHead>Warehouse</TableHead>
                 {/* Under one department the pill already says which; under All it is a column. */}
                 {active ? null : <TableHead>Department</TableHead>}
                 <TableHead>Holds</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead data-align='start'>Description</TableHead>
                 <TableHead>
                   {/* The column is obvious from its buttons; the label is for screen readers. */}
                   <span className='sr-only'>Actions</span>
@@ -133,7 +133,9 @@ export const LocationTypesPage = ({
               ) : (
                 types.map(type => (
                   <TableRow key={type.id}>
-                    <TableCell card='title'>{type.name ?? '—'}</TableCell>
+                    <TableCell data-align='start' card='title'>
+                      {type.name ?? '—'}
+                    </TableCell>
                     <TableCell label='Warehouse'>
                       {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)?.name ??
                         '—'}
@@ -150,7 +152,7 @@ export const LocationTypesPage = ({
                         LOCATION_KIND_LABELS[type.kind]
                       )}
                     </TableCell>
-                    <TableCell label='Description' card='full'>
+                    <TableCell data-align='start' label='Description' card='full'>
                       <span className='truncate text-muted-foreground'>
                         {type.description ?? '—'}
                       </span>

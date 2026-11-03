@@ -9,13 +9,21 @@ type SortableHeadProps = {
   column: Column
   /** px this person dragged the column to; none keeps the declared width. */
   width?: number
+  /** A drag on the column's edge begins. */
+  onResizeStart: () => void
   /** Each step of a drag, for the caller's `<col>` to follow without a render; `null` once it ends. */
   onResize: (width: number | null) => void
   /** The width to keep; `null` goes back to the declared one. */
   onResizeEnd: (width: number | null) => void
 }
 
-export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableHeadProps) => {
+export const SortableHead = ({
+  column,
+  width,
+  onResizeStart,
+  onResize,
+  onResizeEnd
+}: SortableHeadProps) => {
   const {
     attributes,
     listeners,
@@ -38,6 +46,7 @@ export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableH
     if (!head) return
     const start = event.clientX
     const from = head.getBoundingClientRect().width
+    onResizeStart()
     const at = (x: number) => clampWidth(column, from + x - start)
     // The header is set too: a table laid out by its content has no `<col>` to follow, and takes a
     // header's width only as a hint it drops once the table outgrows its box; a minimum it keeps.
@@ -73,6 +82,8 @@ export const SortableHead = ({ column, width, onResize, onResizeEnd }: SortableH
       data-dragging={isDragging || undefined}
       data-drop={drop}
       data-movable
+      data-column={column.key}
+      data-align={column.align}
       title='Drag to reorder column'
       // Clipped: a column dragged narrower than its heading would spill it over the next one.
       className={cn('overflow-hidden', width && 'w-(--col-width) min-w-(--col-width)')}

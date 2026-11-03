@@ -7,6 +7,8 @@ type SortHeadProps<K extends string> = {
   column: K
   sort: Sort<K>
   onSort: (sort: Sort<K>) => void
+  /** Free text, read from its start; any other column is centred. */
+  align?: 'start'
   children: ReactNode
 }
 
@@ -15,12 +17,16 @@ export const SortHead = <K extends string>({
   column,
   sort,
   onSort,
+  align,
   children
 }: SortHeadProps<K>) => {
   const active = sort.key === column
   const Icon = active ? (sort.desc ? ArrowDown : ArrowUp) : ArrowUpDown
   return (
-    <TableHead aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+    <TableHead
+      data-align={align}
+      aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined}
+    >
       <button
         type='button'
         className='-mx-1 inline-flex items-center gap-1 rounded-sm px-1 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none'

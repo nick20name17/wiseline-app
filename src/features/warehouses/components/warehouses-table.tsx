@@ -33,9 +33,9 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
         </colgroup>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Description</TableHead>
+            <TableHead data-align='start'>Name</TableHead>
+            <TableHead data-align='start'>Address</TableHead>
+            <TableHead data-align='start'>Description</TableHead>
             <TableHead>Default</TableHead>
             <TableHead>
               {/* The column is obvious from its buttons; the label is for screen readers. */}
@@ -49,9 +49,13 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
           ) : (
             warehouses.map(warehouse => (
               <TableRow key={warehouse.id}>
-                <TableCell card='title'>{warehouse.name ?? '—'}</TableCell>
-                <TableCell label='Address'>{warehouse.address ?? '—'}</TableCell>
-                <TableCell label='Description'>
+                <TableCell data-align='start' card='title'>
+                  {warehouse.name ?? '—'}
+                </TableCell>
+                <TableCell data-align='start' label='Address'>
+                  {warehouse.address ?? '—'}
+                </TableCell>
+                <TableCell data-align='start' label='Description'>
                   <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
                 </TableCell>
                 <TableCell label='Default'>

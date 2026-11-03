@@ -216,7 +216,7 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
       <TableCell label='In Machine'>
         <InMachine row={row} onInMachine={onInMachine} onFill={onFill} />
       </TableCell>
-      <TableCell label='Orders' card='full'>
+      <TableCell data-align='start' label='Orders' card='full'>
         <span className='truncate text-xs text-muted-foreground'>
           {/* A line split by coil is on this row for some of its units p2 (679,416). */}
           {[
@@ -358,7 +358,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                 <TableHead>Coil Number</TableHead>
                 <TableHead>Slit Line</TableHead>
                 <TableHead>In Machine</TableHead>
-                <TableHead>Orders</TableHead>
+                <TableHead data-align='start'>Orders</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

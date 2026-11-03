@@ -155,8 +155,8 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
           >
             <colgroup>
               <col className='w-10' />
-              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-              <col className='w-15' />
+              {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
+              <col className='w-16' />
               {columns.cols}
             </colgroup>
             <TableHeader>

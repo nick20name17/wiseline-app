@@ -189,8 +189,8 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
           <Table data-cards className='min-w-498 table-fixed'>
             <colgroup>
               <col className='w-10' />
-              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-              <col className='w-15' />
+              {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
+              <col className='w-16' />
               <col className='w-40' />
               <col className='w-40' />
               <col className='w-32' />
@@ -212,9 +212,9 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                 <TableHead>Entry</TableHead>
                 <TableHead>Ship</TableHead>
                 <TableHead>Order #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>City</TableHead>
+                <TableHead data-align='start'>Customer</TableHead>
+                <TableHead data-align='start'>Address</TableHead>
+                <TableHead data-align='start'>City</TableHead>
                 <TableHead>Map</TableHead>
                 <TableHead>Weight</TableHead>
                 <TableHead>Longest Length</TableHead>
@@ -279,15 +279,15 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                             {order.order_number ?? order.order}
                           </span>
                         </TableCell>
-                        <TableCell card='subtitle'>
+                        <TableCell data-align='start' card='subtitle'>
                           <span className='lg:truncate'>{order.customer ?? '—'}</span>
                         </TableCell>
-                        <TableCell label='Address'>
+                        <TableCell data-align='start' label='Address'>
                           <span className='text-muted-foreground lg:truncate'>
                             {order.address ?? '—'}
                           </span>
                         </TableCell>
-                        <TableCell label='City'>
+                        <TableCell data-align='start' label='City'>
                           <span className='text-muted-foreground lg:truncate'>
                             {order.city ?? '—'}
                           </span>

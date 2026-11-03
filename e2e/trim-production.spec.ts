@@ -310,14 +310,9 @@ test('a Slinet list shows the coil in the machine and how many more could go on'
   })
   await page.reload()
 
-  await expect(page.getByText('Coil # 37067677 is in the machine (1,533 ft)').first()).toBeVisible()
-  await expect(
-    page
-      .getByText(
-        '3 more coils available totaling 7,579 ft (2 in Trim and 1 in Rollforming) · at T-1 (2)'
-      )
-      .first()
-  ).toBeVisible()
+  await expect(page.getByText('37067677 (1,533 ft)').first()).toBeVisible()
+  // Kevin's notes of 2026-11-02 (A10): count, feet, departments — the locations are left off.
+  await expect(page.getByText('3 - (7,579 ft) 2 - Trim, 1 - Rollforming').first()).toBeVisible()
   // Every list of the day in one request.
   expect(asked).toHaveLength(1)
 })

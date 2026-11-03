@@ -491,7 +491,8 @@ export const CutlistRows = ({
   const columns = useColumnOrder({
     table: isSlinet ? 'cutlist-slinet' : 'cutlist-bend',
     columns: [
-      { key: 'w', label: 'W"', width: 'w-16' },
+      // A width with its quarter, «4.25», at the rows' larger type (A7).
+      { key: 'w', label: 'W"', width: 'w-18' },
       // A custom length runs to three decimals, 47.625".
       { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-22' },
       isSlinet
@@ -509,14 +510,26 @@ export const CutlistRows = ({
                   ? 'Vented'
                   : (column.machine.name ?? `Machine ${column.machine.id}`)
             })),
-            { key: 'op', label: 'Operator Notes', width: 'w-28', card: 'full' as const }
+            {
+              key: 'op',
+              label: 'Operator Notes',
+              width: 'w-28',
+              align: 'start' as const,
+              card: 'full' as const
+            }
           ]
         : // A bendlist row keeps what the bender reads at the machine and the buttons it reaches for
           // now and then, as Wrapping has them; Qty Ordered and Stock open from the row, so the list
           // fits without a sideways scroll.
           [
             // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
-            { key: 'desc', label: 'Description', minWidth: 48, card: 'title' as const },
+            {
+              key: 'desc',
+              label: 'Description',
+              minWidth: 48,
+              align: 'start' as const,
+              card: 'title' as const
+            },
             { key: 'status', label: 'Status', width: 'w-32' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
@@ -543,7 +556,8 @@ export const CutlistRows = ({
       {/* Headings wrap rather than widen their column: every column has to fit. */}
       {/* Below `lg` each row is a card: a tablet at the machine is too narrow for every column, and
           a sideways scroll would hide Complete. */}
-      <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
+      {/* The rows are read at arm's length from the machine (Kevin's notes of 2026-11-02, A7). */}
+      <Table data-cards size='lg' className='table-fixed [&_th]:whitespace-normal'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>

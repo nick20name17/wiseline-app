@@ -34,7 +34,7 @@ export const ExceptionsTable = ({ exceptions, isPending, onSaved }: ExceptionsTa
         <TableRow>
           <TableHead>Date</TableHead>
           <TableHead>Kind</TableHead>
-          <TableHead>Name</TableHead>
+          <TableHead data-align='start'>Name</TableHead>
           <TableHead>
             <span className='sr-only'>Actions</span>
           </TableHead>
@@ -52,7 +52,9 @@ export const ExceptionsTable = ({ exceptions, isPending, onSaved }: ExceptionsTa
                   {KIND_LABELS[exception.kind]}
                 </Badge>
               </TableCell>
-              <TableCell card='title'>{exception.name}</TableCell>
+              <TableCell data-align='start' card='title'>
+                {exception.name}
+              </TableCell>
               <TableCell card='trail'>
                 {onSaved ? <ExceptionActions exception={exception} onSaved={onSaved} /> : null}
               </TableCell>

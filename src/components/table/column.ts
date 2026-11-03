@@ -16,6 +16,8 @@ export type Column = {
   maxWidth?: number
   /** The column is obvious from its cells, so its heading is for screen readers only. */
   hideLabel?: boolean
+  /** Free text, read from its start; any other column is centred. */
+  align?: 'start'
   /** Where its cells go when the table is laid out as cards; a labelled field unless set. */
   card?: TableCellCard
 }

@@ -116,7 +116,7 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
             <TableHead>Prep Date</TableHead>
             <TableHead>Order #</TableHead>
             <TableHead>Priority</TableHead>
-            <TableHead>Customer</TableHead>
+            <TableHead data-align='start'>Customer</TableHead>
             <TableHead>Truck</TableHead>
             <TableHead>Ship Via</TableHead>
             <TableHead>Status</TableHead>
@@ -168,7 +168,7 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
                           <span className='text-muted-foreground'>—</span>
                         )}
                       </TableCell>
-                      <TableCell card='subtitle'>
+                      <TableCell data-align='start' card='subtitle'>
                         <span className='truncate'>{order.customer ?? '—'}</span>
                       </TableCell>
                       <TableCell label='Truck'>
