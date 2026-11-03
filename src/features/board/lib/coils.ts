@@ -45,8 +45,7 @@ export const feetFromThickness = (thickness: number, material: number, core: num
  * stands as it is; one with no weight or length on record has nothing to read it from.
  */
 export const poundsPerFoot = (lot: CoilLot, material: number) => {
-  // The server's own, from the gauge's weight in Settings where one is set; otherwise read off
-  // the figures on record.
+  // The server's own, EBMS's weight per foot; otherwise read off the figures on record.
   const perFoot =
     lot.weight_per_foot ?? (lot.weight && lot.linear_feet ? lot.weight / lot.linear_feet : null)
   return perFoot === null

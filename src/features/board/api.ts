@@ -1947,7 +1947,7 @@ const coilLotSchema = z.object({
   core_od: z._default(z.nullable(z.number()), null),
   linear_feet: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
-  // What `weight` is worked out with: the gauge's weight in Settings × the width, or EBMS's own.
+  // What `weight` is worked out with: EBMS's weight per foot.
   weight_per_foot: z._default(z.nullable(z.number()), null),
   // The inventory location it stands on, the app's own: EBMS keeps a location per product, not lot.
   location_id: z._default(z.nullable(z.number()), null),
