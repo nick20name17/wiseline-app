@@ -82,6 +82,7 @@ export const SortableHead = ({
       data-dragging={isDragging || undefined}
       data-drop={drop}
       data-movable
+      data-column={column.key}
       data-align={column.align}
       title='Drag to reorder column'
       // Clipped: a column dragged narrower than its heading would spill it over the next one.

@@ -324,20 +324,15 @@
 /*
  * The least a table with movable columns takes to leave its flexible ones room, or, once this person
  * has sized every column (`data-sized`), exactly their sum: see `useColumnOrder`. A sized table drops
- * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width.
+ * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width:
+ * the card rules below are as specific and come later.
  */
 table[data-slot='table'] {
   width: max(100%, var(--fit-width, 0px));
 }
-table[data-slot='table'][data-sized]:not([data-cards]) {
+table[data-sized] {
   width: var(--fit-width);
   min-width: 0;
-}
-@media (width >= 64rem) {
-  table[data-slot='table'][data-sized] {
-    width: var(--fit-width);
-    min-width: 0;
-  }
 }
 
 /*

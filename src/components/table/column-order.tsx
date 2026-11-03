@@ -84,27 +84,27 @@ export const useColumnOrder = (definition: ColumnTable) => {
     const table = colEls.current.values().next().value?.closest('table')
     if (!table) return
     const keys = new Map([...colEls.current].map(([key, col]) => [col, key]))
+    const all = [...table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col')]
+    // Read from the markup alone: each measurement below lays the whole table out.
+    const fixed = (col: HTMLTableColElement) => !!(col.className || col.style.width)
+    const sized =
+      all.every(fixed) &&
+      all.some(col => col.style.width || col.style.getPropertyValue('--col-width'))
     let width = 0
-    let flexible = false
-    let sized = false
-    for (const col of table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col')) {
-      if (col.style.width || col.style.getPropertyValue('--col-width')) sized = true
-      if (col.className || col.style.width) width += parseFloat(getComputedStyle(col).width) || 0
-      else {
-        flexible = true
-        width += minWidth(byKey.get(keys.get(col) ?? ''))
-      }
-    }
-    if (sized && !flexible) {
+    if (sized) {
       // A fixed table wider than its columns shares the rest out among them, and a `<col>` reports
       // the width it got, not the one it asked for; laid out at no width, the table is their sum.
+      const { width: before, minWidth: least } = table.style
       table.style.width = table.style.minWidth = '0px'
       width = table.getBoundingClientRect().width
-      table.style.removeProperty('width')
-      table.style.removeProperty('min-width')
-    }
+      Object.assign(table.style, { width: before, minWidth: least })
+    } else
+      for (const col of all)
+        width += fixed(col)
+          ? parseFloat(getComputedStyle(col).width) || 0
+          : minWidth(byKey.get(keys.get(col) ?? ''))
     table.style.setProperty('--fit-width', `${width}px`)
-    table.toggleAttribute('data-sized', sized && !flexible)
+    table.toggleAttribute('data-sized', sized)
   }
 
   // Kevin's notes of 2026-11-02 (A9): dragging a column's edge changes that column alone. A column
@@ -115,7 +115,10 @@ export const useColumnOrder = (definition: ColumnTable) => {
     for (const [key, col] of colEls.current) {
       const column = byKey.get(key)
       if (!column || col.className || col.style.width) continue
-      const width = clampWidth(column, col.getBoundingClientRect().width)
+      // Its header, not the `<col>`: WebKit gives a `<col>` no box to measure.
+      const head = col.closest('table')?.querySelector(`th[data-column="${CSS.escape(key)}"]`)
+      if (!head) continue
+      const width = clampWidth(column, head.getBoundingClientRect().width)
       col.style.width = `${width}px`
       pinned.current[key] = width
     }

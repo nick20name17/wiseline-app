@@ -104,10 +104,12 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
 // alike (notes of 2026-11-02, A4 and A6). Free text — a customer, a description, a note — reads from
 // its start, and its column says so with `data-align`; so does a lone cell across the row, a band
 // between groups or a row's details. A checkbox or a field is a block, which `text-center` leaves at
-// the start, so it is centred by its margins.
+// the start, so it is centred by its margins — and a checkbox's cell drops the padding shadcn leaves
+// on its left only, which would push it off the middle.
 const COLUMN_RULES = cn(
   'border-l text-center first:border-l-0 only:text-left data-[align=start]:text-left',
-  'not-data-[align=start]:*:data-[slot=checkbox]:mx-auto not-data-[align=start]:*:data-[slot=input]:mx-auto'
+  'not-data-[align=start]:*:data-[slot=checkbox]:mx-auto not-data-[align=start]:*:data-[slot=input]:mx-auto',
+  'not-data-[align=start]:has-[>[data-slot=checkbox]]:pl-0'
 )
 
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {

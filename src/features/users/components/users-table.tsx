@@ -37,7 +37,13 @@ const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
   )
 }
 
-const COLUMNS = ['Name', 'Email or login', 'Role', 'Departments'] as const
+// The free-text columns read from their start, as their cells below do.
+const COLUMNS = [
+  { label: 'Name', align: 'start' },
+  { label: 'Email or login', align: 'start' },
+  { label: 'Role' },
+  { label: 'Departments' }
+] as const
 
 const ROLE_BADGE =
   'inline-flex h-5 items-center rounded-4xl px-2 text-xs font-medium tracking-wider uppercase'
@@ -62,12 +68,9 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
       </colgroup>
       <TableHeader>
         <TableRow>
-          {COLUMNS.map(label => (
-            <TableHead
-              key={label}
-              data-align={label === 'Name' || label === 'Email or login' ? 'start' : undefined}
-            >
-              {label}
+          {COLUMNS.map(column => (
+            <TableHead key={column.label} data-align={'align' in column ? column.align : undefined}>
+              {column.label}
             </TableHead>
           ))}
           <TableHead>

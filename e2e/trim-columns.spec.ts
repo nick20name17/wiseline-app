@@ -80,9 +80,13 @@ test('a column dragged narrower by its edge changes alone, as in EBMS', async ({
   await page.mouse.move(head.x + head.width - 102, head.y + head.height / 2, { steps: 10 })
   await page.mouse.up()
 
-  await expect.poll(() => width('Customer')).toBeCloseTo(customer - 100, 0)
-  expect(await width('Ship')).toBeCloseTo(ship, 0)
+  // Within 2px: a drag lands on whole pixels, a fixed layout shares out fractions of one.
+  const off = (expected: number) => (actual: number) => Math.abs(actual - expected)
+  await expect.poll(() => width('Customer').then(off(customer - 100))).toBeLessThan(2)
+  expect(off(ship)(await width('Ship'))).toBeLessThan(2)
   await expect
-    .poll(() => table.evaluate(element => element.getBoundingClientRect().width))
-    .toBeCloseTo(tableWidth - 100, 0)
+    .poll(() =>
+      table.evaluate(element => element.getBoundingClientRect().width).then(off(tableWidth - 100))
+    )
+    .toBeLessThan(2)
 })
