@@ -118,7 +118,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
-      <DialogContent className='sm:max-w-5xl xl:max-w-6xl'>
+      <DialogContent sizeKey='board:cutlist-coils-dialog' className='sm:max-w-5xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>
           <DialogDescription>
@@ -127,7 +127,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : coils?.length ? (

@@ -147,7 +147,7 @@ export const CreateExceptionDialog = ({ initialDate, onSaved }: CreateExceptionD
         <PlusCircle data-icon='inline-start' />
         Add day
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='holidays:exception-dialog'>
         <DialogHeader>
           <DialogTitle>Add holiday or working day</DialogTitle>
         </DialogHeader>
@@ -178,7 +178,7 @@ export const UpdateExceptionDialog = ({
   onSaved
 }: UpdateExceptionDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='holidays:exception-dialog'>
       <DialogHeader>
         <DialogTitle>Edit {KIND_LABELS[exception.kind].toLowerCase()}</DialogTitle>
       </DialogHeader>

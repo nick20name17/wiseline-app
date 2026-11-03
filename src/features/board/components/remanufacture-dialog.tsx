@@ -106,7 +106,7 @@ export const RemanufactureDialog = ({
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent sizeKey='board:remanufacture-dialog' className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>Remanufacture</DialogTitle>
           <DialogDescription>

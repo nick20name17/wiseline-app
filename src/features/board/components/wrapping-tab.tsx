@@ -156,145 +156,159 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                   </TableCell>
                 </TableRow>
 
-                {day.items.map(row => {
-                  const lineRemans = remans?.get(row.origin_item) ?? []
+                {/* A colour is said once too, over its lines: the server sorts each day by
+                    colour, then description, and the uncoloured lines come last. */}
+                {byDay(day.items, row => row.color?.toLowerCase() ?? null).map(colour => [
+                  <TableRow key={`colour-${colour.date ?? 'none'}`}>
+                    <TableCell colSpan={board.tables.wrapping.columns.length}>
+                      <span className='ml-4 text-xs font-semibold'>
+                        {colour.items[0]?.color ?? 'No colour'}
+                      </span>
+                      <span className='ml-2 text-xs text-muted-foreground'>
+                        {colour.items.length} line item{colour.items.length === 1 ? '' : 's'}
+                      </span>
+                    </TableCell>
+                  </TableRow>,
+                  ...colour.items.map(row => {
+                    const lineRemans = remans?.get(row.origin_item) ?? []
 
-                  return (
-                    // The whole row leads into its order: wrapping is done an order at a time.
-                    <TableRow
-                      key={row.origin_item}
-                      aria-label={`Wrap ${row.order_number ?? row.order}`}
-                      title='Open wrapping detail'
-                      // A late line outranks its remake: it stays red rather than orange or green.
-                      data-overdue={isOverdue(row) || undefined}
-                      data-reman={isOverdue(row) ? undefined : remanState(lineRemans)}
-                      onClick={() =>
-                        setOrder({
-                          order: row.order,
-                          part: row.is_split ? row.production_date : null
-                        })
-                      }
-                    >
-                      {columns.cells({
-                        order: (
-                          <TableCell>
-                            {/* The list is grouped by production date, so the stock mark rides
+                    return (
+                      // The whole row leads into its order: wrapping is done an order at a time.
+                      <TableRow
+                        key={row.origin_item}
+                        aria-label={`Wrap ${row.order_number ?? row.order}`}
+                        title='Open wrapping detail'
+                        // A late line outranks its remake: it stays red rather than orange or green.
+                        data-overdue={isOverdue(row) || undefined}
+                        data-reman={isOverdue(row) ? undefined : remanState(lineRemans)}
+                        onClick={() =>
+                          setOrder({
+                            order: row.order,
+                            part: row.is_split ? row.production_date : null
+                          })
+                        }
+                      >
+                        {columns.cells({
+                          order: (
+                            <TableCell>
+                              {/* The list is grouped by production date, so the stock mark rides
                                 with the order p1 (755,283). */}
-                            <span className='flex items-center gap-1.5'>
-                              <span className='font-mono' title={row.order_number ?? row.order}>
-                                {row.order_number ?? row.order}
-                              </span>
-                              {row.is_stock ? (
-                                <Package
-                                  className='size-3.5 shrink-0 text-muted-foreground'
-                                  aria-label='Stock order'
-                                />
-                              ) : null}
-                              {/* A split order's parts are wrapped and completed apart; a done part
+                              <span className='flex items-center gap-1.5'>
+                                <span className='font-mono' title={row.order_number ?? row.order}>
+                                  {row.order_number ?? row.order}
+                                </span>
+                                {row.is_stock ? (
+                                  <Package
+                                    className='size-3.5 shrink-0 text-muted-foreground'
+                                    aria-label='Stock order'
+                                  />
+                                ) : null}
+                                {/* A split order's parts are wrapped and completed apart; a done part
                                   stays listed until the whole order is. */}
-                              {row.part_completed ? (
-                                <Badge variant='muted'>Part done</Badge>
-                              ) : row.is_split ? (
-                                <Badge variant='muted'>Split</Badge>
-                              ) : null}
-                            </span>
-                          </TableCell>
-                        ),
-                        customer: (
-                          <TableCell>
-                            <span className='truncate'>{row.customer ?? '—'}</span>
-                          </TableCell>
-                        ),
-                        qty: (
-                          <TableCell>
-                            <span className='font-mono'>{row.qty_ordered}</span>
-                          </TableCell>
-                        ),
-                        stock: (
-                          <TableCell>
-                            <Figure value={row.from_stock || null} />
-                          </TableCell>
-                        ),
-                        image: (
-                          // The picture opens on its own; the row would open the order under it. With no
-                          // picture the cell is the row's, like any other.
-                          <TableCell
-                            onClick={event =>
-                              drawingOf(row.product_files)?.url && event.stopPropagation()
-                            }
-                          >
-                            <DrawingCell
-                              drawing={drawingOf(row.product_files)}
-                              product={row.product_id}
-                            />
-                          </TableCell>
-                        ),
-                        priority: (
-                          <TableCell>
-                            {/* The list is read by priority before it is read by date. */}
-                            {row.priority ? (
-                              <PriorityPill
-                                priority={
-                                  priorityOf.get(row.priority) ?? {
-                                    id: 0,
-                                    name: row.priority,
-                                    color: null,
-                                    position: null,
-                                    department: null
-                                  }
-                                }
+                                {row.part_completed ? (
+                                  <Badge variant='muted'>Part done</Badge>
+                                ) : row.is_split ? (
+                                  <Badge variant='muted'>Split</Badge>
+                                ) : null}
+                              </span>
+                            </TableCell>
+                          ),
+                          customer: (
+                            <TableCell>
+                              <span className='truncate'>{row.customer ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          qty: (
+                            <TableCell>
+                              <span className='font-mono'>{row.qty_ordered}</span>
+                            </TableCell>
+                          ),
+                          stock: (
+                            <TableCell>
+                              <Figure value={row.from_stock || null} />
+                            </TableCell>
+                          ),
+                          image: (
+                            // The picture opens on its own; the row would open the order under it. With no
+                            // picture the cell is the row's, like any other.
+                            <TableCell
+                              onClick={event =>
+                                drawingOf(row.product_files)?.url && event.stopPropagation()
+                              }
+                            >
+                              <DrawingCell
+                                drawing={drawingOf(row.product_files)}
+                                product={row.product_id}
                               />
-                            ) : (
-                              <span className='text-muted-foreground'>—</span>
-                            )}
-                          </TableCell>
-                        ),
-                        remfg: (
-                          // A badge opens its history; anywhere else the row opens the order.
-                          <TableCell
-                            onClick={event =>
-                              lineRemans.length && !row.is_bypassed && event.stopPropagation()
-                            }
-                          >
-                            {row.is_bypassed ? (
-                              <RemanNotApplicable />
-                            ) : (
-                              <RemanBadge remans={lineRemans} />
-                            )}
-                          </TableCell>
-                        ),
-                        status: (
-                          <TableCell>
-                            <StatusPill status={itemStatus(row.status)} />
-                          </TableCell>
-                        ),
-                        desc: (
-                          // Stacked rather than cut off, so a long description is read without
-                          // scrolling sideways, a custom length under it.
-                          <TableCell className='whitespace-normal'>
-                            <Description text={row.description} />
-                            {board.standardLength !== null &&
-                            row.length !== null &&
-                            !row.is_standard_length ? (
-                              <p className='font-mono text-xs text-destructive'>
-                                Custom length {row.length}"
-                              </p>
-                            ) : null}
-                          </TableCell>
-                        ),
-                        notes: (
-                          <TableCell onClick={event => event.stopPropagation()}>
-                            <NoteButton
-                              state={noteState(row.origin_item)}
-                              label={`Line notes for ${contentName(row)}`}
-                              onClick={() => setNoteLine(row)}
-                            />
-                          </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  )
-                })}
+                            </TableCell>
+                          ),
+                          priority: (
+                            <TableCell>
+                              {/* The list is read by priority before it is read by date. */}
+                              {row.priority ? (
+                                <PriorityPill
+                                  priority={
+                                    priorityOf.get(row.priority) ?? {
+                                      id: 0,
+                                      name: row.priority,
+                                      color: null,
+                                      position: null,
+                                      department: null
+                                    }
+                                  }
+                                />
+                              ) : (
+                                <span className='text-muted-foreground'>—</span>
+                              )}
+                            </TableCell>
+                          ),
+                          remfg: (
+                            // A badge opens its history; anywhere else the row opens the order.
+                            <TableCell
+                              onClick={event =>
+                                lineRemans.length && !row.is_bypassed && event.stopPropagation()
+                              }
+                            >
+                              {row.is_bypassed ? (
+                                <RemanNotApplicable />
+                              ) : (
+                                <RemanBadge remans={lineRemans} />
+                              )}
+                            </TableCell>
+                          ),
+                          status: (
+                            <TableCell>
+                              <StatusPill status={itemStatus(row.status)} />
+                            </TableCell>
+                          ),
+                          desc: (
+                            // Stacked rather than cut off, so a long description is read without
+                            // scrolling sideways, a custom length under it.
+                            <TableCell className='whitespace-normal'>
+                              <Description text={row.description} />
+                              {board.standardLength !== null &&
+                              row.length !== null &&
+                              !row.is_standard_length ? (
+                                <p className='font-mono text-xs text-destructive'>
+                                  Custom length {row.length}"
+                                </p>
+                              ) : null}
+                            </TableCell>
+                          ),
+                          notes: (
+                            <TableCell onClick={event => event.stopPropagation()}>
+                              <NoteButton
+                                state={noteState(row.origin_item)}
+                                label={`Line notes for ${contentName(row)}`}
+                                onClick={() => setNoteLine(row)}
+                              />
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    )
+                  })
+                ])}
               </Fragment>
             ))
           )}

@@ -343,7 +343,7 @@ const DONE_CUTLIST = {
 }
 
 /** Press Brake's own list: one row per size, all of it for this machine. */
-const BENDLIST = {
+export const BENDLIST = {
   ...CUTLIST,
   id: 601,
   kind: 'bendlist',
@@ -522,7 +522,11 @@ const WRAPPING_LOCATIONS = [
   {
     location_id: 5,
     name: '101',
+    warehouse_id: 1,
     warehouse: 'Main',
+    warehouse_is_default: true,
+    location_type_id: 3,
+    location_type: 'Trim carts',
     max_weight: 500,
     used_weight: 120,
     orders_on_it: 1,
@@ -534,7 +538,11 @@ const WRAPPING_LOCATIONS = [
   {
     location_id: 6,
     name: '102',
+    warehouse_id: 1,
     warehouse: 'Main',
+    warehouse_is_default: true,
+    location_type_id: 3,
+    location_type: 'Trim carts',
     max_weight: 500,
     used_weight: 500,
     orders_on_it: 1,
@@ -542,6 +550,21 @@ const WRAPPING_LOCATIONS = [
     max_orders: 1,
     available: false,
     remaining_weight: 0
+  },
+  {
+    location_id: 7,
+    name: '301',
+    warehouse_id: 2,
+    warehouse: 'Yard',
+    location_type_id: 4,
+    location_type: 'Overflow',
+    max_weight: null,
+    used_weight: 0,
+    orders_on_it: 0,
+    multi_order: false,
+    max_orders: 1,
+    available: true,
+    remaining_weight: null
   }
 ]
 

@@ -5,13 +5,6 @@ import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { QrLabels } from '@/components/qr-labels'
 import {
   Empty,
@@ -40,21 +33,20 @@ import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
   coilFoldersQuery,
-  coilLocationsQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
   useSetCoilLocation,
   useUpdateCoilLot,
   type CoilFilter,
-  type CoilLot,
-  type InventoryLocation
+  type CoilLot
 } from '../api'
-import { useBoard, useViewOnly } from '../lib/board-context'
+import { useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
 import { productFacts } from '../lib/format'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
+import { CoilLocationDialog, type CoilPlacing } from './coil-location-dialog'
 import { CoilScanDialog } from './coil-scan-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
@@ -109,6 +101,11 @@ const DEPARTMENT_LABEL: Record<Department, string> = {
 
 const otherOf = (department: Department): Department =>
   department === 'in_trim' ? 'in_rollforming' : 'in_trim'
+
+const DEPARTMENT_CODE: Record<Department, CoilPlacing['department']> = {
+  in_trim: 'trim',
+  in_rollforming: 'rollforming'
+}
 
 /**
  * One coil product and its lots. Colour, width and gauge are the EBMS product's, so they hold for
@@ -193,9 +190,8 @@ type LotCellsProps = {
   onAdjust: (lot: CoilLot, focus: CoilFigure) => void
   onLocate: (lot: CoilLot, department: Department, checked: boolean) => void
   onSlinet: (lot: CoilLot, checked: boolean) => void
-  /** This department's inventory locations; `null` where the coil is not this department's to place. */
-  placesOf: (lot: CoilLot) => InventoryLocation[] | null
-  onPlace: (lot: CoilLot, locationId: number) => void
+  /** Another location in the department the coil stands in. */
+  onPlace: (lot: CoilLot, department: Department) => void
   onPrint: (lot: CoilLot) => void
 }
 
@@ -217,12 +213,18 @@ type LotLocationProps = {
   lot: CoilLot
   department: Department
   onTick: LotCellsProps['onLocate']
+  onPlace: LotCellsProps['onPlace']
 }
 
-/** One coil's Trim or Rollforming box. A coil in the Slinet keeps to Trim. */
-const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
+/**
+ * One coil's Trim or Rollforming box, and beside it the location the coil stands on there, which a
+ * click changes. A coil in the Slinet keeps to Trim, on no location.
+ */
+const LotLocation = ({ lot, department, onTick, onPlace }: LotLocationProps) => {
   const viewOnly = useViewOnly()
   const shut = department === 'in_rollforming' && !lot[department] && !lot.rollforming_available
+  const placed = lot[department] && !lot.in_slinet
+  const location = lot.location ?? 'No location'
 
   return (
     // The hint sits on a wrapper: a disabled control never shows its own.
@@ -233,50 +235,26 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
         disabled={viewOnly || shut}
         onCheckedChange={checked => onTick(lot, department, checked)}
       />
+      {placed ? (
+        viewOnly ? (
+          <span className='font-mono'>{location}</span>
+        ) : (
+          <Button
+            variant='link'
+            aria-label={`Location of coil ${coilName(lot)}: ${location}`}
+            title='Click to move the coil to another location'
+            onClick={() => onPlace(lot, department)}
+          >
+            <span className='font-mono'>{location}</span>
+          </Button>
+        )
+      ) : null}
       {shut && !viewOnly ? <TouchHint>{IN_SLINET}</TouchHint> : null}
     </span>
   )
 }
 
-/** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
-/** Where a coil stands in its department: picked here, or by the forklift's two scans. */
-const LotPlace = ({
-  lot,
-  places,
-  onPlace
-}: { lot: CoilLot } & Pick<LotCellsProps, 'onPlace'> & {
-    places: InventoryLocation[] | null
-  }) => {
-  const viewOnly = useViewOnly()
-  if (viewOnly || !places?.length) return <span className='font-mono'>{lot.location ?? '—'}</span>
-  return (
-    <Select
-      value={lot.location_id === null ? null : String(lot.location_id)}
-      onValueChange={value => value && onPlace(lot, Number(value))}
-    >
-      <SelectTrigger size='sm' aria-label={`Location of coil ${coilName(lot)}`}>
-        <SelectValue placeholder='Pick…'>{() => lot.location ?? 'Pick…'}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {places.map(place => (
-          <SelectItem key={place.id} value={String(place.id)}>
-            {place.code ?? place.id}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
-const LotCells = ({
-  lot,
-  onAdjust,
-  onLocate,
-  onSlinet,
-  placesOf,
-  onPlace,
-  onPrint
-}: LotCellsProps) => {
+const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
   // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
   // figure is missing, not only in the Slinet box's hover.
@@ -332,13 +310,10 @@ const LotCells = ({
         )
       })}
       <TableCell label='Rollforming'>
-        <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} />
+        <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} onPlace={onPlace} />
       </TableCell>
       <TableCell label='Trim'>
-        <LotLocation lot={lot} department='in_trim' onTick={onLocate} />
-      </TableCell>
-      <TableCell label='Location'>
-        <LotPlace lot={lot} places={placesOf(lot)} onPlace={onPlace} />
+        <LotLocation lot={lot} department='in_trim' onTick={onLocate} onPlace={onPlace} />
       </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
@@ -368,7 +343,6 @@ const LotHead = () => (
       <TableHead>Weight (lbs.)</TableHead>
       <TableHead>Rollforming</TableHead>
       <TableHead>Trim</TableHead>
-      <TableHead>Location</TableHead>
       <TableHead>Slinet In / Out</TableHead>
       <TableHead>Note</TableHead>
     </TableRow>
@@ -383,9 +357,8 @@ const LotColumns = () => (
     <col className='w-36' />
     <col className='w-32' />
     <col className='w-36' />
-    <col className='w-32' />
-    <col className='w-20' />
-    <col className='w-32' />
+    <col className='w-36' />
+    <col className='w-36' />
     <col className='w-36' />
     <col />
   </>
@@ -635,16 +608,16 @@ type Moving = { to: Department; lot: CoilLot }
 
 type MoveConfirmProps = {
   moving: Moving | null
-  isPending: boolean
   onCancel: () => void
   onConfirm: (moving: Moving) => void
 }
 
 /**
  * Ticking one department's box on a coil the other holds moves it. The board asks whether the other
- * department agreed (p1 (300,689), (320,689)); Yes moves it and unticks theirs (p1 (276,702)).
+ * department agreed (p1 (300,689), (320,689)); Yes goes on to a location in the new department, and
+ * the move unticks theirs (p1 (276,702)).
  */
-const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProps) => {
+const MoveConfirm = ({ moving, onCancel, onConfirm }: MoveConfirmProps) => {
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
   const from = moved ? DEPARTMENT_LABEL[otherOf(moved.to)] : ''
@@ -656,10 +629,9 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
       onOpenChange={open => !open && onCancel()}
       onOpenChangeComplete={release}
       title={`Have you checked with the ${from} department to ensure that it is ok to move ${what} to the ${to} department?`}
-      description={`Yes moves ${what} to ${to} and unchecks ${from} — a coil can only be in one department.`}
+      description={`Yes asks where in ${to} it goes, then moves ${what} there and unchecks ${from} — a coil can only be in one department.`}
       confirmLabel='Yes'
       cancelLabel='No'
-      isPending={isPending}
       onConfirm={() => moved && onConfirm(moved)}
     />
   )
@@ -686,7 +658,6 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   const viewOnly = useViewOnly()
-  const board = useBoard()
   const [labelled, setLabelled] = useState<CoilLot | null>(null)
   const [assignment, setAssignment] = useState<Assignment>('all')
   // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
@@ -726,24 +697,36 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
     ({ lot }) => match(lot) && (!openFolder || lot.folder_id === openFolder)
   )
   const placeLot = useSetCoilLocation()
-  const { data: places } = useQuery(coilLocationsQuery(departmentId))
-  // A coil is put on this department's racks only while it stands in this department.
-  const own: Department = board.code === 'rollforming' ? 'in_rollforming' : 'in_trim'
+  // A coil stands in Trim or Rollforming only on one of its locations, so a tick into either, or out
+  // of the Slinet back onto Trim's floor, waits on a pick (Kevin's notes of 2026-11-02, N12).
+  const [placing, setPlacing] = useState<CoilPlacing | null>(null)
 
-  const moveLot = (lot: CoilLot, location: Partial<Record<Department, boolean>>) =>
-    placeLot.mutate({ lotId: lot.id, location }, { onSuccess: () => setMoving(null) })
+  const place = ({ lot, department }: CoilPlacing, locationId: number) => {
+    const into: Department = department === 'trim' ? 'in_trim' : 'in_rollforming'
+    placeLot.mutate({
+      lotId: lot.id,
+      location: {
+        location_id: locationId,
+        ...(lot[into] ? {} : { [into]: true }),
+        ...(lot.in_slinet ? { in_slinet: false } : {})
+      }
+    })
+  }
 
   const handlers: CellHandlers = {
     onAdjust: (lot, focus) => setAdjusting({ lotId: lot.id, focus }),
     onLocate: (lot, department, checked) =>
-      checked && lot[otherOf(department)]
-        ? setMoving({ lot, to: department })
-        : moveLot(lot, { [department]: checked }),
+      !checked
+        ? placeLot.mutate({ lotId: lot.id, location: { [department]: false } })
+        : lot[otherOf(department)]
+          ? setMoving({ lot, to: department })
+          : setPlacing({ lot, department: DEPARTMENT_CODE[department] }),
+    // Into the Slinet the coil leaves its location; out of it, it goes onto one of Trim's.
     onSlinet: (lot, checked) =>
-      placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } }),
-    placesOf: lot => (lot[own] ? (places ?? null) : null),
-    onPlace: (lot, locationId) =>
-      placeLot.mutate({ lotId: lot.id, location: { location_id: locationId } }),
+      checked
+        ? placeLot.mutate({ lotId: lot.id, location: { in_slinet: true } })
+        : setPlacing({ lot, department: 'trim' }),
+    onPlace: (lot, department) => setPlacing({ lot, department: DEPARTMENT_CODE[department] }),
     onPrint: setLabelled
   }
 
@@ -967,9 +950,17 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
 
       <MoveConfirm
         moving={moving}
-        isPending={placeLot.isPending}
         onCancel={() => setMoving(null)}
-        onConfirm={next => moveLot(next.lot, { [next.to]: true })}
+        onConfirm={next => {
+          setMoving(null)
+          setPlacing({ lot: next.lot, department: DEPARTMENT_CODE[next.to] })
+        }}
+      />
+
+      <CoilLocationDialog
+        placing={placing}
+        onOpenChange={open => !open && setPlacing(null)}
+        onPick={place}
       />
     </div>
   )

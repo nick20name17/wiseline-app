@@ -30,7 +30,7 @@ export const DrawingCell = ({ drawing, product }: DrawingCellProps) => {
         <img src={drawing.url} alt='' className='size-full rounded-md object-contain' />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='sm:max-w-2xl'>
+        <DialogContent sizeKey='board:drawing-cell' className='sm:max-w-2xl'>
           <DialogHeader>
             <DialogTitle>{label}</DialogTitle>
             <DialogDescription>{drawing.name}</DialogDescription>

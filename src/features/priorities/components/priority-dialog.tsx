@@ -184,7 +184,7 @@ export const CreatePriorityDialog = ({ departmentId }: CreatePriorityDialogProps
         <PlusCircle data-icon='inline-start' />
         Add priority
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='priorities:priority-dialog'>
         <DialogHeader>
           <DialogTitle>Add priority</DialogTitle>
         </DialogHeader>
@@ -209,7 +209,7 @@ export const UpdatePriorityDialog = ({
   onOpenChange
 }: UpdatePriorityDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='priorities:priority-dialog'>
       <DialogHeader>
         <DialogTitle>Edit priority</DialogTitle>
       </DialogHeader>

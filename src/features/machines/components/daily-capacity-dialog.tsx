@@ -98,7 +98,7 @@ export const DailyCapacityDialog = ({ department }: DailyCapacityDialogProps) =>
         <Gauge data-icon='inline-start' />
         Daily capacity · {perDay === null ? 'not set' : `${perDay} pcs`}
       </DialogTrigger>
-      <DialogContent className='sm:max-w-sm'>
+      <DialogContent sizeKey='machines:daily-capacity-dialog' className='sm:max-w-sm'>
         <DialogHeader>
           <DialogTitle>Daily capacity · {department.name}</DialogTitle>
           <DialogDescription>

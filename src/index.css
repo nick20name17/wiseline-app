@@ -307,6 +307,26 @@
   top: calc(var(--spacing) * 13 + var(--board-bar, 0px));
 }
 
+/* A dialog dragged to a size (`useDialogSize`). A width lifts the dialog's own cap but keeps the page
+   margin; a height makes it a column, whose `data-dialog-grow` part takes what the rest leaves, past
+   the cap it has at the dialog's own size. */
+[data-dialog-width] {
+  width: var(--dialog-width);
+  max-width: calc(100% - 2rem);
+}
+
+[data-dialog-sized] {
+  display: flex;
+  flex-direction: column;
+  height: var(--dialog-height);
+}
+
+[data-dialog-sized] > [data-dialog-grow] {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+}
+
 /* A table's header held in view over its rows (`useStickyTableHeads`): it is lifted above them and
    made opaque, the same tint it has over the card. A collapsed table's borders stay where they were
    drawn, so its rule under the header is drawn again on it. */

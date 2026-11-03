@@ -122,7 +122,7 @@ const CardOrderDialog = ({ card: current, onOpenChange }: CardOrderDialogProps) 
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-sm'>
+      <DialogContent sizeKey='board:stock-cards-panel' className='sm:max-w-sm'>
         <DialogHeader>
           <DialogTitle>Create stock order</DialogTitle>
           <DialogDescription>Prefilled from the stock card.</DialogDescription>

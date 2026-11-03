@@ -1,14 +1,7 @@
 import { today } from '@/lib/days'
 import { formatWidth } from './format'
 import { matchesSearch } from './search'
-import type {
-  LocationSlot,
-  LocationType,
-  OrderLocation,
-  Package,
-  Remanufacturing,
-  WrappingRow
-} from '../api'
+import type { LocationSlot, OrderLocation, Package, Remanufacturing, WrappingRow } from '../api'
 
 /**
  * The header search on Wrapping. Every released day is listed at once, so the search runs over all of
@@ -79,15 +72,18 @@ export type CellRoom = Pick<
 
 /**
  * Where the next package goes: the cell the Worker picked, or else the one the order already
- * stands on. `slot` carries the weight standing there: from this department's list, or — for another
- * department's cell, which that list lacks — from the order's own locations.
+ * stands on — but the first label waits for a pick (Kevin's notes of 2026-11-02, N6), so `hasPackages`
+ * says whether the order has one yet. `slot` carries the weight standing there: from this
+ * department's list, or — for another department's cell, which that list lacks — from the order's own
+ * locations.
  */
 export const packageTarget = (
   picked: LocationSlot | null,
   locations: OrderLocation[] | undefined,
-  slots: LocationSlot[] | undefined
+  slots: LocationSlot[] | undefined,
+  hasPackages: boolean
 ) => {
-  const current = locations?.find(spot => spot.current)
+  const current = hasPackages ? locations?.find(spot => spot.current) : undefined
   const target: { location_id: number; name: string | null } | null = picked ?? current ?? null
   // The picked cell is a snapshot from the moment it was clicked; its room is read fresh, so a
   // package just put there counts against it.
@@ -179,48 +175,6 @@ export const applyKeypad = (current: number, typed: string, max: number) => {
 /** A keypad entry for a measure rather than a count: a plain decimal, no +/−; `null` until it is one. */
 export const decimalKeypad = (typed: string) =>
   /^(\d+\.?\d*|\.\d+)$/.test(typed) ? Number(typed) : null
-
-/** A column of Select Location: one location type and its locations, in the server's order. */
-export type LocationColumn = {
-  key: string
-  name: string
-  warehouse: string | null
-  slots: LocationSlot[]
-  position: number
-  isDefault: boolean
-}
-
-/**
- * Select Location's columns, one per location type. Types in the default warehouse — «the one that
- * opens first» p1 (543,104) — lead, then by their position in Settings and name. A location whose
- * type is not known goes under its warehouse instead.
- */
-export const locationColumns = (
-  slots: LocationSlot[],
-  typeOf: ReadonlyMap<number, LocationType> | undefined
-) => {
-  const columns = new Map<string, LocationColumn>()
-  for (const slot of slots) {
-    const type = typeOf?.get(slot.location_id)
-    const key = type ? `type-${type.id}` : `warehouse-${slot.warehouse ?? ''}`
-    const column = columns.get(key) ?? {
-      key,
-      name: type?.name ?? slot.warehouse ?? 'Other',
-      warehouse: type ? slot.warehouse : null,
-      slots: [],
-      position: type?.position ?? Number.MAX_SAFE_INTEGER,
-      isDefault: slot.warehouse_is_default
-    }
-    column.slots.push(slot)
-    columns.set(key, column)
-  }
-  return [...columns.values()].toSorted(
-    (a, b) =>
-      Number(b.isDefault) - Number(a.isDefault) ||
-      a.position - b.position ||
-      a.name.localeCompare(b.name)
-  )
-}
 
 /**
  * A location an order or job holds, as its chips and Select Location read it. A job's locations carry

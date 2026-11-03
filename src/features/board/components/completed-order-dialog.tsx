@@ -348,7 +348,10 @@ export const CompletedOrderDialog = ({
       }}
     >
       {/* Wide enough for the line items' every column without scrolling sideways on a desk. */}
-      <DialogContent className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'>
+      <DialogContent
+        sizeKey='board:completed-order-dialog'
+        className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'
+      >
         <DialogHeader>
           <DialogTitle>{order ? titleOf(order, isStock) : 'Completed order'}</DialogTitle>
           <DialogDescription>
@@ -357,7 +360,10 @@ export const CompletedOrderDialog = ({
         </DialogHeader>
 
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-        <div className='scrollport flex min-h-56 flex-col gap-4 md:max-h-104 md:overflow-y-auto'>
+        <div
+          data-dialog-grow
+          className='scrollport flex min-h-56 flex-col gap-4 md:max-h-104 md:overflow-y-auto'
+        >
           {isPending || !data ? (
             <Skeleton className='h-56' />
           ) : (

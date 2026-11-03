@@ -356,7 +356,11 @@ export const CoilAdjustDialog = ({ lot: current, focus, onOpenChange }: CoilAdju
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-2xl' initialFocus={focusRef}>
+      <DialogContent
+        sizeKey='board:coil-adjust-dialog'
+        className='sm:max-w-2xl'
+        initialFocus={focusRef}
+      >
         <DialogHeader>
           <DialogTitle>Coil Adjustment</DialogTitle>
           <DialogDescription>

@@ -23,7 +23,7 @@ import {
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
 import { ArrowRightLeft, ChevronDown, Package, RefreshCw } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import {
   useUpdateCutlistRow,
   useUpdateLineItem,
@@ -335,19 +335,8 @@ type RowDetailsBodyProps = Omit<RowDetailsProps, 'open' | 'group' | 'onClose' | 
   group: CutlistGroup
 }
 
-const RowDetailsBody = ({ group, remake, remakes, editsLines, onStock }: RowDetailsBodyProps) => {
+const RowDetailsBody = ({ group, remakes }: RowDetailsBodyProps) => {
   const about = describeGroup(group)
-  // «When a row is marked as Complete ... the Machine button would disappear» p1 (653,358). A
-  // remake's row belongs to the remake: its machine and stock are the line's, edited on the line's.
-  const editable = editsLines && !group.complete && !remake
-  // A remake asked for at the bench shows only what was asked for; one from a machine keeps the
-  // full Qty Ordered (p1 (612,482), (653,546)).
-  const ordered = remake?.source === 'wrapping' ? group.quantity : about.ordered || null
-  const stock = editable ? (
-    <StockCell group={group} onStock={onStock} />
-  ) : (
-    <Figure value={about.fromStock || null} />
-  )
 
   return (
     <>
@@ -358,14 +347,6 @@ const RowDetailsBody = ({ group, remake, remakes, editsLines, onStock }: RowDeta
         </DialogTitle>
         <DialogDescription>{about.description ?? 'No description'}</DialogDescription>
       </DialogHeader>
-
-      <dl className='grid grid-cols-3 gap-4'>
-        <Fact label='Qty ordered'>
-          <Figure value={ordered} />
-        </Fact>
-        <Fact label='Stock'>{stock}</Fact>
-        <Fact label='Qty to manufacture'>{group.quantity}</Fact>
-      </dl>
 
       {remakes.length ? (
         <p className='flex items-center gap-2 text-sm'>
@@ -381,34 +362,20 @@ type RowDetailsProps = {
   open: boolean
   /** Kept through the closing animation, so the window does not empty as it fades. */
   group: CutlistGroup | null
-  /** The remake this row is the work of — its own row, or its list — when it is one. */
-  remake: Remanufacturing | null
   /** Every remake the row answers for, those riding on the line's own bend row included. */
   remakes: Remanufacturing[]
-  /** The row's lines can still be pulled from stock. */
-  editsLines: boolean
-  onStock: (line: EditableLine) => void
   onClose: () => void
   onClosed: (open: boolean) => void
 }
 
-const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className='flex flex-col gap-1'>
-    <dt className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-      {label}
-    </dt>
-    <dd className='font-mono text-lg'>{children}</dd>
-  </div>
-)
-
 /**
  * Everything on a bendlist row the bender does not read at every piece: the whole description and
- * the order's figures. A tap on the row opens it; the floor's screens are too narrow to carry it all
+ * what is being remade. A tap on the row opens it; the floor's screens are too narrow to carry it all
  * as columns.
  */
 const RowDetails = ({ open, group, onClose, onClosed, ...body }: RowDetailsProps) => (
   <Dialog open={open} onOpenChange={next => !next && onClose()} onOpenChangeComplete={onClosed}>
-    <DialogContent className='sm:max-w-lg'>
+    <DialogContent sizeKey='board:cutlist-rows' className='sm:max-w-lg'>
       {group ? <RowDetailsBody group={group} {...body} /> : null}
     </DialogContent>
   </Dialog>
@@ -459,6 +426,8 @@ export const CutlistRows = ({
   const updateLine = useUpdateLineItem({ released: true })
   const [moving, setMoving] = useState<{ line: EditableLine; machine: Machine } | null>(null)
   const [stocking, setStocking] = useState<EditableLine | null>(null)
+  // Every row of a bendlist carries the list's own machine.
+  const bendMachine = (!isSlinet && rows[0]?.machine) || undefined
   const groups = groupRows(rows, { byProduct: !isSlinet })
   const groupRemakes = new Map(
     groups.map(group => [group.key, remakesOf(group, remake, remakes.values())])
@@ -493,6 +462,14 @@ export const CutlistRows = ({
       { key: 'w', label: 'W"', width: 'w-18' },
       // A custom length runs to three decimals, 47.625".
       { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-22' },
+      // Beside what is made, what was ordered and what came off the shelf for it (Kevin's notes of
+      // 2026-11-02, N14).
+      ...(isSlinet
+        ? []
+        : [
+            { key: 'ordered', label: 'Qty Ordered', width: 'w-20' },
+            { key: 'stock', label: 'Stock', width: 'w-24' }
+          ]),
       isSlinet
         ? { key: 'qty', label: 'Total', width: 'w-20' }
         : // Its heading wraps in two, and MANUFACTURE alone takes 99px.
@@ -517,8 +494,7 @@ export const CutlistRows = ({
             }
           ]
         : // A bendlist row keeps what the bender reads at the machine and the buttons it reaches for
-          // now and then, as Wrapping has them; Qty Ordered and Stock open from the row, so the list
-          // fits without a sideways scroll.
+          // now and then, as Wrapping has them.
           [
             // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
             {
@@ -668,6 +644,31 @@ export const CutlistRows = ({
                       </span>
                     </TableCell>
                   ),
+                  ordered: (
+                    <TableCell>
+                      {/* A remake asked for at the bench shows only what was asked for; one from a
+                          machine keeps the full Qty Ordered (p1 (612,482), (653,546)). */}
+                      <Figure
+                        value={
+                          ownRemake(group)?.source === 'wrapping'
+                            ? group.quantity
+                            : about.ordered || null
+                        }
+                      />
+                    </TableCell>
+                  ),
+                  stock: (
+                    <TableCell>
+                      {/* «When a row is marked as Complete ... the Machine button would disappear»
+                          p1 (653,358). A remake's row belongs to the remake: its stock is the
+                          line's, edited on the line's. */}
+                      {editsLines && !group.complete && !ownRemake(group) ? (
+                        <StockCell group={group} onStock={setStocking} />
+                      ) : (
+                        <Figure value={about.fromStock || null} />
+                      )}
+                    </TableCell>
+                  ),
                   qty: (
                     // What the machine makes, so it is the figure the eye lands on first (Kevin's
                     // notes of 2026-11-02, A3).
@@ -780,7 +781,11 @@ export const CutlistRows = ({
         onOpenChange={open => !open && setStocking(null)}
         onEnter={value => {
           if (!stocking) return
-          updateLine.mutate({ itemId: stocking.item_id, edit: { pull_from_stock: value } })
+          updateLine.mutate({
+            itemId: stocking.item_id,
+            edit: { pull_from_stock: value },
+            fromFlow: bendMachine
+          })
           setStocking(null)
         }}
       />
@@ -788,10 +793,7 @@ export const CutlistRows = ({
       <RowDetails
         open={detailsKey !== null}
         group={detailed}
-        remake={detailed && ownRemake(detailed)}
         remakes={detailed ? remakesFor(detailed) : []}
-        editsLines={editsLines}
-        onStock={setStocking}
         onClose={() => setDetailsKey(null)}
         onClosed={releaseDetails}
       />
