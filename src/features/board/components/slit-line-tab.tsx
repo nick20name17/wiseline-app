@@ -200,7 +200,6 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
               <col className='w-36' />
               <col className='w-28' />
               <col className='w-32' />
-              <col className='w-32' />
               <col />
               <col className='w-16' />
               <col className='w-20' />
@@ -214,7 +213,6 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 <TableHead>Production Date</TableHead>
                 <TableHead>Order #</TableHead>
                 <TableHead>Requested By</TableHead>
-                <TableHead>Product ID</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Length</TableHead>
@@ -273,9 +271,6 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                           </TableCell>
                           <TableCell label='Requested By'>
                             <span className='truncate'>{row.requested_by ?? '—'}</span>
-                          </TableCell>
-                          <TableCell label='Product ID'>
-                            <span className='font-mono'>{product ?? '—'}</span>
                           </TableCell>
                           <TableCell card='subtitle'>
                             <Description text={row.description} className='text-muted-foreground' />

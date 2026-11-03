@@ -25,7 +25,7 @@ test('an order opens with its line items and packages', async ({ page }) => {
   await expect(dialog.getByText('Completed · 338008 · Vittoria Metal Works')).toBeVisible()
   await expect(dialog.getByText(/manufacturing batch 56 pcs \(Qty − Stock\)/)).toBeVisible()
   await expect(dialog.getByRole('columnheader', { name: 'Remanufactured' })).toBeVisible()
-  const stock = dialog.getByRole('row').filter({ hasText: 'TRAKE24' })
+  const stock = dialog.getByRole('row').filter({ hasText: 'Rake Trim' })
   await expect(stock.getByText('4', { exact: true })).toBeVisible()
   await expect(dialog.getByText('01-338008-01')).toBeVisible()
   await expect(dialog.getByRole('row').filter({ hasText: '01-338008-01' })).toContainText(

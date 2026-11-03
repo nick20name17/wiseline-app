@@ -71,7 +71,7 @@ test('a total opens the orders behind it', async ({ page }) => {
   await expect(dialog.getByText('Orders using this size')).toBeVisible()
   await expect(dialog.getByText('330608')).toBeVisible()
   await expect(dialog.getByText('Jireh Tools')).toBeVisible()
-  await expect(dialog.getByText('TRC8250')).toBeVisible()
+  await expect(dialog.getByText('Ridge Cap Dark Red')).toBeVisible()
 })
 
 test('reopening a row asks first, marking one complete does not', async ({ page }) => {
@@ -114,7 +114,6 @@ test('Cutlist Coils lists the coils this colour can be cut from', async ({ page 
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('37067677')).toBeVisible()
-  await expect(dialog.getByText('CS488306')).toBeVisible()
 
   // Nothing has moved yet, so there is nothing to push.
   await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled()

@@ -201,7 +201,7 @@ test('Allocated Stock reports what reviewed orders draw from stock', async ({ pa
 
   await expect(page.getByRole('heading', { name: 'Allocated stock' })).toBeVisible()
   await expect(page.getByText('Charcoal', { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'TSG8306' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Snow Guard Charcoal' })).toBeVisible()
 })
 
 test('expanding a scheduled order offers the machine, stock and vented columns', async ({

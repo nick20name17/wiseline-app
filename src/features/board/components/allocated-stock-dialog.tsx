@@ -90,14 +90,9 @@ export const AllocatedStockDialog = ({
                     >
                       {columns.cells({
                         color: <TableCell>{row.color ?? '—'}</TableCell>,
-                        pid: (
-                          <TableCell>
-                            <span className='font-mono'>{row.product_id || '—'}</span>
-                          </TableCell>
-                        ),
                         desc: (
                           <TableCell>
-                            <Description text={row.description} className='text-muted-foreground' />
+                            <Description text={row.description} />
                           </TableCell>
                         ),
                         qty: (

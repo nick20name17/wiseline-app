@@ -74,7 +74,10 @@ export const CutlistCard = ({
       className={cn(
         'overflow-hidden rounded-lg border border-border bg-card shadow-xs',
         // The paint is the warning; a hard red edge on top of it turns a late list into an error.
-        overdue && 'bg-destructive/5'
+        overdue && 'bg-destructive/5',
+        // On a day of a dozen lists the open one has to stand out from across the floor (Kevin's
+        // notes of 2026-11-02, A2). The ring adds to the border, so the rows do not shift.
+        expanded && 'border-primary ring-2 ring-primary'
       )}
     >
       {/* The whole header opens the list; the chevron is its keyboard stop, and its click reaches the
@@ -90,7 +93,12 @@ export const CutlistCard = ({
           toggleExpanded(cutlist.id)
         }}
       >
-        <Button variant='ghost' size='icon' aria-label={expanded ? 'Hide rows' : 'Show rows'}>
+        <Button
+          variant='ghost'
+          size='icon'
+          aria-label={expanded ? 'Hide rows' : 'Show rows'}
+          aria-expanded={expanded}
+        >
           <ChevronRight className={cn('transition-transform', expanded && 'rotate-90')} />
         </Button>
 

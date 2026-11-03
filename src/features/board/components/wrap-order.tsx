@@ -44,7 +44,6 @@ import {
   stagedQuantity,
   wrapAllowed,
   contentName,
-  lineName,
   type CellRoom,
   type HeldLocation
 } from '../lib/wrapping'
@@ -260,14 +259,9 @@ const WrapLines = ({
               return (
                 <TableRow key={row.origin_item} data-reman={remanState(lineRemans)}>
                   {columns.cells({
-                    line: (
-                      <TableCell>
-                        <span className='font-mono'>{lineName(row)}</span>
-                      </TableCell>
-                    ),
                     desc: (
                       <TableCell>
-                        <Description text={row.description} className='text-muted-foreground' />
+                        <Description text={row.description} />
                       </TableCell>
                     ),
                     // Anything but the standard 120" is worth a second look, as on the

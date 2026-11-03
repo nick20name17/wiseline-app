@@ -37,8 +37,7 @@ export const UNSCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty', width: 'w-20' },
     // The trim's drawing, to check what was ordered before it is put on a day.
     { key: 'image', label: 'Image', width: 'w-20' },
-    { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'notes', label: 'Notes', width: 'w-20', hideLabel: true }
   ]
 }
@@ -74,8 +73,7 @@ export const SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'stock', label: 'Stock', width: 'w-20' },
     { key: 'status', label: 'Status', width: 'w-38' },
     { key: 'image', label: 'Image', width: 'w-20' },
-    { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'w', label: 'W"', width: 'w-24' },
     // Room for a four-figure length and its inch mark — «1200"» — whole.
     { key: 'l', label: 'L"', width: 'w-24' },
@@ -96,7 +94,6 @@ export const WRAPPING_TABLE: ColumnTable = {
     { key: 'status', label: 'Status', width: 'w-38' },
     // Products on a full bench look alike; the picture is what tells them apart.
     { key: 'image', label: 'Image', width: 'w-20' },
-    { key: 'pid', label: 'ID', width: 'w-36' },
     { key: 'desc', label: 'Description', card: 'full' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
@@ -106,8 +103,7 @@ export const WRAP_LINES_TABLE: ColumnTable = {
   table: 'wrap-lines',
   columns: [
     // Description takes what is left, so Wrapping — the column the bench works in — stays on screen.
-    { key: 'line', label: 'ID', width: 'w-28', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'length', label: 'Length', width: 'w-20' },
     { key: 'qty', label: 'Qty ordered', width: 'w-32' },
     { key: 'stock', label: 'Stock', width: 'w-16' },
@@ -124,10 +120,9 @@ export const WRAP_LINES_TABLE: ColumnTable = {
 export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
-    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. Product ID takes
-    // the slack: a coil is known by it, so it is never cut short, and a colour name never needs it.
-    { key: 'pid', label: 'Product ID', card: 'title' },
-    { key: 'color', label: 'Color', width: 'w-32', card: 'subtitle' },
+    // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. With no Product
+    // ID column (Kevin's notes of 2026-11-02, A8), the colour names the coil and takes the slack.
+    { key: 'color', label: 'Color', card: 'title' },
     { key: 'width', label: 'Width (in.)', width: 'w-28' },
     { key: 'count', label: 'Count', width: 'w-20' },
     { key: 'lf', label: 'Total L/F', width: 'w-30' },
@@ -154,8 +149,7 @@ export const COMPLETED_TABLE: ColumnTable = {
 export const COMPLETED_LINES_TABLE: ColumnTable = {
   table: 'completed-lines',
   columns: [
-    { key: 'pid', label: 'Product ID', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'length', label: 'Length' },
     { key: 'qty', label: 'Qty Ordered' },
     // A stock order took nothing off the shelf, so its lines leave this one out.
@@ -181,8 +175,7 @@ export const ALLOCATED_STOCK_TABLE: ColumnTable = {
     // Fixed widths, so the description is what gives when the sheet is narrow — not the quantity,
     // which is what the window is opened for.
     { key: 'color', label: 'Colour', width: 'w-36' },
-    { key: 'pid', label: 'Product ID', width: 'w-36', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'qty', label: 'Qty allocated', width: 'w-36' }
   ]
 }
@@ -191,11 +184,10 @@ export const CUTLIST_COILS_TABLE: ColumnTable = {
   table: 'cutlist-coils',
   // Width does not narrow this list, so it is what tells its coils apart p1 (463,379).
   columns: [
-    { key: 'pid', label: 'Product ID', card: 'title' },
     { key: 'width', label: 'Width' },
     { key: 'gauge', label: 'Gauge' },
     { key: 'color', label: 'Colour' },
-    { key: 'num', label: 'Coil #' },
+    { key: 'num', label: 'Coil #', card: 'title' },
     { key: 'thick', label: 'Thickness' },
     { key: 'lf', label: 'Linear feet' },
     { key: 'weight', label: 'Weight (lbs.)' },
@@ -209,7 +201,6 @@ export const CUTLIST_TOTAL_TABLE: ColumnTable = {
     { key: 'order', label: 'Order', card: 'title' },
     { key: 'customer', label: 'Customer', card: 'subtitle' },
     { key: 'po', label: 'PO#' },
-    { key: 'pid', label: 'Product ID' },
     { key: 'desc', label: 'Description' },
     { key: 'qtyord', label: 'Qty ord.' },
     { key: 'stock', label: 'Stock' },
@@ -263,9 +254,8 @@ export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
   columns: [
     { key: 'qty', label: 'Qty Ordered', width: 'w-28' },
     { key: 'shipped', label: 'Shipped', width: 'w-24' },
-    { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
     { key: 'status', label: 'Status', width: 'w-38' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'notes', label: 'Notes', width: 'w-20' }
   ]
 }
@@ -275,8 +265,7 @@ export const ACCESSORIES_SCHEDULED_LINES_TABLE: ColumnTable = {
 export const PACKAGED_LINES_TABLE: ColumnTable = {
   table: 'completed-package-lines',
   columns: [
-    { key: 'pid', label: 'Product ID', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'qty', label: 'Qty Ordered' },
     { key: 'packaged', label: 'Packaged' },
     { key: 'notes', label: 'Line Item Notes', card: 'full' }
@@ -287,8 +276,7 @@ export const PACKAGED_LINES_TABLE: ColumnTable = {
 export const PACKAGE_LINES_TABLE: ColumnTable = {
   table: 'package-lines',
   columns: [
-    { key: 'line', label: 'ID', width: 'w-28', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'qty', label: 'Qty ordered', width: 'w-32' },
     { key: 'wrapped', label: 'Packaged', width: 'w-24' },
     { key: 'left', label: 'Left to package', width: 'w-40' },
@@ -333,8 +321,7 @@ export const ROLLFORMING_SCHEDULED_LINES_TABLE: ColumnTable = {
     { key: 'qty', label: 'Qty', width: 'w-16' },
     { key: 'stock', label: 'Stock', width: 'w-20' },
     { key: 'status', label: 'Status', width: 'w-38' },
-    { key: 'pid', label: 'Product ID', width: 'w-32', card: 'title' },
-    { key: 'desc', label: 'Description', card: 'subtitle' },
+    { key: 'desc', label: 'Description', card: 'title' },
     { key: 'l', label: 'L"', width: 'w-24' },
     { key: 'supplier', label: 'Supplier', width: 'w-40' },
     { key: 'coil', label: 'Coil Number', width: 'w-44' },

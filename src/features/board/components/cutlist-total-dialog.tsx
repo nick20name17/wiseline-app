@@ -82,11 +82,6 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                             <Figure value={entry.po_number} />
                           </TableCell>
                         ),
-                        pid: (
-                          <TableCell>
-                            <Figure value={entry.product_id} />
-                          </TableCell>
-                        ),
                         desc: (
                           <TableCell>
                             <Description

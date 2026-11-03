@@ -229,11 +229,6 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                             />
                           </TableCell>
                         ),
-                        pid: (
-                          <TableCell>
-                            <span className='font-mono'>{row.product_id ?? '—'}</span>
-                          </TableCell>
-                        ),
                         priority: (
                           <TableCell>
                             {/* The list is read by priority before it is read by date. */}

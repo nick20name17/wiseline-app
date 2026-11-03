@@ -502,7 +502,7 @@ test('Wrapping shows the product picture, and a row without one still opens its 
   const dripEdge = page.getByRole('row').filter({ hasText: 'Drip Edge' })
   await dripEdge
     .getByRole('cell')
-    .filter({ hasText: 'TDE8250' })
+    .filter({ hasText: 'Drip Edge' })
     .locator('xpath=preceding-sibling::td[1]')
     .click()
   await expect(page.getByRole('button', { name: 'Back to Wrapping' })).toBeVisible()
@@ -523,7 +523,7 @@ test('a line taken whole from stock has no coil and no box to put it on one', as
     .first()
     .click()
 
-  const line = page.getByRole('row').filter({ hasText: 'TED8250' })
+  const line = page.getByRole('row').filter({ hasText: 'Eave Drip Dark Red' })
   await expect(line.getByText('Stock', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('checkbox', { name: 'Select TED8250' })).toBeHidden()
   await expect(line.getByLabel('Rolled from a coil')).toBeHidden()
@@ -764,7 +764,7 @@ test('a Stock line on Production names no coil and no Supplier', async ({ page }
   await signIn(page)
 
   await page.getByRole('button', { name: 'Expand 330615' }).click()
-  const line = page.getByRole('row', { name: /^16 TED8250/ })
+  const line = page.getByRole('row', { name: /^16 Eave Drip Dark Red/ })
   await expect(line).toContainText('Stock')
   await expect(line).not.toContainText('COLSTE')
   await expect(line).not.toContainText('Undefined')

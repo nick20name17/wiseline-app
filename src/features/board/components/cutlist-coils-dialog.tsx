@@ -152,11 +152,6 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                               <span className='font-mono'>{coil.lot_number ?? '—'}</span>
                             </TableCell>
                           ),
-                          pid: (
-                            <TableCell>
-                              <span className='font-mono'>{coil.product_id ?? '—'}</span>
-                            </TableCell>
-                          ),
                           width: (
                             <TableCell>
                               <span className='font-mono'>{coil.width ?? '—'}</span>

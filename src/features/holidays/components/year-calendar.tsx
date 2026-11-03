@@ -24,9 +24,6 @@ const monthsOf = (days: CalendarDay[]) => {
 
 const nameOf = (day: CalendarDay) => day.holiday ?? day.working_day
 
-// Sunday first, as the board's calendars and EBMS's are (call of 2026-10-26).
-const SUNDAY_FIRST = [WEEKDAYS[6], ...WEEKDAYS.slice(0, 6)]
-
 const LEGEND = [
   { label: 'Work day', swatch: 'border border-border bg-card' },
   { label: 'Off', swatch: 'bg-muted' },
@@ -73,7 +70,7 @@ export const YearCalendar = ({ days, onPick }: YearCalendarProps) => {
                     {MONTH.format(utcOf(first.date))}
                   </h3>
                   <div className='grid grid-cols-7 gap-1'>
-                    {SUNDAY_FIRST.map(({ day, short }) => (
+                    {WEEKDAYS.map(({ day, short }) => (
                       <span
                         key={day}
                         aria-hidden

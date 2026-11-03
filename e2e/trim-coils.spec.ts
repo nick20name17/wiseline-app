@@ -57,8 +57,11 @@ const FILTER = {
 }
 
 // The list is one row per product; its coils are inside it.
-const openProduct = (page: Page, productId: string) =>
-  page.getByRole('button', { name: `Coils of ${productId}` }).click()
+// The list shows no Product ID; the row's own button names it.
+const product = (page: Page, productId: string) =>
+  page.getByRole('button', { name: `Coils of ${productId}` })
+
+const openProduct = (page: Page, productId: string) => product(page, productId).click()
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -217,21 +220,63 @@ test('the assignment filter splits the coils a department holds from the ones no
   await page.reload()
 
   await page.getByRole('tab', { name: 'Unassigned' }).click()
-  await expect(page.getByText('CB4830G')).toBeVisible()
-  await expect(page.getByText('CB4826R')).toBeHidden()
+  await expect(product(page, 'CB4830G')).toBeVisible()
+  await expect(product(page, 'CB4826R')).toBeHidden()
 
   await page.getByRole('tab', { name: 'Assigned', exact: true }).click()
-  await expect(page.getByText('CB4826R')).toBeVisible()
-  await expect(page.getByText('CB4830G')).toBeHidden()
+  await expect(product(page, 'CB4826R')).toBeVisible()
+  await expect(product(page, 'CB4830G')).toBeHidden()
 
   await page.getByLabel('Search coils').fill('3811101')
-  await expect(page.getByText('None assigned — 1 is unassigned.')).toBeVisible()
+  await expect(page.getByText('1 coil matches outside Assigned.')).toBeVisible()
   await page.getByRole('button', { name: 'Show all coils' }).click()
-  await expect(page.getByText('CB4830G')).toBeVisible()
+  await expect(product(page, 'CB4830G')).toBeVisible()
+})
+
+test('an EBMS folder tab tells apart two coils of one colour and gauge', async ({ page }) => {
+  // EBMS leaves both without a width; only their folders say which is which.
+  await page.route(`${API_URL}/coils/folders/?*`, route =>
+    route.fulfill({
+      json: [
+        { folder_id: 'F-21', name: '21-1/4" Wide 26 Ga. SS Coils', products: 1, lots: 1 },
+        { folder_id: 'F-23', name: '23-1/4" Wide 26 Ga. SS Coils', products: 1, lots: 1 }
+      ]
+    })
+  )
+  await page.route(`${API_URL}/coils/lots/?*`, route => {
+    const facts = { color: 'Black', gauge: 26, width: null }
+    const lots = [
+      coil(51, 'CS218262', '5100001', { ...facts, folder_id: 'F-21' }),
+      coil(52, 'CS238262', '5200001', { ...facts, folder_id: 'F-23' })
+    ]
+    return route.fulfill({ json: { count: lots.length, results: lots } })
+  })
+  await page.reload()
+
+  // Every folder at once: each row names its folder.
+  const rows = page.getByRole('row').filter({ hasText: 'Black · 26 ga' })
+  await expect(rows).toHaveCount(2)
+  await expect(rows.filter({ hasText: '21-1/4" Wide 26 Ga. SS Coils' })).toHaveCount(1)
+  await expect(rows.filter({ hasText: '23-1/4" Wide 26 Ga. SS Coils' })).toHaveCount(1)
+
+  // One folder: its tab already names it.
+  await page.getByRole('tab', { name: /^23-1\/4" Wide/ }).click()
+  await expect(product(page, 'CS238262')).toBeVisible()
+  await expect(product(page, 'CS218262')).toBeHidden()
+  await expect(rows.filter({ hasText: 'SS Coils' })).toHaveCount(0)
+
+  await page.getByLabel('Search coils').fill('5100001')
+  await expect(page.getByText('1 coil matches outside this folder.')).toBeVisible()
+  await page.getByRole('button', { name: 'Show all coils' }).click()
+  await expect(product(page, 'CS218262')).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'All folders' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  )
 })
 
 test('the list holds one row per product, opening into its coils', async ({ page }) => {
-  await expect(page.getByText('CB4826R')).toBeVisible()
+  await expect(product(page, 'CB4826R')).toBeVisible()
   await expect(page.getByText('3782201')).toBeHidden()
   await openProduct(page, 'CB4826R')
   await expect(page.getByText('3782201')).toBeVisible()

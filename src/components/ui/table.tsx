@@ -75,8 +75,9 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         // one holding the date. Selection still outranks it: it is the thing being acted on.
         'data-overdue:bg-destructive/5 data-overdue:hover:bg-destructive/10 data-overdue:data-[state=selected]:bg-muted',
         // A cutlist row the floor has signed off is crossed out and stays in place: the list is a
-        // record of the cut, not a queue that empties.
-        'data-complete:text-muted-foreground data-complete:line-through',
+        // record of the cut, not a queue that empties. A hairline strike is lost on the floor's
+        // screens (Kevin's notes of 2026-11-02, A11).
+        'data-complete:text-muted-foreground data-complete:line-through data-complete:decoration-2',
         // A line that belongs to another day is shown for context and left alone: greyed, not struck.
         'data-locked:text-muted-foreground',
         // The first row of a new group under a sort, where the board asks for a distinct line.
