@@ -1,4 +1,5 @@
 import { QueryError } from '@/components/query-error'
+import { useColumnCells, useColumnOrder } from '@/components/table/column-order'
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -38,13 +39,12 @@ import {
 } from '../api'
 import { unitRuns } from '../lib/unit-coils'
 import { useViewOnly } from '../lib/board-context'
+import { QUEUE_TABLE } from '../lib/columns'
 import { formatCount } from '../lib/format'
 import { CoilAssignDialog, type CoilCurrent } from './coil-assign-dialog'
 import { CoilLock } from './coil-lock'
 import { CoilName } from './coil-name'
 import { PriorityPill } from '@/components/priority-pill'
-
-const COLUMNS = 11
 
 type QueueTabProps = {
   departmentId: number | undefined
@@ -156,6 +156,7 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
     transition,
     isDragging
   } = useSortable({ id: row.key, disabled: !movable })
+  const { cells } = useColumnCells(QUEUE_TABLE)
 
   return (
     <TableRow
@@ -182,56 +183,76 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
           </button>
         ) : null}
       </TableCell>
-      <TableCell card='title'>
-        <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
-      </TableCell>
-      <TableCell label='Profile'>{row.profile ?? '—'}</TableCell>
-      <TableCell label='L/F'>
-        <span className='font-mono'>{formatCount(row.linear_feet)}</span>
-      </TableCell>
-      <TableCell label='Weight'>
-        <span className='font-mono'>{formatCount(row.weight)}</span>
-      </TableCell>
-      <TableCell label='Priority'>
-        {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
-        {priority ? (
-          <PriorityPill priority={priority} />
-        ) : (
-          <span className='text-muted-foreground'>—</span>
-        )}
-      </TableCell>
-      <TableCell label='Supplier'>
-        <Locked value={row.supplier} locked={row.supplier_locked} row={row} />
-      </TableCell>
-      <TableCell label='Coil Number'>
-        <Locked value={row.coil_number} locked={row.coil_number_locked} row={row} />
-      </TableCell>
-      <TableCell label='Slit Line'>
-        {row.coil_icon === 'waiting_to_slit' ? (
-          <Scissors className='size-3.5 text-warning' aria-label='Waiting for the Slit Line' />
-        ) : row.coil_icon === 'slit' ? (
-          <Scissors className='size-3.5 text-success' aria-label='Slit' />
-        ) : null}
-      </TableCell>
-      <TableCell label='In Machine'>
-        <InMachine row={row} onInMachine={onInMachine} onFill={onFill} />
-      </TableCell>
-      <TableCell data-align='start' label='Orders' card='full'>
-        <span className='truncate text-xs text-muted-foreground'>
-          {/* A line split by coil is on this row for some of its units p2 (679,416). */}
-          {[
-            ...new Set(
-              row.lines
-                .filter(line => line.order_number)
-                .map(line =>
-                  line.units
-                    ? `${line.order_number} (units ${unitRuns(line.units)})`
-                    : line.order_number
+      {cells({
+        material: (
+          <TableCell>
+            <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
+          </TableCell>
+        ),
+        profile: <TableCell>{row.profile ?? '—'}</TableCell>,
+        lf: (
+          <TableCell>
+            <span className='font-mono'>{formatCount(row.linear_feet)}</span>
+          </TableCell>
+        ),
+        weight: (
+          <TableCell>
+            <span className='font-mono'>{formatCount(row.weight)}</span>
+          </TableCell>
+        ),
+        priority: (
+          <TableCell>
+            {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
+            {priority ? (
+              <PriorityPill priority={priority} />
+            ) : (
+              <span className='text-muted-foreground'>—</span>
+            )}
+          </TableCell>
+        ),
+        supplier: (
+          <TableCell>
+            <Locked value={row.supplier} locked={row.supplier_locked} row={row} />
+          </TableCell>
+        ),
+        coil: (
+          <TableCell>
+            <Locked value={row.coil_number} locked={row.coil_number_locked} row={row} />
+          </TableCell>
+        ),
+        slit: (
+          <TableCell>
+            {row.coil_icon === 'waiting_to_slit' ? (
+              <Scissors className='size-3.5 text-warning' aria-label='Waiting for the Slit Line' />
+            ) : row.coil_icon === 'slit' ? (
+              <Scissors className='size-3.5 text-success' aria-label='Slit' />
+            ) : null}
+          </TableCell>
+        ),
+        machine: (
+          <TableCell>
+            <InMachine row={row} onInMachine={onInMachine} onFill={onFill} />
+          </TableCell>
+        ),
+        orders: (
+          <TableCell>
+            <span className='truncate text-xs text-muted-foreground'>
+              {/* A line split by coil is on this row for some of its units p2 (679,416). */}
+              {[
+                ...new Set(
+                  row.lines
+                    .filter(line => line.order_number)
+                    .map(line =>
+                      line.units
+                        ? `${line.order_number} (units ${unitRuns(line.units)})`
+                        : line.order_number
+                    )
                 )
-            )
-          ].join(', ')}
-        </span>
-      </TableCell>
+              ].join(', ')}
+            </span>
+          </TableCell>
+        )
+      })}
     </TableRow>
   )
 }
@@ -256,6 +277,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
   const rows = dropped ?? data ?? []
   const days = byDay(rows, row => row.production_date)
   const movable = !worker && !viewOnly && !reorder.isPending
+  const columns = useColumnOrder(QUEUE_TABLE)
 
   const announcements = dragAnnouncements({
     name: id => {
@@ -335,30 +357,12 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
           <Table data-cards className='min-w-320 table-fixed'>
             <colgroup>
               <col className='w-10' />
-              <col className='w-48' />
-              <col className='w-40' />
-              <col className='w-24' />
-              <col className='w-24' />
-              <col className='w-28' />
-              <col className='w-36' />
-              <col className='w-36' />
-              <col className='w-20' />
-              <col className='w-24' />
-              <col />
+              {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Material</TableHead>
-                <TableHead>Profile</TableHead>
-                <TableHead>L/F</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Coil Number</TableHead>
-                <TableHead>Slit Line</TableHead>
-                <TableHead>In Machine</TableHead>
-                <TableHead data-align='start'>Orders</TableHead>
+                {columns.headers}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -368,7 +372,7 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>
                     <TableRow data-divider>
-                      <TableCell colSpan={COLUMNS}>
+                      <TableCell colSpan={1 + columns.order.length}>
                         <span className='text-xs font-semibold tracking-wider uppercase'>
                           {day.date ? formatLongDate(day.date) : '—'}
                           {day.date === today() ? ' · today' : ''}

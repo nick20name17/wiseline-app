@@ -20,6 +20,8 @@ export type Column = {
   align?: 'start'
   /** Where its cells go when the table is laid out as cards; a labelled field unless set. */
   card?: TableCellCard
+  /** A click on the heading sorts the table by it, when the table passes a sort. */
+  sortable?: boolean
 }
 
 /** The least a drag leaves the column, and the least a table leaves one with no width of its own. */

@@ -1,3 +1,4 @@
+import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -37,13 +38,16 @@ const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
   )
 }
 
-// The free-text columns read from their start, as their cells below do.
-const COLUMNS = [
-  { label: 'Name', align: 'start' },
-  { label: 'Email or login', align: 'start' },
-  { label: 'Role' },
-  { label: 'Departments', align: 'start' }
-] as const
+// Departments take the leftover width, since a user can hold several.
+const COLUMNS: ColumnTable = {
+  table: 'users',
+  columns: [
+    { key: 'name', label: 'Name', width: 'w-48', align: 'start', card: 'title' },
+    { key: 'email', label: 'Email or login', width: 'w-72', align: 'start', card: 'subtitle' },
+    { key: 'role', label: 'Role', width: 'w-36' },
+    { key: 'departments', label: 'Departments', align: 'start' }
+  ]
+}
 
 const ROLE_BADGE =
   'inline-flex h-5 items-center rounded-4xl px-2 text-xs font-medium tracking-wider uppercase'
@@ -53,63 +57,58 @@ type UsersTableProps = {
   isPending: boolean
 }
 
-export const UsersTable = ({ users, isPending }: UsersTableProps) => (
-  <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-    {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
+export const UsersTable = ({ users, isPending }: UsersTableProps) => {
+  const columns = useColumnOrder(COLUMNS)
+
+  return (
+    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+      {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
         widest cell, so they hold still between the skeleton, the data and every search. */}
-    <Table data-cards className='min-w-4xl table-fixed'>
-      {/* Departments take the leftover width, since a user can hold several. */}
-      <colgroup>
-        <col className='w-48' />
-        <col className='w-72' />
-        <col className='w-36' />
-        <col />
-        <col className='w-24' />
-      </colgroup>
-      <TableHeader>
-        <TableRow>
-          {COLUMNS.map(column => (
-            <TableHead key={column.label} data-align={'align' in column ? column.align : undefined}>
-              {column.label}
+      <Table data-cards className='min-w-4xl table-fixed'>
+        <colgroup>
+          {columns.cols}
+          <col className='w-24' />
+        </colgroup>
+        <TableHeader>
+          <TableRow>
+            {columns.headers}
+            <TableHead>
+              {/* The column is obvious from its buttons; the label is for screen readers. */}
+              <span className='sr-only'>Actions</span>
             </TableHead>
-          ))}
-          <TableHead>
-            {/* The column is obvious from its buttons; the label is for screen readers. */}
-            <span className='sr-only'>Actions</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isPending ? (
-          <TableSkeletonRows actions />
-        ) : (
-          users.map(user => (
-            <TableRow key={user.id}>
-              <TableCell data-align='start' card='title'>
-                {fullName(user) || '—'}
-              </TableCell>
-              <TableCell
-                data-align='start'
-                label='Email or login'
-                card='subtitle'
-                className='max-lg:break-all'
-              >
-                {user.email}
-              </TableCell>
-              <TableCell label='Role'>
-                {/* The tint is per role, so <Badge> cannot carry it; the shape matches one. */}
-                <span className={cn(ROLE_BADGE, roleTint(user.role))}>{roleLabel(user.role)}</span>
-              </TableCell>
-              <TableCell data-align='start' label='Departments'>
-                <DepartmentsCell user={user} />
-              </TableCell>
-              <TableCell card='trail'>
-                <UserActions user={user} />
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
-  </div>
-)
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isPending ? (
+            <TableSkeletonRows actions />
+          ) : (
+            users.map(user => (
+              <TableRow key={user.id}>
+                {columns.cells({
+                  name: <TableCell>{fullName(user) || '—'}</TableCell>,
+                  email: <TableCell className='max-lg:break-all'>{user.email}</TableCell>,
+                  role: (
+                    <TableCell>
+                      {/* The tint is per role, so <Badge> cannot carry it; the shape matches one. */}
+                      <span className={cn(ROLE_BADGE, roleTint(user.role))}>
+                        {roleLabel(user.role)}
+                      </span>
+                    </TableCell>
+                  ),
+                  departments: (
+                    <TableCell>
+                      <DepartmentsCell user={user} />
+                    </TableCell>
+                  )
+                })}
+                <TableCell card='trail'>
+                  <UserActions user={user} />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}

@@ -1,4 +1,5 @@
 import { Description } from '@/components/description'
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,6 +25,7 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
+import { STOCK_WRAP_TABLE } from '../lib/columns'
 import { itemStatus } from '@/lib/status'
 import { lineName } from '../lib/wrapping'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -55,6 +57,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
   const [confirming, setConfirming] = useState(false)
   const setWrapped = useSetStockWrapped()
   const viewOnly = useViewOnly()
+  const columns = useColumnOrder(STOCK_WRAP_TABLE)
   const batch = useCreateStockBatch(({ completed, batch: number }) => {
     setConfirming(false)
     setChecked(new Set())
@@ -85,25 +88,23 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
       />
 
       <div className='overflow-x-auto rounded-lg border border-border bg-card shadow-xs'>
-        <Table data-cards>
+        <Table data-cards className='min-w-6xl table-fixed'>
+          <colgroup>
+            <col className='w-12' />
+            {columns.cols}
+          </colgroup>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-12'>
+              <TableHead>
                 <span className='sr-only'>Batch</span>
               </TableHead>
-              <TableHead>Qty Ordered</TableHead>
-              <TableHead>Left To Wrap</TableHead>
-              <TableHead>Wrapped</TableHead>
-              <TableHead>Qty Manufactured</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead data-align='start'>Description</TableHead>
-              <TableHead>Length</TableHead>
+              {columns.headers}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isPending ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={1 + columns.order.length}>
                   <Skeleton className='h-16' />
                 </TableCell>
               </TableRow>
@@ -126,53 +127,69 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                       />
                     )}
                   </TableCell>
-                  <TableCell label='Qty Ordered'>
-                    <Figure value={line.qty_ordered} />
-                  </TableCell>
-                  <TableCell label='Left To Wrap'>
-                    <Figure value={line.left_to_wrap} />
-                  </TableCell>
-                  <TableCell label='Wrapped'>
-                    {line.manufactured ? (
-                      <span className='text-muted-foreground'>—</span>
-                    ) : viewOnly ? (
-                      <Figure value={line.wrapped ?? 0} />
-                    ) : (
-                      <Button
-                        variant='outline'
-                        disabled={!line.can_wrap}
-                        title={line.can_wrap ? 'Enter what has been wrapped' : 'Not made yet'}
-                        onClick={() => setKeying(line)}
-                      >
-                        <span className='font-mono'>{line.wrapped ?? 0}</span>
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell label='Qty Manufactured'>
-                    {line.qty_manufactured === null ? (
-                      <span className='text-muted-foreground'>—</span>
-                    ) : (
-                      <span className='font-mono'>
-                        <b>{line.qty_manufactured}</b> / {line.qty_ordered}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell label='Status'>
-                    <StatusPill status={itemStatus(line.status)} />
-                  </TableCell>
-                  <TableCell data-align='start' card='title'>
-                    <Description text={line.description} />
-                  </TableCell>
-                  <TableCell label='Length'>
-                    <span
-                      className={cn(
-                        'font-mono',
-                        line.length !== null && !line.is_standard_length && 'text-destructive'
-                      )}
-                    >
-                      {line.length === null ? '—' : `${line.length}"`}
-                    </span>
-                  </TableCell>
+                  {columns.cells({
+                    ordered: (
+                      <TableCell>
+                        <Figure value={line.qty_ordered} />
+                      </TableCell>
+                    ),
+                    left: (
+                      <TableCell>
+                        <Figure value={line.left_to_wrap} />
+                      </TableCell>
+                    ),
+                    wrapped: (
+                      <TableCell>
+                        {line.manufactured ? (
+                          <span className='text-muted-foreground'>—</span>
+                        ) : viewOnly ? (
+                          <Figure value={line.wrapped ?? 0} />
+                        ) : (
+                          <Button
+                            variant='outline'
+                            disabled={!line.can_wrap}
+                            title={line.can_wrap ? 'Enter what has been wrapped' : 'Not made yet'}
+                            onClick={() => setKeying(line)}
+                          >
+                            <span className='font-mono'>{line.wrapped ?? 0}</span>
+                          </Button>
+                        )}
+                      </TableCell>
+                    ),
+                    made: (
+                      <TableCell>
+                        {line.qty_manufactured === null ? (
+                          <span className='text-muted-foreground'>—</span>
+                        ) : (
+                          <span className='font-mono'>
+                            <b>{line.qty_manufactured}</b> / {line.qty_ordered}
+                          </span>
+                        )}
+                      </TableCell>
+                    ),
+                    status: (
+                      <TableCell>
+                        <StatusPill status={itemStatus(line.status)} />
+                      </TableCell>
+                    ),
+                    desc: (
+                      <TableCell>
+                        <Description text={line.description} />
+                      </TableCell>
+                    ),
+                    length: (
+                      <TableCell>
+                        <span
+                          className={cn(
+                            'font-mono',
+                            line.length !== null && !line.is_standard_length && 'text-destructive'
+                          )}
+                        >
+                          {line.length === null ? '—' : `${line.length}"`}
+                        </span>
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
               ))
             )}

@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,6 +23,7 @@ import { Package as PackageIcon, Printer, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { orderPackagesQuery, useDeletePackage, useReprintPackage, type Package } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
+import { PACKAGES_DIALOG_TABLE } from '../lib/columns'
 import { contentNames } from '../lib/wrapping'
 import { PackageContents } from './package-contents'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -58,6 +60,7 @@ export const PackagesDialog = ({
   const reprint = useReprintPackage()
   const printLabel = usePackageLabel()
   const viewOnly = useViewOnly()
+  const columns = useColumnOrder(PACKAGES_DIALOG_TABLE)
   const names = contentNames(rows)
   // The order's packages across every department come back; the bench deletes only its own.
   const packages = all?.filter(parcel =>
@@ -82,13 +85,14 @@ export const PackagesDialog = ({
             <Skeleton className='h-40' />
           ) : packages?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
-              <Table data-cards>
+              <Table data-cards className='table-fixed'>
+                <colgroup>
+                  {columns.cols}
+                  <col className='w-24' />
+                </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Package</TableHead>
-                    <TableHead data-align='start'>Contents</TableHead>
-                    <TableHead>Weight</TableHead>
-                    <TableHead>Location</TableHead>
+                    {columns.headers}
                     <TableHead>
                       <span className='sr-only'>Actions</span>
                     </TableHead>
@@ -97,26 +101,36 @@ export const PackagesDialog = ({
                 <TableBody>
                   {packages.map(parcel => (
                     <TableRow key={parcel.package_id}>
-                      <TableCell card='title'>
-                        <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
-                      </TableCell>
-                      <TableCell data-align='start' label='Contents' card='full'>
-                        <PackageContents contents={parcel.contents} rows={rows} />
-                      </TableCell>
-                      <TableCell label='Weight'>
-                        <span className='font-mono'>
-                          {parcel.weight === null ? '—' : `${parcel.weight} lb`}
-                        </span>
-                      </TableCell>
-                      <TableCell label='Location'>
-                        <span className='font-mono'>{parcel.location ?? '—'}</span>
-                        {/* Why Delete is shut is its hover title on a desk. */}
-                        {parcel.is_loaded ? (
-                          <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
-                            Loaded onto a truck
-                          </span>
-                        ) : null}
-                      </TableCell>
+                      {columns.cells({
+                        name: (
+                          <TableCell>
+                            <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
+                          </TableCell>
+                        ),
+                        contents: (
+                          <TableCell>
+                            <PackageContents contents={parcel.contents} rows={rows} />
+                          </TableCell>
+                        ),
+                        weight: (
+                          <TableCell>
+                            <span className='font-mono'>
+                              {parcel.weight === null ? '—' : `${parcel.weight} lb`}
+                            </span>
+                          </TableCell>
+                        ),
+                        location: (
+                          <TableCell>
+                            <span className='font-mono'>{parcel.location ?? '—'}</span>
+                            {/* Why Delete is shut is its hover title on a desk. */}
+                            {parcel.is_loaded ? (
+                              <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
+                                Loaded onto a truck
+                              </span>
+                            ) : null}
+                          </TableCell>
+                        )
+                      })}
                       <TableCell card='trail'>
                         {viewOnly ? null : (
                           <span className='flex justify-end gap-1'>

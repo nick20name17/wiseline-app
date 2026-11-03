@@ -364,3 +364,132 @@ export const ROLLFORMING_COMPLETED_LINES_TABLE: ColumnTable = {
   table: 'rollforming-completed-lines',
   columns: without(COMPLETED_LINES_TABLE, ['reman'])
 }
+
+// A machine's Queue p2 (493,630). The grip that drags a row is not listed: it stays first.
+export const QUEUE_TABLE: ColumnTable = {
+  table: 'queue',
+  columns: [
+    { key: 'material', label: 'Material', width: 'w-48', card: 'title' },
+    { key: 'profile', label: 'Profile', width: 'w-40' },
+    { key: 'lf', label: 'L/F', width: 'w-24' },
+    { key: 'weight', label: 'Weight', width: 'w-24' },
+    { key: 'priority', label: 'Priority', width: 'w-28' },
+    { key: 'supplier', label: 'Supplier', width: 'w-36' },
+    { key: 'coil', label: 'Coil Number', width: 'w-36' },
+    { key: 'slit', label: 'Slit Line', width: 'w-20' },
+    { key: 'machine', label: 'In Machine', width: 'w-24' },
+    // The orders on the row run as long as it has coils, so they take what the figures leave.
+    { key: 'orders', label: 'Orders', align: 'start', card: 'full' }
+  ]
+}
+
+export const PACKAGING_TABLE: ColumnTable = {
+  table: 'packaging',
+  columns: [
+    { key: 'prep', label: 'Prep Date', width: 'w-40' },
+    { key: 'order', label: 'Order #', width: 'w-36', card: 'title' },
+    { key: 'priority', label: 'Priority', width: 'w-32' },
+    { key: 'customer', label: 'Customer', align: 'start', card: 'subtitle' },
+    { key: 'truck', label: 'Truck', width: 'w-24' },
+    { key: 'shipvia', label: 'Ship Via', width: 'w-32' },
+    { key: 'status', label: 'Status', width: 'w-40' }
+  ]
+}
+
+// The Slit Line p2 (754,297). The select column stays first.
+export const SLIT_LINE_TABLE: ColumnTable = {
+  table: 'slit-line',
+  columns: [
+    { key: 'date', label: 'Production Date', width: 'w-36' },
+    { key: 'order', label: 'Order #', width: 'w-28', card: 'title' },
+    { key: 'requested', label: 'Requested By', align: 'start', width: 'w-32' },
+    { key: 'desc', label: 'Description', align: 'start', card: 'subtitle' },
+    { key: 'qty', label: 'Qty', width: 'w-16' },
+    { key: 'length', label: 'Length', width: 'w-20' },
+    { key: 'supplier', label: 'Supplier', width: 'w-36' },
+    { key: 'coil', label: 'Coil Number', width: 'w-40' },
+    { key: 'notes', label: 'Notes', width: 'w-16' }
+  ]
+}
+
+// A Rollforming machine's Production tab p2 (1007,312). The expander stays first.
+export const ROLLFORMING_PRODUCTION_TABLE: ColumnTable = {
+  table: 'rollforming-production',
+  columns: [
+    { key: 'date', label: 'Production Date', width: 'w-36' },
+    // The order number and the mark for the coil in the machine.
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    { key: 'customer', label: 'Customer', align: 'start', width: 'w-44', card: 'subtitle' },
+    { key: 'po', label: 'PO', width: 'w-28' },
+    { key: 'material', label: 'Gauge / Color' },
+    { key: 'profile', label: 'Profile', width: 'w-32' },
+    { key: 'salesman', label: 'Salesman', width: 'w-36' },
+    { key: 'priority', label: 'Priority', width: 'w-28' },
+    { key: 'status', label: 'Status', width: 'w-32' },
+    { key: 'location', label: 'Location', width: 'w-28' },
+    { key: 'coil', label: 'Coil Number', width: 'w-32' },
+    { key: 'source', label: 'Source', width: 'w-24' }
+  ]
+}
+
+// The lines of an order opened on that tab.
+export const ROLLFORMING_PART_LINES_TABLE: ColumnTable = {
+  table: 'rollforming-part-lines',
+  columns: [
+    { key: 'qty', label: 'Qty', width: 'w-16' },
+    { key: 'desc', label: 'Description', align: 'start', card: 'title' },
+    { key: 'l', label: 'L"', width: 'w-20' },
+    { key: 'status', label: 'Status', width: 'w-32' },
+    { key: 'supplier', label: 'Supplier', width: 'w-36' },
+    { key: 'coil', label: 'Coil Number', width: 'w-36' },
+    { key: 'source', label: 'Source', width: 'w-24' }
+  ]
+}
+
+// The two package lists are dialog-sized, so Contents is the one column that takes what is left.
+// Location holds the Select location button.
+export const LOCATE_PACKAGES_TABLE: ColumnTable = {
+  table: 'locate-packages',
+  columns: [
+    { key: 'name', label: 'Package', width: 'w-36', card: 'title' },
+    { key: 'contents', label: 'Contents', align: 'start', card: 'full' },
+    { key: 'weight', label: 'Weight', width: 'w-28' },
+    { key: 'location', label: 'Location', width: 'w-48' }
+  ]
+}
+
+// See Packages. The row's Reprint and Delete buttons are not listed: they stay last.
+export const PACKAGES_DIALOG_TABLE: ColumnTable = {
+  table: 'packages-dialog',
+  columns: [
+    { key: 'name', label: 'Package', width: 'w-36', card: 'title' },
+    { key: 'contents', label: 'Contents', align: 'start', card: 'full' },
+    { key: 'weight', label: 'Weight', width: 'w-28' },
+    { key: 'location', label: 'Location', width: 'w-40' }
+  ]
+}
+
+// What Stock Manufacturing has sent to EBMS.
+export const STOCK_BATCHES_TABLE: ColumnTable = {
+  table: 'stock-batches',
+  columns: [
+    { key: 'sent', label: 'Sent', width: 'w-40', card: 'subtitle' },
+    { key: 'batch', label: 'Batch', width: 'w-28', card: 'title' },
+    { key: 'from', label: 'From', width: 'w-48' },
+    { key: 'items', label: 'Items', align: 'start', card: 'full' }
+  ]
+}
+
+// A stock order at the bench. The column that ticks a row into the batch stays first.
+export const STOCK_WRAP_TABLE: ColumnTable = {
+  table: 'stock-wrap',
+  columns: [
+    { key: 'ordered', label: 'Qty Ordered', width: 'w-32' },
+    { key: 'left', label: 'Left To Wrap', width: 'w-32' },
+    { key: 'wrapped', label: 'Wrapped', width: 'w-28' },
+    { key: 'made', label: 'Qty Manufactured', width: 'w-44' },
+    { key: 'status', label: 'Status', width: 'w-38' },
+    { key: 'desc', label: 'Description', align: 'start', card: 'title' },
+    { key: 'length', label: 'Length', width: 'w-24' }
+  ]
+}

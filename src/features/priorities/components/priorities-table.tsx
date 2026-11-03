@@ -1,3 +1,4 @@
+import { useColumnCells, useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import {
@@ -25,6 +26,16 @@ import { useState, type CSSProperties, type SyntheticEvent } from 'react'
 import { useReorderPriorities, type Priority } from '../api'
 import { reorder } from '../lib/reorder'
 import { PriorityActions } from './priority-actions'
+
+// The grip and the buttons are not listed: rows are dragged by the first and the last holds the
+// actions, so both stay put. Name takes the leftover width.
+const COLUMNS: ColumnTable = {
+  table: 'priorities',
+  columns: [
+    { key: 'colour', label: 'Colour', width: 'w-40' },
+    { key: 'name', label: 'Name', align: 'start', card: 'title' }
+  ]
+}
 
 type PrioritiesTableProps = {
   /** One department's board, top of the hierarchy first. */
@@ -83,6 +94,7 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRow
     transition,
     isDragging
   } = useSortable({ id: priority.id, disabled })
+  const columns = useColumnCells(COLUMNS)
 
   return (
     <TableRow
@@ -112,26 +124,36 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRow
           </button>
         )}
       </TableCell>
-      <TableCell label='Colour'>
-        <span className='inline-flex items-center gap-2'>
-          <span
-            aria-hidden
-            className={cn(
-              'size-3 shrink-0 rounded-sm',
-              priority.color ? 'bg-(--swatch)' : 'bg-muted'
-            )}
-            style={priority.color ? ({ '--swatch': priority.color } as CSSProperties) : undefined}
-          />
-          <span className='font-mono text-xs text-muted-foreground'>{priority.color ?? '—'}</span>
-        </span>
-      </TableCell>
-      <TableCell data-align='start' card='title'>
-        <span className='font-medium'>{priority.name}</span>
-        {/* Older priorities predate departments and rank on every board; dragging one moves it there too. */}
-        {priority.department === null ? (
-          <span className='ml-2 text-xs text-muted-foreground'>Every department</span>
-        ) : null}
-      </TableCell>
+      {columns.cells({
+        colour: (
+          <TableCell>
+            <span className='inline-flex items-center gap-2'>
+              <span
+                aria-hidden
+                className={cn(
+                  'size-3 shrink-0 rounded-sm',
+                  priority.color ? 'bg-(--swatch)' : 'bg-muted'
+                )}
+                style={
+                  priority.color ? ({ '--swatch': priority.color } as CSSProperties) : undefined
+                }
+              />
+              <span className='font-mono text-xs text-muted-foreground'>
+                {priority.color ?? '—'}
+              </span>
+            </span>
+          </TableCell>
+        ),
+        name: (
+          <TableCell>
+            <span className='font-medium'>{priority.name}</span>
+            {/* Older priorities predate departments and rank on every board; dragging one moves it there too. */}
+            {priority.department === null ? (
+              <span className='ml-2 text-xs text-muted-foreground'>Every department</span>
+            ) : null}
+          </TableCell>
+        )
+      })}
       <TableCell card='trail'>
         {readOnly ? null : <PriorityActions priority={priority} departmentId={departmentId} />}
       </TableCell>
@@ -147,6 +169,7 @@ export const PrioritiesTable = ({
 }: PrioritiesTableProps) => {
   const sensors = useDragSensors({ mouse: RowMouseSensor, touch: RowTouchSensor })
   const save = useReorderPriorities()
+  const columns = useColumnOrder(COLUMNS)
 
   // The order a drop left, held here until the save settles. The cache takes the same order at
   // once, but React Query hands it to the component a tick later, and in that tick dnd-kit has
@@ -187,8 +210,7 @@ export const PrioritiesTable = ({
         <Table data-cards className='min-w-3xl table-fixed'>
           <colgroup>
             <col className='w-10' />
-            <col className='w-40' />
-            <col />
+            {columns.cols}
             <col className='w-24' />
           </colgroup>
           <TableHeader>
@@ -196,8 +218,7 @@ export const PrioritiesTable = ({
               <TableHead>
                 <span className='sr-only'>Move</span>
               </TableHead>
-              <TableHead>Colour</TableHead>
-              <TableHead data-align='start'>Name</TableHead>
+              {columns.headers}
               <TableHead>
                 {/* The column is obvious from its buttons; the label is for screen readers. */}
                 <span className='sr-only'>Actions</span>

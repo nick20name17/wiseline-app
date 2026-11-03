@@ -1,3 +1,4 @@
+import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { Badge } from '@/components/ui/badge'
 import { SearchInput } from '@/components/search-input'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
@@ -26,6 +27,19 @@ import { LocationTypeActions } from './location-actions'
 import { CreateLocationTypeDialog } from './location-type-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
+
+// Under one department the pill already says which, so the table drops Department there.
+const COLUMNS: ColumnTable = {
+  table: 'location-types',
+  columns: [
+    { key: 'name', label: 'Name', width: 'w-48', align: 'start', card: 'title' },
+    { key: 'warehouse', label: 'Warehouse', width: 'w-40' },
+    { key: 'department', label: 'Department', width: 'w-36' },
+    // Wide enough for the Inventory badge.
+    { key: 'holds', label: 'Holds', width: 'w-36' },
+    { key: 'description', label: 'Description', align: 'start', card: 'full' }
+  ]
+}
 
 type LocationTypesPageProps = {
   search: string | undefined
@@ -61,6 +75,10 @@ export const LocationTypesPage = ({
   const active = departmentByCode(racked, department)
   // A type carries its department, so one department's types are narrowed here from the one list.
   const types = (page?.results ?? []).filter(type => !active || type.department_id === active.id)
+  const columns = useColumnOrder({
+    ...COLUMNS,
+    columns: COLUMNS.columns.filter(column => !active || column.key !== 'department')
+  })
 
   return (
     <section className='flex flex-1 flex-col gap-4'>
@@ -105,22 +123,12 @@ export const LocationTypesPage = ({
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
           <Table data-cards className='min-w-3xl table-fixed'>
             <colgroup>
-              <col className='w-48' />
-              <col className='w-40' />
-              {active ? null : <col className='w-36' />}
-              {/* Wide enough for the Inventory badge. */}
-              <col className='w-36' />
-              <col />
+              {columns.cols}
               <col className='w-24' />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead data-align='start'>Name</TableHead>
-                <TableHead>Warehouse</TableHead>
-                {/* Under one department the pill already says which; under All it is a column. */}
-                {active ? null : <TableHead>Department</TableHead>}
-                <TableHead>Holds</TableHead>
-                <TableHead data-align='start'>Description</TableHead>
+                {columns.headers}
                 <TableHead>
                   {/* The column is obvious from its buttons; the label is for screen readers. */}
                   <span className='sr-only'>Actions</span>
@@ -133,30 +141,36 @@ export const LocationTypesPage = ({
               ) : (
                 types.map(type => (
                   <TableRow key={type.id}>
-                    <TableCell data-align='start' card='title'>
-                      {type.name ?? '—'}
-                    </TableCell>
-                    <TableCell label='Warehouse'>
-                      {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)?.name ??
-                        '—'}
-                    </TableCell>
-                    {active ? null : (
-                      <TableCell label='Department'>
-                        {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
-                      </TableCell>
-                    )}
-                    <TableCell label='Holds'>
-                      {type.kind === 'inventory' ? (
-                        <Badge variant='muted'>Inventory</Badge>
-                      ) : (
-                        LOCATION_KIND_LABELS[type.kind]
-                      )}
-                    </TableCell>
-                    <TableCell data-align='start' label='Description' card='full'>
-                      <span className='truncate text-muted-foreground'>
-                        {type.description ?? '—'}
-                      </span>
-                    </TableCell>
+                    {columns.cells({
+                      name: <TableCell>{type.name ?? '—'}</TableCell>,
+                      warehouse: (
+                        <TableCell>
+                          {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)
+                            ?.name ?? '—'}
+                        </TableCell>
+                      ),
+                      department: (
+                        <TableCell>
+                          {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
+                        </TableCell>
+                      ),
+                      holds: (
+                        <TableCell>
+                          {type.kind === 'inventory' ? (
+                            <Badge variant='muted'>Inventory</Badge>
+                          ) : (
+                            LOCATION_KIND_LABELS[type.kind]
+                          )}
+                        </TableCell>
+                      ),
+                      description: (
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {type.description ?? '—'}
+                          </span>
+                        </TableCell>
+                      )
+                    })}
                     <TableCell card='trail'>
                       <LocationTypeActions locationType={type} />
                     </TableCell>

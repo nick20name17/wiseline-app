@@ -39,7 +39,8 @@ const recordReorders = async (page: Page) => {
  * waits for what a screen reader hears, since the rows are measured between them.
  */
 const moveUp = async (page: Page, name: string, steps: number, of: number) => {
-  const announced = page.getByRole('status')
+  // The rows' own live region: the header, whose columns move too, has one of its own.
+  const announced = page.getByRole('status').filter({ hasText: name })
   const grip = page.getByRole('button', { name: `Move ${name}` })
   await grip.focus()
   await page.keyboard.press('Space')
