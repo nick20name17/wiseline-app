@@ -3,10 +3,17 @@ import { useRef, type KeyboardEvent } from 'react'
 const TABBABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]'
 
-/** The field after `from` in the page's tab order, skipping what is hidden or taken out of it. */
+/**
+ * The field after `from` in the page's tab order, skipping what is hidden or taken out of it — and the
+ * focus guards an open menu puts beside its trigger, which go with it: focus sent to one is dropped on
+ * the page, and the next Tab starts again from its top.
+ */
 const nextTabbable = (from: Element) => {
   const all = [...document.querySelectorAll<HTMLElement>(TABBABLE)].filter(
-    element => element.tabIndex >= 0 && element.getClientRects().length > 0
+    element =>
+      element.tabIndex >= 0 &&
+      !element.hasAttribute('data-base-ui-focus-guard') &&
+      element.getClientRects().length > 0
   )
   const at = all.indexOf(from as HTMLElement)
   return at === -1 ? null : (all[at + 1] ?? null)

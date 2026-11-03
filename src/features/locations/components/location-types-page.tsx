@@ -28,13 +28,11 @@ import { CreateLocationTypeDialog } from './location-type-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
 
-// Under one department the pill already says which, so the table drops Department there.
 const COLUMNS: ColumnTable = {
   table: 'location-types',
   columns: [
     { key: 'name', label: 'Name', width: 'w-48', align: 'start', card: 'title' },
     { key: 'warehouse', label: 'Warehouse', width: 'w-40' },
-    { key: 'department', label: 'Department', width: 'w-36' },
     // Wide enough for the Inventory badge.
     { key: 'holds', label: 'Holds', width: 'w-36' },
     { key: 'description', label: 'Description', align: 'start', card: 'full' }
@@ -45,7 +43,7 @@ type LocationTypesPageProps = {
   search: string | undefined
   department: string | undefined
   onSearchChange: (search: string | undefined) => void
-  onDepartmentChange: (department: string | undefined) => void
+  onDepartmentChange: (department: string) => void
 }
 
 /**
@@ -58,8 +56,10 @@ export const LocationTypesPage = ({
   onSearchChange,
   onDepartmentChange
 }: LocationTypesPageProps) => {
-  const { data: page, isPending } = useQuery(locationTypesQuery(search))
-  const { data: departments } = useQuery(departmentsQuery)
+  const { data: page, isPending: rowsPending } = useQuery(locationTypesQuery(search))
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  // The rows are narrowed to a department, so they wait for which one too.
+  const isPending = rowsPending || departmentsPending
   const { data: warehouses } = useQuery(warehousePickerQuery)
 
   const [term, setTerm] = useState(search ?? '')
@@ -72,13 +72,11 @@ export const LocationTypesPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = departmentByCode(racked, department)
+  // One department at a time, the first unless the link names another.
+  const active = departmentByCode(racked, department) ?? racked[0]
   // A type carries its department, so one department's types are narrowed here from the one list.
-  const types = (page?.results ?? []).filter(type => !active || type.department_id === active.id)
-  const columns = useColumnOrder({
-    ...COLUMNS,
-    columns: COLUMNS.columns.filter(column => !active || column.key !== 'department')
-  })
+  const types = (page?.results ?? []).filter(type => type.department_id === active?.id)
+  const columns = useColumnOrder(COLUMNS)
 
   return (
     <section className='flex flex-1 flex-col gap-4'>
@@ -147,11 +145,6 @@ export const LocationTypesPage = ({
                         <TableCell>
                           {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)
                             ?.name ?? '—'}
-                        </TableCell>
-                      ),
-                      department: (
-                        <TableCell>
-                          {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
                         </TableCell>
                       ),
                       holds: (

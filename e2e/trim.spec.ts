@@ -68,6 +68,31 @@ test('ticking an order enables Schedule and Bypass Production', async ({ page })
   await expect(page.getByText('Scheduling 1 order entirely.')).toBeVisible()
 })
 
+test('one order is open at a time: opening another folds the last', async ({ page }) => {
+  const expander = (invoice: string) =>
+    page
+      .getByRole('row')
+      .filter({ hasText: invoice })
+      .getByRole('button', { name: 'Toggle details' })
+  await expander('330605').click()
+  await expect(expander('330605')).toHaveAttribute('aria-expanded', 'true')
+
+  await expander('S1041').click()
+  await expect(expander('S1041')).toHaveAttribute('aria-expanded', 'true')
+  await expect(expander('330605')).toHaveAttribute('aria-expanded', 'false')
+})
+
+test('the header box ticks every order in the list, and unticks them', async ({ page }) => {
+  const all = page.getByLabel('Select every order')
+  await all.click()
+  await expect(page.getByText('2 selected')).toBeVisible()
+  await expect(page.getByLabel('Select order 330605')).toBeChecked()
+  await expect(page.getByLabel('Select order S1041')).toBeChecked()
+
+  await all.click()
+  await expect(page.getByText('2 unscheduled orders')).toBeVisible()
+})
+
 test('a day after the Ship Date is warned of, not refused', async ({ page }) => {
   await page.getByLabel('Select order 330605').click()
   await page.getByRole('button', { name: /^Schedule/ }).click()

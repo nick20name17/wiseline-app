@@ -120,8 +120,8 @@ test('a location offers only the types in its own warehouse', async ({ page }) =
   // Nothing is picked until somebody picks it.
   await expect(dialog.getByRole('combobox', { name: 'Warehouse' })).toContainText('Select...')
   await expect(dialog.getByRole('combobox', { name: 'Location Type' })).toContainText('Select...')
-  // Under All the department is not known until a type brings it.
-  await expect(dialog.getByText('Department: —')).toBeVisible()
+  // The page shows one department, the first, and a new location is made in it.
+  await expect(dialog.getByText('Department: Trim')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Save' })).toBeVisible()
 
@@ -146,17 +146,12 @@ test('a location type carries the department its locations inherit', async ({ pa
   await page.goto('/settings/location-types')
   await signIn(page)
 
-  // The page opens on every department, so the department is a column there.
-  await expect(page.getByRole('button', { name: 'All', pressed: true })).toBeVisible()
+  // The page opens on the first department, with no All: the pill says which, so no column does.
+  await expect(page.getByRole('button', { name: 'All' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Trim', exact: true, pressed: true })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Department' })).toHaveCount(0)
   const row = page.getByRole('row').filter({ hasText: 'Trim racks' })
   await expect(row.getByText('Tillsonburg')).toBeVisible()
-  await expect(row.getByText('Trim', { exact: true })).toBeVisible()
-
-  // Under one department the pill says which, and the column goes.
-  await page.getByRole('button', { name: 'Trim', exact: true }).click()
-  await expect(page).toHaveURL(/department=trim/)
-  await expect(page.getByRole('columnheader', { name: 'Department' })).toHaveCount(0)
-  await expect(row).toBeVisible()
 })
 
 test('deleting a type says why it may be refused', async ({ page }) => {

@@ -53,7 +53,7 @@ export const CutlistCard = ({
   onOpenCoils,
   onRemanufacture
 }: CutlistCardProps) => {
-  const expanded = useProductionView().expanded.has(cutlist.id)
+  const expanded = useProductionView().expanded === cutlist.id
   const [finishing, setFinishing] = useState(false)
   const finish = useFinishCutlist()
 

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/table'
 import { useColumnOrder } from '@/components/table/column-order'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
-import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, Disc3, Factory, Scissors } from 'lucide-react'
 import { cn } from 'cn'
@@ -171,7 +170,8 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
     refetch
   } = useQuery(releasedOrdersQuery(board.name, search, true))
   const { data: coil } = useQuery(currentCoilQuery(machineId))
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  // One order open at a time: opening another folds the last.
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [packing, setPacking] = useState<string | null>(null)
   // Only the bench reads the Wrapping rows, so they are fetched once an order is opened.
   const { data: benchRows } = useQuery({
@@ -256,7 +256,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                 </TableRow>
                 {day.items.map(({ order, day: date, lines }) => {
                   const key = partKey(order.id, date)
-                  const open = expanded.has(key)
+                  const open = expanded === key
                   const state = departmentStateOf(order, departmentId)
                   const profiles = [...new Set(lines.map(line => line.profile).filter(Boolean))]
                   const onCoil = runsOffCoil(lines, coil)
@@ -276,7 +276,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             size='icon-sm'
                             aria-label={`${open ? 'Collapse' : 'Expand'} ${order.invoice}`}
                             aria-expanded={open}
-                            onClick={() => setExpanded(current => toggled(current, key))}
+                            onClick={() => setExpanded(open ? null : key)}
                           >
                             <ChevronRight
                               className={cn('transition-transform', open && 'rotate-90')}

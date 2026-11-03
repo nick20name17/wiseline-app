@@ -91,6 +91,25 @@ test('a department the user is not in is neither offered nor opened by its URL',
   await expect(page).toHaveURL(/\/rollforming/)
 })
 
+test('a role that did not load still offers the pages it may open', async ({ page }) => {
+  await page.route(`${API_URL}/users/${user.id}/`, route =>
+    route.fulfill({ json: { ...user, role: 'worker' } })
+  )
+  await assign(page, { 1: 'worker' })
+  // As a laptop woken from sleep asks before its network is up.
+  await page.route(`${API_URL}/departments/users/assignments/?*department_id=4*`, route =>
+    route.abort()
+  )
+  await page.goto('/login')
+  await signIn(page)
+
+  await expect(page).toHaveURL(/\/trim/)
+  const sidebar = page.locator('[data-sidebar=sidebar]')
+  await expect(sidebar.getByRole('link', { name: 'Shipping' })).toBeVisible()
+  await expect(sidebar.getByRole('link', { name: 'Loading' })).toBeVisible()
+  await expect(sidebar.getByRole('link', { name: 'Driver' })).toBeVisible()
+})
+
 test('logging out clears the session', async ({ page }) => {
   await page.goto('/login')
   await signIn(page)

@@ -19,7 +19,6 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { formatDate, formatLongDate } from '@/lib/days'
-import { toggled } from '@/lib/sets'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, ChevronRight, MapPin, Truck } from 'lucide-react'
@@ -137,7 +136,8 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
   // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
+  // One order open at a time: opening another folds the last.
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
   const orders = data?.pages.flatMap(page => page.results) ?? []
   const picked = [...selected.values()]
@@ -229,7 +229,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                 <TableSkeletonRows />
               ) : (
                 orders.map(order => {
-                  const open = expanded.has(order.order)
+                  const open = expanded === order.order
                   const name = order.order_number ?? order.order
                   return (
                     <Fragment key={order.order}>
@@ -254,7 +254,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                             size='icon-sm'
                             aria-label={`${open ? 'Collapse' : 'Expand'} order ${name}`}
                             aria-expanded={open}
-                            onClick={() => setExpanded(current => toggled(current, order.order))}
+                            onClick={() => setExpanded(open ? null : order.order)}
                           >
                             <ChevronRight
                               className={cn(

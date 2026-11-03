@@ -307,6 +307,16 @@
   top: calc(var(--spacing) * 13 + var(--board-bar, 0px));
 }
 
+/* A table's header held in view over its rows (`useStickyTableHeads`): it is lifted above them and
+   made opaque, the same tint it has over the card. A collapsed table's borders stay where they were
+   drawn, so its rule under the header is drawn again on it. */
+thead[data-stuck] {
+  position: relative;
+  z-index: 1;
+  background: color-mix(in oklab, var(--muted) 50%, var(--card));
+  box-shadow: inset 0 -1px var(--border);
+}
+
 /**
  * An expanded row in a table wider than the screen: its panel stays over the part of the table in
  * view and is as wide as it, so the panel's actions are not off past the right edge. The element
