@@ -473,9 +473,9 @@ export const PACKAGES_DIALOG_TABLE: ColumnTable = {
 export const STOCK_BATCHES_TABLE: ColumnTable = {
   table: 'stock-batches',
   columns: [
-    { key: 'sent', label: 'Sent', width: 'w-40', card: 'subtitle' },
-    { key: 'batch', label: 'Batch', width: 'w-28', card: 'title' },
-    { key: 'from', label: 'From', width: 'w-48' },
+    { key: 'sent', label: 'Sent', width: 'w-48', card: 'subtitle' },
+    { key: 'batch', label: 'Batch', width: 'w-24', card: 'title' },
+    { key: 'from', label: 'From', width: 'w-44' },
     { key: 'items', label: 'Items', align: 'start', card: 'full' }
   ]
 }

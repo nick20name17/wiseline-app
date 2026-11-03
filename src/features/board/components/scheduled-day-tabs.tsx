@@ -1,3 +1,4 @@
+import { DayBar } from './capacity-parts'
 import { dayLoad, loadUnit, share } from '../lib/format'
 import { useBoard } from '../lib/board-context'
 import { formatDate, today } from '@/lib/days'
@@ -6,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { CalendarDays, Settings2, TriangleAlert } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import {
   dayStripDatesQuery,
   dayStripQuery,
@@ -171,15 +172,7 @@ export const ScheduledDayTabs = ({
                   </span>
                   {/* A share of the day's capacity, where the department has set one. */}
                   {percent !== null ? (
-                    <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
-                      <span
-                        className={cn(
-                          'block h-full w-(--used)',
-                          entry.over_capacity ? 'bg-destructive' : 'bg-primary'
-                        )}
-                        style={{ '--used': `${Math.min(100, percent)}%` } as CSSProperties}
-                      />
-                    </span>
+                    <DayBar percent={percent} over={entry.over_capacity} />
                   ) : null}
                 </button>
                 {/* Only on the day being pointed at, so a row of days reads as dates, not buttons;
