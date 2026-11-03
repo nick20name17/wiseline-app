@@ -444,7 +444,7 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableSkeletonRows columns={COIL_GROUPS_TABLE.columns.length + 1} />
+            <TableSkeletonRows />
           ) : (
             groups.map(group => {
               const open = searching !== flipped.has(group.key)
@@ -850,8 +850,8 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
 
         {/* p1 (253,624), (300,589): each EBMS folder holding a qualifying coil is a tab. The folder,
             not the Product ID, is what tells apart two coils of one colour and gauge (Kevin's notes
-            of 2026-11-02, A8). */}
-        {trim && folders?.length ? (
+            of 2026-11-02, A8). The line is there while they load, so the list does not drop under it. */}
+        {trim && (!folders || folders.length) ? (
           <Tabs
             className='w-full min-w-0 md:order-3'
             value={openFolder ?? 'all'}
@@ -862,7 +862,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
             <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
               <TabsList variant='line'>
                 <TabsTrigger value='all'>All folders</TabsTrigger>
-                {folders.map(entry => (
+                {folders?.map(entry => (
                   <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
                     {entry.name}
                     <span

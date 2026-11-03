@@ -36,7 +36,7 @@ import { useLineNoteState } from './use-line-note-state'
 import { CoilName } from './coil-name'
 
 // Every column, the select one included.
-const COLUMNS = 11
+const COLUMNS = 10
 
 const ONE_PRODUCT = 'One Product ID at a time: it is slit off one coil'
 
@@ -223,7 +223,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={COLUMNS - 1} />
+                <TableSkeletonRows />
               ) : (
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>

@@ -51,7 +51,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => (
       </TableHeader>
       <TableBody>
         {isPending ? (
-          <TableSkeletonRows columns={3} />
+          <TableSkeletonRows actions />
         ) : (
           trucks.map(truck => (
             <TableRow key={truck.id}>

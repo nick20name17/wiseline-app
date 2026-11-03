@@ -256,7 +256,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={COLUMNS} />
+            <TableSkeletonRows />
           ) : (
             days.map(day => (
               <Fragment key={day.date}>

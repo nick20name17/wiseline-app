@@ -83,7 +83,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={4} />
+                <TableSkeletonRows />
               ) : (
                 orders.map(order => (
                   // The whole row opens it: there is one thing to do with a finished order.

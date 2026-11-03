@@ -348,7 +348,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
 
         {/* Only where lines are put on machines by hand, and only for one day. */}
         {board.assignsMachines && day ? (
-          <MachineLoads departmentId={departmentId} day={day} />
+          <MachineLoads category={board.name} departmentId={departmentId} day={day} />
         ) : null}
 
         <ScheduledToolbar
@@ -412,10 +412,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
             </TableHeader>
             {isPending ? (
               <TableBody>
-                {/* Every column but the expand one, which the skeleton draws as its trailing cell. */}
-                <TableSkeletonRows
-                  columns={(selectable ? 1 : 0) + board.tables.scheduled.columns.length}
-                />
+                <TableSkeletonRows />
               </TableBody>
             ) : (
               <>

@@ -168,7 +168,7 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
             </TableHeader>
             {isPending ? (
               <TableBody>
-                <TableSkeletonRows columns={7} />
+                <TableSkeletonRows />
               </TableBody>
             ) : (
               <>

@@ -124,7 +124,7 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={COLUMNS} />
+            <TableSkeletonRows />
           ) : (
             days.map(day => (
               <Fragment key={day.date}>

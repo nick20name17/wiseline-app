@@ -557,18 +557,19 @@ table[data-sized] {
 
 /*
  * A column the floor reads first — a cutlist's Total, a bendlist's Qty to Manufacture — is boxed whole,
- * from its first row to its last, as Kevin's board draws it (notes of 2026-11-02, A3). Laid out as
- * cards, the rows have no column to box.
+ * from its first row to its last, as Kevin's board draws it (notes of 2026-11-02, A3): a column rule's
+ * width in the text's colour, which marks it without the weight of a frame. Laid out as cards, the
+ * rows have no column to box.
  */
 @media (width >= 64rem) {
   td[data-outline] {
-    border-inline: 2px solid var(--foreground);
+    border-inline: 1px solid var(--foreground);
   }
   tr:first-child > td[data-outline] {
-    border-top: 2px solid var(--foreground);
+    border-top: 1px solid var(--foreground);
   }
   tr:last-child > td[data-outline] {
-    border-bottom: 2px solid var(--foreground);
+    border-bottom: 1px solid var(--foreground);
   }
 }
 

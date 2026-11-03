@@ -206,7 +206,7 @@ export const PrioritiesTable = ({
           </TableHeader>
           <TableBody>
             {isPending ? (
-              <TableSkeletonRows columns={3} />
+              <TableSkeletonRows actions />
             ) : (
               <SortableContext
                 items={rows.map(priority => priority.id)}

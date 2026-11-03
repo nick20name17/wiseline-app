@@ -42,7 +42,7 @@ export const ExceptionsTable = ({ exceptions, isPending, onSaved }: ExceptionsTa
       </TableHeader>
       <TableBody>
         {isPending ? (
-          <TableSkeletonRows columns={3} />
+          <TableSkeletonRows actions />
         ) : (
           exceptions.map(exception => (
             <TableRow key={`${exception.kind}-${exception.id}`}>

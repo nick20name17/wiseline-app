@@ -182,7 +182,7 @@ export const LocationsPage = ({
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={6} />
+                <TableSkeletonRows actions />
               ) : (
                 locations.map(location => (
                   <TableRow key={location.id}>

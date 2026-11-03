@@ -121,8 +121,9 @@ export const COIL_GROUPS_TABLE: ColumnTable = {
   table: 'coil-groups',
   columns: [
     // Sized to sit beside the sidebar on the floor's screens with no sideways scroll. With no Product
-    // ID column (Kevin's notes of 2026-11-02, A8), the colour names the coil and takes the slack.
-    { key: 'color', label: 'Color', card: 'title' },
+    // ID column (Kevin's notes of 2026-11-02, A8), the colour names the coil: read from its start, and
+    // as wide as its longest folder name, so the figures stay near it rather than across the screen.
+    { key: 'color', label: 'Color', width: 'w-80', align: 'start', card: 'title' },
     { key: 'width', label: 'Width (in.)', width: 'w-28' },
     { key: 'count', label: 'Count', width: 'w-20' },
     { key: 'lf', label: 'Total L/F', width: 'w-30' },

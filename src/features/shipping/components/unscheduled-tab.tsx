@@ -226,7 +226,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={COLUMNS} />
+                <TableSkeletonRows />
               ) : (
                 orders.map(order => {
                   const open = expanded.has(order.order)

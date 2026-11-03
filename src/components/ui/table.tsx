@@ -117,7 +117,8 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot='table-head'
       className={cn(
-        'h-8.5 px-4 align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        // Set close: a heading that wraps, «PRESS / BRAKE», reads as one label rather than two lines.
+        'h-8.5 px-4 align-middle text-xs leading-[1.1] font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
         COLUMN_RULES,
         // A movable column's header: the one in hand fades, and a bar on the side it will land on
         // marks where it goes; the body cells only move on drop, so the bar is the whole preview.

@@ -139,7 +139,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={board.tables.wrapping.columns.length} />
+            <TableSkeletonRows />
           ) : (
             days.map(day => (
               <Fragment key={day.date ?? 'undated'}>
