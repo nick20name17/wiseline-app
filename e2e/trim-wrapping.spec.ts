@@ -36,9 +36,16 @@ test('an order opens at the bench, and a line that is not made cannot be wrapped
   await expect(page.getByText('0 / 60 wrapped')).toBeVisible()
   await expect(page.getByLabel('Wrap from 901')).toBeEnabled()
   await expect(page.getByLabel('Wrap from 902')).toBeHidden()
-  await expect(
-    page.getByRole('row').filter({ hasText: 'Drip Edge' }).getByText('Not eligible')
-  ).toBeVisible()
+  const notEligible = page
+    .getByRole('row')
+    .filter({ hasText: 'Drip Edge' })
+    .getByText('Not eligible')
+  await expect(notEligible).toBeVisible()
+  // The server opens a line for wrapping; the bench only says what it waits for.
+  await expect(notEligible).toHaveAttribute(
+    'title',
+    'Opens once the Slinet cuts the first row of its cutlist'
+  )
 })
 
 test('what is wrapped is capped by what a remake still owes, and Auto fill takes itself back', async ({
