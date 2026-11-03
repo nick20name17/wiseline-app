@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, Database, Factory, History, Layers } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   cutlistCoilSummariesQuery,
   cutlistsQuery,
@@ -29,7 +29,8 @@ import {
   type CutlistGroup
 } from '../lib/cutlists'
 import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
-import { Cap, Progress } from './capacity-parts'
+import { Progress } from './capacity-parts'
+import { formatCount } from '../lib/format'
 import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
@@ -55,6 +56,16 @@ type TotalsProps = {
   slinetLists: Cutlist[]
 }
 
+type StatProps = { label: string; title?: string; children: ReactNode }
+
+/** One figure of the bar: its name over it, every figure the same width and type. */
+const Stat = ({ label, title, children }: StatProps) => (
+  <span className='flex w-48 flex-col gap-1 text-center' title={title}>
+    <span className='text-xs tracking-wider text-muted-foreground uppercase'>{label}</span>
+    {children}
+  </span>
+)
+
 /**
  * What this station has in front of it today, how much of it is done, and how full that makes its
  * day — what the capacity report says, where the station works. The Slinet cuts rather than bends,
@@ -69,31 +80,27 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
   const slinet = slinetTotals(slinetLists, day)
   const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
   const where = machine ? 'Assigned to this machine for today' : 'Cut on the Slinet today'
+  const cap = machine ? station?.max_bends : station?.max_pieces
+  const used = machine ? (station?.bends ?? 0) : slinet.pieces
 
   return (
-    <div className='flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
-      <span className='flex items-center gap-2 text-sm font-medium'>
+    <div className='flex flex-wrap items-start gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
+      <span className='flex items-center gap-2 self-center text-sm font-medium'>
         <CalendarCheck className='size-3.5' />
         {formatDate(day)}
         <span className='text-muted-foreground'>· today</span>
       </span>
 
-      <span className='flex flex-col'>
-        <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-          Total # Pieces
-        </span>
-        <span
-          className='font-mono text-lg'
-          title={`${where}${stockNote(machine ? (station?.pieces_from_stock ?? 0) : slinet.stockPieces)}`}
-        >
-          {pieces}
-        </span>
-      </span>
+      {/* Kevin's notes of 2026-11-02 (A1): the three figures line up and read alike — the count, the
+          share of it done, and the share of the day's ceiling it takes, each as «x / y z%». */}
+      <Stat
+        label='Total # Pieces'
+        title={`${where}${stockNote(machine ? (station?.pieces_from_stock ?? 0) : slinet.stockPieces)}`}
+      >
+        <span className='font-mono text-sm'>{formatCount(pieces)}</span>
+      </Stat>
 
-      <span className='flex w-48 flex-col gap-1'>
-        <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-          {machine ? 'Bends done' : 'Pieces cut'}
-        </span>
+      <Stat label={machine ? 'Bends done' : 'Pieces cut'}>
         {machine ? (
           <Progress
             done={station?.bends_done ?? 0}
@@ -109,25 +116,18 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
             fromStockDone={slinet.stockCut}
           />
         )}
-      </span>
+      </Stat>
 
-      <span className='w-56' title='Set in Settings › Machines'>
-        {machine ? (
-          <Cap
-            label='Daily Max (bends)'
-            cap={station?.max_bends}
-            used={station?.bends ?? 0}
-            over={!!station?.over_bends}
-          />
+      <Stat
+        label={machine ? 'Daily Max (bends)' : 'Daily Piece Cap'}
+        title='Set in Settings › Machines'
+      >
+        {cap ? (
+          <Progress done={used} value={cap} over={machine ? !!station?.over_bends : used > cap} />
         ) : (
-          <Cap
-            label='Daily Piece Cap'
-            cap={station?.max_pieces}
-            used={slinet.pieces}
-            over={!!station?.max_pieces && slinet.pieces > station.max_pieces}
-          />
+          <span className='font-mono text-sm text-muted-foreground'>N/A</span>
         )}
-      </span>
+      </Stat>
     </div>
   )
 }

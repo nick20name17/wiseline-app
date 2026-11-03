@@ -86,7 +86,7 @@ export const PackagesDialog = ({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Package</TableHead>
-                    <TableHead>Contents</TableHead>
+                    <TableHead data-align='start'>Contents</TableHead>
                     <TableHead>Weight</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>
@@ -100,7 +100,7 @@ export const PackagesDialog = ({
                       <TableCell card='title'>
                         <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
                       </TableCell>
-                      <TableCell label='Contents' card='full'>
+                      <TableCell data-align='start' label='Contents' card='full'>
                         <PackageContents contents={parcel.contents} rows={rows} />
                       </TableCell>
                       <TableCell label='Weight'>

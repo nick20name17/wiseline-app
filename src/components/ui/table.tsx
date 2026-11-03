@@ -3,12 +3,21 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+/** `lg` sets the rows in the body size, for a list read at arm's length from a machine. */
+function Table({
+  className,
+  size = 'default',
+  ...props
+}: React.ComponentProps<'table'> & { size?: 'default' | 'lg' }) {
   return (
     <div data-slot='table-container' className='relative w-full overflow-x-auto'>
       <table
         data-slot='table'
-        className={cn('w-full caption-bottom text-sm', className)}
+        data-size={size}
+        className={cn(
+          'w-full caption-bottom text-sm data-[size=lg]:[&>tbody]:text-base',
+          className
+        )}
         {...props}
       />
     </div>
@@ -65,9 +74,11 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         })
       }
       className={cn(
-        // The banding gives the eye a rail to follow across a wide table. It sits on the row, not
-        // the body, so every state below is as specific as it is and wins by coming later.
-        'h-8.5 border-b transition-colors even:bg-muted/30 hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
+        // The banding gives the eye a rail to follow across a wide table, and on the floor's screens a
+        // faint one is lost (Kevin's notes of 2026-11-02, A5). It sits on the row, not the body, so
+        // every state below is as specific as it is and wins by coming later; hover and selection
+        // sit above the band so they still show on a banded row.
+        'h-8.5 border-b transition-colors even:bg-foreground/6 hover:bg-foreground/10 has-aria-expanded:bg-foreground/10 data-[state=selected]:bg-primary/10',
         // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
         // every one is back. A late line carries only the overdue mark, so it stays red.
         'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',
@@ -89,12 +100,23 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
   )
 }
 
+// Kevin's board rules every column off from the next and centres what it holds, headings and figures
+// alike (notes of 2026-11-02, A4 and A6). Free text — a customer, a description, a note — reads from
+// its start, and its column says so with `data-align`; so does a lone cell across the row, a band
+// between groups or a row's details. A checkbox or a field is a block, which `text-center` leaves at
+// the start, so it is centred by its margins.
+const COLUMN_RULES = cn(
+  'border-l text-center first:border-l-0 only:text-left data-[align=start]:text-left',
+  'not-data-[align=start]:*:data-[slot=checkbox]:mx-auto not-data-[align=start]:*:data-[slot=input]:mx-auto'
+)
+
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       data-slot='table-head'
       className={cn(
-        'h-8.5 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        'h-8.5 px-4 align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        COLUMN_RULES,
         // A movable column's header: the one in hand fades, and a bar on the side it will land on
         // marks where it goes; the body cells only move on drop, so the bar is the whole preview.
         'data-dragging:cursor-grabbing data-dragging:opacity-50 data-movable:relative data-movable:cursor-grab data-movable:select-none',
@@ -114,8 +136,12 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
  */
 type TableCellCard = 'title' | 'subtitle' | 'lead' | 'trail' | 'full' | 'hidden'
 
-/** The column a cell is in, for the label and the place it takes on a card. */
-const TableColumnContext = React.createContext<{ label: string; card?: TableCellCard } | null>(null)
+/** The column a cell is in, for the label, the place it takes on a card and which way it reads. */
+const TableColumnContext = React.createContext<{
+  label: string
+  card?: TableCellCard
+  align?: 'start'
+} | null>(null)
 
 function TableCell({
   className,
@@ -129,8 +155,10 @@ function TableCell({
       data-slot='table-cell'
       data-label={label ?? column?.label}
       data-card={card ?? column?.card}
+      data-align={column?.align}
       className={cn(
         'overflow-hidden px-4 py-0.75 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
+        COLUMN_RULES,
         className
       )}
       {...props}

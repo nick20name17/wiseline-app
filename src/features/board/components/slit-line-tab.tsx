@@ -212,8 +212,8 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 <TableHead />
                 <TableHead>Production Date</TableHead>
                 <TableHead>Order #</TableHead>
-                <TableHead>Requested By</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead data-align='start'>Requested By</TableHead>
+                <TableHead data-align='start'>Description</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Length</TableHead>
                 <TableHead>Supplier</TableHead>
@@ -269,10 +269,10 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                               {row.invoice ?? row.order ?? '—'}
                             </span>
                           </TableCell>
-                          <TableCell label='Requested By'>
+                          <TableCell data-align='start' label='Requested By'>
                             <span className='truncate'>{row.requested_by ?? '—'}</span>
                           </TableCell>
-                          <TableCell card='subtitle'>
+                          <TableCell data-align='start' card='subtitle'>
                             <Description text={row.description} className='text-muted-foreground' />
                           </TableCell>
                           <TableCell label='Qty'>

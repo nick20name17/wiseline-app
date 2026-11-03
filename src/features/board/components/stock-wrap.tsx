@@ -96,7 +96,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
               <TableHead>Wrapped</TableHead>
               <TableHead>Qty Manufactured</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead data-align='start'>Description</TableHead>
               <TableHead>Length</TableHead>
             </TableRow>
           </TableHeader>
@@ -160,7 +160,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                   <TableCell label='Status'>
                     <StatusPill status={itemStatus(line.status)} />
                   </TableCell>
-                  <TableCell card='title'>
+                  <TableCell data-align='start' card='title'>
                     <Description text={line.description} />
                   </TableCell>
                   <TableCell label='Length'>

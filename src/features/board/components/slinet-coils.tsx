@@ -3,23 +3,26 @@ import { useQuery } from '@tanstack/react-query'
 import { cutlistCoilsQuery, type CutlistCoilSummary } from '../api'
 import { coilName, figure } from '../lib/coils'
 
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
+// Whole feet: a Slinet operator weighs coils by the hundred, not by the thousandth.
+const feet = (value: number | null) => `${value === null ? '—' : figure(Math.round(value))} ft`
 
-/** «3 more coils available totaling 7,579 ft (2 in Trim and 1 in Rollforming)», as Kevin drew it. */
-const availableText = (summary: CutlistCoilSummary, more: boolean) => {
-  if (!summary.available) return `0 ${more ? 'more ' : ''}coils available`
-  const where = [
-    summary.in_trim ? `${summary.in_trim} in Trim` : null,
-    summary.in_rollforming ? `${summary.in_rollforming} in Rollforming` : null,
-    summary.elsewhere ? `${summary.elsewhere} in no department` : null
-  ].filter(Boolean)
-  const at = summary.locations.map(({ location, coils }) => `${location} (${coils})`)
-  return [
-    `${plural(summary.available, `${more ? 'more ' : ''}coil`)} available totaling ${figure(summary.linear_feet)} ft`,
-    where.length ? ` (${where.join(' and ')})` : '',
-    at.length ? ` · at ${at.join(', ')}` : ''
-  ].join('')
-}
+/**
+ * «5 - (47,477 ft) 3 - Trim, 1 - Rollforming, 1 - No Department», as Kevin's notes of 2026-11-02 (A10)
+ * write it: how many more could go on, then where they are. No locations: the example drops them.
+ */
+const availableText = (summary: CutlistCoilSummary) =>
+  [
+    `${summary.available} - (${feet(summary.linear_feet)})`,
+    [
+      summary.in_trim ? `${summary.in_trim} - Trim` : null,
+      summary.in_rollforming ? `${summary.in_rollforming} - Rollforming` : null,
+      summary.elsewhere ? `${summary.elsewhere} - No Department` : null
+    ]
+      .filter(Boolean)
+      .join(', ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 
 type SlinetCoilsProps = {
   cutlistId: number
@@ -41,13 +44,20 @@ export const SlinetCoils = ({ cutlistId, summary }: SlinetCoilsProps) => {
   return (
     <ul aria-label='Coils for this cutlist' className='flex flex-wrap gap-2 px-3 pb-2 text-xs'>
       {coils.map(coil => (
-        <li key={coil.id} className='rounded-md bg-success/10 px-2 py-0.5 font-medium text-success'>
-          Coil # {coilName(coil)} is in the machine ({figure(coil.linear_feet)} ft)
+        <li
+          key={coil.id}
+          title='In the Slinet'
+          className='rounded-md bg-success/10 px-2 py-0.5 font-medium text-success'
+        >
+          {coilName(coil)} ({feet(coil.linear_feet)})
         </li>
       ))}
       {summary ? (
-        <li className='rounded-md bg-muted px-2 py-0.5 text-muted-foreground'>
-          {availableText(summary, coils.length > 0)}
+        <li
+          title='More coils of this colour and gauge, and the departments holding them'
+          className='rounded-md bg-muted px-2 py-0.5 text-muted-foreground'
+        >
+          {availableText(summary)}
         </li>
       ) : coils.length ? null : (
         <li className='rounded-md bg-muted px-2 py-0.5 text-muted-foreground'>

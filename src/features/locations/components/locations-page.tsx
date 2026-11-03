@@ -160,7 +160,7 @@ export const LocationsPage = ({
             </colgroup>
             <TableHeader>
               <TableRow>
-                <SortHead column='name' sort={sort} onSort={setSort}>
+                <SortHead column='name' align='start' sort={sort} onSort={setSort}>
                   Name
                 </SortHead>
                 <SortHead column='warehouse' sort={sort} onSort={setSort}>
@@ -173,7 +173,7 @@ export const LocationsPage = ({
                   Max Weight
                 </SortHead>
                 <TableHead>Multi Order</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead data-align='start'>Description</TableHead>
                 <TableHead>
                   {/* The column is obvious from its buttons; the label is for screen readers. */}
                   <span className='sr-only'>Actions</span>
@@ -186,7 +186,7 @@ export const LocationsPage = ({
               ) : (
                 locations.map(location => (
                   <TableRow key={location.id}>
-                    <TableCell card='title'>
+                    <TableCell data-align='start' card='title'>
                       <span className='font-mono'>{location.code ?? '—'}</span>
                     </TableCell>
                     <TableCell label='Warehouse'>
@@ -206,7 +206,7 @@ export const LocationsPage = ({
                         <span className='text-muted-foreground'>—</span>
                       )}
                     </TableCell>
-                    <TableCell label='Description' card='full'>
+                    <TableCell data-align='start' label='Description' card='full'>
                       <span className='truncate text-muted-foreground'>
                         {location.description ?? '—'}
                       </span>

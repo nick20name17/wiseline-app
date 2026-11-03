@@ -72,25 +72,58 @@ export const useColumnOrder = (definition: ColumnTable) => {
   }
   // A drag sets the `<col>` directly: a render a step would redraw every row of the table.
   const colEls = useRef(new Map<string, HTMLTableColElement>())
+  // The columns with no width of their own that the drag in hand pinned where they stood.
+  const pinned = useRef<Record<string, number>>({})
 
   // A fixed layout gives a column without a width what the others leave, and widened neighbours can
   // leave it nothing. `--fit-width` is the least the table can take and still leave each its minimum:
-  // past it the table grows wider than its box, and scrolls. None when every column has a width.
+  // past it the table grows wider than its box, and scrolls. Once every column has a width and one of
+  // them is this person's, the table is just as wide as its columns (`data-sized`), as an EBMS grid
+  // is: a column dragged narrower leaves room at the right instead of widening the others.
   const fit = () => {
     const table = colEls.current.values().next().value?.closest('table')
     if (!table) return
     const keys = new Map([...colEls.current].map(([key, col]) => [col, key]))
     let width = 0
     let flexible = false
+    let sized = false
     for (const col of table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col')) {
+      if (col.style.width || col.style.getPropertyValue('--col-width')) sized = true
       if (col.className || col.style.width) width += parseFloat(getComputedStyle(col).width) || 0
       else {
         flexible = true
         width += minWidth(byKey.get(keys.get(col) ?? ''))
       }
     }
-    if (flexible) table.style.setProperty('--fit-width', `${width}px`)
-    else table.style.removeProperty('--fit-width')
+    if (sized && !flexible) {
+      // A fixed table wider than its columns shares the rest out among them, and a `<col>` reports
+      // the width it got, not the one it asked for; laid out at no width, the table is their sum.
+      table.style.width = table.style.minWidth = '0px'
+      width = table.getBoundingClientRect().width
+      table.style.removeProperty('width')
+      table.style.removeProperty('min-width')
+    }
+    table.style.setProperty('--fit-width', `${width}px`)
+    table.toggleAttribute('data-sized', sized && !flexible)
+  }
+
+  // Kevin's notes of 2026-11-02 (A9): dragging a column's edge changes that column alone. A column
+  // with no width takes what the others leave, so it would give or take whatever the dragged one
+  // does; the drag pins each such column at the width it has, and keeps those with its own.
+  const pin = () => {
+    pinned.current = {}
+    for (const [key, col] of colEls.current) {
+      const column = byKey.get(key)
+      if (!column || col.className || col.style.width) continue
+      const width = clampWidth(column, col.getBoundingClientRect().width)
+      col.style.width = `${width}px`
+      pinned.current[key] = width
+    }
+  }
+  const unpin = () => {
+    for (const key of Object.keys(pinned.current))
+      colEls.current.get(key)?.style.removeProperty('width')
+    pinned.current = {}
   }
   // Every render: a saved width, a column moved or a row of cells in may each change it.
   useLayoutEffect(fit)
@@ -98,7 +131,7 @@ export const useColumnOrder = (definition: ColumnTable) => {
   // Read now, not at the render the drag began in: another tab may have saved a width since.
   const resized = (key: string, width: number | null) => {
     const rest = Object.fromEntries(
-      Object.entries(widthStore.get() ?? {}).filter(([other]) => other !== key)
+      Object.entries({ ...pinned.current, ...widthStore.get() }).filter(([other]) => other !== key)
     )
     const next = width === null ? rest : { ...rest, [key]: width }
     widthStore.set(Object.keys(next).length ? next : null)
@@ -148,10 +181,13 @@ export const useColumnOrder = (definition: ColumnTable) => {
             key={key}
             column={byKey.get(key)!}
             width={widthOf(key)}
+            onResizeStart={pin}
             onResize={width => {
               const style = colEls.current.get(key)?.style
-              if (width === null) style?.removeProperty('width')
-              else if (style) style.width = `${width}px`
+              if (width === null) {
+                style?.removeProperty('width')
+                unpin()
+              } else if (style) style.width = `${width}px`
               fit()
             }}
             onResizeEnd={width => resized(key, width)}

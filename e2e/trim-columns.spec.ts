@@ -60,3 +60,29 @@ test('a header moves with the keyboard too', async ({ page }) => {
     .poll(() => headings(page))
     .toEqual(['', '', 'Entry', 'Order #', 'Ship', 'Priority', 'Customer', 'Notes'])
 })
+
+test('a column dragged narrower by its edge changes alone, as in EBMS', async ({ page }) => {
+  const width = (name: string) =>
+    page
+      .getByRole('columnheader', { name, exact: true })
+      .evaluate(cell => cell.getBoundingClientRect().width)
+  const table = page.getByRole('table').first()
+  const tableWidth = await table.evaluate(element => element.getBoundingClientRect().width)
+  const ship = await width('Ship')
+  const customer = await width('Customer')
+
+  // Kevin's notes of 2026-11-02 (A9): the others keep their widths and the table ends short.
+  const head = (await page
+    .getByRole('columnheader', { name: 'Customer', exact: true })
+    .boundingBox())!
+  await page.mouse.move(head.x + head.width - 2, head.y + head.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(head.x + head.width - 102, head.y + head.height / 2, { steps: 10 })
+  await page.mouse.up()
+
+  await expect.poll(() => width('Customer')).toBeCloseTo(customer - 100, 0)
+  expect(await width('Ship')).toBeCloseTo(ship, 0)
+  await expect
+    .poll(() => table.evaluate(element => element.getBoundingClientRect().width))
+    .toBeCloseTo(tableWidth - 100, 0)
+})

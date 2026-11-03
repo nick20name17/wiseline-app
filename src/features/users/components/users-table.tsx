@@ -63,7 +63,12 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
       <TableHeader>
         <TableRow>
           {COLUMNS.map(label => (
-            <TableHead key={label}>{label}</TableHead>
+            <TableHead
+              key={label}
+              data-align={label === 'Name' || label === 'Email or login' ? 'start' : undefined}
+            >
+              {label}
+            </TableHead>
           ))}
           <TableHead>
             {/* The column is obvious from its buttons; the label is for screen readers. */}
@@ -77,8 +82,15 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
         ) : (
           users.map(user => (
             <TableRow key={user.id}>
-              <TableCell card='title'>{fullName(user) || '—'}</TableCell>
-              <TableCell label='Email or login' card='subtitle' className='max-lg:break-all'>
+              <TableCell data-align='start' card='title'>
+                {fullName(user) || '—'}
+              </TableCell>
+              <TableCell
+                data-align='start'
+                label='Email or login'
+                card='subtitle'
+                className='max-lg:break-all'
+              >
                 {user.email}
               </TableCell>
               <TableCell label='Role'>

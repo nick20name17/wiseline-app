@@ -430,8 +430,8 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
           of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
       <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
-          {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-          <col className='w-15' />
+          {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
+          <col className='w-16' />
           {columns.cols}
         </colgroup>
         <TableHeader>

@@ -179,7 +179,7 @@ export const StockManufacturingDialog = ({
                   <TableHead>Sent</TableHead>
                   <TableHead>Batch</TableHead>
                   <TableHead>From</TableHead>
-                  <TableHead>Items</TableHead>
+                  <TableHead data-align='start'>Items</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,7 +194,7 @@ export const StockManufacturingDialog = ({
                       <span className='font-mono'>{batch.ebms_batch ?? '—'}</span>
                     </TableCell>
                     <TableCell label='From'>{batch.order ?? 'Stock Manufacturing'}</TableCell>
-                    <TableCell label='Items' card='full'>
+                    <TableCell data-align='start' label='Items' card='full'>
                       <span className='text-muted-foreground'>
                         {batch.lines
                           .map(line => `${line.quantity} × ${line.product_id}`)

@@ -125,7 +125,7 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRow
           <span className='font-mono text-xs text-muted-foreground'>{priority.color ?? '—'}</span>
         </span>
       </TableCell>
-      <TableCell card='title'>
+      <TableCell data-align='start' card='title'>
         <span className='font-medium'>{priority.name}</span>
         {/* Older priorities predate departments and rank on every board; dragging one moves it there too. */}
         {priority.department === null ? (
@@ -197,7 +197,7 @@ export const PrioritiesTable = ({
                 <span className='sr-only'>Move</span>
               </TableHead>
               <TableHead>Colour</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead data-align='start'>Name</TableHead>
               <TableHead>
                 {/* The column is obvious from its buttons; the label is for screen readers. */}
                 <span className='sr-only'>Actions</span>
