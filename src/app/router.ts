@@ -13,8 +13,6 @@ export const router = createRouter({
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
-  defaultPendingMs: 100,
-  defaultPendingMinMs: 300,
   defaultErrorComponent: RouteError,
   defaultNotFoundComponent: RouteNotFound,
   defaultPendingComponent: RoutePending
