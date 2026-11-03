@@ -46,15 +46,8 @@ export const DayPicker = ({ day, onDayChange, markOverdue = false }: DayPickerPr
       <Button variant='outline' size='icon' aria-label='Next day' onClick={() => step(1)}>
         <ChevronRight />
       </Button>
-      {/* The picked shortcut already reads red; a phone would give the badge a line of its own. */}
-      {late ? (
-        <Badge
-          variant='destructive'
-          className={shortcuts.includes(day) ? 'max-md:hidden' : undefined}
-        >
-          Overdue
-        </Badge>
-      ) : null}
+      {/* A late day among the shortcuts is said by its own button; only an older one needs the badge. */}
+      {late && !shortcuts.includes(day) ? <Badge variant='destructive'>Overdue</Badge> : null}
       {shortcuts.length ? (
         // A phone gives the late days their own line rather than a ragged tail of the stepper's.
         <span className='flex flex-wrap items-center gap-1.5 text-sm max-md:basis-full md:ml-2'>
