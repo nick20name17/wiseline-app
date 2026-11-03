@@ -42,7 +42,7 @@ const COLUMNS = [
   { label: 'Name', align: 'start' },
   { label: 'Email or login', align: 'start' },
   { label: 'Role' },
-  { label: 'Departments' }
+  { label: 'Departments', align: 'start' }
 ] as const
 
 const ROLE_BADGE =
@@ -100,7 +100,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => (
                 {/* The tint is per role, so <Badge> cannot carry it; the shape matches one. */}
                 <span className={cn(ROLE_BADGE, roleTint(user.role))}>{roleLabel(user.role)}</span>
               </TableCell>
-              <TableCell label='Departments'>
+              <TableCell data-align='start' label='Departments'>
                 <DepartmentsCell user={user} />
               </TableCell>
               <TableCell card='trail'>
