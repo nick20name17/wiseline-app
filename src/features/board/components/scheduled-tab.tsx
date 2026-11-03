@@ -7,9 +7,9 @@ import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
-import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { cn } from 'cn'
 import { useQuery } from '@tanstack/react-query'
@@ -226,7 +226,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   // Export takes Release with it; Release alone leaves Export be p2 (542,607).
   const [exportIds, setExportIds] = useState<Set<string>>(() => new Set())
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  // One order open at a time: opening another folds the last.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<Part | null>(null)
@@ -288,15 +289,23 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   // A part ticks on its own: one day of a split order goes out without the others.
   const selected = parts.filter(part => selectedIds.has(part.key))
   // A release is all stock orders or all customer orders; the first tick decides which.
-  const selectionKind = selected.length
-    ? isStockOrder(selected[0]!.order)
-      ? 'stock'
-      : 'customer'
-    : null
+  const kindOf = (part: Part) => (isStockOrder(part.order) ? 'stock' : 'customer')
+  const selectionKind = selected[0] ? kindOf(selected[0]) : null
   const canRelease = selected.length > 0 && selected.every(part => part.state.reviewed)
+  // Select all takes what a row's own box would: the Reviewed parts not yet out, of one kind — the
+  // ticked one, or customer orders over stock when nothing is ticked yet.
+  const releasable = parts.filter(part => part.state.reviewed && !part.state.released)
+  const allKind =
+    selectionKind ?? (releasable.some(part => kindOf(part) === 'customer') ? 'customer' : 'stock')
+  const pickable = releasable.filter(part => kindOf(part) === allKind)
+  const allSelected = pickable.length > 0 && pickable.every(part => selectedIds.has(part.key))
+  const selectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(pickable.map(part => part.key)))
+    if (allSelected) setExportIds(new Set())
+  }
 
   // Defined once for every row, taking the row's key, so a click re-renders only the rows it changes.
-  const toggleExpanded = (key: string) => setExpandedIds(current => toggled(current, key))
+  const toggleExpanded = (key: string) => setExpandedKey(current => (current === key ? null : key))
   // Export takes Release with it, and unticking Release takes Export with it.
   const select = (key: string, checked: boolean) => {
     setSelectedIds(current => withKey(current, key, checked))
@@ -405,7 +414,16 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
             </colgroup>
             <TableHeader>
               <TableRow>
-                {selectable ? <TableHead /> : null}
+                {selectable ? (
+                  <TableHead>
+                    <Checkbox
+                      aria-label='Select every Reviewed order'
+                      checked={allSelected}
+                      disabled={!pickable.length}
+                      onCheckedChange={selectAll}
+                    />
+                  </TableHead>
+                ) : null}
                 <TableHead />
                 {columns.headers}
               </TableRow>
@@ -421,7 +439,6 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
                   const part = parts[item.index]
                   if (!part) return null
                   const { key } = part
-                  const stock = isStockOrder(part.order)
                   return (
                     // One body per part, measured whole, so a part opened into its line items keeps
                     // the rows below it in place. It carries what `TableBody` would, bar the last
@@ -441,10 +458,10 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
                       <ScheduledRow
                         part={part}
                         departmentId={departmentId}
-                        expanded={expandedIds.has(key)}
+                        expanded={expandedKey === key}
                         selected={selectedIds.has(key)}
                         exporting={exportIds.has(key)}
-                        locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
+                        locked={!!selectionKind && kindOf(part) !== selectionKind}
                         noteState={noteState(part.order)}
                         onToggleExpanded={toggleExpanded}
                         onSelect={select}

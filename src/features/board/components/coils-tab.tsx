@@ -417,11 +417,18 @@ type ProductGridProps = CellHandlers & {
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
 const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: ProductGridProps) => {
-  // The rows turned against how they open by default — shut, or open under a search.
-  const [flipped, setFlipped] = useState<Set<string>>(() => new Set())
+  // The rows turned against how they open by default — shut, or open under a search — kept only for
+  // the search state they were turned in. Without a search that is one row at a time, as everywhere:
+  // opening another folds the last.
+  const [turned, setTurned] = useState({ searching, keys: new Set<string>() })
+  const flipped = turned.searching === searching ? turned.keys : new Set<string>()
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
 
-  const toggle = (key: string) => setFlipped(current => toggled(current, key))
+  const toggle = (key: string) =>
+    setTurned({
+      searching,
+      keys: searching ? toggled(flipped, key) : new Set(flipped.has(key) ? [] : [key])
+    })
 
   return (
     <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>

@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
  */
 export const StickyTop = ({ className, children }: { className?: string; children: ReactNode }) => (
   <div
+    data-sticky-edge
     className={cn(
       'flex flex-col gap-3 bg-background md:sticky md:top-under-board md:z-5 md:-mx-6 md:px-6 md:pb-2',
       className

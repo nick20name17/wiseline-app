@@ -49,7 +49,7 @@ type LocationsPageProps = {
   search: string | undefined
   department: string | undefined
   onSearchChange: (search: string | undefined) => void
-  onDepartmentChange: (department: string | undefined) => void
+  onDepartmentChange: (department: string) => void
 }
 
 /**
@@ -62,10 +62,12 @@ export const LocationsPage = ({
   onSearchChange,
   onDepartmentChange
 }: LocationsPageProps) => {
-  const { data: page, isPending } = useQuery(locationsQuery(search))
+  const { data: page, isPending: rowsPending } = useQuery(locationsQuery(search))
   const { data: warehouses } = useQuery(warehousePickerQuery)
   const { data: types } = useQuery(allLocationTypesQuery)
-  const { data: departments } = useQuery(departmentsQuery)
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  // The rows are narrowed to a department, so they wait for which one too.
+  const isPending = rowsPending || departmentsPending
 
   const [term, setTerm] = useState(search ?? '')
   // By name, numbers as numbers: a location added to a series lands in it, not at the bottom.
@@ -81,12 +83,11 @@ export const LocationsPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = departmentByCode(racked, department)
+  // One department at a time, the first unless the link names another.
+  const active = departmentByCode(racked, department) ?? racked[0]
   const typeOf = (location: Location) => types?.find(type => type.id === location.location_type_id)
   const locations = sortRows(
-    (page?.results ?? []).filter(
-      location => !active || typeOf(location)?.department_id === active.id
-    ),
+    (page?.results ?? []).filter(location => typeOf(location)?.department_id === active?.id),
     sort,
     (location, key) =>
       key === 'name'

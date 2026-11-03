@@ -42,7 +42,10 @@ export const AppHeader = () => {
   }
 
   return (
-    <header className='sticky top-0 z-10 flex h-13 shrink-0 items-center gap-3.5 border-b border-border bg-background px-safe-3 sm:px-safe-4.5'>
+    <header
+      data-sticky-edge
+      className='sticky top-0 z-10 flex h-13 shrink-0 items-center gap-3.5 border-b border-border bg-background px-safe-3 sm:px-safe-4.5'
+    >
       {/* The prototype has no collapse control; the sidebar there is fixed. This one opens the sheet
           on a phone and the rail's labels on a tablet. */}
       <SidebarTrigger className={cn('-ml-1 xl:hidden', searching && 'max-md:hidden')} />

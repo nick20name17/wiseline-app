@@ -87,8 +87,10 @@ test('Trim Coils are the coils inside the Coil Filter, All Coils ignores it', as
   )
   await expect(page.getByText('Coil Filter active')).toBeVisible()
   await openProduct(page, 'CB4826R')
-  await openProduct(page, 'CB4828B')
   await expect(page.getByText('3782201')).toBeVisible()
+  // One product open at a time: the next folds it.
+  await openProduct(page, 'CB4828B')
+  await expect(page.getByText('3782201')).toBeHidden()
   // Not measured yet, so it has nothing to fail the range with.
   await expect(page.getByText('3797401')).toBeVisible()
   await expect(page.getByText('3800001')).toBeHidden()
@@ -104,14 +106,14 @@ test('a coil on the Slinet stays out of Rollforming, and the Slinet waits on a t
   page
 }) => {
   await openProduct(page, 'CB4826R')
-  await openProduct(page, 'CB4828B')
   await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3782201/ })).toBeEnabled()
-  await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3797401/ })).toBeDisabled()
   // Each coil has its own Trim and Rollforming boxes.
   await expect(page.getByRole('checkbox', { name: /Trim holds coil 3782201/ })).toBeChecked()
   await expect(
     page.getByRole('checkbox', { name: /Rollforming holds coil 3782201/ })
   ).toBeDisabled()
+  await openProduct(page, 'CB4828B')
+  await expect(page.getByRole('checkbox', { name: /Slinet holds coil 3797401/ })).toBeDisabled()
   await expect(page.getByRole('checkbox', { name: /Rollforming holds coil 3797401/ })).toBeChecked()
 })
 
@@ -153,11 +155,12 @@ test('a coil in Trim is put on one of Trim’s racks', async ({ page }) => {
     return route.fulfill({ json: { ...LOTS[0], location_id: 6, location: 'T-2' } })
   })
   await page.getByRole('tab', { name: 'All Coils', exact: true }).click()
-  await openProduct(page, 'CB4826R')
   await openProduct(page, 'CB4828B')
-
   // A Rollforming coil is not Trim's to place.
+  await expect(page.getByText('3797401')).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'Location of coil 3797401' })).toBeHidden()
+
+  await openProduct(page, 'CB4826R')
   await page.getByRole('combobox', { name: 'Location of coil 3782201' }).click()
   await page.getByRole('option', { name: 'T-2' }).click()
   await expect.poll(() => placed).toEqual([{ location_id: 6 }])
@@ -360,4 +363,28 @@ test('the coil list shows 40 products a page', async ({ page }) => {
   // A new search starts again from the first page.
   await page.getByLabel('Search coils').fill('CB400')
   await expect(page.getByText('1–10 of 10 products')).toBeVisible()
+})
+
+test('a long list keeps its column headers in view under the tab’s top', async ({ page }) => {
+  const many = Array.from({ length: 40 }, (_, index) =>
+    coil(100 + index, `CB${4000 + index}`, String(5000000 + index))
+  )
+  await page.route(`${API_URL}/coils/lots/?*`, route =>
+    route.fulfill({ json: { count: many.length, results: many } })
+  )
+  await page.reload()
+  await expect(page.locator('tbody tr')).toHaveCount(40)
+
+  await page.mouse.wheel(0, 1500)
+  const header = page.getByRole('columnheader', { name: 'Color' })
+  await expect(header).toBeInViewport()
+  // Right under the tab's own top, not under the rows that scrolled up behind it.
+  const [edge, top] = await Promise.all([
+    page
+      .locator('[data-sticky-edge]')
+      .last()
+      .evaluate(bar => bar.getBoundingClientRect().bottom),
+    header.evaluate(cell => cell.getBoundingClientRect().top)
+  ])
+  expect(Math.abs(top - edge)).toBeLessThan(2)
 })

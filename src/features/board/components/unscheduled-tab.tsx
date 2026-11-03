@@ -1,6 +1,6 @@
 import { StickyTop } from './sticky-top'
 import { cn } from 'cn'
-import { useBoard, useStripSlot } from '../lib/board-context'
+import { useBoard, useStripSlot, useViewOnly } from '../lib/board-context'
 import { formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
 import { SpacerRows } from '@/components/table/spacer-rows'
@@ -8,6 +8,7 @@ import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { toggled } from '@/lib/sets'
@@ -67,7 +68,8 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
   )
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  // One order open at a time: opening another folds the last.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [split, setSplit] = useState<Split | null>(null)
   const [dialog, setDialog] = useState<OpenDialog>(null)
   const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)
@@ -95,6 +97,9 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
 
   // The board counts only the rows on screen, so a search that hides a ticked order un-counts it.
   const selected = orders.filter(order => selectedIds.has(order.id))
+  // Every order the list holds — what is on screen, not the whole board on the server.
+  const allSelected = orders.length > 0 && selected.length === orders.length
+  const viewOnly = useViewOnly()
   const splitting = split ? orders.find(order => order.id === split.orderId) : null
 
   const toggleLine = (orderId: string, lineId: string) =>
@@ -161,7 +166,18 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead />
+                <TableHead>
+                  <Checkbox
+                    aria-label='Select every order'
+                    checked={allSelected}
+                    disabled={!orders.length || !!split || viewOnly}
+                    onCheckedChange={() =>
+                      setSelectedIds(
+                        allSelected ? new Set() : new Set(orders.map(order => order.id))
+                      )
+                    }
+                  />
+                </TableHead>
                 <TableHead />
                 {columns.headers}
               </TableRow>
@@ -194,14 +210,14 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
                       <OrderRow
                         order={order}
                         departmentId={departmentId}
-                        expanded={expandedIds.has(order.id)}
+                        expanded={expandedId === order.id}
                         selected={selectedIds.has(order.id)}
                         splitLineIds={split?.orderId === order.id ? split.lineIds : []}
                         splitting={!!split}
                         scheduling={selected.length > 0}
                         noteState={noteState(order)}
                         onToggleExpanded={() =>
-                          setExpandedIds(current => toggled(current, order.id))
+                          setExpandedId(current => (current === order.id ? null : order.id))
                         }
                         onToggleSelected={() =>
                           setSelectedIds(current => toggled(current, order.id))

@@ -9,7 +9,7 @@ import { CreatePriorityDialog } from './priority-dialog'
 
 type PrioritiesPageProps = {
   department: string | undefined
-  onDepartmentChange: (department: string | undefined) => void
+  onDepartmentChange: (department: string) => void
   /** The viewer's global role and id. They come from the route, the layer allowed to reach auth. */
   userRole: string
   userId: number | undefined
@@ -43,12 +43,7 @@ export const PrioritiesPage = ({
 
   return (
     <section className='flex flex-1 flex-col gap-4'>
-      <DepartmentPills
-        departments={ordered}
-        active={active}
-        onChange={onDepartmentChange}
-        all={false}
-      />
+      <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex items-center gap-3.5 max-md:flex-wrap'>
         {active && priorities.length ? (

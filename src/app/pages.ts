@@ -26,8 +26,9 @@ const BOARDS = [
 ] as const
 
 /**
- * Which pages a user may open. A board whose role did not load counts as open: the board says what
- * went wrong, where a hidden link would say nothing.
+ * Which pages a user may open. A page whose role did not load counts as open: the page says what
+ * went wrong, where a hidden link would say nothing — and would stay hidden, as this is not asked
+ * again until a reload. A laptop woken from sleep often fails this first ask before its network is up.
  */
 export const pagesQuery = (me: { id: number; role: string }) =>
   queryOptions({
@@ -45,7 +46,7 @@ export const pagesQuery = (me: { id: number; role: string }) =>
         client
           .fetchQuery({ ...shippingRoleQuery(me), retry: false })
           .then(role => shippingPages(me.role, role))
-          .catch(() => ({ shipping: false, loading: false, driver: false }))
+          .catch(() => ({ shipping: true, loading: true, driver: true }))
       ])
       return {
         ...(Object.fromEntries(boards) as Record<(typeof BOARDS)[number][1], boolean>),

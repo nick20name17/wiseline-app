@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/layout/app-header'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { PageHeaderProvider } from '@/components/layout/page-header'
+import { useStickyTableHeads } from '@/components/table/sticky-heads'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useIsWide } from '@/hooks/use-mobile'
 import { useLiveCounts } from '@/app/live-counts'
@@ -14,6 +15,7 @@ import { useState } from 'react'
 
 const AppLayout = () => {
   useLiveCounts()
+  useStickyTableHeads()
   const { data: me, isPending: findingMe } = useQuery(meQuery)
   const { data: pages, isPending: findingPages } = useQuery({
     ...pagesQuery(me ?? { id: 0, role: '' }),
