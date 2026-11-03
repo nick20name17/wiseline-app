@@ -1,14 +1,8 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, MapPin, Package as PackageIcon } from 'lucide-react'
@@ -22,6 +16,7 @@ import {
   type WrappingRow
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
+import { LOCATE_PACKAGES_TABLE } from '../lib/columns'
 import { contentNames, overWeight } from '../lib/wrapping'
 import { PackageContents } from './package-contents'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -48,6 +43,7 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
   const [heavy, setHeavy] = useState<{ parcel: Package; slot: LocationSlot } | null>(null)
   const locate = useLocatePackage()
   const viewOnly = useViewOnly()
+  const columns = useColumnOrder(LOCATE_PACKAGES_TABLE)
 
   if (!order) return null
 
@@ -93,47 +89,53 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
         <Skeleton className='h-40' />
       ) : packages?.length ? (
         <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards>
+          <Table data-cards className='table-fixed'>
+            <colgroup>{columns.cols}</colgroup>
             <TableHeader>
-              <TableRow>
-                <TableHead>Package</TableHead>
-                <TableHead data-align='start'>Contents</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Location</TableHead>
-              </TableRow>
+              <TableRow>{columns.headers}</TableRow>
             </TableHeader>
             <TableBody>
               {packages.map(parcel => (
                 <TableRow key={parcel.package_id}>
-                  <TableCell card='title'>
-                    <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
-                  </TableCell>
-                  <TableCell data-align='start' label='Contents' card='full'>
-                    <PackageContents contents={parcel.contents} rows={rows} />
-                  </TableCell>
-                  <TableCell label='Weight'>
-                    <span className='font-mono'>
-                      {parcel.weight === null ? '—' : `${parcel.weight} lb`}
-                    </span>
-                  </TableCell>
-                  <TableCell label='Location'>
-                    {parcel.location !== null ? (
-                      <span className='font-mono'>{parcel.location}</span>
-                    ) : viewOnly ? (
-                      <span className='text-warning'>waiting...</span>
-                    ) : (
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        aria-label={`Select location for ${parcel.name ?? parcel.package_id}`}
-                        disabled={locate.isPending}
-                        onClick={() => setLocating(parcel)}
-                      >
-                        <MapPin data-icon='inline-start' />
-                        Select location
-                      </Button>
-                    )}
-                  </TableCell>
+                  {columns.cells({
+                    name: (
+                      <TableCell>
+                        <span className='font-mono'>{parcel.name ?? parcel.package_id}</span>
+                      </TableCell>
+                    ),
+                    contents: (
+                      <TableCell>
+                        <PackageContents contents={parcel.contents} rows={rows} />
+                      </TableCell>
+                    ),
+                    weight: (
+                      <TableCell>
+                        <span className='font-mono'>
+                          {parcel.weight === null ? '—' : `${parcel.weight} lb`}
+                        </span>
+                      </TableCell>
+                    ),
+                    location: (
+                      <TableCell>
+                        {parcel.location !== null ? (
+                          <span className='font-mono'>{parcel.location}</span>
+                        ) : viewOnly ? (
+                          <span className='text-warning'>waiting...</span>
+                        ) : (
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            aria-label={`Select location for ${parcel.name ?? parcel.package_id}`}
+                            disabled={locate.isPending}
+                            onClick={() => setLocating(parcel)}
+                          >
+                            <MapPin data-icon='inline-start' />
+                            Select location
+                          </Button>
+                        )}
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
               ))}
             </TableBody>

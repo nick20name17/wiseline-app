@@ -1,5 +1,7 @@
 import { TableHead } from '@/components/ui/table'
 import { cn } from 'cn'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { flushSync } from 'react-dom'
@@ -15,6 +17,8 @@ type SortableHeadProps = {
   onResize: (width: number | null) => void
   /** The width to keep; `null` goes back to the declared one. */
   onResizeEnd: (width: number | null) => void
+  /** The column sorts the table: `desc` is unset while another column leads. */
+  sort?: { desc: boolean | undefined; toggle: () => void }
 }
 
 export const SortableHead = ({
@@ -22,8 +26,11 @@ export const SortableHead = ({
   width,
   onResizeStart,
   onResize,
-  onResizeEnd
+  onResizeEnd,
+  sort
 }: SortableHeadProps) => {
+  // Where the press began: a press that moved was a drag, and its click must not sort as well.
+  const pressedAt = useRef<number | null>(null)
   const {
     attributes,
     listeners,
@@ -70,6 +77,8 @@ export const SortableHead = ({
     window.addEventListener('pointercancel', end)
   }
 
+  const SortIcon = sort?.desc === undefined ? ArrowUpDown : sort.desc ? ArrowDown : ArrowUp
+
   const clear = (head: HTMLElement) => {
     head.style.removeProperty('width')
     head.style.removeProperty('min-width')
@@ -84,11 +93,19 @@ export const SortableHead = ({
       data-movable
       data-column={column.key}
       data-align={column.align}
-      title='Drag to reorder column'
+      aria-sort={sort?.desc === undefined ? undefined : sort.desc ? 'descending' : 'ascending'}
+      title={sort ? 'Click to sort, drag to reorder column' : 'Drag to reorder column'}
       // Clipped: a column dragged narrower than its heading would spill it over the next one.
       className={cn('overflow-hidden', width && 'w-(--col-width) min-w-(--col-width)')}
       style={width ? ({ '--col-width': `${width}px` } as CSSProperties) : undefined}
       {...listeners}
+      // Beside the sensors' own mouse and touch listeners, which it leaves alone.
+      onPointerDown={event => void (pressedAt.current = event.clientX)}
+      onClick={event => {
+        const moved = pressedAt.current !== null && Math.abs(event.clientX - pressedAt.current) > 4
+        pressedAt.current = null
+        if (sort && !moved) sort.toggle()
+      }}
     >
       {/* The keyboard's way in: Space picks the column up, the arrows move it. A span and not a
           button, which would not inherit the heading's case; the attributes give it the role. */}
@@ -99,6 +116,17 @@ export const SortableHead = ({
       >
         <span className={column.hideLabel ? 'sr-only' : undefined}>{column.label}</span>
       </span>
+      {/* The keyboard's way to sort: Enter on the label picks the column up instead. Its click
+          reaches the heading, which sorts. */}
+      {sort ? (
+        <button
+          type='button'
+          aria-label={`Sort by ${column.label}`}
+          className='ml-1 inline-flex rounded-sm align-middle outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50'
+        >
+          <SortIcon className={sort.desc === undefined ? 'size-3 opacity-40' : 'size-3'} />
+        </button>
+      ) : null}
       {/* Pointer only: the keyboard already has the columns' order, and a stop per edge would
           double the header's tab stops. */}
       <span
@@ -106,6 +134,8 @@ export const SortableHead = ({
         title='Drag to resize column, double-click to reset'
         className='absolute inset-y-0 right-0 w-1.5 cursor-col-resize touch-none hover:bg-border'
         onPointerDown={resize}
+        // The click that ends a resize is not a sort.
+        onClick={event => event.stopPropagation()}
         onDoubleClick={event => {
           event.stopPropagation()
           const head = event.currentTarget.parentElement

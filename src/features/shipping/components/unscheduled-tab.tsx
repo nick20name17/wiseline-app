@@ -1,3 +1,4 @@
+import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { OrderNoteDialog } from '@/components/order-note-dialog'
 import { PriorityPill } from '@/components/priority-pill'
@@ -40,7 +41,29 @@ import { OrderLines, ReadyCount } from './order-readiness'
 import { ScheduleDialog } from './schedule-dialog'
 import { ShipDateFilter, type ShipDates } from './ship-date-filter'
 
-const COLUMNS = 15
+// The checkbox and the expander are not listed: they stay first.
+const SERVICE_COLUMNS = 2
+
+// Sized to the widest value plus the cell's padding, so only the free text — Customer, which takes
+// what is left — truncates. Saved under its own key: the board's Unscheduled tab has one too.
+const COLUMNS: ColumnTable = {
+  table: 'shipping-unscheduled',
+  columns: [
+    { key: 'entry', label: 'Entry', width: 'w-40' },
+    { key: 'ship', label: 'Ship', width: 'w-40' },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    { key: 'customer', label: 'Customer', align: 'start', card: 'subtitle' },
+    { key: 'address', label: 'Address', width: 'w-56', align: 'start' },
+    { key: 'city', label: 'City', width: 'w-40', align: 'start' },
+    { key: 'map', label: 'Map', width: 'w-16' },
+    { key: 'weight', label: 'Weight', width: 'w-36' },
+    { key: 'longest', label: 'Longest Length', width: 'w-44' },
+    { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
+    { key: 'priority', label: 'Priority', width: 'w-32' },
+    { key: 'ready', label: 'Ready', width: 'w-32' },
+    { key: 'notes', label: 'Notes', width: 'w-20' }
+  ]
+}
 
 /** An order's packages, where they stand and what they weigh. */
 const OrderPackages = ({ order }: { order: string }) => {
@@ -122,6 +145,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
   // The salesman's notes come on the rows, checked off here as on the boards p3 (592,338).
   const notes = notesOf(orders)
   const setRead = useSetOrderNoteRead()
+  const columns = useColumnOrder(COLUMNS)
   const noteState = ({ note }: UnscheduledOrder): NoteState => {
     if (!note?.has_note) return 'none'
     return note.read ? 'read' : 'unread'
@@ -191,37 +215,13 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
               <col className='w-10' />
               {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
               <col className='w-16' />
-              <col className='w-40' />
-              <col className='w-40' />
-              <col className='w-32' />
-              <col />
-              <col className='w-56' />
-              <col className='w-40' />
-              <col className='w-16' />
-              <col className='w-36' />
-              <col className='w-44' />
-              <col className='w-24' />
-              <col className='w-32' />
-              <col className='w-32' />
-              <col className='w-20' />
+              {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead />
                 <TableHead />
-                <TableHead>Entry</TableHead>
-                <TableHead>Ship</TableHead>
-                <TableHead>Order #</TableHead>
-                <TableHead data-align='start'>Customer</TableHead>
-                <TableHead data-align='start'>Address</TableHead>
-                <TableHead data-align='start'>City</TableHead>
-                <TableHead>Map</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Longest Length</TableHead>
-                <TableHead>Ship Via</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Notes</TableHead>
+                {columns.headers}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -264,71 +264,95 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                             />
                           </Button>
                         </TableCell>
-                        <TableCell label='Entry'>{formatDate(order.entry_date)}</TableCell>
-                        <TableCell label='Ship'>
-                          {/* Past its ship date and not delivered p3 (605,628). */}
-                          <span
-                            className={cn(order.is_overdue && 'font-medium text-destructive')}
-                            title={order.is_overdue ? 'Overdue' : undefined}
-                          >
-                            {formatDate(order.ship_date)}
-                          </span>
-                        </TableCell>
-                        <TableCell card='title'>
-                          <span className='font-mono font-medium'>
-                            {order.order_number ?? order.order}
-                          </span>
-                        </TableCell>
-                        <TableCell data-align='start' card='subtitle'>
-                          <span className='lg:truncate'>{order.customer ?? '—'}</span>
-                        </TableCell>
-                        <TableCell data-align='start' label='Address'>
-                          <span className='text-muted-foreground lg:truncate'>
-                            {order.address ?? '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell data-align='start' label='City'>
-                          <span className='text-muted-foreground lg:truncate'>
-                            {order.city ?? '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell label='Map'>
-                          {order.address ? (
-                            <a
-                              href={mapUrl(order)}
-                              target='_blank'
-                              rel='noreferrer'
-                              aria-label={`Map of ${order.order_number ?? order.order}`}
-                              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                            >
-                              <MapPin />
-                            </a>
-                          ) : null}
-                        </TableCell>
-                        <TableCell label='Weight'>
-                          <span className='font-mono'>{formatWeight(order.weight)}</span>
-                        </TableCell>
-                        <TableCell label='Longest Length'>
-                          <span className='font-mono'>{formatLength(order.longest_length)}</span>
-                        </TableCell>
-                        <TableCell label='Ship Via'>{order.ship_via ?? '—'}</TableCell>
-                        <TableCell label='Priority'>
-                          <PriorityCell order={order} departmentId={department?.id} />
-                        </TableCell>
-                        <TableCell label='Ready'>
-                          <ReadyCount order={order.order} readiness={order} />
-                        </TableCell>
-                        <TableCell label='Notes'>
-                          <NoteButton
-                            state={noteState(order)}
-                            label={`Order notes for ${name}`}
-                            onClick={() => setNoteOrder(order)}
-                          />
-                        </TableCell>
+                        {columns.cells({
+                          entry: <TableCell>{formatDate(order.entry_date)}</TableCell>,
+                          ship: (
+                            <TableCell>
+                              {/* Past its ship date and not delivered p3 (605,628). */}
+                              <span
+                                className={cn(order.is_overdue && 'font-medium text-destructive')}
+                                title={order.is_overdue ? 'Overdue' : undefined}
+                              >
+                                {formatDate(order.ship_date)}
+                              </span>
+                            </TableCell>
+                          ),
+                          order: (
+                            <TableCell>
+                              <span className='font-mono font-medium'>{name}</span>
+                            </TableCell>
+                          ),
+                          customer: (
+                            <TableCell>
+                              <span className='lg:truncate'>{order.customer ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          address: (
+                            <TableCell>
+                              <span className='text-muted-foreground lg:truncate'>
+                                {order.address ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          city: (
+                            <TableCell>
+                              <span className='text-muted-foreground lg:truncate'>
+                                {order.city ?? '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          map: (
+                            <TableCell>
+                              {order.address ? (
+                                <a
+                                  href={mapUrl(order)}
+                                  target='_blank'
+                                  rel='noreferrer'
+                                  aria-label={`Map of ${name}`}
+                                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                                >
+                                  <MapPin />
+                                </a>
+                              ) : null}
+                            </TableCell>
+                          ),
+                          weight: (
+                            <TableCell>
+                              <span className='font-mono'>{formatWeight(order.weight)}</span>
+                            </TableCell>
+                          ),
+                          longest: (
+                            <TableCell>
+                              <span className='font-mono'>
+                                {formatLength(order.longest_length)}
+                              </span>
+                            </TableCell>
+                          ),
+                          shipvia: <TableCell>{order.ship_via ?? '—'}</TableCell>,
+                          priority: (
+                            <TableCell>
+                              <PriorityCell order={order} departmentId={department?.id} />
+                            </TableCell>
+                          ),
+                          ready: (
+                            <TableCell>
+                              <ReadyCount order={order.order} readiness={order} />
+                            </TableCell>
+                          ),
+                          notes: (
+                            <TableCell>
+                              <NoteButton
+                                state={noteState(order)}
+                                label={`Order notes for ${name}`}
+                                onClick={() => setNoteOrder(order)}
+                              />
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                       {open ? (
                         <TableRow>
-                          <TableCell colSpan={COLUMNS}>
+                          <TableCell colSpan={SERVICE_COLUMNS + columns.order.length}>
                             {/* What can go now and what is still being made, above what is packed
                                 (round 10, C1). Held at the left edge: the table is wider than the
                                 screen, and anything past it would need a sideways scroll to read. */}

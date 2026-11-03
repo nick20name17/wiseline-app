@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { useColumnOrder } from '@/components/table/column-order'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { toggled } from '@/lib/sets'
 import { useQuery } from '@tanstack/react-query'
@@ -26,6 +27,7 @@ import {
   type BoardLineItem
 } from '../api'
 import { useBoard } from '../lib/board-context'
+import { ROLLFORMING_PART_LINES_TABLE, ROLLFORMING_PRODUCTION_TABLE } from '../lib/columns'
 import { materialsOf, partKey, partLines } from '../lib/parts'
 import {
   coilNumbersOf,
@@ -41,8 +43,6 @@ import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from '@/components/status-pill'
 import { WrapOrder } from './wrap-order'
 import { CoilName } from './coil-name'
-
-const COLUMNS = 13
 
 type RollformingProductionTabProps = {
   search: string | undefined
@@ -75,70 +75,78 @@ const Coil = ({ value, item, mono = false }: CoilProps) => (
   </span>
 )
 
-const PartLines = ({ lines }: { lines: BoardLineItem[] }) => (
-  <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
-    <div className='overflow-hidden rounded-lg border border-border bg-card'>
-      <Table data-cards className='table-fixed'>
-        <colgroup>
-          <col className='w-16' />
-          <col />
-          <col className='w-20' />
-          <col className='w-32' />
-          <col className='w-36' />
-          <col className='w-36' />
-          <col className='w-24' />
-        </colgroup>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Qty</TableHead>
-            <TableHead data-align='start'>Description</TableHead>
-            <TableHead>L&quot;</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Supplier</TableHead>
-            <TableHead>Coil Number</TableHead>
-            <TableHead>Source</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {lines.map(line => {
-            const stock = isStockLine(line)
-            return (
-              <TableRow key={line.id}>
-                <TableCell label='Qty'>
-                  <span className='font-mono'>{line.quantity}</span>
-                </TableCell>
-                <TableCell data-align='start' card='title'>
-                  <Description text={line.item?.description ?? line.description} />
-                </TableCell>
-                <TableCell label='L"'>
-                  <span className='font-mono'>
-                    {line.length === null ? '—' : `${line.length}"`}
-                  </span>
-                </TableCell>
-                <TableCell label='Status'>
-                  <StatusPill status={itemStatus(line.item?.status ?? null)} />
-                </TableCell>
-                <TableCell label='Supplier'>
-                  {stock ? '—' : <Coil value={line.item?.supplier ?? null} item={line.item} />}
-                </TableCell>
-                <TableCell label='Coil Number'>
-                  {stock ? (
-                    '—'
-                  ) : (
-                    <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
-                  )}
-                </TableCell>
-                <TableCell label='Source'>
-                  <Source icon={stock ? null : (line.item?.coil_icon ?? null)} />
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+const PartLines = ({ lines }: { lines: BoardLineItem[] }) => {
+  const columns = useColumnOrder(ROLLFORMING_PART_LINES_TABLE)
+
+  return (
+    <div className='border-l-2 border-primary/40 bg-muted/30 px-3 py-3'>
+      <div className='overflow-hidden rounded-lg border border-border bg-card'>
+        <Table data-cards className='table-fixed'>
+          <colgroup>{columns.cols}</colgroup>
+          <TableHeader>
+            <TableRow>{columns.headers}</TableRow>
+          </TableHeader>
+          <TableBody>
+            {lines.map(line => {
+              const stock = isStockLine(line)
+              return (
+                <TableRow key={line.id}>
+                  {columns.cells({
+                    qty: (
+                      <TableCell>
+                        <span className='font-mono'>{line.quantity}</span>
+                      </TableCell>
+                    ),
+                    desc: (
+                      <TableCell>
+                        <Description text={line.item?.description ?? line.description} />
+                      </TableCell>
+                    ),
+                    l: (
+                      <TableCell>
+                        <span className='font-mono'>
+                          {line.length === null ? '—' : `${line.length}"`}
+                        </span>
+                      </TableCell>
+                    ),
+                    status: (
+                      <TableCell>
+                        <StatusPill status={itemStatus(line.item?.status ?? null)} />
+                      </TableCell>
+                    ),
+                    supplier: (
+                      <TableCell>
+                        {stock ? (
+                          '—'
+                        ) : (
+                          <Coil value={line.item?.supplier ?? null} item={line.item} />
+                        )}
+                      </TableCell>
+                    ),
+                    coil: (
+                      <TableCell>
+                        {stock ? (
+                          '—'
+                        ) : (
+                          <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
+                        )}
+                      </TableCell>
+                    ),
+                    source: (
+                      <TableCell>
+                        <Source icon={stock ? null : (line.item?.coil_icon ?? null)} />
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 /**
  * A Rollforming machine's Production tab p2 (1007,312): the orders released to it and not yet done,
@@ -173,6 +181,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
   const parts =
     machineId === undefined ? [] : productionParts(page?.results ?? [], machineId, departmentId)
   const days = byDay(parts, part => part.day)
+  const columns = useColumnOrder(ROLLFORMING_PRODUCTION_TABLE)
 
   const bench = parts.find(part => partKey(part.order.id, part.day) === packing)
   if (bench) {
@@ -223,35 +232,12 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
       <Table data-cards className='min-w-400 table-fixed'>
         <colgroup>
           <col className='w-10' />
-          <col className='w-36' />
-          {/* The order number and the mark for the coil in the machine. */}
-          <col className='w-32' />
-          <col className='w-44' />
-          <col className='w-28' />
-          <col />
-          <col className='w-32' />
-          <col className='w-36' />
-          <col className='w-28' />
-          <col className='w-32' />
-          <col className='w-28' />
-          <col className='w-32' />
-          <col className='w-24' />
+          {columns.cols}
         </colgroup>
         <TableHeader>
           <TableRow>
             <TableHead />
-            <TableHead>Production Date</TableHead>
-            <TableHead>Order #</TableHead>
-            <TableHead data-align='start'>Customer</TableHead>
-            <TableHead>PO</TableHead>
-            <TableHead>Gauge / Color</TableHead>
-            <TableHead>Profile</TableHead>
-            <TableHead>Salesman</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Coil Number</TableHead>
-            <TableHead>Source</TableHead>
+            {columns.headers}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -261,7 +247,7 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
             days.map(day => (
               <Fragment key={day.date}>
                 <TableRow data-divider>
-                  <TableCell colSpan={COLUMNS}>
+                  <TableCell colSpan={1 + columns.order.length}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
                       {formatLongDate(day.date)}
                       {day.date === today() ? ' · today' : ''}
@@ -297,72 +283,96 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                             />
                           </Button>
                         </TableCell>
-                        <TableCell label='Production Date'>{formatDate(date)}</TableCell>
-                        <TableCell card='title'>
-                          <span className='flex items-center gap-1.5'>
-                            <span className='font-mono font-medium'>{order.invoice}</span>
-                            {onCoil ? (
-                              <Disc3
-                                className='size-3.5 shrink-0 text-primary'
-                                aria-label='Runs off the coil in the machine'
-                              />
-                            ) : null}
-                          </span>
-                        </TableCell>
-                        <TableCell data-align='start' card='subtitle'>
-                          <span className='truncate'>{order.customer ?? '—'}</span>
-                        </TableCell>
-                        <TableCell label='PO'>
-                          <span className='truncate'>{order.po_no ?? '—'}</span>
-                        </TableCell>
-                        <TableCell label='Gauge / Color'>
-                          <span className='truncate'>
-                            {materialsOf({
-                              ...order,
-                              origin_items: lines
-                            }).join(', ') || '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell label='Profile'>
-                          <span className='truncate'>{profiles.join(' / ') || '—'}</span>
-                        </TableCell>
-                        <TableCell label='Salesman'>
-                          <span className='truncate'>{order.salesman ?? '—'}</span>
-                        </TableCell>
-                        <TableCell label='Priority'>
-                          {state?.priority ? (
-                            <PriorityPill priority={state.priority} />
-                          ) : (
-                            <span className='text-muted-foreground'>—</span>
-                          )}
-                        </TableCell>
-                        <TableCell label='Status'>
-                          <StatusPill status={orderStatus(state?.status ?? null)} />
-                        </TableCell>
-                        <TableCell label='Location'>
-                          <span className='truncate font-mono'>
-                            {order.locations.join(', ') || '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell label='Coil Number'>
-                          <span className='flex items-center gap-1.5'>
-                            <span
-                              className={cn(
-                                'truncate font-mono',
-                                onCoil && 'font-medium text-primary'
+                        {columns.cells({
+                          date: <TableCell>{formatDate(date)}</TableCell>,
+                          order: (
+                            <TableCell>
+                              <span className='flex items-center gap-1.5'>
+                                <span className='font-mono font-medium'>{order.invoice}</span>
+                                {onCoil ? (
+                                  <Disc3
+                                    className='size-3.5 shrink-0 text-primary'
+                                    aria-label='Runs off the coil in the machine'
+                                  />
+                                ) : null}
+                              </span>
+                            </TableCell>
+                          ),
+                          customer: (
+                            <TableCell>
+                              <span className='truncate'>{order.customer ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          po: (
+                            <TableCell>
+                              <span className='truncate'>{order.po_no ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          material: (
+                            <TableCell>
+                              <span className='truncate'>
+                                {materialsOf({
+                                  ...order,
+                                  origin_items: lines
+                                }).join(', ') || '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          profile: (
+                            <TableCell>
+                              <span className='truncate'>{profiles.join(' / ') || '—'}</span>
+                            </TableCell>
+                          ),
+                          salesman: (
+                            <TableCell>
+                              <span className='truncate'>{order.salesman ?? '—'}</span>
+                            </TableCell>
+                          ),
+                          priority: (
+                            <TableCell>
+                              {state?.priority ? (
+                                <PriorityPill priority={state.priority} />
+                              ) : (
+                                <span className='text-muted-foreground'>—</span>
                               )}
-                            >
-                              {coilNumbersOf(lines).join(', ') || '—'}
-                            </span>
-                          </span>
-                        </TableCell>
-                        <TableCell label='Source'>
-                          <Source icon={sourceOf(lines)} />
-                        </TableCell>
+                            </TableCell>
+                          ),
+                          status: (
+                            <TableCell>
+                              <StatusPill status={orderStatus(state?.status ?? null)} />
+                            </TableCell>
+                          ),
+                          location: (
+                            <TableCell>
+                              <span className='truncate font-mono'>
+                                {order.locations.join(', ') || '—'}
+                              </span>
+                            </TableCell>
+                          ),
+                          coil: (
+                            <TableCell>
+                              <span className='flex items-center gap-1.5'>
+                                <span
+                                  className={cn(
+                                    'truncate font-mono',
+                                    onCoil && 'font-medium text-primary'
+                                  )}
+                                >
+                                  {coilNumbersOf(lines).join(', ') || '—'}
+                                </span>
+                              </span>
+                            </TableCell>
+                          ),
+                          source: (
+                            <TableCell>
+                              <Source icon={sourceOf(lines)} />
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                       {open ? (
                         <TableRow>
-                          <TableCell colSpan={COLUMNS}>
+                          <TableCell colSpan={1 + columns.order.length}>
                             <PartLines lines={lines} />
                           </TableCell>
                         </TableRow>

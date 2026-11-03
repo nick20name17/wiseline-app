@@ -6,6 +6,7 @@ import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, SortableContext } from '@dnd-kit/sortable'
 import { dragAnnouncements, useDragSensors } from './drag'
 import { clampWidth, minWidth, type Column } from './column'
+import type { Sort } from '@/lib/sort-rows'
 import { SortableHead } from './sortable-head'
 import {
   useLayoutEffect,
@@ -17,6 +18,9 @@ import {
 
 /** A table whose columns move: the key its order is saved under, and its columns as declared. */
 export type ColumnTable = { table: string; columns: Column[] }
+
+/** The table's sort, for the headings of its `sortable` columns. */
+export type ColumnSort = { sort: Sort<string>; onSort: (sort: Sort<string>) => void }
 
 // The body cells do not travel with a header while it is in hand, so neither do the other headers:
 // the drop mark says where it will land, and the whole column moves on drop.
@@ -59,7 +63,7 @@ export const useColumnCells = ({ table, columns }: ColumnTable) => {
  * passed in move; service columns such as a checkbox or an expander are written by the caller around
  * `headers` and `cells` and stay where they are.
  */
-export const useColumnOrder = (definition: ColumnTable) => {
+export const useColumnOrder = (definition: ColumnTable, sorting?: ColumnSort) => {
   const { order, cells } = useColumnCells(definition)
   const byKey = new Map(definition.columns.map(column => [column.key, column]))
   const sensors = useDragSensors()
@@ -184,6 +188,18 @@ export const useColumnOrder = (definition: ColumnTable) => {
             key={key}
             column={byKey.get(key)!}
             width={widthOf(key)}
+            sort={
+              sorting && byKey.get(key)?.sortable
+                ? {
+                    desc: sorting.sort.key === key ? sorting.sort.desc : undefined,
+                    toggle: () =>
+                      sorting.onSort({
+                        key,
+                        desc: sorting.sort.key === key && !sorting.sort.desc
+                      })
+                  }
+                : undefined
+            }
             onResizeStart={pin}
             onResize={width => {
               const style = colEls.current.get(key)?.style

@@ -1,6 +1,7 @@
 import { Description } from '@/components/description'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { formatWidth } from '../lib/format'
+import { useColumnOrder } from '@/components/table/column-order'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ import {
   type SlitStage
 } from '../api'
 import { useViewOnly } from '../lib/board-context'
+import { SLIT_LINE_TABLE } from '../lib/columns'
 import { matchesSearch } from '../lib/search'
 import { CoilAssignDialog } from './coil-assign-dialog'
 import { LineNotesDialog } from './line-notes-dialog'
@@ -34,9 +36,6 @@ import { ScheduleDialog } from './schedule-dialog'
 import { NoteButton } from '@/components/note-button'
 import { useLineNoteState } from './use-line-note-state'
 import { CoilName } from './coil-name'
-
-// Every column, the select one included.
-const COLUMNS = 10
 
 const ONE_PRODUCT = 'One Product ID at a time: it is slit off one coil'
 
@@ -93,6 +92,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
   const [noteItem, setNoteItem] = useState<string | null>(null)
   const cancel = useSlitRequest()
   const viewOnly = useViewOnly()
+  const columns = useColumnOrder(SLIT_LINE_TABLE)
 
   const all = queue ?? []
   const rows = all.filter(row =>
@@ -197,28 +197,12 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
           <Table data-cards className='min-w-7xl table-fixed'>
             <colgroup>
               <col className='w-10' />
-              <col className='w-36' />
-              <col className='w-28' />
-              <col className='w-32' />
-              <col />
-              <col className='w-16' />
-              <col className='w-20' />
-              <col className='w-36' />
-              <col className='w-40' />
-              <col className='w-16' />
+              {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Production Date</TableHead>
-                <TableHead>Order #</TableHead>
-                <TableHead data-align='start'>Requested By</TableHead>
-                <TableHead data-align='start'>Description</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Length</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Coil Number</TableHead>
-                <TableHead>Notes</TableHead>
+                {columns.headers}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -228,7 +212,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                 days.map(day => (
                   <Fragment key={day.date ?? 'undated'}>
                     <TableRow data-divider>
-                      <TableCell colSpan={COLUMNS}>
+                      <TableCell colSpan={1 + columns.order.length}>
                         <span className='text-xs font-semibold tracking-wider uppercase'>
                           {day.date ? formatLongDate(day.date) : '—'}
                           {day.date === today() ? ' · today' : ''}
@@ -261,45 +245,64 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                               />
                             )}
                           </TableCell>
-                          <TableCell label='Production Date'>
-                            {formatDate(row.production_date)}
-                          </TableCell>
-                          <TableCell card='title'>
-                            <span className='font-mono font-medium'>
-                              {row.invoice ?? row.order ?? '—'}
-                            </span>
-                          </TableCell>
-                          <TableCell data-align='start' label='Requested By'>
-                            <span className='truncate'>{row.requested_by ?? '—'}</span>
-                          </TableCell>
-                          <TableCell data-align='start' card='subtitle'>
-                            <Description text={row.description} className='text-muted-foreground' />
-                          </TableCell>
-                          <TableCell label='Qty'>
-                            <span className='font-mono'>{row.quantity ?? '—'}</span>
-                          </TableCell>
-                          <TableCell label='Length'>
-                            <span className='font-mono'>
-                              {row.length === null ? '—' : `${formatWidth(row.length)}"`}
-                            </span>
-                          </TableCell>
-                          <TableCell label='Supplier'>
-                            <span className='truncate'>
-                              <CoilName value={row.supplier} waiting={waiting} />
-                            </span>
-                          </TableCell>
-                          <TableCell label='Coil Number'>
-                            <span className='truncate font-mono'>
-                              <CoilName value={row.coil_number} waiting={waiting} />
-                            </span>
-                          </TableCell>
-                          <TableCell label='Notes'>
-                            <NoteButton
-                              state={noteState(row.origin_item)}
-                              label={`Line notes for ${product ?? row.origin_item}`}
-                              onClick={() => setNoteItem(row.origin_item)}
-                            />
-                          </TableCell>
+                          {columns.cells({
+                            date: <TableCell>{formatDate(row.production_date)}</TableCell>,
+                            order: (
+                              <TableCell>
+                                <span className='font-mono font-medium'>
+                                  {row.invoice ?? row.order ?? '—'}
+                                </span>
+                              </TableCell>
+                            ),
+                            requested: (
+                              <TableCell>
+                                <span className='truncate'>{row.requested_by ?? '—'}</span>
+                              </TableCell>
+                            ),
+                            desc: (
+                              <TableCell>
+                                <Description
+                                  text={row.description}
+                                  className='text-muted-foreground'
+                                />
+                              </TableCell>
+                            ),
+                            qty: (
+                              <TableCell>
+                                <span className='font-mono'>{row.quantity ?? '—'}</span>
+                              </TableCell>
+                            ),
+                            length: (
+                              <TableCell>
+                                <span className='font-mono'>
+                                  {row.length === null ? '—' : `${formatWidth(row.length)}"`}
+                                </span>
+                              </TableCell>
+                            ),
+                            supplier: (
+                              <TableCell>
+                                <span className='truncate'>
+                                  <CoilName value={row.supplier} waiting={waiting} />
+                                </span>
+                              </TableCell>
+                            ),
+                            coil: (
+                              <TableCell>
+                                <span className='truncate font-mono'>
+                                  <CoilName value={row.coil_number} waiting={waiting} />
+                                </span>
+                              </TableCell>
+                            ),
+                            notes: (
+                              <TableCell>
+                                <NoteButton
+                                  state={noteState(row.origin_item)}
+                                  label={`Line notes for ${product ?? row.origin_item}`}
+                                  onClick={() => setNoteItem(row.origin_item)}
+                                />
+                              </TableCell>
+                            )
+                          })}
                         </TableRow>
                       )
                     })}
