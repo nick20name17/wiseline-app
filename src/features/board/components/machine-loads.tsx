@@ -24,9 +24,9 @@ const CARD =
  * The Slinet and Wrapping are not assigned to, so they have no bar here.
  */
 export const MachineLoads = ({ category, departmentId, day }: MachineLoadsProps) => {
-  // Another day's loads stay up until this day's are in, rather than the strip folding away and
-  // dropping everything under it for a moment.
-  const { data } = useQuery({
+  // Another day's loads stay up, dimmed, until this day's are in, rather than the strip folding away
+  // and dropping everything under it for a moment.
+  const { data, isPlaceholderData } = useQuery({
     ...machineCapacitiesQuery(departmentId, day),
     placeholderData: keepPreviousData
   })
@@ -52,7 +52,11 @@ export const MachineLoads = ({ category, departmentId, day }: MachineLoadsProps)
   if (!makers.length) return null
 
   return (
-    <ul aria-label='Machine loads' className='flex flex-wrap gap-2'>
+    <ul
+      aria-label='Machine loads'
+      aria-busy={isPlaceholderData}
+      className={cn('flex flex-wrap gap-2 transition-opacity', isPlaceholderData && 'opacity-50')}
+    >
       {makers.map(machine => {
         const load = machineLoad(machine, unit)
         const percent = share(load.value, load.max)

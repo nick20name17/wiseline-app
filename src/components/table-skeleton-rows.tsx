@@ -29,12 +29,24 @@ export const TableSkeletonRows = ({ actions = false }: TableSkeletonRowsProps) =
   const [rows, setRows] = useState(INITIAL_ROWS)
   const [columns, setColumns] = useState(0)
 
+  // Counted again whenever the header changes: a filter can add or drop a heading while the rows are
+  // still loading.
+  useLayoutEffect(() => {
+    const head = firstRow.current?.closest('table')?.tHead
+    if (!head) return
+    const count = () => {
+      const heads = head.rows[0]?.cells
+      setColumns(heads ? [...heads].reduce((sum, cell) => sum + cell.colSpan, 0) : 0)
+    }
+    count()
+    const observer = new MutationObserver(count)
+    observer.observe(head, { childList: true, subtree: true, attributeFilter: ['colspan'] })
+    return () => observer.disconnect()
+  }, [])
+
   // Before paint: measured afterwards, the first rows would be drawn and then multiplied.
   useLayoutEffect(() => {
     const row = firstRow.current
-    const heads = row?.closest('table')?.tHead?.rows[0]?.cells
-    if (heads) setColumns([...heads].reduce((sum, cell) => sum + cell.colSpan, 0))
-
     const fit = () => {
       const top = row?.getBoundingClientRect().top
       if (top === undefined) return
