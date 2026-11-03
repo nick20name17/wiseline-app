@@ -1,4 +1,4 @@
-import { dayLoad, loadUnit } from '../lib/format'
+import { dayLoad, loadUnit, share } from '../lib/format'
 import { formatDayLabel, today } from '@/lib/days'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -7,11 +7,12 @@ import { cn } from 'cn'
 import { CalendarDays, X } from 'lucide-react'
 import { useState } from 'react'
 import { dayStripQuery, WORK_WEEK_DAYS, workWeekQuery, type DayStripEntry } from '../api'
+import { DayBar } from './capacity-parts'
 import { ScheduleDialog } from './schedule-dialog'
 
 // One box for every card in the strip, placeholders included: equal widths are what stop the strip
 // re-wrapping — and the page below it moving — when the days arrive.
-const TILE = 'h-11 w-40 md:max-xl:w-full rounded-md border px-2 py-1 leading-tight'
+const TILE = 'h-13 w-44 md:max-xl:w-full rounded-md border px-2 py-1 leading-tight'
 
 type DayPillProps = {
   entry: DayStripEntry
@@ -31,22 +32,29 @@ const DayPill = ({ entry, isToday }: DayPillProps) => (
   </div>
 )
 
-const DayFigures = ({ entry, isToday }: DayPillProps) => (
-  <>
-    <span className='block truncate text-xs font-semibold'>
-      {formatDayLabel(entry.date)}
-      {isToday ? ' · today' : ''}
-    </span>
-    <span
-      className={cn(
-        'mt-0.5 block font-mono text-xs text-muted-foreground',
-        entry.over_capacity && 'text-destructive'
-      )}
-    >
-      ({dayLoad(entry)})
-    </span>
-  </>
-)
+// Read as the Scheduled tab's days are: the load, its share of the day and a bar (Kevin's notes of
+// 2026-11-02, A13).
+const DayFigures = ({ entry, isToday }: DayPillProps) => {
+  const percent = share(entry.used, entry.capacity)
+  return (
+    <>
+      <span className='block truncate text-xs font-semibold'>
+        {formatDayLabel(entry.date)}
+        {isToday ? ' · today' : ''}
+      </span>
+      <span
+        className={cn(
+          'mt-0.5 flex justify-between gap-2 font-mono text-xs text-muted-foreground',
+          entry.over_capacity && 'text-destructive'
+        )}
+      >
+        <span>{dayLoad(entry)}</span>
+        {percent === null ? null : <span>{percent}%</span>}
+      </span>
+      {percent === null ? null : <DayBar percent={percent} over={entry.over_capacity} />}
+    </>
+  )
+}
 
 type PinnedDayProps = {
   entry: DayStripEntry
@@ -104,7 +112,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
     <div className='strip-scroll flex items-stretch gap-1.5 md:flex-wrap md:max-xl:grid md:max-xl:grid-cols-3'>
       {isPending
         ? Array.from({ length: WORK_WEEK_DAYS }, (_, index) => (
-            <Skeleton key={index} className='h-11 w-40 md:max-xl:w-full' />
+            <Skeleton key={index} className='h-13 w-44 md:max-xl:w-full' />
           ))
         : days?.map(entry => (
             <DayPill key={entry.date} entry={entry} isToday={entry.date === start} />
@@ -117,7 +125,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
       {peek === null || (!peekEntry && !peekLoading) ? (
         <Button
           variant='dashed'
-          className='h-11 w-40 max-md:order-first md:max-xl:w-full'
+          className='h-13 w-44 max-md:order-first md:max-xl:w-full'
           onClick={() => setPickerOpen(true)}
         >
           <CalendarDays data-icon='inline-start' />
@@ -130,7 +138,7 @@ export const DayStrip = ({ departmentId }: DayStripProps) => {
           onRemove={() => setPeek(null)}
         />
       ) : (
-        <Skeleton className='h-11 w-40 max-md:order-first md:max-xl:w-full' />
+        <Skeleton className='h-13 w-44 max-md:order-first md:max-xl:w-full' />
       )}
 
       {/* The same calendar scheduling goes through — the board opens one modal for both. Any day may

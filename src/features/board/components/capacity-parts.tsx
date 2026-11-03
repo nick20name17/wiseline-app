@@ -57,6 +57,16 @@ export const Bar = ({ percent, over }: { percent: number | null; over: boolean }
   </span>
 )
 
+/** A day tile's share of its capacity: thinner than a machine's bar, under the figures. */
+export const DayBar = ({ percent, over }: { percent: number; over: boolean }) => (
+  <span className='mt-1 block h-1 w-full overflow-hidden rounded-full bg-border'>
+    <span
+      className={cn('block h-full w-(--used)', over ? 'bg-destructive' : 'bg-primary')}
+      style={{ '--used': `${Math.min(100, percent)}%` } as CSSProperties}
+    />
+  </span>
+)
+
 type FigureProps = {
   value: number
   /** Part of the value beside it, never an addition to it. */

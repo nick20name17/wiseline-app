@@ -78,8 +78,10 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         // The banding gives the eye a rail to follow across a wide table, and on the floor's screens a
         // faint one is lost (Kevin's notes of 2026-11-02, A5). It sits on the row, not the body, so
         // every state below is as specific as it is and wins by coming later; hover and selection
-        // sit a clear step above the band so they still show on a banded row.
-        'h-8.5 border-b transition-colors even:bg-foreground/6 hover:bg-foreground/12 has-aria-expanded:bg-foreground/12 data-[state=selected]:bg-primary/10',
+        // sit a clear step above the band so they still show on a banded row. A lone cell across the
+        // row — an opened row's details, a heading, a placeholder — is not a row to point at, and a
+        // tint over a whole details panel only adds noise to it.
+        'h-8.5 border-b transition-colors even:bg-foreground/6 not-has-[>td[colspan]:only-child]:hover:bg-foreground/12 has-[>td>[aria-expanded=true]]:bg-foreground/12 data-[state=selected]:bg-primary/10',
         // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
         // every one is back. A late line carries only the overdue mark, so it stays red.
         'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',

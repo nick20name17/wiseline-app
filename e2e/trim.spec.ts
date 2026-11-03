@@ -21,7 +21,8 @@ test('the board lists unscheduled orders with the day strip and the tab count', 
   await expect(page.getByText('2 unscheduled orders')).toBeVisible()
 
   // The day pill carries the bends scheduled against the capacity the day strip returns.
-  await expect(page.getByText('(1000 / 5000)').first()).toBeVisible()
+  await expect(page.getByText('1000 / 5000', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('20%', { exact: true }).first()).toBeVisible()
 
   await expect(page.getByText('330605')).toBeVisible()
   await expect(page.getByText('H F H Inc')).toBeVisible()

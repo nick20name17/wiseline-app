@@ -180,7 +180,8 @@ export const StockManufacturingDialog = ({
                     {columns.cells({
                       sent: (
                         <TableCell>
-                          <span className='font-mono text-xs'>
+                          {/* The time goes under the date: the dialog has no room for both on one line. */}
+                          <span className='font-mono text-xs whitespace-normal'>
                             {batch.created_at ? formatStamp(batch.created_at) : '—'}
                           </span>
                         </TableCell>
