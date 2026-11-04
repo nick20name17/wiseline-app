@@ -74,7 +74,9 @@ const Stat = ({ label, title, children }: StatProps) => (
  * bends against its daily max.
  */
 const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) => {
-  const [day, setDay] = useState(today)
+  // `null` follows today, so a floor screen left on overnight moves to the new day by itself.
+  const [picked, setPicked] = useState<string | null>(null)
+  const day = picked ?? today()
   const isToday = day === today()
   const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
   const station = data?.machines.find(row => row.flow_id === (machine?.id ?? cutterId))
@@ -92,7 +94,10 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
       <span className='flex items-center gap-2 self-center'>
         <DatePicker
           value={fromIsoDay(day)}
-          onChange={date => setDay(toIsoDay(date))}
+          onChange={date => {
+            const next = toIsoDay(date)
+            setPicked(next === today() ? null : next)
+          }}
           format={date => formatDate(toIsoDay(date))}
         />
         {isToday ? (
@@ -101,7 +106,7 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
             today
           </span>
         ) : (
-          <Button variant='ghost' onClick={() => setDay(today())}>
+          <Button variant='ghost' onClick={() => setPicked(null)}>
             Today
           </Button>
         )}
