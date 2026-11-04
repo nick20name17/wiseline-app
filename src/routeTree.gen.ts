@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
@@ -63,6 +64,11 @@ const AppDriverRoute = AppDriverRouteImport.update({
 const AppLoadingRoute = AppLoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppRollformingRoute = AppRollformingRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
+  '/reports': typeof AppReportsRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
+  '/reports': typeof AppReportsRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/_app/accessories': typeof AppAccessoriesRoute
   '/_app/driver': typeof AppDriverRoute
   '/_app/loading': typeof AppLoadingRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/shipping': typeof AppShippingRoute
   '/_app/trim': typeof AppTrimRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
+    | '/reports'
     | '/rollforming'
     | '/shipping'
     | '/trim'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
+    | '/reports'
     | '/rollforming'
     | '/shipping'
     | '/trim'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/_app/accessories'
     | '/_app/driver'
     | '/_app/loading'
+    | '/_app/reports'
     | '/_app/rollforming'
     | '/_app/shipping'
     | '/_app/trim'
@@ -329,6 +341,13 @@ declare module '@tanstack/react-router' {
       path: '/loading'
       fullPath: '/loading'
       preLoaderRoute: typeof AppLoadingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/rollforming': {
@@ -464,6 +483,7 @@ interface AppRouteRouteChildren {
   AppAccessoriesRoute: typeof AppAccessoriesRoute
   AppDriverRoute: typeof AppDriverRoute
   AppLoadingRoute: typeof AppLoadingRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppRollformingRoute: typeof AppRollformingRoute
   AppShippingRoute: typeof AppShippingRoute
   AppTrimRoute: typeof AppTrimRoute
@@ -475,6 +495,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAccessoriesRoute: AppAccessoriesRoute,
   AppDriverRoute: AppDriverRoute,
   AppLoadingRoute: AppLoadingRoute,
+  AppReportsRoute: AppReportsRoute,
   AppRollformingRoute: AppRollformingRoute,
   AppShippingRoute: AppShippingRoute,
   AppTrimRoute: AppTrimRoute,
