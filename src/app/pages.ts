@@ -12,6 +12,7 @@ export const PAGES = [
   '/shipping',
   '/loading',
   '/driver',
+  '/reports',
   '/settings'
 ] as const
 
@@ -53,17 +54,22 @@ export const pagesQuery = (me: { id: number; role: string }) =>
         '/shipping': shipping.shipping,
         '/loading': shipping.loading,
         '/driver': shipping.driver,
+        // The server reports to the same roles as it opens Settings to.
+        '/reports': isManagerRole(me.role),
         '/settings': isManagerRole(me.role)
       }
     }
   })
 
+// Looked at now and then, not worked in all day.
+const NOT_HOME = new Set<Page>(['/reports', '/settings'])
+
 /**
- * The page a user starts on: the first they may open. Settings is never one — it is not anyone's
- * work. Someone who may open nothing lands on Trim, whose board tells them whom to ask.
+ * The page a user starts on: the first they may open. Reports and Settings are never one — they are
+ * not anyone's work. Someone who may open nothing lands on Trim, whose board tells them whom to ask.
  */
 export const homeOf = (pages: PageAccess) =>
-  PAGES.find(page => page !== '/settings' && pages[page]) ?? '/trim'
+  PAGES.find(page => !NOT_HOME.has(page) && pages[page]) ?? '/trim'
 
 const pagesOf = async (client: QueryClient) => {
   const me = await client.ensureQueryData(meQuery)
