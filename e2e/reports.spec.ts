@@ -185,3 +185,16 @@ test('Reports sits under Manage in the menu', async ({ page }) => {
   await page.getByRole('link', { name: 'Reports' }).click()
   await expect(page).toHaveURL(/\/reports/)
 })
+
+test('a report that did not load says so, rather than that nothing was spoiled', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/spoiled-parts/summary/*`, route =>
+    route.fulfill({ status: 500, json: { detail: 'Server error' } })
+  )
+  await page.goto('/reports')
+  await signIn(page)
+
+  await expect(page.getByText('The report did not load')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Nothing spoiled or remade')).toHaveCount(0)
+})

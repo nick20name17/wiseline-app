@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/query-error'
 import { StatusPill } from '@/components/status-pill'
 import {
   Dialog,
@@ -34,7 +35,10 @@ type RemakesDialogProps = {
  */
 export const RemakesDialog = ({ departmentId, period, open, onOpenChange }: RemakesDialogProps) => {
   const columns = useColumnOrder(REMAKES_TABLE)
-  const { data, isPending } = useQuery({ ...remakesQuery(departmentId, period), enabled: open })
+  const { data, isPending, error, refetch } = useQuery({
+    ...remakesQuery(departmentId, period),
+    enabled: open
+  })
   const remakes = data?.results
 
   return (
@@ -44,12 +48,21 @@ export const RemakesDialog = ({ departmentId, period, open, onOpenChange }: Rema
           <DialogTitle>Remakes · All machines</DialogTitle>
           <DialogDescription>
             Remakes asked for, {formatDate(period.from)} to {formatDate(period.to)}.
+            {data && data.count > data.results.length
+              ? ` The latest ${data.results.length} of ${data.count}.`
+              : null}
           </DialogDescription>
         </DialogHeader>
 
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
         <div data-dialog-grow className='scrollport min-h-56 md:max-h-120 md:overflow-y-auto'>
-          {isPending ? (
+          {error && !data ? (
+            <QueryError
+              title='The remakes did not load'
+              error={error}
+              onRetry={() => void refetch()}
+            />
+          ) : isPending ? (
             <Skeleton className='h-56' />
           ) : remakes?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>

@@ -1,4 +1,5 @@
 import { Description } from '@/components/description'
+import { QueryError } from '@/components/query-error'
 import {
   Dialog,
   DialogContent,
@@ -39,7 +40,7 @@ export const SpoiledPartsDialog = ({
 }: SpoiledPartsDialogProps) => {
   const [shown, release] = useRetained(scope)
   const columns = useColumnOrder(SPOILED_TABLE)
-  const { data, isPending } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     ...spoiledPartsQuery(departmentId, period),
     enabled: !!scope
   })
@@ -61,7 +62,13 @@ export const SpoiledPartsDialog = ({
 
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
         <div data-dialog-grow className='scrollport min-h-56 md:max-h-120 md:overflow-y-auto'>
-          {isPending ? (
+          {error && !data ? (
+            <QueryError
+              title='The spoiled parts did not load'
+              error={error}
+              onRetry={() => void refetch()}
+            />
+          ) : isPending ? (
             <Skeleton className='h-56' />
           ) : parts?.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>

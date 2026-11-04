@@ -1,4 +1,5 @@
 import { DepartmentPills } from '@/components/department-pills'
+import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
@@ -70,7 +71,7 @@ export const ReportsPage = ({
   const offered = inBoardOrder(departments).filter(entry => entry.code !== MACHINELESS)
   // One department at a time, the first unless the link names another.
   const active = departmentByCode(offered, department) ?? offered[0]
-  const { data: summary, isPending } = useQuery(summaryQuery(active?.id, period))
+  const { data: summary, isPending, error, refetch } = useQuery(summaryQuery(active?.id, period))
   const columns = useColumnOrder(SUMMARY_TABLE)
   const [spoiled, setSpoiled] = useState<SpoiledScope | null>(null)
   const [remakes, setRemakes] = useState(false)
@@ -153,7 +154,9 @@ export const ReportsPage = ({
         </p>
       </div>
 
-      {!isPending && !machines.length ? (
+      {error && !summary ? (
+        <QueryError title='The report did not load' error={error} onRetry={() => void refetch()} />
+      ) : !isPending && !machines.length ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
