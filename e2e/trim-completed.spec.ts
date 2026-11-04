@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mockAuthApi } from './api.ts'
+import { API_URL, mockAuthApi } from './api.ts'
 import { capturePrints, mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
@@ -55,4 +55,61 @@ test('a package label can be sent to the printer again', async ({ page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Reprint' }).click()
 
   await expect.poll(printed).toEqual([expect.stringMatching(/01-338008-01.*Order 338008/)])
+})
+
+test('an order EBMS refused says so, and a Manager sends its batch again', async ({ page }) => {
+  const refusal = 'Not Open in EBMS (status O): the manufacturing batch was not sent.'
+  await page.route(`${API_URL}/departments/1/completed-orders/?*`, route =>
+    route.fulfill({
+      json: {
+        count: 1,
+        window_days: 90,
+        results: [
+          {
+            order: 'ARINV-9',
+            order_number: '338008',
+            customer: 'Vittoria Metal Works',
+            is_stock: false,
+            completed_at: '2026-09-19T11:18:00',
+            ebms_sync: 'failed',
+            ebms_error: refusal
+          }
+        ]
+      }
+    })
+  )
+  const write = (id: number, order: string, department_id: number) => ({
+    id,
+    order,
+    department_id,
+    lot_autoid: null,
+    status: 'failed',
+    last_error: refusal
+  })
+  // The board knows the order, not the write: the order's own, in this department, is sent.
+  await page.route(`${API_URL}/ebms-outbox/?*`, route =>
+    route.fulfill({
+      json: [write(7, 'ARINV-9', 2), write(8, 'ARINV-9', 1), write(9, 'ARINV-4', 1)]
+    })
+  )
+  const resent: string[] = []
+  await page.route(`${API_URL}/ebms-outbox/*/retry/`, route => {
+    resent.push(new URL(route.request().url()).pathname)
+    return route.fulfill({
+      json: { ...write(8, 'ARINV-9', 1), status: 'queued', last_error: null }
+    })
+  })
+  await page.reload()
+
+  const row = page.getByRole('row').filter({ hasText: '338008' })
+  await expect(row.getByText('Not in EBMS')).toBeVisible()
+  await row.click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText(refusal)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Send again' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Send again' }).click()
+
+  await expect.poll(() => resent).toEqual(['/ebms-outbox/8/retry/'])
+  // EBMS still not answering: it waits for EBMS rather than reading as refused.
+  await expect(page.getByText('Waiting for EBMS')).toBeVisible()
 })

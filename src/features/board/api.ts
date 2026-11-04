@@ -1906,6 +1906,15 @@ const folderId = z._default(
   null
 )
 
+// The app's last write to EBMS for an order or a coil: `queued` while EBMS does not answer (it goes
+// once EBMS is back), `ok`, or `failed` with EBMS's reason. `null` is no write yet.
+const ebmsSyncFields = {
+  ebms_sync: z.catch(z.nullable(z.enum(['queued', 'ok', 'failed'])), null),
+  ebms_error: z._default(z.nullable(z.string()), null)
+}
+
+export type EbmsSync = 'queued' | 'ok' | 'failed' | null
+
 const coilLotSchema = z.object({
   // The EBMS lot autoid, so a coil has one before the floor has entered anything about it.
   id: z.string(),
@@ -1937,7 +1946,9 @@ const coilLotSchema = z.object({
   // than working the rules out again on this side.
   can_adjust: z._default(z.boolean(), false),
   slinet_available: z._default(z.boolean(), false),
-  rollforming_available: z._default(z.boolean(), true)
+  rollforming_available: z._default(z.boolean(), true),
+  // Its last adjustment or depletion in EBMS.
+  ...ebmsSyncFields
 })
 
 export type CoilLot = z.infer<typeof coilLotSchema>
@@ -1998,6 +2009,8 @@ const completedOrderSchema = z.object({
   status: z._default(z.nullable(z.string()), null),
   // Why EBMS would not complete a `rolled` order once its packages were located; cleared once it does.
   complete_error: z._default(z.nullable(z.string()), null),
+  // Its manufacturing batch in EBMS.
+  ...ebmsSyncFields,
   production_date: z._default(z.nullable(z.string()), null),
   ship_date: z._default(z.nullable(z.string()), null),
   // The codes the order's packages stand on, oldest first.
@@ -2315,21 +2328,29 @@ export const useApplyCoilAdjustment = () =>
       )
   })
 
-/** Confirming an adjustment: EBMS first, and only then the coil here. */
+/**
+ * Confirming an adjustment: EBMS first, and only then the coil here. EBMS not answering, it is queued
+ * for EBMS and goes ahead here; resolves to whether it waits.
+ */
 export const useConfirmCoilAdjustment = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
-      authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json(),
+    mutationFn: async ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
+      coilLotSchema.parse(
+        await authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json()
+      ).ebms_sync === 'queued',
     onSuccess,
     // Its callers word the failure differently — one coil, or a batch of them under one toast.
     meta: { skipErrorToast: true },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
-/** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. */
+/** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. Resolves as the adjustment does. */
 export const useDepleteCoil = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: (lotId: string) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
+    mutationFn: async (lotId: string) =>
+      z
+        .object({ ebms: z._default(z.nullable(z.string()), null) })
+        .parse(await authApi.post(`coils/lots/${lotId}/deplete/`).json()).ebms === 'queued',
     onSuccess,
     meta: { skipErrorToast: true },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
@@ -3036,8 +3057,11 @@ const partParams = (departmentId: number, part: string | null) =>
 
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
-  // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
+  // Why not, when the server knows better than the board — or, with `ebms_open` false, why it
+  // completes without EBMS.
   reason: z._default(z.nullable(z.string()), null),
+  // An order EBMS no longer has Open (invoiced first) still completes here, but takes no batch there.
+  ebms_open: z._default(z.boolean(), true),
   // The asked-for part of a split order is done; it stays listed until the whole order is.
   part_completed: z._default(z.boolean(), false),
   // A stock order is finished through its own Stock window, never through Order Complete.
@@ -3090,7 +3114,13 @@ export const orderCompleteQuery = (
  * Order Complete. The manufacturing batch — ordered minus what came from stock — goes to EBMS first,
  * and the order is only marked complete if that goes through.
  */
-export const useCompleteOrder = (onSuccess: () => void) =>
+/**
+ * Where the batch went: `sent`, `queued` (EBMS did not answer; it goes once EBMS is back), `not_open`
+ * (EBMS has closed the order, so nothing went), or `null` with no batch to send.
+ */
+export type BatchOutcome = 'sent' | 'queued' | 'not_open' | null
+
+export const useCompleteOrder = (onSuccess: (ebms: BatchOutcome) => void) =>
   useMutation({
     // A refused batch answers 502 with EBMS's own reason, which goes under this title.
     meta: { errorTitle: 'The order was not completed' },
@@ -3103,14 +3133,19 @@ export const useCompleteOrder = (onSuccess: () => void) =>
       departmentId: number
       part: string | null
     }) =>
-      z.object({ order_complete: z._default(z.boolean(), true) }).parse(
-        await authApi
-          .post(`wrapping/orders/${order}/complete/`, {
-            searchParams: partParams(departmentId, part)
-          })
-          .json()
-      ),
-    onSuccess: ({ order_complete }, { order, departmentId, part }, __, { client }) => {
+      z
+        .object({
+          order_complete: z._default(z.boolean(), true),
+          ebms: z.catch(z.nullable(z.enum(['sent', 'queued', 'not_open'])), null)
+        })
+        .parse(
+          await authApi
+            .post(`wrapping/orders/${order}/complete/`, {
+              searchParams: partParams(departmentId, part)
+            })
+            .json()
+        ),
+    onSuccess: ({ order_complete, ebms }, { order, departmentId, part }, __, { client }) => {
       // The bench goes back to the list straight away, and the list's refetch is slow: left to it,
       // the completed order sat there until the answer came. A part leaves the order's other parts
       // listed, its own lines locked.
@@ -3125,7 +3160,43 @@ export const useCompleteOrder = (onSuccess: () => void) =>
                   : row
               )
       )
-      onSuccess()
+      onSuccess(ebms)
+    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
+const outboxWriteSchema = z.object({
+  id: z.number(),
+  order: z._default(z.nullable(z.string()), null),
+  department_id: z._default(z.nullable(z.number()), null),
+  lot_autoid: z._default(z.nullable(z.string()), null),
+  status: z._default(z.string(), ''),
+  last_error: z._default(z.nullable(z.string()), null)
+})
+
+/** Whose write to send again: an order's batch in a department, or a coil's change. */
+export type ResendTarget = { order: string; departmentId: number } | { lotAutoid: string }
+
+/**
+ * A write EBMS refused, sent again once whatever it objected to is fixed there. The board knows the
+ * order or the coil, not the write, so the newest refused write of it is the one sent. Resolves to
+ * how it went: `ok`, `queued` (EBMS not answering) or `failed` again.
+ */
+export const useResendEbmsWrite = () =>
+  useMutation({
+    meta: { errorTitle: 'Not sent to EBMS again' },
+    mutationFn: async (target: ResendTarget) => {
+      const refused = z
+        .array(outboxWriteSchema)
+        .parse(await authApi.get('ebms-outbox/', { searchParams: { status: 'failed' } }).json())
+      const write = refused.find(entry =>
+        'lotAutoid' in target
+          ? entry.lot_autoid === target.lotAutoid
+          : entry.order === target.order && entry.department_id === target.departmentId
+      )
+      if (!write) throw new Error('No refused EBMS write of it is on record.')
+      return outboxWriteSchema.parse(await authApi.post(`ebms-outbox/${write.id}/retry/`).json())
     },
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: boardKeys.all })

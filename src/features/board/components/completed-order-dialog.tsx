@@ -42,6 +42,7 @@ import {
 import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
 import { contentNames, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { ResendEbmsButton } from './ebms-sync'
 import { PackageContents } from './package-contents'
 import {
   LocationChips,
@@ -421,6 +422,27 @@ export const CompletedOrderDialog = ({
 
               <Facts detail={data} isStock={isStock} />
 
+              {/* Completed here either way; this is what EBMS has not got yet, and why. */}
+              {order?.completed_at && order.ebms_sync === 'queued' ? (
+                <p className='text-center text-sm text-muted-foreground'>
+                  <span className='text-warning'>EBMS pending:</span> the manufacturing batch goes
+                  to EBMS once it answers again.
+                </p>
+              ) : order?.completed_at && order.ebms_sync === 'failed' ? (
+                <p className='flex flex-wrap items-baseline justify-center gap-x-2 text-sm text-muted-foreground'>
+                  <span>
+                    <span className='text-destructive'>Not in EBMS:</span>{' '}
+                    {order.ebms_error ?? 'EBMS refused the manufacturing batch.'}
+                  </span>
+                  {departmentId !== undefined ? (
+                    <ResendEbmsButton
+                      target={{ order: order.order, departmentId }}
+                      what={`the manufacturing batch of order ${number}`}
+                      error={order.ebms_error}
+                    />
+                  ) : null}
+                </p>
+              ) : null}
               <p className='text-center text-sm text-muted-foreground'>
                 {data.completed_at
                   ? `Completed ${formatStamp(data.completed_at)}`
