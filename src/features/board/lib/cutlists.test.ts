@@ -16,8 +16,7 @@ import {
   remakeRequestBlocker,
   remakesOf,
   slinetColumns,
-  slinetListsFor,
-  slinetTotals
+  slinetListsFor
 } from './cutlists'
 
 const machine = (id: number, kind: string): Machine => ({
@@ -185,31 +184,6 @@ describe('completeBlocker', () => {
       'Available once the Slinet starts on this release'
     )
     expect(completeBlocker({ isSlinet: false, slinetStarted: true })).toBeNull()
-  })
-})
-
-describe('slinetTotals', () => {
-  it("counts the day's lists, done ones included, what of them is cut, and the stock-order share", () => {
-    const lists = [
-      list({
-        rows: [
-          row(1, 1, { complete: true }),
-          row(2, 2, { sources: [source({ order: 'S1', origin_item: '2', is_stock: true })] })
-        ]
-      }),
-      list({
-        completed_at: '2026-09-23T12:00:00',
-        rows: [row(3, 1, { sources: [source({ order: 'S2', origin_item: '3', is_stock: true })] })]
-      }),
-      list({ production_date: '2026-09-24', rows: [row(4, 1)] })
-    ]
-
-    expect(slinetTotals(lists, '2026-09-23')).toEqual({
-      pieces: 12,
-      stockPieces: 8,
-      cut: 8,
-      stockCut: 4
-    })
   })
 })
 

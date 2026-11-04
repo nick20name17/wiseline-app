@@ -135,7 +135,7 @@ test('a machine’s spoiled count lists that machine’s parts only', async ({ p
   await expect(none.getByText('Ridge Cap 4')).toBeVisible()
 })
 
-test('the remakes total lists the period’s remakes, to the end of its last day', async ({
+test('the remakes total lists the period’s remakes, shop days to the end of the last', async ({
   page
 }) => {
   const asked = new Promise<URLSearchParams>(resolve =>
@@ -150,8 +150,9 @@ test('the remakes total lists the period’s remakes, to the end of its last day
   await page.getByRole('button', { name: 'Remakes on All machines: 2' }).click()
   const params = await asked
   expect(params.get('department')).toBe('1')
-  expect(params.get('created_at__gte')).toBe('2026-11-01T00:00:00')
-  expect(params.get('created_at__lt')).toBe('2026-11-05T00:00:00')
+  // The shop's midnights: daylight time ends there on Nov 1.
+  expect(params.get('created_at__gte')).toBe('2026-11-01T04:00:00.000Z')
+  expect(params.get('created_at__lt')).toBe('2026-11-05T05:00:00.000Z')
 
   const dialog = page.getByRole('dialog', { name: 'Remakes · All machines' })
   await expect(dialog.getByRole('row').filter({ hasText: 'Kevin Fehr' })).toContainText(

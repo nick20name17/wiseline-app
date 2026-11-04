@@ -20,6 +20,10 @@ test('the tab opens on the Slinet with its cutlists grouped by day', async ({ pa
   // The Slinet cuts; it has no bends and no daily max of its own.
   await expect(page.getByText('Total # Pieces')).toBeVisible()
   await expect(page.getByText('Daily Max (bends)')).toBeHidden()
+  // The server's row for the Slinet: the day's pieces, what of them is cut, against its piece cap.
+  await expect(page.getByText('18 / 24', { exact: true })).toBeVisible()
+  await expect(page.getByText('2 / 4 50%', { exact: true })).toBeVisible()
+  await expect(page.getByText('24 / 1,200', { exact: true })).toBeVisible()
 })
 
 test('a list from a day gone by is marked overdue', async ({ page }) => {
