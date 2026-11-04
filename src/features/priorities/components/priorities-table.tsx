@@ -1,5 +1,10 @@
 import { useColumnCells, useColumnOrder, type ColumnTable } from '@/components/table/column-order'
-import { dragAnnouncements, useDragSensors } from '@/components/table/drag'
+import {
+  dragAnnouncements,
+  RowMouseSensor,
+  RowTouchSensor,
+  useDragSensors
+} from '@/components/table/drag'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import {
   Table,
@@ -9,20 +14,13 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import {
-  closestCenter,
-  DndContext,
-  MouseSensor,
-  TouchSensor,
-  type DragEndEvent,
-  type UniqueIdentifier
-} from '@dnd-kit/core'
+import { closestCenter, DndContext, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core'
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from 'cn'
 import { GripVertical } from 'lucide-react'
-import { useState, type CSSProperties, type SyntheticEvent } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useReorderPriorities, type Priority } from '../api'
 import { reorder } from '../lib/reorder'
 import { PriorityActions } from './priority-actions'
@@ -52,36 +50,6 @@ type SortableRowProps = {
   departmentId: number
   disabled: boolean
   readOnly: boolean
-}
-
-/**
- * Whether a press on a row may pick it up. Rows pick up anywhere, as on the original, except from
- * their Edit and Delete buttons, which a slightly moving click or a held finger would otherwise
- * drag. React bubbles events out of portals too, so a press inside a row's dialog must not either.
- */
-const startsDrag = ({ currentTarget, target }: SyntheticEvent) =>
-  target instanceof Element &&
-  currentTarget.contains(target) &&
-  !target.closest('button:not([data-grip]), a, input')
-
-class RowMouseSensor extends MouseSensor {
-  static override activators = [
-    {
-      eventName: 'onMouseDown' as const,
-      handler: (...args: Parameters<(typeof MouseSensor.activators)[number]['handler']>) =>
-        startsDrag(args[0]) && MouseSensor.activators[0]!.handler(...args)
-    }
-  ]
-}
-
-class RowTouchSensor extends TouchSensor {
-  static override activators = [
-    {
-      eventName: 'onTouchStart' as const,
-      handler: (...args: Parameters<(typeof TouchSensor.activators)[number]['handler']>) =>
-        startsDrag(args[0]) && TouchSensor.activators[0]!.handler(...args)
-    }
-  ]
 }
 
 const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRowProps) => {

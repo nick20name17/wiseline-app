@@ -62,7 +62,7 @@ export const CoilScanDialog = () => {
         <ScanLine data-icon='inline-start' />
         Scan
       </DialogTrigger>
-      <DialogContent initialFocus={inputRef}>
+      <DialogContent sizeKey='board:coil-scan-dialog' initialFocus={inputRef}>
         <DialogHeader>
           <DialogTitle>Scan a coil to put it away</DialogTitle>
           <DialogDescription>

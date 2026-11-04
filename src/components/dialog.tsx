@@ -9,12 +9,13 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { useDialogSize } from './dialog-size'
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader } from '@/components/ui/drawer'
 import { useDrawer } from '@/hooks/use-mobile'
 import type { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
 import { cn } from 'cn'
 import { XIcon } from 'lucide-react'
-import { createContext, use, useState, type ComponentProps } from 'react'
+import { createContext, use, useState, type ComponentProps, type CSSProperties } from 'react'
 
 /*
  * The app's dialog: centred on a tablet or a desk, a bottom drawer on a phone, where a thumb reaches
@@ -51,23 +52,62 @@ function Dialog({ open, defaultOpen = false, onOpenChange, ...props }: DialogPri
   )
 }
 
+type DialogContentProps = ComponentProps<typeof CenteredDialogContent> & {
+  /** Names the size the user drags this dialog to, kept for them: `<feature>:<file>`. */
+  sizeKey: string
+}
+
+function CenteredContent({
+  className,
+  children,
+  showCloseButton,
+  sizeKey,
+  ...props
+}: DialogContentProps) {
+  const size = useDialogSize(sizeKey)
+  // A centred dialog keeps a margin of the page around it and scrolls within it, on a tablet held
+  // sideways as much as in a short desk window.
+  return (
+    <CenteredDialogContent
+      className={cn('max-h-11/12 overflow-y-auto overscroll-contain', className)}
+      showCloseButton={showCloseButton}
+      // The dragged size, which `index.css` lays out past the dialog's own width cap.
+      data-dialog-width={size.width ? '' : undefined}
+      data-dialog-sized={size.height ? '' : undefined}
+      style={
+        {
+          '--dialog-width': size.width && `${size.width}px`,
+          '--dialog-height': size.height && `${size.height}px`
+        } as CSSProperties
+      }
+      onPointerMove={size.onPointerMove}
+      onPointerDown={size.onPointerDown}
+      onDoubleClick={size.onDoubleClick}
+      {...props}
+    >
+      {children}
+    </CenteredDialogContent>
+  )
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  sizeKey,
   ...props
-}: ComponentProps<typeof CenteredDialogContent>) {
-  // A centred dialog keeps a margin of the page around it and scrolls within it, on a tablet held
-  // sideways as much as in a short desk window.
+}: DialogContentProps) {
+  // A phone's drawer is the screen's width and swiped away; only a centred dialog is dragged to size.
   if (!use(InDrawer))
     return (
-      <CenteredDialogContent
-        className={cn('max-h-11/12 overflow-y-auto overscroll-contain', className)}
+      <CenteredContent
+        className={className}
         showCloseButton={showCloseButton}
+        sizeKey={sizeKey}
         {...props}
       >
         {children}
-      </CenteredDialogContent>
+      </CenteredContent>
     )
 
   return (

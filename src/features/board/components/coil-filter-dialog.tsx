@@ -199,7 +199,7 @@ export const CoilFilterDialog = ({ departmentId, open, onOpenChange }: CoilFilte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent sizeKey='board:coil-filter-dialog' className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Coil Filter</DialogTitle>
           <DialogDescription>

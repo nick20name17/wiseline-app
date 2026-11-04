@@ -108,7 +108,11 @@ export const ScanPackageDialog = ({ className, iconOnPhone = false }: ScanPackag
           </>
         )}
       </DialogTrigger>
-      <DialogContent className='sm:max-w-md' initialFocus={inputRef}>
+      <DialogContent
+        sizeKey='board:scan-package-dialog'
+        className='sm:max-w-md'
+        initialFocus={inputRef}
+      >
         <DialogHeader>
           <DialogTitle>Scan package</DialogTitle>
           <DialogDescription>Check a package label before it goes anywhere.</DialogDescription>

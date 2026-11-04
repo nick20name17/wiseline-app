@@ -89,7 +89,7 @@ export const CoilSuppliersDialog = () => (
       <Database data-icon='inline-start' />
       Coil suppliers
     </DialogTrigger>
-    <DialogContent>
+    <DialogContent sizeKey='machines:coil-suppliers-dialog'>
       <DialogHeader>
         <DialogTitle>Coil suppliers</DialogTitle>
         <DialogDescription>

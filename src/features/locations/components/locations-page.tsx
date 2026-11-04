@@ -23,11 +23,13 @@ import {
   departmentsQuery,
   locationsQuery,
   warehousePickerQuery,
-  type Location
+  type Location,
+  type LocationKind
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
 import { LocationActions } from './location-actions'
+import { KindTabs } from './kind-tabs'
 import { CreateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -48,8 +50,10 @@ const COLUMNS: ColumnTable = {
 type LocationsPageProps = {
   search: string | undefined
   department: string | undefined
+  kind: LocationKind
   onSearchChange: (search: string | undefined) => void
   onDepartmentChange: (department: string) => void
+  onKindChange: (kind: LocationKind) => void
 }
 
 /**
@@ -59,8 +63,10 @@ type LocationsPageProps = {
 export const LocationsPage = ({
   search,
   department,
+  kind,
   onSearchChange,
-  onDepartmentChange
+  onDepartmentChange,
+  onKindChange
 }: LocationsPageProps) => {
   const { data: page, isPending: rowsPending } = useQuery(locationsQuery(search))
   const { data: warehouses } = useQuery(warehousePickerQuery)
@@ -87,7 +93,9 @@ export const LocationsPage = ({
   const active = departmentByCode(racked, department) ?? racked[0]
   const typeOf = (location: Location) => types?.find(type => type.id === location.location_type_id)
   const locations = sortRows(
-    (page?.results ?? []).filter(location => typeOf(location)?.department_id === active?.id),
+    (page?.results ?? []).filter(
+      location => typeOf(location)?.department_id === active?.id && typeOf(location)?.kind === kind
+    ),
     sort,
     (location, key) =>
       key === 'name'
@@ -100,13 +108,12 @@ export const LocationsPage = ({
   )
 
   // The ones a coil is put on, which the forklift scans: each gets a label with its code.
-  const inventory = locations.filter(
-    location => typeOf(location)?.kind === 'inventory' && location.code
-  )
+  const inventory = kind === 'inventory' ? locations.filter(location => location.code) : []
 
   return (
     <section className='flex flex-1 flex-col gap-4'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+      <KindTabs kind={kind} noun='Locations' onChange={onKindChange} />
 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
@@ -132,7 +139,7 @@ export const LocationsPage = ({
             Print inventory labels
           </Button>
         ) : null}
-        <CreateLocationDialog department={active} />
+        <CreateLocationDialog department={active} kind={kind} />
       </div>
 
       {printing ? (

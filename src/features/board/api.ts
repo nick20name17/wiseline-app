@@ -10,6 +10,7 @@ import {
 import { HTTPError } from 'ky'
 import { departmentByCode, departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
+import type { GridSlot } from './lib/location-grid'
 
 /**
  * A board reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
@@ -28,7 +29,9 @@ const departmentSchema = z.object({
   max_package_weight: z._default(z.nullable(z.number()), null),
   // Trim: a job spans several carts and its packages move between them, so locations are held by
   // the job (`jobLocationsQuery`) rather than by each package.
-  job_locations: z._default(z.boolean(), false)
+  job_locations: z._default(z.boolean(), false),
+  // The warehouse Select Location opens on for this department.
+  default_warehouse: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -671,51 +674,6 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
           .json()
       )
   })
-
-const locationTypeSchema = z.object({
-  id: z.number(),
-  name: z._default(z.nullable(z.string()), null),
-  position: z._default(z.nullable(z.number()), null)
-})
-
-export type LocationType = z.infer<typeof locationTypeSchema>
-
-/**
- * Each location's type, which Select Location lays its columns out by. The availability list behind
- * it names only the warehouse, so the type comes from Settings' own lists. Under `['locations']`, so
- * an edit in Settings refreshes it.
- */
-export const locationTypesQuery = queryOptions({
-  queryKey: ['locations', 'type-of'] as const,
-  queryFn: async () => {
-    const [locations, types] = await Promise.all([
-      authApi.get('locations/', { searchParams: { limit: 500 } }).json(),
-      authApi.get('location-types/all/').json()
-    ])
-    const byId = new Map(
-      z
-        .array(locationTypeSchema)
-        .parse(types)
-        .map(type => [type.id, type])
-    )
-    const typeOf = new Map<number, LocationType>()
-    for (const location of z
-      .object({
-        results: z.array(
-          z.object({
-            id: z.number(),
-            location_type_id: z._default(z.nullable(z.number()), null)
-          })
-        )
-      })
-      .parse(locations).results) {
-      const type =
-        location.location_type_id === null ? undefined : byId.get(location.location_type_id)
-      if (type) typeOf.set(location.id, type)
-    }
-    return typeOf
-  }
-})
 
 const allocatedStockSchema = z.array(
   z.object({
@@ -1495,8 +1453,25 @@ export const useUpdateLineItem = ({ released = false } = {}) =>
     meta: { errorTitle: 'The line was not changed' },
     mutationKey: lineItemKey(released),
     scope: { id: 'line-item' },
-    mutationFn: ({ itemId, edit }: { itemId: number; edit: LineItemEdit }) =>
-      authApi.patch(`items/${itemId}/`, { json: edit }).json(),
+    mutationFn: ({
+      itemId,
+      edit,
+      fromFlow
+    }: {
+      itemId: number
+      edit: LineItemEdit
+      /**
+       * The bendlist's machine a Stock edit is made at, which the server logs a spoiled piece against
+       * (Kevin's notes of 2026-11-02, N15); the line's own machine when left out. Not a field of the
+       * line, so the cache never sees it.
+       */
+      fromFlow?: number
+    }) =>
+      authApi
+        .patch(`items/${itemId}/`, {
+          json: fromFlow === undefined ? edit : { ...edit, from_flow: fromFlow }
+        })
+        .json(),
     onMutate: async ({ itemId, edit }, { client }) => {
       await Promise.all([
         client.cancelQueries({ queryKey: boardKeys.orders() }),
@@ -2224,24 +2199,62 @@ export type CoilLocation = {
 
 const inventoryLocationSchema = z.object({
   id: z.number(),
-  code: z._default(z.nullable(z.string()), null)
+  code: z._default(z.nullable(z.string()), null),
+  warehouse_id: z._default(z.nullable(z.number()), null),
+  location_type_id: z._default(z.nullable(z.number()), null)
 })
 
-export type InventoryLocation = z.infer<typeof inventoryLocationSchema>
+const namedSchema = z.object({ id: z.number(), name: z._default(z.nullable(z.string()), null) })
 
-/** The department's inventory locations: where its coils are put, and what the forklift scans. */
-export const coilLocationsQuery = (departmentId: number | undefined) =>
+/**
+ * A department's inventory locations, where its coils are put and what the forklift scans, laid out
+ * as the location picker reads them. The list names only ids, so the warehouse and type names come
+ * from their own lists.
+ */
+export const coilLocationsQuery = (departmentId: number | undefined, enabled = true) =>
   queryOptions({
     queryKey: [...boardKeys.coils(), 'locations', departmentId ?? 0] as const,
-    enabled: departmentId !== undefined,
-    queryFn: async () =>
-      z
+    enabled: departmentId !== undefined && enabled,
+    queryFn: async (): Promise<GridSlot[]> => {
+      const [locations, types, warehouses] = await Promise.all([
+        authApi.get('coils/locations/', { searchParams: { department_id: departmentId! } }).json(),
+        authApi.get('location-types/all/').json(),
+        authApi.get('warehouses/', { searchParams: { limit: 100 } }).json()
+      ])
+      const typeOf = new Map(
+        z
+          .array(namedSchema)
+          .parse(types)
+          .map(type => [type.id, type.name])
+      )
+      const warehouseOf = new Map(
+        z
+          .object({
+            results: z.array(z.extend(namedSchema, { is_default: z._default(z.boolean(), false) }))
+          })
+          .parse(warehouses)
+          .results.map(warehouse => [warehouse.id, warehouse])
+      )
+      return z
         .array(inventoryLocationSchema)
-        .parse(
-          await authApi
-            .get('coils/locations/', { searchParams: { department_id: departmentId! } })
-            .json()
-        )
+        .parse(locations)
+        .map(location => {
+          const warehouse =
+            location.warehouse_id === null ? undefined : warehouseOf.get(location.warehouse_id)
+          return {
+            location_id: location.id,
+            name: location.code,
+            warehouse_id: location.warehouse_id,
+            warehouse: warehouse?.name ?? null,
+            warehouse_is_default: warehouse?.is_default ?? false,
+            location_type_id: location.location_type_id,
+            location_type:
+              location.location_type_id === null
+                ? null
+                : (typeOf.get(location.location_type_id) ?? null)
+          }
+        })
+    }
   })
 
 /** Two scans on the forklift: the coil's lot number, then the location it is put on. */
@@ -2433,6 +2446,8 @@ const wrappingRowSchema = z.object({
   // «Stock» for a stock order.
   customer: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
+  // The product's colour, which the bench reads a day by: the server sorts day, colour, description.
+  color: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   // The order is split here: each production day is a part, wrapped and completed on its own.
   is_split: z._default(z.boolean(), false),
@@ -2531,7 +2546,11 @@ const pounds = z.pipe(z.number(), z.transform(hundredths))
 const locationSlotSchema = z.object({
   location_id: z.number(),
   name: z._default(z.nullable(z.string()), null),
+  warehouse_id: z._default(z.nullable(z.number()), null),
   warehouse: z._default(z.nullable(z.string()), null),
+  // The server lists the slots by type, in the types' Settings order, then by location.
+  location_type_id: z._default(z.nullable(z.number()), null),
+  location_type: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null),
   used_weight: z._default(pounds, 0),
   orders_on_it: z._default(z.number(), 0),

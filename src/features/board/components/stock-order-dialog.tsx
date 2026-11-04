@@ -223,7 +223,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
       disablePointerDismissal
       onOpenChange={next => (next ? onOpenChange(true) : close())}
     >
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent sizeKey='board:stock-order-dialog' className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>Create stock order</DialogTitle>
           <DialogDescription>
@@ -235,7 +235,7 @@ export const StockOrderDialog = ({ open, onOpenChange }: StockOrderDialogProps) 
             would read as a table of records rather than as lines being written. A phone has no
             width for a line across, so each line is a small card with its labels on its boxes; the
             wrappers step out of the way (`contents`) from md up. The drawer scrolls as one there. */}
-        <div className='scrollport space-y-2 md:max-h-80 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport space-y-2 md:max-h-80 md:overflow-y-auto'>
           <div className='flex items-center gap-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase max-md:hidden'>
             <span className='w-24'>Qty</span>
             <span className='w-44'>Product ID</span>

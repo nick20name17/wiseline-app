@@ -136,7 +136,11 @@ export const MachineCapacitiesDialog = ({
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent data-print-report className='sm:max-w-2xl'>
+      <DialogContent
+        sizeKey='board:machine-capacities-dialog'
+        data-print-report
+        className='sm:max-w-2xl'
+      >
         <DialogHeader>
           <div className='text-center'>
             <DialogTitle>Machine Capacities</DialogTitle>
@@ -152,7 +156,11 @@ export const MachineCapacitiesDialog = ({
             is the placeholder's own height, so Print stays where it was rather than
             dropping down the sheet once the figures arrive. A phone's drawer scrolls as one; a box
             scrolling inside it would fight the swipe. */}
-        <div data-print-expand className='scrollport min-h-64 md:max-h-96 md:overflow-y-auto'>
+        <div
+          data-dialog-grow
+          data-print-expand
+          className='scrollport min-h-64 md:max-h-96 md:overflow-y-auto'
+        >
           {isPending || !data ? (
             <Skeleton className='h-64' />
           ) : (

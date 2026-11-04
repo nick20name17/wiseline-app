@@ -855,7 +855,7 @@ export const WrapOrder = ({
   const locationless = atMachine || jobMode
   const { target, slot: targetSlot } = locationless
     ? { target: null, slot: null }
-    : packageTarget(picked, locations, slots)
+    : packageTarget(picked, locations, slots, hasPackages)
   const weight = lines.length ? packageWeight(lines) : null
   const limit = department?.max_package_weight ?? null
   const overPackage = overPackageLimit(weight, limit)
@@ -1020,7 +1020,8 @@ export const WrapOrder = ({
                 )
               : setPicked(slot)
           }
-          onRemove={removeLocation}
+          // Until the first label has a cell, clicking where the order already stands picks it.
+          onRemove={target ? removeLocation : undefined}
         />
       )}
 

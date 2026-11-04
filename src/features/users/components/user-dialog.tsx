@@ -164,7 +164,7 @@ export const CreateUserDialog = () => {
         <PlusCircle data-icon='inline-start' />
         Add user
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='users:user-dialog'>
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
         </DialogHeader>
@@ -183,7 +183,7 @@ type UpdateUserDialogProps = {
 
 export const UpdateUserDialog = ({ user, open, onOpenChange }: UpdateUserDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='users:user-dialog'>
       <DialogHeader>
         <DialogTitle>Edit user</DialogTitle>
       </DialogHeader>

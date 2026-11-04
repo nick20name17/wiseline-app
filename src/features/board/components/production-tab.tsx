@@ -1,8 +1,9 @@
 import { StickyTop } from './sticky-top'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { byDay, formatDate, today } from '@/lib/days'
+import { byDay, formatDate, fromIsoDay, toIsoDay, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -67,28 +68,48 @@ const Stat = ({ label, title, children }: StatProps) => (
 )
 
 /**
- * What this station has in front of it today, how much of it is done, and how full that makes its
- * day — what the capacity report says, where the station works. The Slinet cuts rather than bends,
- * so it counts pieces against its piece cap where a machine counts bends against its daily max.
+ * What this station has in front of it on a day, today unless another is picked, how much of it is
+ * done, and how full that makes its day — what the capacity report says, where the station works.
+ * The Slinet cuts rather than bends, so it counts pieces against its piece cap where a machine counts
+ * bends against its daily max.
  */
 const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) => {
-  const day = today()
+  // `null` follows today, so a floor screen left on overnight moves to the new day by itself.
+  const [picked, setPicked] = useState<string | null>(null)
+  const day = picked ?? today()
+  const isToday = day === today()
   const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
   const station = data?.machines.find(row => row.flow_id === (machine?.id ?? cutterId))
   // The capacity report counts everything scheduled for the day, routed or not; the Slinet cuts only
   // what has been released onto its lists.
   const slinet = slinetTotals(slinetLists, day)
   const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
-  const where = machine ? 'Assigned to this machine for today' : 'Cut on the Slinet today'
+  const where = machine ? 'Assigned to this machine for the day' : 'Cut on the Slinet that day'
   const cap = machine ? station?.max_bends : station?.max_pieces
   const used = machine ? (station?.bends ?? 0) : slinet.pieces
 
   return (
     <div className='flex flex-wrap items-start gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
-      <span className='flex items-center gap-2 self-center text-sm font-medium'>
-        <CalendarCheck className='size-3.5' />
-        {formatDate(day)}
-        <span className='text-muted-foreground'>· today</span>
+      {/* Kevin's notes of 2026-11-02 (N1): the counters look ahead too, to see how full a day is. */}
+      <span className='flex items-center gap-2 self-center'>
+        <DatePicker
+          value={fromIsoDay(day)}
+          onChange={date => {
+            const next = toIsoDay(date)
+            setPicked(next === today() ? null : next)
+          }}
+          format={date => formatDate(toIsoDay(date))}
+        />
+        {isToday ? (
+          <span className='flex items-center gap-1.5 text-sm text-muted-foreground'>
+            <CalendarCheck className='size-3.5' />
+            today
+          </span>
+        ) : (
+          <Button variant='ghost' onClick={() => setPicked(null)}>
+            Today
+          </Button>
+        )}
       </span>
 
       {/* Kevin's notes of 2026-11-02 (A1): the three figures line up and read alike — the count, the

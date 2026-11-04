@@ -46,7 +46,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-4xl xl:max-w-6xl'>
+      <DialogContent sizeKey='board:cutlist-total-dialog' className='sm:max-w-4xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Orders using this size</DialogTitle>
           <DialogDescription>
@@ -56,7 +56,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {entries.length ? (
             <div className='overflow-hidden rounded-lg border border-border'>
               <Table data-cards>

@@ -70,7 +70,10 @@ export const PackagesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl'>
+      <DialogContent
+        sizeKey='board:packages-dialog'
+        className='sm:max-w-3xl lg:max-w-4xl xl:max-w-5xl'
+      >
         <DialogHeader>
           <DialogTitle>Packages · Order {number}</DialogTitle>
           <DialogDescription>
@@ -80,7 +83,7 @@ export const PackagesDialog = ({
         </DialogHeader>
 
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-40' />
           ) : packages?.length ? (

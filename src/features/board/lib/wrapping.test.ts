@@ -1,11 +1,10 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import type { LocationSlot, LocationType, OrderLocation, WrappingRow } from '../api'
+import type { LocationSlot, OrderLocation, WrappingRow } from '../api'
 import {
   applyKeypad,
   benchLocations,
   decimalKeypad,
-  locationColumns,
   matchesWrapSearch,
   overPackageLimit,
   contentName,
@@ -71,50 +70,6 @@ describe('decimalKeypad', () => {
     expect(decimalKeypad('')).toBeNull()
     expect(decimalKeypad('.')).toBeNull()
     expect(decimalKeypad('1.2.3')).toBeNull()
-  })
-})
-
-describe('locationColumns', () => {
-  const slot = (location_id: number, warehouse: string, isDefault = false) =>
-    ({ location_id, warehouse, warehouse_is_default: isDefault }) as LocationSlot
-  const type = (id: number, name: string, position: number | null): LocationType => ({
-    id,
-    name,
-    position
-  })
-
-  it('makes a column per type, the default warehouse first, then by position and name', () => {
-    const typeOf = new Map([
-      [1, type(10, 'Racks', 2)],
-      [2, type(11, 'Carts', 1)],
-      [3, type(10, 'Racks', 2)],
-      [4, type(12, 'Finished Line', 5)]
-    ])
-    const columns = locationColumns(
-      [slot(1, 'Yard'), slot(2, 'Yard'), slot(3, 'Yard'), slot(4, 'Main', true), slot(5, 'Yard')],
-      typeOf
-    )
-    expect(columns.map(column => column.name)).toEqual(['Finished Line', 'Carts', 'Racks', 'Yard'])
-    expect(columns[2]?.slots.map(entry => entry.location_id)).toEqual([1, 3])
-    // A location of no known type goes under its warehouse.
-    expect(columns[3]?.slots.map(entry => entry.location_id)).toEqual([5])
-  })
-
-  it('puts a location of no known type and no warehouse under Other, after the typed ones', () => {
-    const columns = locationColumns(
-      [
-        { location_id: 7, warehouse: null, warehouse_is_default: false } as LocationSlot,
-        slot(1, 'Yard')
-      ],
-      new Map([[1, type(10, 'Racks', 99)]])
-    )
-    expect(columns.map(column => [column.key, column.name])).toEqual([
-      ['type-10', 'Racks'],
-      ['warehouse-', 'Other']
-    ])
-    expect(locationColumns([slot(1, 'Yard')], undefined).map(column => column.name)).toEqual([
-      'Yard'
-    ])
   })
 })
 
@@ -252,18 +207,18 @@ describe('packageTarget', () => {
   it('reads the picked cell’s room from the fresh list, not from the moment it was clicked', () => {
     const clicked = { location_id: 29, name: 'A-02', remaining_weight: 800 } as LocationSlot
     const fresh = { ...clicked, remaining_weight: 764 }
-    expect(packageTarget(clicked, [], [fresh]).slot?.remaining_weight).toBe(764)
+    expect(packageTarget(clicked, [], [fresh], false).slot?.remaining_weight).toBe(764)
     // Before the list loads the click is all there is.
-    expect(packageTarget(clicked, [], undefined).slot).toBe(clicked)
+    expect(packageTarget(clicked, [], undefined, false).slot).toBe(clicked)
   })
 
   it('reads another department’s cell from the order’s own locations', () => {
     const clicked = { location_id: 36, name: 'B-03', remaining_weight: 2000 } as LocationSlot
     const own = { location_id: 36, name: 'B-03', remaining_weight: 1866.47 } as OrderLocation
-    expect(packageTarget(clicked, [own], []).slot?.remaining_weight).toBe(1866.47)
+    expect(packageTarget(clicked, [own], [], false).slot?.remaining_weight).toBe(1866.47)
   })
 
-  it('goes where the order already stands when nothing is picked', () => {
+  it('goes where the order already stands when nothing is picked, once it has a package', () => {
     const elsewhere = { location_id: 12, name: 'A-01', current: false } as OrderLocation
     const current = {
       location_id: 36,
@@ -271,10 +226,12 @@ describe('packageTarget', () => {
       current: true,
       remaining_weight: 50
     } as OrderLocation
-    const { target, slot } = packageTarget(null, [elsewhere, current], undefined)
+    const { target, slot } = packageTarget(null, [elsewhere, current], undefined, true)
     expect(target).toBe(current)
     expect(slot).toBe(current)
-    expect(packageTarget(null, undefined, undefined)).toEqual({ target: null, slot: null })
+    expect(packageTarget(null, undefined, undefined, true)).toEqual({ target: null, slot: null })
+    // The first label waits for a pick, even where the order already stands.
+    expect(packageTarget(null, [current], undefined, false)).toEqual({ target: null, slot: null })
   })
 })
 

@@ -28,6 +28,31 @@ test('the station lists what is left to wrap, by production day', async ({ page 
   await expect(page.getByText('Total # Pieces')).toBeHidden()
 })
 
+test('a day’s lines are headed by colour, as the server sorts them', async ({ page }) => {
+  await page.route(`${API_URL}/wrapping/*`, route =>
+    route.fulfill({
+      json: [
+        wrappingRow('901', 'Ridge Cap', 4, 0, { color: 'Charcoal' }),
+        wrappingRow('902', 'Valley', 4, 0, { color: 'charcoal' }),
+        wrappingRow('903', 'Drip Edge', 4, 0, { color: 'Snow White' }),
+        wrappingRow('904', 'J-Channel', 4, 0, { color: null })
+      ]
+    })
+  )
+  // The station is not in the URL, so the reload starts on the Slinet again.
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
+
+  const headers = page.getByRole('row').filter({ hasText: /\d line items?/ })
+  // Colours are told apart regardless of case; the lines with none come last.
+  await expect(headers).toHaveText([
+    /September 23, 2026.*4 line items/,
+    /Charcoal\s*2 line items/,
+    /Snow White\s*1 line item/,
+    /No colour\s*1 line item/
+  ])
+})
+
 test('an order opens at the bench, and a line that is not made cannot be wrapped', async ({
   page
 }) => {
@@ -63,7 +88,7 @@ test('what is wrapped is capped by what a remake still owes, and Auto fill takes
   await expect(page.getByLabel('Wrap from 901')).toHaveValue('36')
 })
 
-test('Select location waits for an amount, and the order starts where it already stands', async ({
+test('Select location waits for an amount, and the first label for a location picked', async ({
   page
 }) => {
   await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
@@ -73,9 +98,10 @@ test('Select location waits for an amount, and the order starts where it already
   await expect(select).toBeDisabled()
   await expect(create).toBeDisabled()
 
+  // The order stands on 101 already, but nothing is wrapped yet: its first label waits for a pick.
   await page.getByRole('button', { name: 'Auto fill' }).first().click()
-  await expect(select).toHaveText(/Select location · 101/)
-  await expect(create).toBeEnabled()
+  await expect(select).toHaveText('Select location')
+  await expect(create).toBeDisabled()
 
   await select.click()
   const dialog = page.getByRole('dialog')
@@ -83,6 +109,21 @@ test('Select location waits for an amount, and the order starts where it already
   // A full location is shown and shut rather than hidden.
   await expect(dialog.getByRole('button', { name: /102/ })).toBeDisabled()
   await expect(dialog.getByText(/15 min/)).toBeVisible()
+
+  // It opens on the default warehouse, its locations under their type; another is a tab away.
+  await expect(dialog.getByRole('tab', { name: 'Main', selected: true })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'Trim carts' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /301/ })).toBeHidden()
+  await dialog.getByRole('tab', { name: 'Yard' }).click()
+  await expect(dialog.getByRole('heading', { name: 'Overflow' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /301/ })).toBeEnabled()
+  await expect(dialog.getByRole('button', { name: /102/ })).toBeHidden()
+
+  // Where the order already stands is picked, not taken off, while nothing else is.
+  await dialog.getByRole('tab', { name: 'Main' }).click()
+  await dialog.getByRole('button', { name: /101/ }).click()
+  await expect(select).toHaveText(/Select location · 101/)
+  await expect(create).toBeEnabled()
 })
 
 test('a package over the location limit is printed only once the Worker says so', async ({
@@ -99,6 +140,8 @@ test('a package over the location limit is printed only once the Worker says so'
 
   await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
   await page.getByRole('button', { name: 'Auto fill' }).first().click()
+  await page.getByRole('button', { name: /Select location/ }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /101/ }).click()
   // 36 pieces at 11 lb are 396 lb; 101 has 380 lb left.
   await expect(page.getByLabel('Package weight')).toHaveText('396')
   await page.getByRole('button', { name: 'Create & print' }).click()

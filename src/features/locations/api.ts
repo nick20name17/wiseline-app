@@ -106,6 +106,19 @@ export const allLocationTypesQuery = queryOptions({
     z.array(locationTypeSchema).parse(await authApi.get('location-types/all/').json())
 })
 
+/**
+ * A department's location types in a new order, every one of them, Order and Inventory alike: the
+ * Select Location window lists its locations by it.
+ */
+export const useReorderLocationTypes = () =>
+  useMutation({
+    meta: { errorTitle: 'The order was not saved' },
+    mutationFn: ({ department, ids }: { department: number; ids: number[] }) =>
+      authApi.post('location-types/reorder/', { json: { department, ids } }).json(),
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: locationsKeys.all })
+  })
+
 export const useUpsertLocationType = (onSuccess: () => void) =>
   useMutation({
     mutationFn: ({ id, values }: { id?: number; values: LocationTypeForm }) =>

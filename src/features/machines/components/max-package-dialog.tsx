@@ -90,7 +90,7 @@ export const MaxPackageDialog = ({ department }: MaxPackageDialogProps) => {
         <Package data-icon='inline-start' />
         Max package · {max === null ? 'no limit' : `${max} lb`}
       </DialogTrigger>
-      <DialogContent className='sm:max-w-sm'>
+      <DialogContent sizeKey='machines:max-package-dialog' className='sm:max-w-sm'>
         <DialogHeader>
           <DialogTitle>Max package · {department.name}</DialogTitle>
           <DialogDescription>

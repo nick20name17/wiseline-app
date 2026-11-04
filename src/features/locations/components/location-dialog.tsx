@@ -36,6 +36,7 @@ import {
   warehousePickerQuery,
   type Department,
   type Location,
+  type LocationKind,
   type LocationForm as LocationFormValues
 } from '../api'
 import { WarehouseOptions } from './warehouse-options'
@@ -45,12 +46,19 @@ const DEFAULT_WEIGHT = 1000
 type LocationFormProps = {
   title: string
   location?: Location
-  /** The department the page is showing: a new location takes only its types. */
+  /** The department and tab the page is showing: a new location takes only their types. */
   department?: Department
+  kind?: LocationKind
   onSuccess: () => void
 }
 
-const LocationForm = ({ title, location, department: scope, onSuccess }: LocationFormProps) => {
+const LocationForm = ({
+  title,
+  location,
+  department: scope,
+  kind,
+  onSuccess
+}: LocationFormProps) => {
   // Both lists are already loaded — the dialog waits for them, because a form mounted before them
   // would default its pickers to nothing and post a location belonging nowhere.
   const { data: warehouses } = useQuery(warehousePickerQuery)
@@ -82,7 +90,10 @@ const LocationForm = ({ title, location, department: scope, onSuccess }: Locatio
   // A location takes a type from its own warehouse; anything else is refused, so the type waits
   // for the warehouse to be picked.
   const offered = types?.filter(
-    type => type.warehouse_id === warehouseId && (!scope || type.department_id === scope.id)
+    type =>
+      type.warehouse_id === warehouseId &&
+      (!scope || type.department_id === scope.id) &&
+      (!kind || type.kind === kind)
   )
 
   return (
@@ -290,9 +301,9 @@ const Loading = ({ title }: { title: string }) => (
   </>
 )
 
-type CreateLocationDialogProps = { department: Department | undefined }
+type CreateLocationDialogProps = { department: Department | undefined; kind: LocationKind }
 
-export const CreateLocationDialog = ({ department }: CreateLocationDialogProps) => {
+export const CreateLocationDialog = ({ department, kind }: CreateLocationDialogProps) => {
   const [open, setOpen] = useState(false)
   const ready = useReady()
 
@@ -302,12 +313,13 @@ export const CreateLocationDialog = ({ department }: CreateLocationDialogProps) 
         <PlusCircle data-icon='inline-start' />
         Add location
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='locations:location-dialog'>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
         {ready ? (
           <LocationForm
             title='Add location'
             department={department}
+            kind={kind}
             onSuccess={() => setOpen(false)}
           />
         ) : (
@@ -333,7 +345,7 @@ export const UpdateLocationDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent sizeKey='locations:location-dialog'>
         {ready ? (
           <LocationForm
             title='Edit location'

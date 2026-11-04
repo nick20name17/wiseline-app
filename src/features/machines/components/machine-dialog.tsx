@@ -344,7 +344,7 @@ export const CreateMachineDialog = ({
   onOpenChange
 }: CreateMachineDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='machines:machine-dialog'>
       <DialogHeader>
         <DialogTitle>Add {department.name} machine</DialogTitle>
       </DialogHeader>
@@ -365,7 +365,7 @@ export const UpdateMachineDialog = ({ machine, open, onOpenChange }: UpdateMachi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent sizeKey='machines:machine-dialog'>
         <DialogHeader>
           <DialogTitle>Edit machine</DialogTitle>
         </DialogHeader>

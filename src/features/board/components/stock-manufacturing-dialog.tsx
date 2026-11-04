@@ -115,7 +115,7 @@ export const StockManufacturingDialog = ({
       onOpenChange={onOpenChange}
       onOpenChangeComplete={next => !next && setView('new')}
     >
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent sizeKey='board:stock-manufacturing-dialog' className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Stock Manufacturing</DialogTitle>
           <DialogDescription>
@@ -130,7 +130,7 @@ export const StockManufacturingDialog = ({
           </TabsList>
         </Tabs>
 
-        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {view === 'new' ? (
             // Labels over the boxes, as Create stock order has them: the lines are a form being
             // written, not a table of records.

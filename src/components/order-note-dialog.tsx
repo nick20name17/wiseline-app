@@ -55,7 +55,7 @@ export const OrderNoteDialog = ({
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent sizeKey='components:order-note-dialog' className='sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>Order notes · {order?.invoice}</DialogTitle>
           <DialogDescription>Imported from the salesman in EBMS.</DialogDescription>

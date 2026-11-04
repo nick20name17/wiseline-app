@@ -76,7 +76,7 @@ export const KeypadDialog = ({
         release(open)
       }}
     >
-      <DialogContent className='sm:max-w-xs' onKeyDown={onKeyDown}>
+      <DialogContent sizeKey='board:keypad-dialog' className='sm:max-w-xs' onKeyDown={onKeyDown}>
         <DialogHeader>
           <DialogTitle>{target?.title}</DialogTitle>
           <DialogDescription>
