@@ -22,13 +22,7 @@ import {
   type Remanufacturing,
   type WrappingRow
 } from '../api'
-import {
-  hasSlinetStarted,
-  isBender,
-  slinetListsFor,
-  slinetTotals,
-  type CutlistGroup
-} from '../lib/cutlists'
+import { hasSlinetStarted, isBender, slinetListsFor, type CutlistGroup } from '../lib/cutlists'
 import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
 import { Progress } from './capacity-parts'
 import { formatCount } from '../lib/format'
@@ -51,10 +45,8 @@ const stockNote = (value: number) => (value ? ` (${value} of them from stock ord
 type TotalsProps = {
   departmentId: number | undefined
   machine: Machine | null
-  /** The Slinet, whose Daily Piece Cap its strip reads against. */
+  /** The Slinet, whose row of the day's capacities its strip reads. */
   cutterId: number | undefined
-  /** Every Slinet list, active and completed; only read on the Slinet's own strip. */
-  slinetLists: Cutlist[]
 }
 
 type StatProps = { label: string; title?: string; children: ReactNode }
@@ -73,20 +65,19 @@ const Stat = ({ label, title, children }: StatProps) => (
  * The Slinet cuts rather than bends, so it counts pieces against its piece cap where a machine counts
  * bends against its daily max.
  */
-const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) => {
+const Totals = ({ departmentId, machine, cutterId }: TotalsProps) => {
   // `null` follows today, so a floor screen left on overnight moves to the new day by itself.
   const [picked, setPicked] = useState<string | null>(null)
   const day = picked ?? today()
   const isToday = day === today()
   const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
+  // The Slinet's row is the whole day's pieces, whichever machine bends them next.
   const station = data?.machines.find(row => row.flow_id === (machine?.id ?? cutterId))
-  // The capacity report counts everything scheduled for the day, routed or not; the Slinet cuts only
-  // what has been released onto its lists.
-  const slinet = slinetTotals(slinetLists, day)
-  const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
-  const where = machine ? 'Assigned to this machine for the day' : 'Cut on the Slinet that day'
+  const pieces = station?.pieces ?? 0
+  const where = machine ? 'Assigned to this machine for the day' : 'Scheduled for the day'
   const cap = machine ? station?.max_bends : station?.max_pieces
-  const used = machine ? (station?.bends ?? 0) : slinet.pieces
+  const used = machine ? (station?.bends ?? 0) : pieces
+  const over = machine ? station?.over_bends : station?.over_pieces
 
   return (
     <div className='flex flex-wrap items-start gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
@@ -114,10 +105,7 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
 
       {/* Kevin's notes of 2026-11-02 (A1): the three figures line up and read alike — the count, the
           share of it done, and the share of the day's ceiling it takes, each as «x / y z%». */}
-      <Stat
-        label='Total # Pieces'
-        title={`${where}${stockNote(machine ? (station?.pieces_from_stock ?? 0) : slinet.stockPieces)}`}
-      >
+      <Stat label='Total # Pieces' title={`${where}${stockNote(station?.pieces_from_stock ?? 0)}`}>
         <span className='font-mono text-sm'>{formatCount(pieces)}</span>
       </Stat>
 
@@ -131,10 +119,10 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
           />
         ) : (
           <Progress
-            done={slinet.cut}
-            value={slinet.pieces}
-            fromStock={slinet.stockPieces}
-            fromStockDone={slinet.stockCut}
+            done={station?.pieces_cut ?? 0}
+            value={pieces}
+            fromStock={station?.pieces_from_stock ?? 0}
+            fromStockDone={station?.pieces_cut_from_stock ?? 0}
           />
         )}
       </Stat>
@@ -144,7 +132,7 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
         title='Set in Settings › Machines'
       >
         {cap ? (
-          <Progress done={used} value={cap} over={machine ? !!station?.over_bends : used > cap} />
+          <Progress done={used} value={cap} over={!!over} />
         ) : (
           <span className='font-mono text-sm text-muted-foreground'>N/A</span>
         )}
@@ -397,12 +385,7 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
             </Tabs>
 
             {done ? null : (
-              <Totals
-                departmentId={departmentId}
-                machine={activeMachine}
-                cutterId={cutter?.id}
-                slinetLists={slinetLists}
-              />
+              <Totals departmentId={departmentId} machine={activeMachine} cutterId={cutter?.id} />
             )}
           </>
         )}

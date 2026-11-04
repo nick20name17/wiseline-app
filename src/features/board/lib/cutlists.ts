@@ -196,36 +196,6 @@ export const slinetColumns = (machines: Machine[]): SlinetColumn[] => {
 }
 
 /**
- * What the Slinet cuts on one day: every piece on that day's cutlists, the ones already Done
- * included — the material was cut either way, and the strip is the day's work, not what is left —
- * and how much of it is cut, stock orders' share too: the rows signed off, and every row of a list
- * marked Done.
- */
-export const slinetTotals = (cutlists: Cutlist[], day: string) => {
-  let pieces = 0
-  let stockPieces = 0
-  let cut = 0
-  let stockCut = 0
-
-  for (const cutlist of cutlists) {
-    if (cutlist.production_date !== day) continue
-    const listDone = cutlist.is_complete || cutlist.completed_at !== null
-    for (const row of cutlist.rows) {
-      pieces += row.quantity
-      const done = listDone || row.complete
-      if (done) cut += row.quantity
-      for (const source of row.sources) {
-        if (!source.is_stock) continue
-        stockPieces += source.quantity
-        if (done) stockCut += source.quantity
-      }
-    }
-  }
-
-  return { pieces, stockPieces, cut, stockCut }
-}
-
-/**
  * Why an open row on a list cannot be ticked Complete yet, or `null` when it can.
  *
  * A bendlist is Not Started until the Slinet cuts into its release; from then on a row can be signed
