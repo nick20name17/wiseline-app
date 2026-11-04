@@ -52,6 +52,8 @@ const lot = (patch: Partial<CoilLot> = {}): CoilLot => ({
   can_adjust: true,
   slinet_available: false,
   rollforming_available: true,
+  ebms_sync: null,
+  ebms_error: null,
   ...patch
 })
 

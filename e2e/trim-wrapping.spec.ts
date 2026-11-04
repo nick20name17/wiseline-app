@@ -332,3 +332,40 @@ test('a part of a split order is wrapped and completed on its own', async ({ pag
   await confirm.getByRole('button', { name: /^Yes/ }).click()
   await expect.poll(() => completed).toEqual([SCHEDULED_DAY])
 })
+
+test('an order EBMS has closed completes here, saying nothing goes to EBMS', async ({ page }) => {
+  const closed =
+    'This order is not Open in EBMS (status O): completing it sends no manufacturing batch, and it is marked as not in EBMS.'
+  let completed = false
+  await page.route(`${API_URL}/wrapping/orders/*/complete/*`, route => {
+    if (route.request().method() === 'POST') {
+      completed = true
+      return route.fulfill({ json: { order_complete: true, ebms: 'not_open' } })
+    }
+    return route.fulfill({
+      json: {
+        can_complete: true,
+        ebms_open: false,
+        reason: closed,
+        outstanding: [],
+        manufacturing_batch: [
+          { origin_item: '901', qty_ordered: 40, from_stock: 0, manufactured: 40 }
+        ]
+      }
+    })
+  })
+  await page.reload()
+  await page.getByRole('tab', { name: 'Wrapping' }).click()
+  await page.getByRole('row').filter({ hasText: 'Sidewall Flashing' }).click()
+
+  // Said where the Worker sees it, not only in a hover: the button is open.
+  await expect(page.getByText(closed)).toBeVisible()
+  await page.getByRole('button', { name: 'Order complete' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm).toContainText(closed)
+  // No batch is created, so the answer does not offer one.
+  await confirm.getByRole('button', { name: 'Yes, Complete Order' }).click()
+
+  await expect.poll(() => completed).toBe(true)
+  await expect(page.getByText(/complete · not in EBMS$/)).toBeVisible()
+})

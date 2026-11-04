@@ -18,6 +18,11 @@ export const ViewOnlyContext = createContext(false)
 
 export const useViewOnly = () => useContext(ViewOnlyContext)
 
+/** The viewer's role on this board, settled before it mounts — see `BoardGate`. */
+export const BoardRoleContext = createContext<'manager' | 'worker' | 'viewer'>('viewer')
+
+export const useBoardRole = () => useContext(BoardRoleContext)
+
 /**
  * Whether Scheduled's rows carry a select column: only a department that makes what it packs reviews
  * and releases it p3 (1103,281), and View only changes nothing. The header and the rows read it alike.

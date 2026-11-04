@@ -48,6 +48,7 @@ import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
 import { CoilLocationDialog, type CoilPlacing } from './coil-location-dialog'
 import { CoilScanDialog } from './coil-scan-dialog'
+import { EbmsSyncMark } from './ebms-sync'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
@@ -264,7 +265,8 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
   return (
     <>
       <TableCell card='title'>
-        <span className='flex items-center gap-1'>
+        {/* The EBMS mark drops under the number when the column has no room for it beside. */}
+        <span className='flex flex-wrap items-center gap-x-1'>
           <span className='font-mono'>{lot.lot_number ?? '—'}</span>
           {lot.lot_number ? (
             <Button
@@ -277,6 +279,14 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
               <Printer />
             </Button>
           ) : null}
+          <EbmsSyncMark
+            sync={lot.ebms_sync}
+            error={lot.ebms_error}
+            resend={{
+              target: { lotAutoid: lot.lot_autoid },
+              what: `the last change of coil ${coilName(lot)}`
+            }}
+          />
         </span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the

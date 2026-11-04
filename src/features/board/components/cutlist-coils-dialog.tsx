@@ -90,14 +90,25 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
           : adjust.mutateAsync({ lotId: coil.id, values: { coil_thickness: next } })
       )
     ).then(
-      () => {
-        toast.add({
-          type: 'success',
-          title:
-            asking === 'deplete'
-              ? `Depleted & deleted ${batch.length} coil(s) — zeroed out in EBMS`
-              : 'Coil adjustment pushed to EBMS (linear feet updated)'
-        })
+      queued => {
+        toast.add(
+          queued.some(Boolean)
+            ? {
+                type: 'warning',
+                title:
+                  asking === 'deplete'
+                    ? `Depleted & deleted ${batch.length} coil(s)`
+                    : 'Coil adjustment made (linear feet updated)',
+                description: 'EBMS is not answering: it goes to EBMS once EBMS is back.'
+              }
+            : {
+                type: 'success',
+                title:
+                  asking === 'deplete'
+                    ? `Depleted & deleted ${batch.length} coil(s) — zeroed out in EBMS`
+                    : 'Coil adjustment pushed to EBMS (linear feet updated)'
+              }
+        )
         setQuestion(null)
         // Once the cutter has adjusted the coil there is nothing left to do here, so the window goes
         // rather than waiting to be closed; it stays only for changes the deplete question held back.
