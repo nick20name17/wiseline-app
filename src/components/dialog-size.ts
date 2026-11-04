@@ -38,12 +38,14 @@ const edgesAt = (event: MouseEvent<HTMLElement>): { x: Side; y: Side; rect: DOMR
   const { clientX: x, clientY: y } = event
   // React bubbles a portalled popover's events up to the dialog (a date picker's calendar), and they
   // land wherever the popover is, often outside the dialog: only a press on the dialog itself counts.
+  // Nor does one on its scrollbar, which lies along the right edge of a dialog taller than the window;
+  // the left edge still sizes it, as both move together.
   if (
     !element.contains(event.target as Node) ||
     x < rect.left ||
-    x > rect.right ||
+    x > rect.left + element.clientLeft + element.clientWidth ||
     y < rect.top ||
-    y > rect.bottom
+    y > rect.top + element.clientTop + element.clientHeight
   )
     return { x: 0, y: 0, rect }
   return { x: sideOf(x, rect.left, rect.right), y: sideOf(y, rect.top, rect.bottom), rect }
