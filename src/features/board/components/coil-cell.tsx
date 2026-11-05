@@ -43,7 +43,7 @@ export const CoilCell = ({
 }: CoilCellProps) => {
   const viewOnly = useViewOnly()
   // A Stock line rolls off nothing p2 (1010,337).
-  if (!item || row.status === 'stock') return <span className='text-muted-foreground'>—</span>
+  if (!item || row.status === 'stock') return null
 
   const waiting = item.coil_icon === 'waiting_to_slit'
   // A line whose units roll off coils of their own p2 (679,416) is filled in unit by unit: the ones

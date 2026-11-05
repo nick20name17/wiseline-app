@@ -5,7 +5,7 @@ import { useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { flushSync } from 'react-dom'
-import { clampWidth, type Column } from './column'
+import { clampWidth, leastWidth, type Column } from './column'
 
 type SortableHeadProps = {
   column: Column
@@ -57,7 +57,8 @@ export const SortableHead = ({
     const start = event.clientX
     const from = head.getBoundingClientRect().width
     onResizeStart()
-    const at = (x: number) => clampWidth(column, from + x - start)
+    const least = leastWidth(column, head)
+    const at = (x: number) => clampWidth(column, from + x - start, least)
     // The header is set too: a table laid out by its content has no `<col>` to follow, and takes a
     // header's width only as a hint it drops once the table outgrows its box; a minimum it keeps.
     const move = (next: PointerEvent) => {
@@ -113,7 +114,7 @@ export const SortableHead = ({
       {/* Clipped here and not on the heading, whose edge the resize handle reaches past: a column
           dragged narrower than its heading would spill it over the next one. The margin it gives
           back is room for the focus rings inside it. */}
-      <span className='-m-1 block overflow-hidden p-1'>
+      <span data-heading className='-m-1 block overflow-hidden p-1'>
         {/* The keyboard's way in: Space picks the column up, the arrows move it. A span and not a
             button, which would not inherit the heading's case; the attributes give it the role. */}
         <span
@@ -140,23 +141,25 @@ export const SortableHead = ({
           rule, and shows while the pointer is on it or dragging it; its `::after` is the grip, wider
           than the line. Both stay inside the heading: a stuck heading is painted over the one
           before it, which would cover a grip reaching past its edge, as tablecn's does not. */}
-      <span
-        aria-hidden
-        title='Drag to resize column, double-click to reset'
-        className={cn(
-          'absolute inset-y-0 right-0 z-10 w-0.75 cursor-col-resize touch-none bg-primary opacity-0 transition-opacity hover:opacity-100 data-resizing:opacity-100',
-          'after:absolute after:inset-y-0 after:right-0 after:-left-2'
-        )}
-        onPointerDown={resize}
-        // The click that ends a resize is not a sort.
-        onClick={event => event.stopPropagation()}
-        onDoubleClick={event => {
-          event.stopPropagation()
-          const head = event.currentTarget.parentElement
-          if (head) clear(head)
-          onResizeEnd(null)
-        }}
-      />
+      {column.fixed ? null : (
+        <span
+          aria-hidden
+          title='Drag to resize column, double-click to reset'
+          className={cn(
+            'absolute inset-y-0 right-0 z-10 w-0.75 cursor-col-resize touch-none bg-primary opacity-0 transition-opacity hover:opacity-100 data-resizing:opacity-100',
+            'after:absolute after:inset-y-0 after:right-0 after:-left-2'
+          )}
+          onPointerDown={resize}
+          // The click that ends a resize is not a sort.
+          onClick={event => event.stopPropagation()}
+          onDoubleClick={event => {
+            event.stopPropagation()
+            const head = event.currentTarget.parentElement
+            if (head) clear(head)
+            onResizeEnd(null)
+          }}
+        />
+      )}
     </TableHead>
   )
 }

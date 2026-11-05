@@ -1,11 +1,17 @@
 import { guardPage } from '@/app/pages'
 import { meQuery } from '@/features/auth'
-import { BoardGate, boardSearchSchema, prefetchBoard, withView } from '@/features/board'
+import {
+  BoardGate,
+  boardSearchSchema,
+  prefetchBoard,
+  stationParam,
+  withView
+} from '@/features/board'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 const TrimRoute = () => {
-  const { view, search } = Route.useSearch()
+  const { view, search, station, done } = Route.useSearch()
   const navigate = Route.useNavigate()
   const { data: me } = useQuery(meQuery)
 
@@ -19,6 +25,13 @@ const TrimRoute = () => {
       onViewChange={next => void navigate({ search: previous => withView(previous, next) })}
       onSearchChange={next =>
         void navigate({ search: previous => ({ ...previous, search: next }), replace: true })
+      }
+      station={station?.toString()}
+      done={done}
+      onProductionChange={place =>
+        void navigate({
+          search: previous => ({ ...previous, ...place, station: stationParam(place.station) })
+        })
       }
     />
   )

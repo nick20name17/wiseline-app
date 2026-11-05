@@ -11,10 +11,19 @@ import { BOARD_VIEWS } from './boards'
  */
 export const boardSearchSchema = z.object({
   view: z.catch(z.enum(BOARD_VIEWS), 'unscheduled'),
-  search: searchTerm
+  search: searchTerm,
+  // Where the Production tab stands, so a reload or a shared link opens on the same list. Left out
+  // while it is the Slinet's active lists, the tab's default.
+  // A machine's id is a number, so it reads `station=58` rather than `station=%2258%22`.
+  station: z.catch(z.optional(z.union([z.number(), z.string()])), undefined),
+  done: z.catch(z.optional(z.boolean()), undefined)
 })
 
 export type BoardSearch = z.infer<typeof boardSearchSchema>
+
+/** A Production station as the URL keeps it: a machine by its numeric id, a named one by name. */
+export const stationParam = (station: string | undefined) =>
+  station !== undefined && /^\d+$/.test(station) ? Number(station) : station
 
 /**
  * The search a tab opens with. The order tabs share one term; Coils searches coils, so a term does not

@@ -10,7 +10,7 @@ type PackageContentsProps = {
 /** A package's contents in a table cell: a product per line, its lengths wrapping under the cell. */
 export const PackageContents = ({ contents, rows }: PackageContentsProps) => {
   const groups = packageGroups(contents, rows)
-  if (!groups.length) return <span className='text-muted-foreground'>—</span>
+  if (!groups.length) return null
   return (
     <div className='flex flex-col gap-1 py-1 whitespace-normal'>
       {groups.map(group => (

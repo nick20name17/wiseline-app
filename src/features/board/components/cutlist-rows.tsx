@@ -20,9 +20,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { CellButton, CellMenuTrigger } from '@/components/cell-trigger'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
-import { ArrowRightLeft, ChevronDown, Package, RefreshCw } from 'lucide-react'
+import { ArrowRightLeft, Package, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import {
   useUpdateCutlistRow,
@@ -300,10 +301,7 @@ const StockCell = ({ group, onStock }: StockCellProps) => {
   if (lines.length > 1)
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant='outline' size='lg' aria-label={label} />}>
-          {figure}
-          <ChevronDown data-icon='inline-end' />
-        </DropdownMenuTrigger>
+        <CellMenuTrigger aria-label={label}>{figure}</CellMenuTrigger>
         <DropdownMenuContent align='start' className='min-w-48'>
           <DropdownMenuGroup>
             <DropdownMenuLabel>Pull stock for which order?</DropdownMenuLabel>
@@ -320,15 +318,9 @@ const StockCell = ({ group, onStock }: StockCellProps) => {
       </DropdownMenu>
     )
   return (
-    <Button
-      variant='outline'
-      size='lg'
-      aria-label={label}
-      title='Pull from stock'
-      onClick={() => onStock(first)}
-    >
+    <CellButton aria-label={label} title='Pull from stock' onClick={() => onStock(first)}>
       {figure}
-    </Button>
+    </CellButton>
   )
 }
 
@@ -437,6 +429,8 @@ export const CutlistRows = ({
   const ownRemake = (group: CutlistGroup) =>
     group.remakeId === null ? remake : (remakes.get(group.remakeId) ?? null)
   const anyRemake = groups.some(group => remakesFor(group).length)
+  // Both buttons leave a row once it is Complete, so a bendlist signed off whole has no Actions.
+  const anyActions = groups.some(group => !group.complete && !ownRemake(group) && !viewOnly)
   // Every remake of a line, newest first as the server sends them, for the history at the row.
   const lineRemakes = (item: string) =>
     [...remakes.values()].filter(reman => reman.origin_item === item)
@@ -462,14 +456,14 @@ export const CutlistRows = ({
       // A width with its quarter, «4.25», at the rows' larger type (A7).
       { key: 'w', label: 'W"', width: 'w-18' },
       // A custom length runs to three decimals, 47.625".
-      { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-22' },
+      { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-18' },
       // Beside what is made, what was ordered and what came off the shelf for it (Kevin's notes of
       // 2026-11-02, N14).
       ...(isSlinet
         ? []
         : [
             { key: 'ordered', label: 'Qty Ordered', width: 'w-20' },
-            { key: 'stock', label: 'Stock', width: 'w-24' }
+            { key: 'stock', label: 'Stock', width: 'w-17' }
           ]),
       isSlinet
         ? { key: 'qty', label: 'Total', width: 'w-20' }
@@ -497,22 +491,20 @@ export const CutlistRows = ({
         : // A bendlist row keeps what the bender reads at the machine and the buttons it reaches for
           // now and then, as Wrapping has them.
           [
-            // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
-            {
-              key: 'desc',
-              label: 'Description',
-              minWidth: 48,
-              align: 'start' as const,
-              card: 'title' as const
-            },
-            { key: 'status', label: 'Status', width: 'w-32' },
+            { key: 'desc', label: 'Description', align: 'start' as const, card: 'title' as const },
+            { key: 'status', label: 'Status', width: 'w-32', minWidth: 116 },
+            // Apart from Status, as Wrapping has it: the badge opens the history from its whole cell.
+            { key: 'remfg', label: 'Remfg', width: 'w-17' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
-            { key: 'actions', label: 'Actions', width: 'w-28', hideLabel: true },
-            { key: 'drawing', label: 'Drawing', width: 'w-24' },
-            { key: 'notes', label: 'Notes', width: 'w-20' }
+            ...(anyActions
+              ? [{ key: 'actions', label: 'Actions', width: 'w-28', hideLabel: true, fixed: true }]
+              : []),
+            // Each just wide enough for its heading.
+            { key: 'drawing', label: 'Drawing', width: 'w-21', fixed: true },
+            { key: 'notes', label: 'Notes', width: 'w-16', fixed: true }
           ]),
-      { key: 'complete', label: 'Complete', width: 'w-28' }
+      { key: 'complete', label: 'Complete', width: 'w-24' }
     ]
   })
   // The row whose details are open, by key: the rows are rebuilt on every refetch, the key is not.
@@ -559,19 +551,21 @@ export const CutlistRows = ({
                 {columns.cells({
                   w: (
                     <TableCell>
-                      <span className='font-mono'>
-                        {group.width === null ? '—' : formatWidth(group.width)}
-                      </span>
+                      {group.width !== null && (
+                        <span className='font-mono'>{formatWidth(group.width)}</span>
+                      )}
                     </TableCell>
                   ),
                   l: (
                     <TableCell>
                       {/* Anything but the standard 120" is worth a second look before it is cut. */}
-                      <span
-                        className={cn('font-mono', !group.isStandardLength && 'text-destructive')}
-                      >
-                        {group.length ?? '—'}&quot;
-                      </span>
+                      {group.length !== null && (
+                        <span
+                          className={cn('font-mono', !group.isStandardLength && 'text-destructive')}
+                        >
+                          {group.length}&quot;
+                        </span>
+                      )}
                     </TableCell>
                   ),
                   recut: (
@@ -585,41 +579,45 @@ export const CutlistRows = ({
                     <TableCell>
                       {/* The keyboard's way into the row's details; a tap anywhere on it is the
                           floor's. */}
-                      <button
-                        type='button'
-                        className='flex max-w-full items-start gap-1.5 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
-                        aria-label={`Details of ${about.description?.trim() || sizeOf(group)}`}
-                        onClick={() => setDetailsKey(group.key)}
-                      >
-                        {about.isStock ? (
-                          <Package
-                            className='mt-0.5 size-3.5 shrink-0 text-muted-foreground'
-                            aria-label='Stock order'
-                          />
-                        ) : null}
-                        {about.description ? (
-                          <Description text={about.description} />
-                        ) : about.lines > 1 ? (
-                          <span className='text-xs text-muted-foreground'>{about.lines} lines</span>
-                        ) : (
-                          '—'
-                        )}
-                      </button>
+                      {about.isStock || about.description || about.lines > 1 ? (
+                        <button
+                          type='button'
+                          className='flex max-w-full items-start gap-1.5 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+                          aria-label={`Details of ${about.description?.trim() || sizeOf(group)}`}
+                          onClick={() => setDetailsKey(group.key)}
+                        >
+                          {about.isStock ? (
+                            <Package
+                              className='mt-0.5 size-3.5 shrink-0 text-muted-foreground'
+                              aria-label='Stock order'
+                            />
+                          ) : null}
+                          {about.description ? (
+                            <Description text={about.description} />
+                          ) : about.lines > 1 ? (
+                            <span className='text-xs text-muted-foreground'>
+                              {about.lines} lines
+                            </span>
+                          ) : null}
+                        </button>
+                      ) : null}
                     </TableCell>
                   ),
                   status: (
                     <TableCell>
+                      <StatusPill status={itemStatus(about.status)} />
+                    </TableCell>
+                  ),
+                  remfg: (
+                    <TableCell>
                       {/* The line's whole history, as at Wrapping; a row cutting several orders'
                           pieces says only what it is remaking, green once the Slinet has recut it
                           (p1 (608,446), (613,462), (686,501)). */}
-                      <span className='flex flex-wrap items-center gap-1.5'>
-                        <StatusPill status={itemStatus(about.status)} />
-                        {item && lineRemakes(item).length ? (
-                          <RemanBadge remans={lineRemakes(item)} />
-                        ) : remakesFor(group).length ? (
-                          <RemakesPill remakes={remakesFor(group)} group={group} />
-                        ) : null}
-                      </span>
+                      {item && lineRemakes(item).length ? (
+                        <RemanBadge cell remans={lineRemakes(item)} />
+                      ) : remakesFor(group).length ? (
+                        <RemakesPill remakes={remakesFor(group)} group={group} />
+                      ) : null}
                     </TableCell>
                   ),
                   actions: (
@@ -728,9 +726,7 @@ export const CutlistRows = ({
                           label={`Line notes for ${lines.get(item)?.description ?? item}`}
                           onClick={() => setNoteItem(item)}
                         />
-                      ) : (
-                        <span className='text-muted-foreground'>—</span>
-                      )}
+                      ) : null}
                     </TableCell>
                   ),
                   complete: (

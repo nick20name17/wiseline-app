@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { CELL_TRIGGER } from '@/components/cell-trigger-class'
 import {
   Popover,
   PopoverContent,
@@ -15,13 +16,17 @@ import { remanOwed } from '../lib/wrapping'
 
 type RemakePillProps = { done: boolean; title?: string; children: ReactNode }
 
-/** The remake pill: orange while it is outstanding, green once the step it waits on is done. */
+/**
+ * The remake pill: orange while it is outstanding, green once the step it waits on is done. In a table
+ * cell it is bare, as a status there is: the colour says it, and a box in every row only crowds it.
+ */
 export const RemakePill = ({ done, title, children }: RemakePillProps) => (
   <span
     title={title}
     className={cn(
       'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-xs',
-      done ? 'bg-success/10 text-success' : 'bg-caution/15 text-caution'
+      done ? 'bg-success/10 text-success' : 'bg-caution/15 text-caution',
+      'in-data-[slot=table-cell]:bg-transparent in-data-[slot=table-cell]:px-0'
     )}
   >
     <RefreshCw className='size-3' />
@@ -69,19 +74,33 @@ const Step = ({
  * It counts the latest remake still out, or the latest once none is: a running total of every remake
  * on the line reads as pieces still to come at the bench. The history opens from the badge.
  */
-export const RemanBadge = ({ remans }: { remans: Remanufacturing[] }) => {
-  if (!remans.length) return <span className='text-muted-foreground'>—</span>
+export const RemanBadge = ({
+  remans,
+  cell
+}: {
+  remans: Remanufacturing[]
+  /** The badge is its table cell's only content: the whole cell opens the history. */
+  cell?: boolean
+}) => {
+  if (!remans.length) return null
 
   const owed = remanOwed(remans)
   // The server sends a line's remakes newest first.
   const shown = remans.find(reman => !reman.is_bent) ?? remans[0]
   const qty = shown?.remanufacturing_qty ?? 0
 
+  const label = `Remanufacture history, latest ${qty} pcs. ${owed ? 'outstanding' : 'complete'}`
+
   return (
     <Popover>
       <PopoverTrigger
-        render={<Button variant='ghost' size='xs' />}
-        aria-label={`Remanufacture history, latest ${qty} pcs. ${owed ? 'outstanding' : 'complete'}`}
+        render={
+          cell ? (
+            <button type='button' data-fills-cell aria-label={label} className={CELL_TRIGGER} />
+          ) : (
+            <Button variant='ghost' size='xs' aria-label={label} />
+          )
+        }
       >
         <RemakePill done={!owed}>{qty}</RemakePill>
       </PopoverTrigger>

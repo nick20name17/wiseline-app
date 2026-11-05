@@ -7,6 +7,9 @@ type DescriptionProps = { text: string | null | undefined; className?: string }
  * a pitch or a custom length on lines of their own. Most end in a break, which would only add an
  * empty line.
  */
-export const Description = ({ text, className }: DescriptionProps) => (
-  <span className={cn('block whitespace-pre-line', className)}>{text?.trimEnd() || '—'}</span>
-)
+export const Description = ({ text, className }: DescriptionProps) => {
+  const shown = text?.trimEnd()
+  // Nothing at all, not an empty span: a cell with no content is `:empty`, which the mobile cards hide.
+  if (!shown) return null
+  return <span className={cn('block whitespace-pre-line', className)}>{shown}</span>
+}

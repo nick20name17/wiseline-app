@@ -89,7 +89,8 @@ const subject = (write: OutboxWrite) => {
       </span>
     )
   }
-  return <span className='font-mono'>{write.order_number ?? write.order ?? '—'}</span>
+  const order = write.order_number ?? write.order
+  return order ? <span className='font-mono'>{order}</span> : null
 }
 
 const state = (write: OutboxWrite) =>
@@ -188,10 +189,10 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
                 writes.map(write => (
                   <TableRow key={write.id}>
                     {columns.cells({
-                      when: <TableCell>{formatStamp(write.created_at) || '—'}</TableCell>,
+                      when: <TableCell>{formatStamp(write.created_at)}</TableCell>,
                       what: <TableCell>{describe(write)}</TableCell>,
                       subject: <TableCell>{subject(write)}</TableCell>,
-                      by: <TableCell>{write.created_by ?? '—'}</TableCell>,
+                      by: <TableCell>{write.created_by}</TableCell>,
                       attempts: (
                         <TableCell>
                           <span className='font-mono'>{write.attempts}</span>

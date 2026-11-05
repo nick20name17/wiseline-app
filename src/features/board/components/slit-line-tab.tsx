@@ -252,14 +252,18 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             date: <TableCell>{formatDate(row.production_date)}</TableCell>,
                             order: (
                               <TableCell>
-                                <span className='font-mono font-medium'>
-                                  {row.invoice ?? row.order ?? '—'}
-                                </span>
+                                {(row.invoice ?? row.order) && (
+                                  <span className='font-mono font-medium'>
+                                    {row.invoice ?? row.order}
+                                  </span>
+                                )}
                               </TableCell>
                             ),
                             requested: (
                               <TableCell>
-                                <span className='truncate'>{row.requested_by ?? '—'}</span>
+                                {row.requested_by && (
+                                  <span className='truncate'>{row.requested_by}</span>
+                                )}
                               </TableCell>
                             ),
                             desc: (
@@ -272,14 +276,16 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
                             ),
                             qty: (
                               <TableCell>
-                                <span className='font-mono'>{row.quantity ?? '—'}</span>
+                                {row.quantity !== null && (
+                                  <span className='font-mono'>{row.quantity}</span>
+                                )}
                               </TableCell>
                             ),
                             length: (
                               <TableCell>
-                                <span className='font-mono'>
-                                  {row.length === null ? '—' : `${formatWidth(row.length)}"`}
-                                </span>
+                                {row.length !== null && (
+                                  <span className='font-mono'>{formatWidth(row.length)}&quot;</span>
+                                )}
                               </TableCell>
                             ),
                             supplier: (

@@ -88,11 +88,13 @@ const SortableRow = ({ type, warehouse, disabled, number }: SortableRowProps) =>
         />
       </TableCell>
       {columns.cells({
-        name: <TableCell>{type.name ?? '—'}</TableCell>,
-        warehouse: <TableCell>{warehouse ?? '—'}</TableCell>,
+        name: <TableCell>{type.name}</TableCell>,
+        warehouse: <TableCell>{warehouse}</TableCell>,
         description: (
           <TableCell>
-            <span className='truncate text-muted-foreground'>{type.description ?? '—'}</span>
+            {type.description && (
+              <span className='truncate text-muted-foreground'>{type.description}</span>
+            )}
           </TableCell>
         )
       })}

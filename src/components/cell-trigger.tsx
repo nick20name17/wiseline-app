@@ -7,3 +7,13 @@ import type { ComponentProps } from 'react'
 export const CellMenuTrigger = ({ className, ...props }: ComponentProps<typeof Menu.Trigger>) => (
   <Menu.Trigger data-fills-cell className={cn(CELL_TRIGGER, 'truncate', className)} {...props} />
 )
+
+/** A button that is its table cell: the value bare, as `CellMenuTrigger`, for one that opens a keypad or a dialog. */
+export const CellButton = ({ className, ...props }: ComponentProps<'button'>) => (
+  <button
+    type='button'
+    data-fills-cell
+    className={cn(CELL_TRIGGER, 'truncate disabled:cursor-default', className)}
+    {...props}
+  />
+)

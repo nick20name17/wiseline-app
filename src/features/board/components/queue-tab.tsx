@@ -188,10 +188,10 @@ const QueueLine = ({ row, priority, movable, number, onInMachine, onFill }: Queu
       {cells({
         material: (
           <TableCell>
-            <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
+            {row.material_id && <span className='font-mono font-medium'>{row.material_id}</span>}
           </TableCell>
         ),
-        profile: <TableCell>{row.profile ?? '—'}</TableCell>,
+        profile: <TableCell>{row.profile}</TableCell>,
         lf: (
           <TableCell>
             <span className='font-mono'>{formatCount(row.linear_feet)}</span>
@@ -205,11 +205,7 @@ const QueueLine = ({ row, priority, movable, number, onInMachine, onFill }: Queu
         priority: (
           <TableCell>
             {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
-            {priority ? (
-              <PriorityPill priority={priority} />
-            ) : (
-              <span className='text-muted-foreground'>—</span>
-            )}
+            {priority ? <PriorityPill priority={priority} /> : null}
           </TableCell>
         ),
         supplier: (

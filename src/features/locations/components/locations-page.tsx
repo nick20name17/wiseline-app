@@ -194,35 +194,39 @@ export const LocationsPage = ({
                     {columns.cells({
                       name: (
                         <TableCell>
-                          <span className='font-mono'>{location.code ?? '—'}</span>
+                          {location.code && <span className='font-mono'>{location.code}</span>}
                         </TableCell>
                       ),
                       warehouse: (
                         <TableCell>
-                          {warehouses?.find(warehouse => warehouse.id === location.warehouse_id)
-                            ?.name ?? '—'}
+                          {
+                            warehouses?.find(warehouse => warehouse.id === location.warehouse_id)
+                              ?.name
+                          }
                         </TableCell>
                       ),
-                      type: <TableCell>{typeOf(location)?.name ?? '—'}</TableCell>,
+                      type: <TableCell>{typeOf(location)?.name}</TableCell>,
                       weight: (
                         <TableCell>
-                          <span className='font-mono'>{location.weight ?? '—'}</span>
+                          {location.weight !== null && (
+                            <span className='font-mono'>{location.weight}</span>
+                          )}
                         </TableCell>
                       ),
                       multi: (
                         <TableCell>
                           {location.multi_order ? (
                             <Badge variant='soft'>{location.max_orders ?? 'Any'}</Badge>
-                          ) : (
-                            <span className='text-muted-foreground'>—</span>
-                          )}
+                          ) : null}
                         </TableCell>
                       ),
                       description: (
                         <TableCell>
-                          <span className='truncate text-muted-foreground'>
-                            {location.description ?? '—'}
-                          </span>
+                          {location.description && (
+                            <span className='truncate text-muted-foreground'>
+                              {location.description}
+                            </span>
+                          )}
                         </TableCell>
                       )
                     })}

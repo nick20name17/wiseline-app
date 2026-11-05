@@ -1,9 +1,12 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { StickyTop } from './sticky-top'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Pager } from '@/components/table/pager'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CellButton } from '@/components/cell-trigger'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QrLabels } from '@/components/qr-labels'
 import {
@@ -292,7 +295,7 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
         ) : null}
         {/* The EBMS mark drops under the number when the column has no room for it beside. */}
         <span className='flex flex-wrap items-center gap-x-1 lg:pr-6'>
-          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
+          {lot.lot_number && <span className='font-mono'>{lot.lot_number}</span>}
           <span className='inline-flex lg:relative'>
             <EbmsSyncMark
               sync={lot.ebms_sync}
@@ -317,10 +320,11 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
         return (
           <TableCell key={key} label={label}>
             {viewOnly ? (
-              shown
+              missing || lot[key] !== null ? (
+                shown
+              ) : null
             ) : (
-              <Button
-                variant='link'
+              <CellButton
                 aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
                 title={
                   missing
@@ -330,7 +334,7 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
                 onClick={() => onAdjust(lot, key)}
               >
                 {shown}
-              </Button>
+              </CellButton>
             )}
           </TableCell>
         )
@@ -422,18 +426,22 @@ type ProductGridProps = CellHandlers & {
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
 const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: ProductGridProps) => {
-  // The rows turned against how they open by default — shut, or open under a search — kept only for
-  // the search state they were turned in. Without a search that is one row at a time, as everywhere:
-  // opening another folds the last.
+  // The rows turned against how they open by default — shut, or open under a search — kept only while
+  // that search lasts. Without a search that is one row at a time, as everywhere: opening another
+  // folds the last, and the row stays open across reloads.
   const [turned, setTurned] = useState({ searching, keys: new Set<string>() })
-  const flipped = turned.searching === searching ? turned.keys : new Set<string>()
+  const [opened, setOpened] = useRemembered('expanded:coils', z.nullable(z.string()), null)
+  const flipped = searching
+    ? turned.searching
+      ? turned.keys
+      : new Set<string>()
+    : new Set(opened === null ? [] : [opened])
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
 
   const toggle = (key: string) =>
-    setTurned({
-      searching,
-      keys: searching ? toggled(flipped, key) : new Set(flipped.has(key) ? [] : [key])
-    })
+    searching
+      ? setTurned({ searching, keys: toggled(flipped, key) })
+      : setOpened(opened === key ? null : key)
 
   return (
     <div
@@ -491,9 +499,11 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
                       // it («21-1/4" Wide 26 Ga. SS Coils»).
                       color: (
                         <TableCell>
-                          <span className='truncate' title={productFacts(group) || undefined}>
-                            {productFacts(group) || '—'}
-                          </span>
+                          {productFacts(group) && (
+                            <span className='truncate' title={productFacts(group)}>
+                              {productFacts(group)}
+                            </span>
+                          )}
                           {folderName?.(group.folderId) ? (
                             <span className='block truncate text-xs text-muted-foreground'>
                               {folderName(group.folderId)}
@@ -503,7 +513,9 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
                       ),
                       width: (
                         <TableCell>
-                          <span className='font-mono'>{figure(group.width)}</span>
+                          {group.width !== null && (
+                            <span className='font-mono'>{figure(group.width)}</span>
+                          )}
                         </TableCell>
                       ),
                       count: (

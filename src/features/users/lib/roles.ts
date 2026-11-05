@@ -28,7 +28,7 @@ export const roleTint = (role: string) =>
   isRole(role) ? ROLE_TINTS[role] : 'bg-muted text-muted-foreground'
 
 /** The API types the role as a plain string, so an unknown one still has to render. */
-export const roleLabel = (role: string) => (isRole(role) ? ROLE_LABELS[role] : role || '—')
+export const roleLabel = (role: string) => (isRole(role) ? ROLE_LABELS[role] : role)
 
 // Departments as the sidebar names them. Three are production lines, which the API keeps in
 // `prod_types` under the `production` process; shipping is a process of its own.

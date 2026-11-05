@@ -105,9 +105,9 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly, number }: Sor
                   priority.color ? ({ '--swatch': priority.color } as CSSProperties) : undefined
                 }
               />
-              <span className='font-mono text-xs text-muted-foreground'>
-                {priority.color ?? '—'}
-              </span>
+              {priority.color && (
+                <span className='font-mono text-xs text-muted-foreground'>{priority.color}</span>
+              )}
             </span>
           </TableCell>
         ),

@@ -18,7 +18,7 @@ const DAY_LABEL = utc({ weekday: 'short', month: 'short', day: 'numeric' })
 const STAMP = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' })
 
 /** `Tue, May 7, 2024` — wherever a date stands on its own. */
-export const formatDate = (iso: string | null) => (iso ? format(iso, DATE) : '—')
+export const formatDate = (iso: string | null) => (iso ? format(iso, DATE) : '')
 
 /** `Tue, July 14, 2026` — the board's confirmations spell the month out. */
 export const formatLongDate = (iso: string) => format(iso, LONG_DATE)

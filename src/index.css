@@ -496,6 +496,10 @@ td:has(> [data-fills-cell]) {
       white-space: normal;
       overflow-wrap: anywhere;
     }
+    /* A field with nothing in it is left off the card, rather than a label over an empty line. */
+    & > tbody > tr > td[data-label]:empty {
+      display: none;
+    }
     & > tbody > tr > td[data-label]::before {
       content: attr(data-label);
       /* Inline-block, so a struck-through row does not strike its labels too. */
@@ -650,18 +654,30 @@ td:has(> [data-fills-cell]) {
  * rows have no column to box.
  */
 @media (width >= 64rem) {
-  td[data-outline],
-  td[data-outline] + td {
-    border-left-color: var(--foreground);
+  /* Drawn as one box over the cell rather than out of its borders and a shadow: in a table of
+     separate borders the cell's right rule is its neighbour's, so the pieces stopped a pixel short of
+     each other at the corners. Laid out over the cell's own rules, one pixel past each side. */
+  /* Visible, not the cell's usual clip, which would cut off what lies past its padding box: a
+     figure this short never needs cutting. */
+  td[data-outline] {
+    position: relative;
+    overflow: visible;
   }
-  td[data-outline]:last-child {
-    border-right: 1px solid var(--foreground);
+  td[data-outline]::after {
+    content: '';
+    position: absolute;
+    inset: 0 -1px -1px;
+    border-inline: 1px solid var(--foreground);
+    pointer-events: none;
   }
   /* Over the header's rule rather than under it, which would draw the top twice as thick. */
-  tr:first-child > td[data-outline] {
-    box-shadow: 0 -1px var(--foreground);
+  tr:first-child > td[data-outline]::after {
+    top: -1px;
+    border-top: 1px solid var(--foreground);
   }
-  tr:last-child > td[data-outline] {
+  /* Inside the last row, where the table's scroll box would clip a pixel below it. */
+  tr:last-child > td[data-outline]::after {
+    bottom: 0;
     border-bottom: 1px solid var(--foreground);
   }
 }

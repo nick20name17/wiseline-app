@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { StickyTop } from './sticky-top'
 import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
@@ -224,8 +226,13 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   // Export takes Release with it; Release alone leaves Export be p2 (542,607).
   const [exportIds, setExportIds] = useState<Set<string>>(() => new Set())
+  const board = useBoard()
   // One order open at a time: opening another folds the last.
-  const [expandedKey, setExpandedKey] = useState<string | null>(null)
+  const [expandedKey, setExpandedKey] = useRemembered(
+    `expanded:${board.name}:scheduled`,
+    z.nullable(z.string()),
+    null
+  )
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<Part | null>(null)
@@ -241,7 +248,6 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     setSelectedIds(new Set())
   }
 
-  const board = useBoard()
   const selectable = useScheduledSelectable()
   const {
     data: page,

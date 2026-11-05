@@ -89,7 +89,7 @@ export const AllocatedStockDialog = ({
                       data-divider={(row.starts_color_group && index > 0) || undefined}
                     >
                       {columns.cells({
-                        color: <TableCell>{row.color ?? '—'}</TableCell>,
+                        color: <TableCell>{row.color}</TableCell>,
                         desc: (
                           <TableCell>
                             <Description text={row.description} />

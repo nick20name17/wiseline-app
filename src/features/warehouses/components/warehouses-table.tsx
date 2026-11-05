@@ -60,20 +60,18 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
             warehouses.map(warehouse => (
               <TableRow key={warehouse.id}>
                 {columns.cells({
-                  name: <TableCell>{warehouse.name ?? '—'}</TableCell>,
-                  address: <TableCell>{warehouse.address ?? '—'}</TableCell>,
+                  name: <TableCell>{warehouse.name}</TableCell>,
+                  address: <TableCell>{warehouse.address}</TableCell>,
                   description: (
                     <TableCell>
-                      <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
+                      {warehouse.description && (
+                        <span className='text-muted-foreground'>{warehouse.description}</span>
+                      )}
                     </TableCell>
                   ),
                   default: (
                     <TableCell>
-                      {warehouse.is_default ? (
-                        <Badge variant='soft'>Default</Badge>
-                      ) : (
-                        <span className='text-muted-foreground'>—</span>
-                      )}
+                      {warehouse.is_default ? <Badge variant='soft'>Default</Badge> : null}
                     </TableCell>
                   )
                 })}

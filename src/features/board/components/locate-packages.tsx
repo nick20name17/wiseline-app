@@ -110,9 +110,9 @@ export const LocatePackages = ({ departmentId, rows, onBack }: LocatePackagesPro
                     ),
                     weight: (
                       <TableCell>
-                        <span className='font-mono'>
-                          {parcel.weight === null ? '—' : `${parcel.weight} lb`}
-                        </span>
+                        {parcel.weight !== null && (
+                          <span className='font-mono'>{parcel.weight} lb</span>
+                        )}
                       </TableCell>
                     ),
                     location: (

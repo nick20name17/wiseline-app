@@ -23,7 +23,7 @@ import {
   type WrappingRow
 } from '../api'
 import { hasSlinetStarted, isBender, slinetListsFor, type CutlistGroup } from '../lib/cutlists'
-import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
+import { SLINET } from '../lib/production-view'
 import { Progress } from './capacity-parts'
 import { formatCount } from '../lib/format'
 import { CutlistCard } from './cutlist-card'
@@ -144,7 +144,16 @@ const Totals = ({ departmentId, machine, cutterId }: TotalsProps) => {
   )
 }
 
-type ProductionTabProps = {
+/** Where the tab stands, kept in the URL by the route: the station and Active or Completed. */
+export type ProductionPlace = {
+  /** `SLINET`, a machine's id, or the wrapping station; absent is the Slinet. */
+  station: string | undefined
+  done: boolean | undefined
+  /** Defaults are passed as `undefined`, which keeps them out of the URL. */
+  onProductionChange: (place: { station?: string; done?: boolean }) => void
+}
+
+type ProductionTabProps = ProductionPlace & {
   /** The header search; only Wrapping reads it, the cutlists are the day's work as a whole. */
   search: string | undefined
   departmentId: number | undefined
@@ -155,8 +164,14 @@ type ProductionTabProps = {
  * The Production tab: one sub-tab per station, each holding the lists that release created for it.
  * The Slinet's cutlists cover every machine at once; a machine's bendlists are its own.
  */
-export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionTabProps) => {
-  const view = useProductionView()
+export const ProductionTab = ({
+  station: asked = SLINET,
+  done: askedDone,
+  onProductionChange,
+  search,
+  departmentId,
+  onOpenCoils
+}: ProductionTabProps) => {
   const viewOnly = useViewOnly()
   const [total, setTotal] = useState<CutlistGroup | null>(null)
   const [manufacturing, setManufacturing] = useState(false)
@@ -171,13 +186,13 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
   const cutter = machines?.find(machine => machine.kind === CUTTING)
   const wrapping = machines?.find(machine => machine.kind === WRAPPING)
 
-  const isWrapping = view.station === WRAPPING
-  const activeMachine = benders.find(machine => String(machine.id) === view.station) ?? null
-  // The remembered station may belong to a department whose machines are different.
-  const known = !machines || view.station === SLINET || isWrapping || !!activeMachine
-  const station = known ? view.station : SLINET
+  const isWrapping = asked === WRAPPING
+  const activeMachine = benders.find(machine => String(machine.id) === asked) ?? null
+  // A station from a link may belong to a department whose machines are different.
+  const known = !machines || asked === SLINET || isWrapping || !!activeMachine
+  const station = known ? asked : SLINET
   const isSlinet = station === SLINET
-  const done = view.done
+  const done = askedDone ?? false
   const stationName = activeMachine?.name ?? cutter?.name ?? 'Slinet'
 
   const lists = useQuery({
@@ -320,7 +335,9 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
           <Tabs
             className='min-w-0 flex-1 max-md:order-last max-md:basis-full'
             value={station}
-            onValueChange={setStation}
+            onValueChange={next =>
+              onProductionChange({ station: next === SLINET ? undefined : next, done: askedDone })
+            }
           >
             {/* The scroll sits on a wrapper rather than on the list, so the first and last station
               keep their focus ring where the strip has to scroll. */}
@@ -375,7 +392,12 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
           the format the worker used — same card, same columns. */}
             <Tabs
               value={done ? 'done' : 'active'}
-              onValueChange={value => setDone(value === 'done')}
+              onValueChange={value =>
+                onProductionChange({
+                  station: station === SLINET ? undefined : station,
+                  done: value === 'done' || undefined
+                })
+              }
             >
               <TabsList className='h-10 max-md:w-full'>
                 <TabsTrigger value='active'>Active {word}</TabsTrigger>

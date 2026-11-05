@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { OrderNoteDialog } from '@/components/order-note-dialog'
@@ -51,19 +53,19 @@ const SERVICE_COLUMNS = 2
 const COLUMNS: ColumnTable = {
   table: 'shipping-unscheduled',
   columns: [
-    { key: 'entry', label: 'Entry', width: 'w-40' },
-    { key: 'ship', label: 'Ship', width: 'w-40' },
-    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    { key: 'entry', label: 'Entry', width: 'w-40', minWidth: 144 },
+    { key: 'ship', label: 'Ship', width: 'w-40', minWidth: 144 },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title', minWidth: 104 },
     { key: 'customer', label: 'Customer', align: 'start', card: 'subtitle' },
     { key: 'address', label: 'Address', width: 'w-56', align: 'start' },
     { key: 'city', label: 'City', width: 'w-40', align: 'start' },
     { key: 'map', label: 'Map', width: 'w-16' },
-    { key: 'weight', label: 'Weight', width: 'w-36' },
-    { key: 'longest', label: 'Longest Length', width: 'w-44' },
+    { key: 'weight', label: 'Weight', width: 'w-36', minWidth: 128 },
+    { key: 'longest', label: 'Longest Length', width: 'w-44', minWidth: 164 },
     { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
-    { key: 'priority', label: 'Priority', width: 'w-32' },
-    { key: 'ready', label: 'Ready', width: 'w-32' },
-    { key: 'notes', label: 'Notes', width: 'w-20' }
+    { key: 'priority', label: 'Priority', width: 'w-32', minWidth: 100 },
+    { key: 'ready', label: 'Ready', width: 'w-32', minWidth: 100 },
+    { key: 'notes', label: 'Notes', width: 'w-20', fixed: true }
   ]
 }
 
@@ -139,7 +141,11 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
   // One order open at a time: opening another folds the last.
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useRemembered(
+    'expanded:shipping:unscheduled',
+    z.nullable(z.string()),
+    null
+  )
   const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
   const orders = data?.results ?? []
   const picked = [...selected.values()]
@@ -266,18 +272,24 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ship: (
                             <TableCell>
                               {/* Past its ship date and not delivered p3 (605,628). */}
-                              <span className='flex flex-wrap items-baseline gap-x-2'>
-                                <span
-                                  className={cn(order.is_overdue && 'font-medium text-destructive')}
-                                  title={order.is_overdue ? 'Overdue' : undefined}
-                                >
-                                  {formatDate(order.ship_date)}
+                              {order.ship_date || order.ship_date_ebms_sync ? (
+                                <span className='flex flex-wrap items-baseline gap-x-2'>
+                                  {order.ship_date && (
+                                    <span
+                                      className={cn(
+                                        order.is_overdue && 'font-medium text-destructive'
+                                      )}
+                                      title={order.is_overdue ? 'Overdue' : undefined}
+                                    >
+                                      {formatDate(order.ship_date)}
+                                    </span>
+                                  )}
+                                  <EbmsSyncNote
+                                    sync={order.ship_date_ebms_sync}
+                                    error={order.ship_date_ebms_error}
+                                  />
                                 </span>
-                                <EbmsSyncNote
-                                  sync={order.ship_date_ebms_sync}
-                                  error={order.ship_date_ebms_error}
-                                />
-                              </span>
+                              ) : null}
                             </TableCell>
                           ),
                           order: (
@@ -287,21 +299,27 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ),
                           customer: (
                             <TableCell>
-                              <span className='lg:truncate'>{order.customer ?? '—'}</span>
+                              {order.customer && (
+                                <span className='lg:truncate'>{order.customer}</span>
+                              )}
                             </TableCell>
                           ),
                           address: (
                             <TableCell>
-                              <span className='text-muted-foreground lg:truncate'>
-                                {order.address ?? '—'}
-                              </span>
+                              {order.address && (
+                                <span className='text-muted-foreground lg:truncate'>
+                                  {order.address}
+                                </span>
+                              )}
                             </TableCell>
                           ),
                           city: (
                             <TableCell>
-                              <span className='text-muted-foreground lg:truncate'>
-                                {order.city ?? '—'}
-                              </span>
+                              {order.city && (
+                                <span className='text-muted-foreground lg:truncate'>
+                                  {order.city}
+                                </span>
+                              )}
                             </TableCell>
                           ),
                           map: (
@@ -330,12 +348,14 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ),
                           longest: (
                             <TableCell>
-                              <span className='font-mono'>
-                                {formatLength(order.longest_length)}
-                              </span>
+                              {order.longest_length > 0 && (
+                                <span className='font-mono'>
+                                  {formatLength(order.longest_length)}
+                                </span>
+                              )}
                             </TableCell>
                           ),
-                          shipvia: <TableCell>{order.ship_via ?? '—'}</TableCell>,
+                          shipvia: <TableCell>{order.ship_via}</TableCell>,
                           priority: (
                             <TableCell>
                               <PriorityCell order={order} departmentId={department?.id} />

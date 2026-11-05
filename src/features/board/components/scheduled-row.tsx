@@ -59,8 +59,8 @@ const splitLabel = (split: 'partial' | 'split', dayWord: string) =>
     : `Split across ${dayWord}s — see the lock icons for lines on another day`
 
 /**
- * The release checkbox appears only once the order is Reviewed. Before that it is a dash with the
- * reason, and after release it is the icon saying the order has already gone.
+ * The release checkbox appears only once the order is Reviewed. Before that the cell is empty (its
+ * title says why, set by the caller), and after release it is the icon saying the order has gone.
  */
 const SelectCell = ({
   released,
@@ -84,12 +84,7 @@ const SelectCell = ({
         aria-label='Released to production'
       />
     )
-  if (!reviewed)
-    return (
-      <span className='text-muted-foreground' title='Mark Reviewed to select'>
-        —
-      </span>
-    )
+  if (!reviewed) return null
 
   return (
     <Checkbox
@@ -189,7 +184,11 @@ export const ScheduledRow = ({
         onClick={toggleExpanded}
       >
         {selectable ? (
-          <TableCell card='lead' onClick={stopRowClick}>
+          <TableCell
+            card='lead'
+            title={released || reviewed ? undefined : 'Mark Reviewed to select'}
+            onClick={stopRowClick}
+          >
             <SelectCell
               released={released}
               reviewed={reviewed}
@@ -207,7 +206,9 @@ export const ScheduledRow = ({
         {cells({
           ship: (
             <TableCell>
-              <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
+              {order.ship_date && (
+                <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
+              )}
             </TableCell>
           ),
           proddate: (
@@ -238,7 +239,9 @@ export const ScheduledRow = ({
           ),
           customer: (
             <TableCell>
-              <span className='truncate'>{stock ? 'Stock' : (order.customer ?? '—')}</span>
+              {(stock || order.customer) && (
+                <span className='truncate'>{stock ? 'Stock' : order.customer}</span>
+              )}
             </TableCell>
           ),
           priority: (
@@ -267,9 +270,7 @@ export const ScheduledRow = ({
             <TableCell onClick={stopRowClick}>
               {exported ? (
                 <FileOutput className='inline-block size-4 text-primary' aria-label='Exported' />
-              ) : released || !reviewed || viewOnly ? (
-                <span className='text-muted-foreground'>—</span>
-              ) : (
+              ) : released || !reviewed || viewOnly ? null : (
                 <Checkbox
                   aria-label={`Export order ${order.invoice}`}
                   checked={exporting}
@@ -290,22 +291,24 @@ export const ScheduledRow = ({
           ),
           shipvia: (
             <TableCell>
-              <span className='truncate text-muted-foreground'>{order.ship_via ?? '—'}</span>
+              {order.ship_via && (
+                <span className='truncate text-muted-foreground'>{order.ship_via}</span>
+              )}
             </TableCell>
           ),
           trimloc: (
             <TableCell>
               {/* A stock order is what puts trims on the shelf, so it has no location of its own. */}
-              <span className='font-mono text-muted-foreground'>
-                {stock ? 'N/A' : order.locations.length ? order.locations.join(', ') : '—'}
-              </span>
+              {(stock || order.locations.length > 0) && (
+                <span className='font-mono text-muted-foreground'>
+                  {stock ? 'N/A' : order.locations.join(', ')}
+                </span>
+              )}
             </TableCell>
           ),
           notes: (
             <TableCell onClick={stopRowClick}>
-              {stock ? (
-                <span className='text-muted-foreground'>—</span>
-              ) : (
+              {stock ? null : (
                 <NoteButton
                   state={noteState}
                   label='Order notes'

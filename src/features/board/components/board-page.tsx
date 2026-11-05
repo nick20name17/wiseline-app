@@ -17,7 +17,7 @@ import { MachineStripSkeleton } from './board-skeleton'
 import { PackagingTab } from './packaging-tab'
 import { QueueTab } from './queue-tab'
 import { RollformingProductionTab } from './rollforming-production-tab'
-import { ProductionTab } from './production-tab'
+import { ProductionTab, type ProductionPlace } from './production-tab'
 import { ScanPackageDialog } from './scan-package-dialog'
 import { ScheduledTab } from './scheduled-tab'
 import { HeaderSearch } from '@/components/header-search'
@@ -36,7 +36,7 @@ type BoardPageProps = {
   role: 'manager' | 'worker' | 'viewer'
   onViewChange: (view: BoardView) => void
   onSearchChange: (search: string | undefined) => void
-}
+} & ProductionPlace
 
 export const BoardPage = ({
   view,
@@ -44,7 +44,10 @@ export const BoardPage = ({
   departmentId,
   role,
   onViewChange,
-  onSearchChange
+  onSearchChange,
+  station,
+  done,
+  onProductionChange
 }: BoardPageProps) => {
   // A Worker works the floor tabs as fully as a Manager; what he cannot reach is kept off the strip.
   const board = useBoard()
@@ -239,6 +242,9 @@ export const BoardPage = ({
           />
         ) : (
           <ProductionTab
+            station={station}
+            done={done}
+            onProductionChange={onProductionChange}
             search={search}
             departmentId={departmentId}
             onOpenCoils={() => onViewChange('coils')}

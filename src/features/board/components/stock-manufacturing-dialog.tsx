@@ -181,14 +181,18 @@ export const StockManufacturingDialog = ({
                       sent: (
                         <TableCell>
                           {/* The time goes under the date: the dialog has no room for both on one line. */}
-                          <span className='font-mono text-xs whitespace-normal'>
-                            {batch.created_at ? formatStamp(batch.created_at) : '—'}
-                          </span>
+                          {batch.created_at && (
+                            <span className='font-mono text-xs whitespace-normal'>
+                              {formatStamp(batch.created_at)}
+                            </span>
+                          )}
                         </TableCell>
                       ),
                       batch: (
                         <TableCell>
-                          <span className='font-mono'>{batch.ebms_batch ?? '—'}</span>
+                          {batch.ebms_batch && (
+                            <span className='font-mono'>{batch.ebms_batch}</span>
+                          )}
                         </TableCell>
                       ),
                       from: <TableCell>{batch.order ?? 'Stock Manufacturing'}</TableCell>,

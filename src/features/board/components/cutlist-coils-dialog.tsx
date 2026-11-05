@@ -1,5 +1,6 @@
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
+import { CellButton } from '@/components/cell-trigger'
 import {
   Dialog,
   DialogContent,
@@ -154,57 +155,62 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                     // An unchanged thickness keeps the figures on record, not the formula's rounding.
                     const preview =
                       typed !== coil.coil_thickness ? figuresAtThickness(coil, typed) : null
+                    const shownThickness = thickness[coil.id] ?? coil.coil_thickness
+                    const feet = figure(preview?.feet ?? coil.linear_feet)
+                    const weight = figure(preview?.weight ?? coil.weight)
 
                     return (
                       <TableRow key={coil.id}>
                         {columns.cells({
                           num: (
                             <TableCell>
-                              <span className='font-mono'>{coil.lot_number ?? '—'}</span>
+                              {coil.lot_number && (
+                                <span className='font-mono'>{coil.lot_number}</span>
+                              )}
                             </TableCell>
                           ),
                           width: (
                             <TableCell>
-                              <span className='font-mono'>{coil.width ?? '—'}</span>
+                              {coil.width !== null && (
+                                <span className='font-mono'>{coil.width}</span>
+                              )}
                             </TableCell>
                           ),
                           gauge: (
                             <TableCell>
-                              <span className='font-mono'>{coil.gauge ?? '—'}</span>
+                              {coil.gauge !== null && (
+                                <span className='font-mono'>{coil.gauge}</span>
+                              )}
                             </TableCell>
                           ),
-                          color: <TableCell>{coil.color ?? '—'}</TableCell>,
+                          color: <TableCell>{coil.color}</TableCell>,
                           thick: (
                             <TableCell>
-                              <Button
-                                variant='outline'
-                                className='w-24 justify-start'
+                              <CellButton
                                 aria-label={`Thickness in inches, coil ${coilName(coil)}`}
                                 onClick={() => setKeying(coil)}
                               >
-                                <span
-                                  className={cn(
-                                    'font-mono',
-                                    thickness[coil.id] === undefined && 'text-muted-foreground'
-                                  )}
-                                >
-                                  {thickness[coil.id] ?? coil.coil_thickness ?? '—'}
-                                </span>
-                              </Button>
+                                {shownThickness !== null && (
+                                  <span
+                                    className={cn(
+                                      'font-mono',
+                                      thickness[coil.id] === undefined && 'text-muted-foreground'
+                                    )}
+                                  >
+                                    {shownThickness}
+                                  </span>
+                                )}
+                              </CellButton>
                             </TableCell>
                           ),
                           lf: (
                             <TableCell>
-                              <span className='font-mono'>
-                                {figure(preview?.feet ?? coil.linear_feet)}
-                              </span>
+                              {feet && <span className='font-mono'>{feet}</span>}
                             </TableCell>
                           ),
                           weight: (
                             <TableCell>
-                              <span className='font-mono'>
-                                {figure(preview?.weight ?? coil.weight)}
-                              </span>
+                              {weight && <span className='font-mono'>{weight}</span>}
                             </TableCell>
                           ),
                           note: (

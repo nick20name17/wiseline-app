@@ -74,7 +74,7 @@ export const CutlistTotalDialog = ({ group: current, onOpenChange }: CutlistTota
                         ),
                         customer: (
                           <TableCell>
-                            <span className='truncate'>{entry.customer ?? '—'}</span>
+                            {entry.customer && <span className='truncate'>{entry.customer}</span>}
                           </TableCell>
                         ),
                         po: (

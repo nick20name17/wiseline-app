@@ -6,8 +6,8 @@ describe('shipping formats', () => {
   it('prints a length in feet and inches, and inches', () => {
     expect(formatLength(162)).toBe(`13'6" (162")`)
     expect(formatLength(117.5)).toBe(`9'9.5" (117.5")`)
-    expect(formatLength(0)).toBe('—')
-    expect(formatLength(null)).toBe('—')
+    expect(formatLength(0)).toBe('')
+    expect(formatLength(null)).toBe('')
     expect(formatLength(23.97)).toBe(`2'0" (23.97")`)
   })
 
@@ -22,9 +22,9 @@ describe('shipping formats', () => {
     )
   })
 
-  it('prints a weight in pounds, and a dash for none', () => {
+  it('prints a weight in pounds, and nothing for none', () => {
     expect(formatWeight(1673.49)).toBe('1,673.49 lbs')
-    expect(formatWeight(null)).toBe('—')
+    expect(formatWeight(null)).toBe('')
   })
 
   it('searches the whole address on the map', () => {

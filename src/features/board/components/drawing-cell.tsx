@@ -21,7 +21,7 @@ type DrawingCellProps = {
  */
 export const DrawingCell = ({ drawing, product }: DrawingCellProps) => {
   const [open, setOpen] = useState(false)
-  if (!drawing?.url) return <span className='text-muted-foreground'>—</span>
+  if (!drawing?.url) return null
 
   const label = `Drawing of ${product ?? drawing.name}`
   return (

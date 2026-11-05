@@ -7,7 +7,7 @@ describe('roles', () => {
     expect(roleLabel('client')).toBe('View only')
     expect(roleLabel('super_manager')).toBe('Super manager')
     expect(roleLabel('foreman')).toBe('foreman')
-    expect(roleLabel('')).toBe('—')
+    expect(roleLabel('')).toBe('')
     expect(roleTint('admin')).toBe('bg-purple-100 text-purple-700')
     expect(roleTint('foreman')).toBe('bg-muted text-muted-foreground')
   })

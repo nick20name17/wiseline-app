@@ -17,7 +17,7 @@ describe('production days', () => {
     expect(formatDate('2026-05-07')).toBe('Thu, May 7, 2026')
     expect(formatLongDate('2026-07-14')).toBe('Tue, July 14, 2026')
     expect(formatDayLabel('2026-01-01')).toBe('Thu, Jan 1')
-    expect(formatDate(null)).toBe('—')
+    expect(formatDate(null)).toBe('')
   })
 
   it('come back from a picked date as the same day', () => {

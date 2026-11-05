@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { Description } from '@/components/description'
 import { useBoard, useViewOnly } from '../lib/board-context'
 import { formatDate } from '@/lib/days'
@@ -180,7 +182,8 @@ export const ScheduledLineItems = ({
   // «That many separate lines underneath with only a Qty of 1 on each … so a different Supplier and/or
   // Coil Number can be assigned to each Coil sold» p2 (679,416). Folded until asked for, or until a
   // unit has a coil of its own — a line of 100 is 100 rows.
-  const [unfolded, setUnfolded] = useState<Set<string>>(() => new Set())
+  const [unfoldedIds, setUnfolded] = useRemembered('unfolded:lines', z.array(z.string()), [])
+  const unfolded = new Set(unfoldedIds)
   const [pickedUnits, setPickedUnits] = useState<Map<string, number[]>>(() => new Map())
   // Ticks out of sight are not assigned: folding a line or taking it whole from stock drops them.
   const dropUnits = (id: string) =>
@@ -429,11 +432,11 @@ export const ScheduledLineItems = ({
                                 title='One line per coil'
                                 onClick={() => {
                                   dropUnits(item.id)
-                                  setUnfolded(current => {
-                                    const next = new Set(current)
-                                    if (!next.delete(item.id)) next.add(item.id)
-                                    return next
-                                  })
+                                  setUnfolded(current =>
+                                    current.includes(item.id)
+                                      ? current.filter(id => id !== item.id)
+                                      : [...current, item.id]
+                                  )
                                 }}
                               >
                                 {open ? <ChevronDown /> : <ChevronRight />}
@@ -444,7 +447,7 @@ export const ScheduledLineItems = ({
                       ),
                       shipped: (
                         <TableCell>
-                          <span className='font-mono'>{item.shipped || '—'}</span>
+                          {item.shipped ? <span className='font-mono'>{item.shipped}</span> : null}
                         </TableCell>
                       ),
                       vent: (
@@ -452,12 +455,8 @@ export const ScheduledLineItems = ({
                           {/* Nothing left to make means nothing to vent, bypassed work is never vented, and
                             a line on another day is answered from its own row — none of them is an
                             unticked box. */}
-                          {otherDay ? (
-                            <span className='text-muted-foreground'>—</span>
-                          ) : bypassed ? (
+                          {otherDay || toMake(item) <= 0 ? null : bypassed ? (
                             <span className='text-muted-foreground'>N/A</span>
-                          ) : toMake(item) <= 0 ? (
-                            <span className='text-muted-foreground'>—</span>
                           ) : (
                             <Checkbox
                               aria-label={`Vent ${item.id_inven ?? item.id}`}
@@ -470,9 +469,7 @@ export const ScheduledLineItems = ({
                       ),
                       machine: (
                         <TableCell>
-                          {otherDay ? (
-                            <span className='text-muted-foreground'>—</span>
-                          ) : bypassed ? (
+                          {otherDay ? null : bypassed ? (
                             <span className='text-muted-foreground'>N/A</span>
                           ) : allFromStock ? (
                             <span className='text-muted-foreground'>Stock</span>
@@ -510,9 +507,9 @@ export const ScheduledLineItems = ({
                                 </DropdownMenuRadioGroup>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          ) : (
-                            <span>{machine?.name ?? '—'}</span>
-                          )}
+                          ) : machine?.name ? (
+                            <span>{machine.name}</span>
+                          ) : null}
                         </TableCell>
                       ),
                       stock: (
@@ -616,28 +613,28 @@ export const ScheduledLineItems = ({
                                 )
                               }
                             />
-                          ) : (
-                            <span className='font-mono'>
-                              {width === null ? '—' : formatWidth(width)}
-                            </span>
+                          ) : width === null ? null : (
+                            <span className='font-mono'>{formatWidth(width)}</span>
                           )}
                         </TableCell>
                       ),
                       l: (
                         <TableCell>
-                          <span
-                            className={cn(
-                              'font-mono',
-                              otherDay ? 'text-muted-foreground' : offLength && 'text-destructive'
-                            )}
-                            title={
-                              offLength
-                                ? `Non-standard length (not ${board.standardLength}")`
-                                : undefined
-                            }
-                          >
-                            {item.length === null ? '—' : `${item.length}"`}
-                          </span>
+                          {item.length === null ? null : (
+                            <span
+                              className={cn(
+                                'font-mono',
+                                otherDay ? 'text-muted-foreground' : offLength && 'text-destructive'
+                              )}
+                              title={
+                                offLength
+                                  ? `Non-standard length (not ${board.standardLength}")`
+                                  : undefined
+                              }
+                            >
+                              {item.length}&quot;
+                            </span>
+                          )}
                         </TableCell>
                       ),
                       supplier: (

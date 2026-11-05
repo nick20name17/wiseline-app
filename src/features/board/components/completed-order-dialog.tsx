@@ -136,7 +136,9 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     stock: (
                       <TableCell>
-                        <span className='font-mono'>{line.from_stock || '—'}</span>
+                        {line.from_stock ? (
+                          <span className='font-mono'>{line.from_stock}</span>
+                        ) : null}
                       </TableCell>
                     ),
                     mfg: (
@@ -146,20 +148,22 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     length: (
                       <TableCell>
-                        <span className='font-mono'>
-                          {line.length === null ? '—' : `${line.length}"`}
-                        </span>
+                        {line.length !== null && (
+                          <span className='font-mono'>{line.length}&quot;</span>
+                        )}
                       </TableCell>
                     ),
                     notes: (
                       <TableCell>
                         {/* Read here, not answered: the order is closed. */}
-                        <span
-                          className='line-clamp-2 text-muted-foreground'
-                          title={line.notes.join('\n')}
-                        >
-                          {line.notes.length ? line.notes.join(' · ') : '—'}
-                        </span>
+                        {line.notes.length > 0 && (
+                          <span
+                            className='line-clamp-2 text-muted-foreground'
+                            title={line.notes.join('\n')}
+                          >
+                            {line.notes.join(' · ')}
+                          </span>
+                        )}
                       </TableCell>
                     ),
                     packaged: (
@@ -169,16 +173,14 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
                     ),
                     reman: (
                       <TableCell>
-                        <span
-                          className='font-mono'
-                          title={
-                            remadeHere
-                              ? `${remadeHere} pcs. of material remade across every request raised on this line`
-                              : undefined
-                          }
-                        >
-                          {remadeHere || '—'}
-                        </span>
+                        {remadeHere ? (
+                          <span
+                            className='font-mono'
+                            title={`${remadeHere} pcs. of material remade across every request raised on this line`}
+                          >
+                            {remadeHere}
+                          </span>
+                        ) : null}
                       </TableCell>
                     )
                   })}
@@ -255,7 +257,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                   {columns.cells({
                     name: (
                       <TableCell>
-                        <span className='font-mono'>{parcel.name ?? '—'}</span>
+                        {parcel.name && <span className='font-mono'>{parcel.name}</span>}
                       </TableCell>
                     ),
                     contents: (
@@ -265,7 +267,7 @@ const PackagesSection = ({ packages, lines, picking }: PackagesSectionProps) => 
                     ),
                     location: (
                       <TableCell>
-                        <span className='font-mono'>{parcel.location ?? '—'}</span>
+                        {parcel.location && <span className='font-mono'>{parcel.location}</span>}
                       </TableCell>
                     )
                   })}
