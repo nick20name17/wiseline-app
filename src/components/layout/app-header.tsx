@@ -46,9 +46,9 @@ export const AppHeader = () => {
       data-sticky-edge
       className='sticky top-0 z-10 flex h-13 shrink-0 items-center gap-3.5 border-b border-border bg-background px-safe-3 sm:px-safe-4.5'
     >
-      {/* The prototype has no collapse control; the sidebar there is fixed. This one opens the sheet
-          on a phone and the rail's labels on a tablet. */}
-      <SidebarTrigger className={cn('-ml-1 xl:hidden', searching && 'max-md:hidden')} />
+      {/* Opens the sheet on a phone; on a wider screen it folds the sidebar to its icon rail and back,
+          which gives a wide table the room. */}
+      <SidebarTrigger className={cn('-ml-1', searching && 'max-md:hidden')} />
 
       <Breadcrumb className={cn('min-w-0', searching && 'max-md:hidden')}>
         <BreadcrumbList className='flex-nowrap'>
