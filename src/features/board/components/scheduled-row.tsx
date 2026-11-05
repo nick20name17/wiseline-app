@@ -78,7 +78,12 @@ const SelectCell = ({
   onToggle: (selected: boolean) => void
 }) => {
   if (released)
-    return <SendHorizontal className='size-4 text-primary' aria-label='Released to production' />
+    return (
+      <SendHorizontal
+        className='inline-block size-4 text-primary'
+        aria-label='Released to production'
+      />
+    )
   if (!reviewed)
     return (
       <span className='text-muted-foreground' title='Mark Reviewed to select'>
@@ -261,7 +266,7 @@ export const ScheduledRow = ({
           export: (
             <TableCell onClick={stopRowClick}>
               {exported ? (
-                <FileOutput className='size-4 text-primary' aria-label='Exported' />
+                <FileOutput className='inline-block size-4 text-primary' aria-label='Exported' />
               ) : released || !reviewed || viewOnly ? (
                 <span className='text-muted-foreground'>—</span>
               ) : (

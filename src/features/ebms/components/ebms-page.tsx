@@ -6,7 +6,6 @@ import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Spinner } from '@/components/ui/spinner'
 import {
   Table,
   TableBody,
@@ -19,9 +18,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { formatDate, formatStamp } from '@/lib/days'
 import { useRetained } from '@/lib/use-retained'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { TablePagination } from '@/components/table-pagination'
+import { lastPage, usePage } from '@/lib/use-page'
 import { CloudCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   OUTBOX_PAGE,
   outboxCountQuery,
@@ -115,10 +116,14 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
     queued: useQuery(outboxCountQuery('queued')).data,
     ok: useQuery(outboxCountQuery('ok')).data
   }
-  const { data, isPending, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useInfiniteQuery(outboxQuery(status))
-  const writes = data?.pages.flatMap(page => page.results) ?? []
-  const count = data?.pages[0]?.count ?? 0
+  const tableBox = useRef<HTMLDivElement>(null)
+  const [page, setPage] = usePage(status)
+  const { data, isPending, error, refetch, isPlaceholderData } = useQuery(outboxQuery(status, page))
+  const writes = data?.results ?? []
+  const count = data?.count ?? 0
+  // A write sent again leaves the tab: past the end, the last page there is shows.
+  if (data && !isPlaceholderData && page > lastPage(count, OUTBOX_PAGE))
+    setPage(lastPage(count, OUTBOX_PAGE))
   const columns = useColumnOrder(COLUMNS)
   const tab = TABS.find(entry => entry.status === status)!
 
@@ -157,6 +162,7 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
         </Empty>
       ) : (
         <div
+          ref={tableBox}
           data-page-table
           className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
         >
@@ -208,17 +214,14 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
         </div>
       )}
 
-      {hasNextPage ? (
-        <Button
-          variant='outline'
-          className='self-center'
-          disabled={isFetchingNextPage}
-          onClick={() => void fetchNextPage()}
-        >
-          {isFetchingNextPage ? <Spinner data-icon='inline-start' /> : null}
-          Show {Math.min(OUTBOX_PAGE, count - writes.length)} more of {count - writes.length}
-        </Button>
-      ) : null}
+      <TablePagination
+        page={page}
+        pageSize={OUTBOX_PAGE}
+        count={count}
+        pending={isPlaceholderData}
+        onPageChange={setPage}
+        table={tableBox}
+      />
 
       <ConfirmDialog
         open={!!asking}
