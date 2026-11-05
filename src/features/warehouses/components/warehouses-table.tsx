@@ -33,7 +33,10 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
   const columns = useColumnOrder(COLUMNS)
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
           widest cell, so they hold still between the skeleton, the data and every search. */}
       <Table data-cards className='min-w-4xl table-fixed'>

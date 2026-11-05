@@ -55,7 +55,7 @@ export const WorkDaysPage = ({
   const workingDays = (exceptions.data?.length ?? 0) - holidays
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <WorkWeek canEdit={canEditWeek} />
 
       <div className='flex flex-wrap items-center justify-between gap-3.5'>

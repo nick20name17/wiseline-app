@@ -33,7 +33,10 @@ export const ExceptionsTable = ({ exceptions, isPending, onSaved }: ExceptionsTa
   const columns = useColumnOrder(COLUMNS)
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       {/* `table-fixed` plus the widths size the columns from the layout, so they hold still between
         the skeleton, the data and every year. */}
       <Table data-cards className='min-w-2xl table-fixed'>

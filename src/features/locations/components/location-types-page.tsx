@@ -58,7 +58,7 @@ export const LocationTypesPage = ({
   )
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
       <KindTabs kind={kind} noun='Location Types' onChange={onKindChange} />
 

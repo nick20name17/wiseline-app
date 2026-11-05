@@ -167,7 +167,10 @@ export const PrioritiesTable = ({
   }
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

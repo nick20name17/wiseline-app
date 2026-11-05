@@ -10,7 +10,7 @@ const SettingsLayout = () => {
 
   return (
     // `flex-1` down to the page, so an empty page centres its message in what is left of the screen.
-    <div className='flex flex-1 flex-col gap-6'>
+    <div className='flex flex-1 flex-col gap-6 lg:min-h-0'>
       <SettingsTabs hidden={hidden} />
       <Outlet />
     </div>

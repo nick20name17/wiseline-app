@@ -327,14 +327,36 @@
   max-height: none;
 }
 
-/* A table's header held in view over its rows (`useStickyTableHeads`): it is lifted above them and
-   made opaque, the same tint it has over the card. A collapsed table's borders stay where they were
-   drawn, so its rule under the header is drawn again on it. */
-thead[data-stuck] {
-  position: relative;
-  z-index: 1;
-  background: color-mix(in oklab, var(--muted) 50%, var(--card));
-  box-shadow: inset 0 -1px var(--border);
+/*
+ * A page's own table (`data-page-table` on its card) from `lg`: the page stops at the screen's foot and
+ * the table scrolls in its box, both ways, so its header row sticks natively at the box's top and
+ * moves with the rows in the same frame. The shell is held to the screen's height while such a table
+ * is on the page, and each box from the page down to the card is a column that may shrink
+ * (`min-h-0`); the card is as tall as its rows, up to what is left. Below `lg` the rows are cards and
+ * the window scrolls. The header is opaque, the card it sits on; its cells' own rule moves with it.
+ */
+@media (width >= 64rem) {
+  [data-page-table] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* No bounce at either end, and a scroll past the last row does not carry on to the page. */
+  [data-page-table] > [data-slot='table-container'] {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: none;
+  }
+  /* At a zoom that is not a whole number of device pixels per CSS pixel, Chrome rounds a stuck
+     heading's offset apart from the rows' (crbug.com/401693546) and leaves a device pixel above it,
+     where the rows show through. The shadow fills it; past the box's top it is clipped. */
+  [data-page-table] > [data-slot='table-container'] > table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card);
+    box-shadow: 0 -1px var(--card);
+  }
 }
 
 /**
@@ -439,6 +461,7 @@ td:has(> [data-fills-cell]) {
       height: auto;
       padding: 0;
       border-left: 0;
+      border-bottom: 0;
       text-align: start;
       white-space: normal;
     }
@@ -602,11 +625,16 @@ td:has(> [data-fills-cell]) {
  * rows have no column to box.
  */
 @media (width >= 64rem) {
-  td[data-outline] {
-    border-inline: 1px solid var(--foreground);
+  td[data-outline],
+  td[data-outline] + td {
+    border-left-color: var(--foreground);
   }
+  td[data-outline]:last-child {
+    border-right: 1px solid var(--foreground);
+  }
+  /* Over the header's rule rather than under it, which would draw the top twice as thick. */
   tr:first-child > td[data-outline] {
-    border-top: 1px solid var(--foreground);
+    box-shadow: 0 -1px var(--foreground);
   }
   tr:last-child > td[data-outline] {
     border-bottom: 1px solid var(--foreground);

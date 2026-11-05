@@ -119,7 +119,7 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       <div className='flex flex-wrap items-center gap-2.5'>
         <div className='border-b border-border'>
           <Tabs
@@ -193,7 +193,10 @@ export const SlitLineTab = ({ search, departmentId }: SlitLineTabProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-7xl table-fixed'>
             <colgroup>
               <col className='w-10' />

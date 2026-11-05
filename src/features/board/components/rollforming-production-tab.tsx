@@ -1,7 +1,6 @@
 import { Description } from '@/components/description'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
-import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -14,8 +13,9 @@ import {
 import { useColumnOrder } from '@/components/table/column-order'
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, Disc3, Factory, Scissors } from 'lucide-react'
+import { Disc3, Factory, Scissors } from 'lucide-react'
 import { cn } from 'cn'
+import { ExpandButton } from '@/components/expand-button'
 import { Fragment, useState } from 'react'
 import {
   currentCoilQuery,
@@ -154,7 +154,7 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => {
  * once Left To Package is all zeros it is Rolled and leaves the list p2 (1041,510).
  */
 export const RollformingProductionTab = (props: RollformingProductionTabProps) => (
-  <div className='flex flex-col gap-3'>
+  <div className='flex flex-col gap-3 lg:min-h-0'>
     <CurrentCoil machineId={props.machineId} />
     <ReleasedParts {...props} />
   </div>
@@ -228,7 +228,10 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
     )
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       <Table data-cards className='min-w-400 table-fixed'>
         <colgroup>
           <col className='w-10' />
@@ -271,17 +274,11 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                         onClick={() => setPacking(key)}
                       >
                         <TableCell card='trail' onClick={event => event.stopPropagation()}>
-                          <Button
-                            variant='ghost'
-                            size='icon-sm'
-                            aria-label={`${open ? 'Collapse' : 'Expand'} ${order.invoice}`}
-                            aria-expanded={open}
-                            onClick={() => setExpanded(open ? null : key)}
-                          >
-                            <ChevronRight
-                              className={cn('transition-transform', open && 'rotate-90')}
-                            />
-                          </Button>
+                          <ExpandButton
+                            label={`${open ? 'Collapse' : 'Expand'} ${order.invoice}`}
+                            expanded={open}
+                            onToggle={() => setExpanded(open ? null : key)}
+                          />
                         </TableCell>
                         {columns.cells({
                           date: <TableCell>{formatDate(date)}</TableCell>,

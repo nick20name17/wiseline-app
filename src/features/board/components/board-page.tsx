@@ -127,7 +127,7 @@ export const BoardPage = ({
 
   return (
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
-    <section className='flex min-w-0 flex-1 flex-col gap-3'>
+    <section className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       {/* The tabs stay in reach while a list scrolls, and each tab's own top sticks under them. */}
       <div
         ref={measureBar}

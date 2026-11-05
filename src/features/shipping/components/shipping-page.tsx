@@ -36,7 +36,7 @@ export const ShippingPage = ({ view, search, day, shipDates, onChange }: Shippin
   })
 
   return (
-    <section className='flex min-w-0 flex-1 flex-col gap-4'>
+    <section className='flex min-w-0 flex-1 flex-col gap-4 lg:min-h-0'>
       <div className='border-b border-border'>
         <Tabs value={view} onValueChange={next => onChange({ view: next as ShippingView })}>
           <TabsList variant='line' className='h-9'>

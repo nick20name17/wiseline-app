@@ -127,7 +127,7 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
   const retry = useRetryWrite()
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <Tabs value={status} onValueChange={value => onStatusChange(value as OutboxStatus)}>
         <TabsList variant='line' className='h-9'>
           {TABS.map(entry => (
@@ -156,7 +156,10 @@ export const EbmsPage = ({ status, onStatusChange }: EbmsPageProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-4xl table-fixed'>
             <colgroup>
               {columns.cols}

@@ -1,10 +1,9 @@
 import { formatDate } from '@/lib/days'
 import { useColumnCells } from '@/components/table/column-order'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
-import { cn } from 'cn'
-import { ChevronRight, Split } from 'lucide-react'
+import { ExpandButton } from '@/components/expand-button'
+import { Split } from 'lucide-react'
 import { Fragment } from 'react'
 import { isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard, useViewOnly } from '../lib/board-context'
@@ -73,17 +72,7 @@ export const OrderRow = ({
           />
         </TableCell>
         <TableCell card='trail' onClick={stopRowClick}>
-          <Button
-            variant='ghost'
-            size='icon-sm'
-            aria-label='Toggle details'
-            aria-expanded={expanded}
-            onClick={onToggleExpanded}
-          >
-            <ChevronRight
-              className={cn('text-muted-foreground transition-transform', expanded && 'rotate-90')}
-            />
-          </Button>
+          <ExpandButton label='Toggle details' expanded={expanded} onToggle={onToggleExpanded} />
         </TableCell>
         {cells({
           entry: (

@@ -12,11 +12,15 @@ function Table({
   return (
     // A wide table stops at its edge: no bounce, and a sideways swipe past it does not go Back.
     <div data-slot='table-container' className='relative w-full overflow-x-auto overscroll-x-none'>
+      {/* Separate borders, as tablecn draws them: each rule belongs to one cell, so a header that
+          sticks over the rows carries its own rule with it. A collapsed border is shared with the
+          row under it and stays behind in some browsers, or is drawn twice. The rules are the
+          cells', since a row of a separate table draws none. */}
       <table
         data-slot='table'
         data-size={size}
         className={cn(
-          'w-full caption-bottom text-sm data-[size=lg]:[&>tbody]:text-base',
+          'w-full caption-bottom border-separate border-spacing-0 text-sm data-[size=lg]:[&>tbody]:text-base',
           className
         )}
         {...props}
@@ -26,13 +30,7 @@ function Table({
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return (
-    <thead
-      data-slot='table-header'
-      className={cn('bg-muted/50 [&_tr]:border-b [&_tr]:hover:bg-transparent', className)}
-      {...props}
-    />
-  )
+  return <thead data-slot='table-header' className={className} {...props} />
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
@@ -40,7 +38,7 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
     <tbody
       data-slot='table-body'
       // The first cell names the row, so it reads as the row's label.
-      className={cn('[&_td:first-child]:font-medium [&_tr:last-child]:border-0', className)}
+      className={cn('[&_td:first-child]:font-medium [&>tr:last-child>*]:border-b-0', className)}
       {...props}
     />
   )
@@ -50,7 +48,10 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
   return (
     <tfoot
       data-slot='table-footer'
-      className={cn('border-t bg-muted/50 font-medium [&>tr]:last:border-b-0', className)}
+      className={cn(
+        'bg-muted/50 font-medium [&>tr:first-child>*]:border-t [&>tr:last-child>*]:border-b-0',
+        className
+      )}
       {...props}
     />
   )
@@ -80,8 +81,9 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         // every state below is as specific as it is and wins by coming later; hover and selection
         // sit a clear step above the band so they still show on a banded row. A lone cell across the
         // row — an opened row's details, a heading, a placeholder — is not a row to point at, and a
-        // tint over a whole details panel only adds noise to it.
-        'h-8.5 border-b transition-colors even:bg-foreground/6 not-has-[>td[colspan]:only-child]:hover:bg-foreground/12 has-[>td>[aria-expanded=true]]:bg-foreground/12 data-[state=selected]:bg-primary/10',
+        // tint over a whole details panel only adds noise to it. Nor is the header row, which has no
+        // cells of data at all.
+        'h-8.5 transition-colors *:border-b even:bg-foreground/4 has-[>td]:not-has-[>td[colspan]:only-child]:hover:bg-foreground/8 has-[>td>[aria-expanded=true]]:bg-foreground/8 data-[state=selected]:bg-primary/10',
         // A line under remanufacture is highlighted whole: orange while a remake is owed, green once
         // every one is back. A late line carries only the overdue mark, so it stays red.
         'data-[reman=done]:bg-success/10 data-[reman=owed]:bg-caution/10',
@@ -94,8 +96,9 @@ function TableRow({ className, onClick, ...props }: React.ComponentProps<'tr'>) 
         'data-complete:text-muted-foreground data-complete:line-through data-complete:decoration-2',
         // A line that belongs to another day is shown for context and left alone: greyed, not struck.
         'data-locked:text-muted-foreground',
-        // The first row of a new group under a sort, where the board asks for a distinct line.
-        'data-divider:*:border-t-2 data-divider:*:border-t-foreground/15',
+        // The first row of a new group under a sort, where the board asks for a distinct line: a
+        // darker rule on the one above, 2px together. That one may close another body, out of reach.
+        'data-divider:*:border-t data-divider:*:border-t-foreground/15',
         className
       )}
       {...props}

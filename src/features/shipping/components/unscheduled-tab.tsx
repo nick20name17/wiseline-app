@@ -22,7 +22,8 @@ import {
 import { formatDate, formatLongDate } from '@/lib/days'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { CalendarDays, ChevronRight, MapPin, Truck } from 'lucide-react'
+import { ExpandButton } from '@/components/expand-button'
+import { CalendarDays, MapPin, Truck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { toast } from '@/components/ui/toast'
 import {
@@ -162,7 +163,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3.5'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3.5 lg:min-h-0'>
       <div className='flex flex-wrap items-center gap-2.5'>
         <span className='text-sm text-muted-foreground'>
           {picked.length ? (
@@ -207,15 +208,18 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           {/* Sized to the widest value plus the cell's 32px padding — a date with a two-digit day, a
-              five-figure weight — so only the free text truncates. The fixed columns take 1748px; the
+              five-figure weight — so only the free text truncates. The fixed columns take 1724px; the
               floor leaves the Customer room to read. */}
           <Table data-cards className='min-w-498 table-fixed'>
             <colgroup>
               <col className='w-10' />
-              {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
-              <col className='w-16' />
+              {/* As wide as the checkbox's: the expand button is the whole cell. */}
+              <col className='w-10' />
               {columns.cols}
             </colgroup>
             <TableHeader>
@@ -250,20 +254,11 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                         </TableCell>
                         <TableCell card='trail'>
                           {/* Opening an order leaves the ticks as they are p3 (560,202). */}
-                          <Button
-                            variant='ghost'
-                            size='icon-sm'
-                            aria-label={`${open ? 'Collapse' : 'Expand'} order ${name}`}
-                            aria-expanded={open}
-                            onClick={() => setExpanded(open ? null : order.order)}
-                          >
-                            <ChevronRight
-                              className={cn(
-                                'text-muted-foreground transition-transform',
-                                open && 'rotate-90'
-                              )}
-                            />
-                          </Button>
+                          <ExpandButton
+                            label={`${open ? 'Collapse' : 'Expand'} order ${name}`}
+                            expanded={open}
+                            onToggle={() => setExpanded(open ? null : order.order)}
+                          />
                         </TableCell>
                         {columns.cells({
                           entry: <TableCell>{formatDate(order.entry_date)}</TableCell>,

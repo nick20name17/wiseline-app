@@ -42,7 +42,7 @@ export const PrioritiesPage = ({
   const isPending = departmentsPending || (active !== undefined && prioritiesPending)
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex items-center gap-3.5 max-md:flex-wrap'>

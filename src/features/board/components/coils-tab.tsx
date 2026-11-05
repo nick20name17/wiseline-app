@@ -28,7 +28,8 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, Printer, SlidersHorizontal } from 'lucide-react'
+import { ExpandButton } from '@/components/expand-button'
+import { Database, Printer, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
@@ -414,14 +415,17 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
     })
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       {/* The other columns' widths plus the longest Product ID (24 characters), which the table
           scrolls sideways rather than cut — and wide enough that an opened product's coils, 928px
           of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
       <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
-          {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
-          <col className='w-16' />
+          {/* As wide as the checkbox's: the expand button is the whole cell. */}
+          <col className='w-10' />
           {columns.cols}
         </colgroup>
         <TableHeader>
@@ -454,18 +458,11 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
                     }}
                   >
                     <TableCell card='trail'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={`Coils of ${group.productId ?? 'no product'}`}
-                        aria-expanded={open}
-                        onClick={event => {
-                          event.stopPropagation()
-                          toggle(group.key)
-                        }}
-                      >
-                        <ChevronRight className={cn('transition-transform', open && 'rotate-90')} />
-                      </Button>
+                      <ExpandButton
+                        label={`Coils of ${group.productId ?? 'no product'}`}
+                        expanded={open}
+                        onToggle={() => toggle(group.key)}
+                      />
                     </TableCell>
                     {columns.cells({
                       // With no Product ID column, the gauge and the folder tell apart products of one
@@ -818,7 +815,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-3'>
+    <div className='flex min-w-0 flex-col gap-3 lg:min-h-0'>
       <StickyTop className='flex-row flex-wrap items-center'>
         {scopeTabs}
         {filterButton}
@@ -902,7 +899,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
           }
         />
       ) : (
-        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3'>
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3 lg:min-h-0'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
             key={term.trim() ? 'searching' : 'listing'}
@@ -920,8 +917,10 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
               noun='products'
               onPage={next => {
                 setPaging({ view, page: next })
-                // The pager sits under the rows; the next page is read from its first row.
+                // The pager sits under the rows; the next page is read from its first row, at the
+                // top of the page on a phone and of the table's own box from `lg`.
                 listTop.current?.scrollIntoView({ block: 'start' })
+                listTop.current?.querySelector('[data-slot=table-container]')?.scrollTo({ top: 0 })
               }}
               onPageSize={setPageSize}
             />

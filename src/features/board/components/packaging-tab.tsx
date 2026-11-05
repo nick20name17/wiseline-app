@@ -94,7 +94,10 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
     )
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       <Table data-cards className='min-w-4xl table-fixed'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>

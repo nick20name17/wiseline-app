@@ -2,8 +2,6 @@ import { StickyTop } from './sticky-top'
 import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
-import { SpacerRows } from '@/components/table/spacer-rows'
-import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -280,11 +278,6 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     })
   })
   const parts = partsOf(orders, departmentId, day)
-  // Three hundred parts is too many rows to keep in the page at once; only those on screen are.
-  const { tableRef, items, measure, before, after } = useWindowRows(
-    parts.length,
-    index => parts[index]?.key ?? String(index)
-  )
 
   // A part ticks on its own: one day of a split order goes out without the others.
   const selected = parts.filter(part => selectedIds.has(part.key))
@@ -345,7 +338,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       <StickyTop>
         <ScheduledDayTabs
           departmentId={departmentId}
@@ -397,19 +390,18 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns take 1228px, with Rollforming's Export and wider Rollforming Location
-              1388px; the minimum width leaves the customer name 160px over them — crush it to nothing
+        <div
+          data-page-table
+          className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
+          {/* The fixed columns take 1204px, with Rollforming's Export and wider Rollforming Location
+              1364px; the minimum width leaves the customer name 184px over them — crush it to nothing
               and two headers print on top of each other. */}
-          <Table
-            ref={tableRef}
-            data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}
-          >
+          <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}>
             <colgroup>
               {selectable ? <col className='w-12' /> : null}
-              {/* The cell's padding, its column rule and the 28px expand button, which the cell would clip. */}
-              <col className='w-16' />
+              {/* As wide as the checkbox's: the expand button is the whole cell. */}
+              <col className='w-10' />
               {columns.cols}
             </colgroup>
             <TableHeader>
@@ -433,48 +425,40 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
                 <TableSkeletonRows />
               </TableBody>
             ) : (
-              <>
-                <SpacerRows height={before} />
-                {items.map(item => {
-                  const part = parts[item.index]
-                  if (!part) return null
-                  const { key } = part
-                  return (
-                    // One body per part, measured whole, so a part opened into its line items keeps
-                    // the rows below it in place. It carries what `TableBody` would, bar the last
-                    // row's rule, which only the last part drops — it would double the card's edge.
-                    <tbody
-                      key={item.key}
-                      data-index={item.index}
-                      ref={measure}
-                      className={cn(
-                        '[&_td:first-child]:font-medium',
-                        item.index === parts.length - 1 && '[&>tr:last-child]:border-0'
-                      )}
-                    >
-                      {/* The banding reads every other row by its place among its siblings; a hidden
+              parts.map((part, index) => {
+                const { key } = part
+                return (
+                  // One body per part, so a part opened into its line items is one block. It
+                  // carries what `TableBody` would, bar the last row's rule, which only the last
+                  // part drops — it would double the card's edge.
+                  <tbody
+                    key={key}
+                    className={cn(
+                      '[&_td:first-child]:font-medium',
+                      index === parts.length - 1 && '[&>tr:last-child>*]:border-b-0'
+                    )}
+                  >
+                    {/* The banding reads every other row by its place among its siblings; a hidden
                           row in front of every second part keeps the stripes where they were. */}
-                      {item.index % 2 ? <tr hidden /> : null}
-                      <ScheduledRow
-                        part={part}
-                        departmentId={departmentId}
-                        expanded={expandedKey === key}
-                        selected={selectedIds.has(key)}
-                        exporting={exportIds.has(key)}
-                        locked={!!selectionKind && kindOf(part) !== selectionKind}
-                        noteState={noteState(part.order)}
-                        onToggleExpanded={toggleExpanded}
-                        onSelect={select}
-                        onExport={exportPart}
-                        onReschedule={setRescheduling}
-                        onOpenOrderNotes={setNoteOrder}
-                        onOpenLineNotes={openLineNotes}
-                      />
-                    </tbody>
-                  )
-                })}
-                <SpacerRows height={after} />
-              </>
+                    {index % 2 ? <tr hidden /> : null}
+                    <ScheduledRow
+                      part={part}
+                      departmentId={departmentId}
+                      expanded={expandedKey === key}
+                      selected={selectedIds.has(key)}
+                      exporting={exportIds.has(key)}
+                      locked={!!selectionKind && kindOf(part) !== selectionKind}
+                      noteState={noteState(part.order)}
+                      onToggleExpanded={toggleExpanded}
+                      onSelect={select}
+                      onExport={exportPart}
+                      onReschedule={setRescheduling}
+                      onOpenOrderNotes={setNoteOrder}
+                      onOpenLineNotes={openLineNotes}
+                    />
+                  </tbody>
+                )
+              })
             )}
           </Table>
         </div>

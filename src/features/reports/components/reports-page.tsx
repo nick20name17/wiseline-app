@@ -127,7 +127,7 @@ export const ReportsPage = ({
   const machines: MachineSummary[] = summary?.machines ?? []
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={offered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex flex-wrap items-end gap-3'>
@@ -170,7 +170,10 @@ export const ReportsPage = ({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-3xl table-fixed'>
             <colgroup>{columns.cols}</colgroup>
             <TableHeader>

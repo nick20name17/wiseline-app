@@ -4,15 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
-import {
-  Calendar,
-  ChevronRight,
-  FileOutput,
-  Package,
-  SendHorizontal,
-  Split,
-  TriangleAlert
-} from 'lucide-react'
+import { ExpandButton } from '@/components/expand-button'
+import { Calendar, FileOutput, Package, SendHorizontal, Split, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
 import { departmentStateOf, isStockOrder, type BoardLineItem, type BoardOrder } from '../api'
 import { useBoard, useScheduledSelectable, useViewOnly } from '../lib/board-context'
@@ -203,17 +196,7 @@ export const ScheduledRow = ({
           </TableCell>
         ) : null}
         <TableCell card='trail' onClick={stopRowClick}>
-          <Button
-            variant='ghost'
-            size='icon-sm'
-            aria-label='Toggle details'
-            aria-expanded={expanded}
-            onClick={toggleExpanded}
-          >
-            <ChevronRight
-              className={cn('text-muted-foreground transition-transform', expanded && 'rotate-90')}
-            />
-          </Button>
+          <ExpandButton label='Toggle details' expanded={expanded} onToggle={toggleExpanded} />
         </TableCell>
 
         {cells({

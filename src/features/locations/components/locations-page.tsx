@@ -111,7 +111,7 @@ export const LocationsPage = ({
   const inventory = kind === 'inventory' ? locations.filter(location => location.code) : []
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
       <KindTabs kind={kind} noun='Locations' onChange={onKindChange} />
 
@@ -167,7 +167,10 @@ export const LocationsPage = ({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>
               {columns.cols}

@@ -337,14 +337,17 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
     )
 
   return (
-    <div className='flex flex-col gap-2'>
+    <div className='flex flex-col gap-2 lg:min-h-0'>
       {/* A finger has no grab cursor to say the rows move. */}
       {movable ? (
         <p className='text-xs text-muted-foreground pointer-fine:hidden'>
           Hold a row, then drag it to move it within its day.
         </p>
       ) : null}
-      <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+      <div
+        data-page-table
+        className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

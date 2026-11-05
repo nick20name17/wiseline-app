@@ -45,7 +45,10 @@ export const BoardSkeleton = ({ machineTabs }: { machineTabs: boolean }) => (
       ))}
     </div>
 
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs max-lg:hidden'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs max-lg:hidden'
+    >
       <Table className='table-fixed'>
         <TableHeader>
           <TableRow>
