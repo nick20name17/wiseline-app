@@ -2,14 +2,12 @@ import { StickyTop } from './sticky-top'
 import { useBoard, useScheduledSelectable } from '../lib/board-context'
 import { formatDate, formatLongDate, today } from '@/lib/days'
 import { useColumnOrder } from '@/components/table/column-order'
-import { SpacerRows } from '@/components/table/spacer-rows'
-import { useWindowRows } from '@/components/table/use-window-rows'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { QueryError } from '@/components/query-error'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
-import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { cn } from 'cn'
 import { useQuery } from '@tanstack/react-query'
@@ -226,7 +224,8 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   // Export takes Release with it; Release alone leaves Export be p2 (542,607).
   const [exportIds, setExportIds] = useState<Set<string>>(() => new Set())
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  // One order open at a time: opening another folds the last.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [capacitiesDay, setCapacitiesDay] = useState<string | null>(null)
   const [stockOpen, setStockOpen] = useState(false)
   const [rescheduling, setRescheduling] = useState<Part | null>(null)
@@ -279,24 +278,27 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     })
   })
   const parts = partsOf(orders, departmentId, day)
-  // Three hundred parts is too many rows to keep in the page at once; only those on screen are.
-  const { tableRef, items, measure, before, after } = useWindowRows(
-    parts.length,
-    index => parts[index]?.key ?? String(index)
-  )
 
   // A part ticks on its own: one day of a split order goes out without the others.
   const selected = parts.filter(part => selectedIds.has(part.key))
   // A release is all stock orders or all customer orders; the first tick decides which.
-  const selectionKind = selected.length
-    ? isStockOrder(selected[0]!.order)
-      ? 'stock'
-      : 'customer'
-    : null
+  const kindOf = (part: Part) => (isStockOrder(part.order) ? 'stock' : 'customer')
+  const selectionKind = selected[0] ? kindOf(selected[0]) : null
   const canRelease = selected.length > 0 && selected.every(part => part.state.reviewed)
+  // Select all takes what a row's own box would: the Reviewed parts not yet out, of one kind — the
+  // ticked one, or customer orders over stock when nothing is ticked yet.
+  const releasable = parts.filter(part => part.state.reviewed && !part.state.released)
+  const allKind =
+    selectionKind ?? (releasable.some(part => kindOf(part) === 'customer') ? 'customer' : 'stock')
+  const pickable = releasable.filter(part => kindOf(part) === allKind)
+  const allSelected = pickable.length > 0 && pickable.every(part => selectedIds.has(part.key))
+  const selectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(pickable.map(part => part.key)))
+    if (allSelected) setExportIds(new Set())
+  }
 
   // Defined once for every row, taking the row's key, so a click re-renders only the rows it changes.
-  const toggleExpanded = (key: string) => setExpandedIds(current => toggled(current, key))
+  const toggleExpanded = (key: string) => setExpandedKey(current => (current === key ? null : key))
   // Export takes Release with it, and unticking Release takes Export with it.
   const select = (key: string, checked: boolean) => {
     setSelectedIds(current => withKey(current, key, checked))
@@ -336,7 +338,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
     )
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       <StickyTop>
         <ScheduledDayTabs
           departmentId={departmentId}
@@ -348,7 +350,7 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
 
         {/* Only where lines are put on machines by hand, and only for one day. */}
         {board.assignsMachines && day ? (
-          <MachineLoads departmentId={departmentId} day={day} />
+          <MachineLoads category={board.name} departmentId={departmentId} day={day} />
         ) : null}
 
         <ScheduledToolbar
@@ -388,79 +390,75 @@ export const ScheduledTab = ({ search, departmentId, initialDay, machine }: Sche
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          {/* The fixed columns take 1228px, with Rollforming's Export and wider Rollforming Location
-              1388px; the minimum width leaves the customer name 160px over them — crush it to nothing
+        <div
+          data-page-table
+          className='@container overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
+          {/* The fixed columns take 1204px, with Rollforming's Export and wider Rollforming Location
+              1364px; the minimum width leaves the customer name 184px over them — crush it to nothing
               and two headers print on top of each other. */}
-          <Table
-            ref={tableRef}
-            data-cards
-            className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}
-          >
+          <Table data-cards className={cn('table-fixed', board.coils ? 'min-w-388' : 'min-w-348')}>
             <colgroup>
               {selectable ? <col className='w-12' /> : null}
-              {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-              <col className='w-15' />
+              {/* As wide as the checkbox's: the expand button is the whole cell. */}
+              <col className='w-10' />
               {columns.cols}
             </colgroup>
             <TableHeader>
               <TableRow>
-                {selectable ? <TableHead /> : null}
+                {selectable ? (
+                  <TableHead>
+                    <Checkbox
+                      aria-label='Select every Reviewed order'
+                      checked={allSelected}
+                      disabled={!pickable.length}
+                      onCheckedChange={selectAll}
+                    />
+                  </TableHead>
+                ) : null}
                 <TableHead />
                 {columns.headers}
               </TableRow>
             </TableHeader>
             {isPending ? (
               <TableBody>
-                {/* Every column but the expand one, which the skeleton draws as its trailing cell. */}
-                <TableSkeletonRows
-                  columns={(selectable ? 1 : 0) + board.tables.scheduled.columns.length}
-                />
+                <TableSkeletonRows />
               </TableBody>
             ) : (
-              <>
-                <SpacerRows height={before} />
-                {items.map(item => {
-                  const part = parts[item.index]
-                  if (!part) return null
-                  const { key } = part
-                  const stock = isStockOrder(part.order)
-                  return (
-                    // One body per part, measured whole, so a part opened into its line items keeps
-                    // the rows below it in place. It carries what `TableBody` would, bar the last
-                    // row's rule, which only the last part drops — it would double the card's edge.
-                    <tbody
-                      key={item.key}
-                      data-index={item.index}
-                      ref={measure}
-                      className={cn(
-                        '[&_td:first-child]:font-medium',
-                        item.index === parts.length - 1 && '[&>tr:last-child]:border-0'
-                      )}
-                    >
-                      {/* The banding reads every other row by its place among its siblings; a hidden
+              parts.map((part, index) => {
+                const { key } = part
+                return (
+                  // One body per part, so a part opened into its line items is one block. It
+                  // carries what `TableBody` would, bar the last row's rule, which only the last
+                  // part drops — it would double the card's edge.
+                  <tbody
+                    key={key}
+                    className={cn(
+                      '[&_td:first-child]:font-medium',
+                      index === parts.length - 1 && '[&>tr:last-child>*]:border-b-0'
+                    )}
+                  >
+                    {/* The banding reads every other row by its place among its siblings; a hidden
                           row in front of every second part keeps the stripes where they were. */}
-                      {item.index % 2 ? <tr hidden /> : null}
-                      <ScheduledRow
-                        part={part}
-                        departmentId={departmentId}
-                        expanded={expandedIds.has(key)}
-                        selected={selectedIds.has(key)}
-                        exporting={exportIds.has(key)}
-                        locked={!!selectionKind && (stock ? 'stock' : 'customer') !== selectionKind}
-                        noteState={noteState(part.order)}
-                        onToggleExpanded={toggleExpanded}
-                        onSelect={select}
-                        onExport={exportPart}
-                        onReschedule={setRescheduling}
-                        onOpenOrderNotes={setNoteOrder}
-                        onOpenLineNotes={openLineNotes}
-                      />
-                    </tbody>
-                  )
-                })}
-                <SpacerRows height={after} />
-              </>
+                    {index % 2 ? <tr hidden /> : null}
+                    <ScheduledRow
+                      part={part}
+                      departmentId={departmentId}
+                      expanded={expandedKey === key}
+                      selected={selectedIds.has(key)}
+                      exporting={exportIds.has(key)}
+                      locked={!!selectionKind && kindOf(part) !== selectionKind}
+                      noteState={noteState(part.order)}
+                      onToggleExpanded={toggleExpanded}
+                      onSelect={select}
+                      onExport={exportPart}
+                      onReschedule={setRescheduling}
+                      onOpenOrderNotes={setNoteOrder}
+                      onOpenLineNotes={openLineNotes}
+                    />
+                  </tbody>
+                )
+              })
             )}
           </Table>
         </div>

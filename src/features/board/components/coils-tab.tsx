@@ -5,13 +5,6 @@ import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { QrLabels } from '@/components/qr-labels'
 import {
   Empty,
@@ -35,25 +28,28 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { ChevronRight, Database, Printer, SlidersHorizontal } from 'lucide-react'
+import { ExpandButton } from '@/components/expand-button'
+import { Database, Printer, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import {
   coilFiltersQuery,
-  coilLocationsQuery,
+  coilFoldersQuery,
   coilLotsQuery,
   departmentCoilLotsQuery,
   useSetCoilLocation,
   useUpdateCoilLot,
   type CoilFilter,
-  type CoilLot,
-  type InventoryLocation
+  type CoilLot
 } from '../api'
-import { useBoard, useViewOnly } from '../lib/board-context'
+import { useViewOnly } from '../lib/board-context'
 import { COIL_GROUPS_TABLE } from '../lib/columns'
 import { coilFilterActive, coilName, departmentCoilFilter, figure } from '../lib/coils'
+import { productFacts } from '../lib/format'
 import { CoilAdjustDialog, type CoilFigure } from './coil-adjust-dialog'
 import { CoilFilterDialog } from './coil-filter-dialog'
+import { CoilLocationDialog, type CoilPlacing } from './coil-location-dialog'
 import { CoilScanDialog } from './coil-scan-dialog'
+import { EbmsSyncMark } from './ebms-sync'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // Long enough to catch a word, short enough that leaving the tab rarely beats it.
@@ -92,6 +88,12 @@ const ASSIGNMENT_MATCH: Record<Assignment, (lot: CoilLot) => boolean> = {
   unassigned: lot => !assigned(lot)
 }
 
+const ASSIGNMENT_LABEL: Record<Assignment, string> = {
+  all: 'All',
+  assigned: 'Assigned',
+  unassigned: 'Unassigned'
+}
+
 type Department = 'in_trim' | 'in_rollforming'
 
 const DEPARTMENT_LABEL: Record<Department, string> = {
@@ -102,6 +104,11 @@ const DEPARTMENT_LABEL: Record<Department, string> = {
 const otherOf = (department: Department): Department =>
   department === 'in_trim' ? 'in_rollforming' : 'in_trim'
 
+const DEPARTMENT_CODE: Record<Department, CoilPlacing['department']> = {
+  in_trim: 'trim',
+  in_rollforming: 'rollforming'
+}
+
 /**
  * One coil product and its lots. Colour, width and gauge are the EBMS product's, so they hold for
  * every lot under it: a coil of another colour or width is another product ID. Where a lot stands is
@@ -111,7 +118,9 @@ type CoilGroup = {
   key: string
   productId: string | null
   color: string | null
+  gauge: number | null
   width: number | null
+  folderId: string | null
   lots: CoilLot[]
 }
 
@@ -123,7 +132,9 @@ const groupsOf = (lots: CoilLot[]) => {
       key,
       productId: lot.product_id,
       color: lot.color,
+      gauge: lot.gauge,
       width: lot.width,
+      folderId: lot.folder_id,
       lots: []
     }
     group.lots.push(lot)
@@ -181,9 +192,8 @@ type LotCellsProps = {
   onAdjust: (lot: CoilLot, focus: CoilFigure) => void
   onLocate: (lot: CoilLot, department: Department, checked: boolean) => void
   onSlinet: (lot: CoilLot, checked: boolean) => void
-  /** This department's inventory locations; `null` where the coil is not this department's to place. */
-  placesOf: (lot: CoilLot) => InventoryLocation[] | null
-  onPlace: (lot: CoilLot, locationId: number) => void
+  /** Another location in the department the coil stands in. */
+  onPlace: (lot: CoilLot, department: Department) => void
   onPrint: (lot: CoilLot) => void
 }
 
@@ -205,12 +215,18 @@ type LotLocationProps = {
   lot: CoilLot
   department: Department
   onTick: LotCellsProps['onLocate']
+  onPlace: LotCellsProps['onPlace']
 }
 
-/** One coil's Trim or Rollforming box. A coil in the Slinet keeps to Trim. */
-const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
+/**
+ * One coil's Trim or Rollforming box, and beside it the location the coil stands on there, which a
+ * click changes. A coil in the Slinet keeps to Trim, on no location.
+ */
+const LotLocation = ({ lot, department, onTick, onPlace }: LotLocationProps) => {
   const viewOnly = useViewOnly()
   const shut = department === 'in_rollforming' && !lot[department] && !lot.rollforming_available
+  const placed = lot[department] && !lot.in_slinet
+  const location = lot.location ?? 'No location'
 
   return (
     // The hint sits on a wrapper: a disabled control never shows its own.
@@ -221,50 +237,26 @@ const LotLocation = ({ lot, department, onTick }: LotLocationProps) => {
         disabled={viewOnly || shut}
         onCheckedChange={checked => onTick(lot, department, checked)}
       />
+      {placed ? (
+        viewOnly ? (
+          <span className='font-mono'>{location}</span>
+        ) : (
+          <Button
+            variant='link'
+            aria-label={`Location of coil ${coilName(lot)}: ${location}`}
+            title='Click to move the coil to another location'
+            onClick={() => onPlace(lot, department)}
+          >
+            <span className='font-mono'>{location}</span>
+          </Button>
+        )
+      ) : null}
       {shut && !viewOnly ? <TouchHint>{IN_SLINET}</TouchHint> : null}
     </span>
   )
 }
 
-/** A coil under its product, with where it stands: Rollforming or Trim, and inside Trim the Slinet. */
-/** Where a coil stands in its department: picked here, or by the forklift's two scans. */
-const LotPlace = ({
-  lot,
-  places,
-  onPlace
-}: { lot: CoilLot } & Pick<LotCellsProps, 'onPlace'> & {
-    places: InventoryLocation[] | null
-  }) => {
-  const viewOnly = useViewOnly()
-  if (viewOnly || !places?.length) return <span className='font-mono'>{lot.location ?? '—'}</span>
-  return (
-    <Select
-      value={lot.location_id === null ? null : String(lot.location_id)}
-      onValueChange={value => value && onPlace(lot, Number(value))}
-    >
-      <SelectTrigger size='sm' aria-label={`Location of coil ${coilName(lot)}`}>
-        <SelectValue placeholder='Pick…'>{() => lot.location ?? 'Pick…'}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {places.map(place => (
-          <SelectItem key={place.id} value={String(place.id)}>
-            {place.code ?? place.id}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
-const LotCells = ({
-  lot,
-  onAdjust,
-  onLocate,
-  onSlinet,
-  placesOf,
-  onPlace,
-  onPrint
-}: LotCellsProps) => {
+const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCellsProps) => {
   const slinetShut = !lot.in_slinet && !lot.slinet_available
   // A coil in Trim with no Coil Thickness is one the Slinet will not take: said in red where the
   // figure is missing, not only in the Slinet box's hover.
@@ -274,7 +266,8 @@ const LotCells = ({
   return (
     <>
       <TableCell card='title'>
-        <span className='flex items-center gap-1'>
+        {/* The EBMS mark drops under the number when the column has no room for it beside. */}
+        <span className='flex flex-wrap items-center gap-x-1'>
           <span className='font-mono'>{lot.lot_number ?? '—'}</span>
           {lot.lot_number ? (
             <Button
@@ -287,6 +280,14 @@ const LotCells = ({
               <Printer />
             </Button>
           ) : null}
+          <EbmsSyncMark
+            sync={lot.ebms_sync}
+            error={lot.ebms_error}
+            resend={{
+              target: { lotAutoid: lot.lot_autoid },
+              what: `the last change of coil ${coilName(lot)}`
+            }}
+          />
         </span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
@@ -320,13 +321,10 @@ const LotCells = ({
         )
       })}
       <TableCell label='Rollforming'>
-        <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} />
+        <LotLocation lot={lot} department='in_rollforming' onTick={onLocate} onPlace={onPlace} />
       </TableCell>
       <TableCell label='Trim'>
-        <LotLocation lot={lot} department='in_trim' onTick={onLocate} />
-      </TableCell>
-      <TableCell label='Location'>
-        <LotPlace lot={lot} places={placesOf(lot)} onPlace={onPlace} />
+        <LotLocation lot={lot} department='in_trim' onTick={onLocate} onPlace={onPlace} />
       </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
@@ -356,7 +354,6 @@ const LotHead = () => (
       <TableHead>Weight (lbs.)</TableHead>
       <TableHead>Rollforming</TableHead>
       <TableHead>Trim</TableHead>
-      <TableHead>Location</TableHead>
       <TableHead>Slinet In / Out</TableHead>
       <TableHead>Note</TableHead>
     </TableRow>
@@ -371,9 +368,8 @@ const LotColumns = () => (
     <col className='w-36' />
     <col className='w-32' />
     <col className='w-36' />
-    <col className='w-32' />
-    <col className='w-20' />
-    <col className='w-32' />
+    <col className='w-36' />
+    <col className='w-36' />
     <col className='w-36' />
     <col />
   </>
@@ -399,25 +395,37 @@ type ProductGridProps = CellHandlers & {
   loading: boolean
   /** A search is on: the products it found open on their coils, which is what it was looking for. */
   searching: boolean
+  /** Names the EBMS folder on each row while the rows of every folder are listed together. */
+  folderName?: (folderId: string | null) => string | undefined
 }
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
-const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridProps) => {
-  // The rows turned against how they open by default — shut, or open under a search.
-  const [flipped, setFlipped] = useState<Set<string>>(() => new Set())
+const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: ProductGridProps) => {
+  // The rows turned against how they open by default — shut, or open under a search — kept only for
+  // the search state they were turned in. Without a search that is one row at a time, as everywhere:
+  // opening another folds the last.
+  const [turned, setTurned] = useState({ searching, keys: new Set<string>() })
+  const flipped = turned.searching === searching ? turned.keys : new Set<string>()
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
 
-  const toggle = (key: string) => setFlipped(current => toggled(current, key))
+  const toggle = (key: string) =>
+    setTurned({
+      searching,
+      keys: searching ? toggled(flipped, key) : new Set(flipped.has(key) ? [] : [key])
+    })
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       {/* The other columns' widths plus the longest Product ID (24 characters), which the table
           scrolls sideways rather than cut — and wide enough that an opened product's coils, 928px
           of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
       <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
-          {/* The cell's padding plus the 28px expand button, which the cell would clip. */}
-          <col className='w-15' />
+          {/* As wide as the checkbox's: the expand button is the whole cell. */}
+          <col className='w-10' />
           {columns.cols}
         </colgroup>
         <TableHeader>
@@ -430,7 +438,7 @@ const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridPro
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableSkeletonRows columns={COIL_GROUPS_TABLE.columns.length + 1} />
+            <TableSkeletonRows />
           ) : (
             groups.map(group => {
               const open = searching !== flipped.has(group.key)
@@ -450,30 +458,26 @@ const ProductGrid = ({ groups, loading, searching, ...handlers }: ProductGridPro
                     }}
                   >
                     <TableCell card='trail'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={`Coils of ${group.productId ?? 'no product'}`}
-                        aria-expanded={open}
-                        onClick={event => {
-                          event.stopPropagation()
-                          toggle(group.key)
-                        }}
-                      >
-                        <ChevronRight className={cn('transition-transform', open && 'rotate-90')} />
-                      </Button>
+                      <ExpandButton
+                        label={`Coils of ${group.productId ?? 'no product'}`}
+                        expanded={open}
+                        onToggle={() => toggle(group.key)}
+                      />
                     </TableCell>
                     {columns.cells({
-                      pid: (
-                        <TableCell>
-                          <span className='font-mono'>{group.productId ?? '—'}</span>
-                        </TableCell>
-                      ),
+                      // With no Product ID column, the gauge and the folder tell apart products of one
+                      // colour: EBMS leaves many coils without a width, and the folder name carries
+                      // it («21-1/4" Wide 26 Ga. SS Coils»).
                       color: (
                         <TableCell>
-                          <span className='truncate' title={group.color ?? undefined}>
-                            {group.color ?? '—'}
+                          <span className='truncate' title={productFacts(group) || undefined}>
+                            {productFacts(group) || '—'}
                           </span>
+                          {folderName?.(group.folderId) ? (
+                            <span className='block truncate text-xs text-muted-foreground'>
+                              {folderName(group.folderId)}
+                            </span>
+                          ) : null}
                         </TableCell>
                       ),
                       width: (
@@ -611,16 +615,16 @@ type Moving = { to: Department; lot: CoilLot }
 
 type MoveConfirmProps = {
   moving: Moving | null
-  isPending: boolean
   onCancel: () => void
   onConfirm: (moving: Moving) => void
 }
 
 /**
  * Ticking one department's box on a coil the other holds moves it. The board asks whether the other
- * department agreed (p1 (300,689), (320,689)); Yes moves it and unticks theirs (p1 (276,702)).
+ * department agreed (p1 (300,689), (320,689)); Yes goes on to a location in the new department, and
+ * the move unticks theirs (p1 (276,702)).
  */
-const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProps) => {
+const MoveConfirm = ({ moving, onCancel, onConfirm }: MoveConfirmProps) => {
   const [moved, release] = useRetained(moving)
   const to = moved ? DEPARTMENT_LABEL[moved.to] : ''
   const from = moved ? DEPARTMENT_LABEL[otherOf(moved.to)] : ''
@@ -632,10 +636,9 @@ const MoveConfirm = ({ moving, isPending, onCancel, onConfirm }: MoveConfirmProp
       onOpenChange={open => !open && onCancel()}
       onOpenChangeComplete={release}
       title={`Have you checked with the ${from} department to ensure that it is ok to move ${what} to the ${to} department?`}
-      description={`Yes moves ${what} to ${to} and unchecks ${from} — a coil can only be in one department.`}
+      description={`Yes asks where in ${to} it goes, then moves ${what} there and unchecks ${from} — a coil can only be in one department.`}
       confirmLabel='Yes'
       cancelLabel='No'
-      isPending={isPending}
       onConfirm={() => moved && onConfirm(moved)}
     />
   )
@@ -662,9 +665,10 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   const [filterOpen, setFilterOpen] = useState(false)
   const [moving, setMoving] = useState<Moving | null>(null)
   const viewOnly = useViewOnly()
-  const board = useBoard()
   const [labelled, setLabelled] = useState<CoilLot | null>(null)
   const [assignment, setAssignment] = useState<Assignment>('all')
+  // A folder tab narrows Trim Coils to one EBMS folder; `null` is every folder.
+  const [folder, setFolder] = useState<string | null>(null)
   const [pageSize, setPageSize] = useState(40)
   const [paging, setPaging] = useState({ view: '', page: 0 })
   const listTop = useRef<HTMLDivElement>(null)
@@ -689,41 +693,74 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
   })
   const filter = trim ? departmentCoilFilter(filters) : null
   const loading = lotsPending || (trim && filterLoading)
+  const { data: folders } = useQuery({
+    ...coilFoldersQuery(departmentId),
+    enabled: trim && departmentId !== undefined
+  })
+  // A folder the Coil Filter has since emptied is no longer a tab, so the list falls back to every folder.
+  const openFolder = (trim && folders?.find(entry => entry.folder_id === folder)?.folder_id) || null
   const match = ASSIGNMENT_MATCH[assignment]
-  const inAssignment = indexed.filter(({ lot }) => match(lot))
+  const narrowed = indexed.filter(
+    ({ lot }) => match(lot) && (!openFolder || lot.folder_id === openFolder)
+  )
   const placeLot = useSetCoilLocation()
-  const { data: places } = useQuery(coilLocationsQuery(departmentId))
-  // A coil is put on this department's racks only while it stands in this department.
-  const own: Department = board.code === 'rollforming' ? 'in_rollforming' : 'in_trim'
+  // A coil stands in Trim or Rollforming only on one of its locations, so a tick into either, or out
+  // of the Slinet back onto Trim's floor, waits on a pick (Kevin's notes of 2026-11-02, N12).
+  const [placing, setPlacing] = useState<CoilPlacing | null>(null)
 
-  const moveLot = (lot: CoilLot, location: Partial<Record<Department, boolean>>) =>
-    placeLot.mutate({ lotId: lot.id, location }, { onSuccess: () => setMoving(null) })
+  const place = ({ lot, department }: CoilPlacing, locationId: number) => {
+    const into: Department = department === 'trim' ? 'in_trim' : 'in_rollforming'
+    placeLot.mutate({
+      lotId: lot.id,
+      location: {
+        location_id: locationId,
+        ...(lot[into] ? {} : { [into]: true }),
+        ...(lot.in_slinet ? { in_slinet: false } : {})
+      }
+    })
+  }
 
   const handlers: CellHandlers = {
     onAdjust: (lot, focus) => setAdjusting({ lotId: lot.id, focus }),
     onLocate: (lot, department, checked) =>
-      checked && lot[otherOf(department)]
-        ? setMoving({ lot, to: department })
-        : moveLot(lot, { [department]: checked }),
+      !checked
+        ? placeLot.mutate({ lotId: lot.id, location: { [department]: false } })
+        : lot[otherOf(department)]
+          ? setMoving({ lot, to: department })
+          : setPlacing({ lot, department: DEPARTMENT_CODE[department] }),
+    // Into the Slinet the coil leaves its location; out of it, it goes onto one of Trim's.
     onSlinet: (lot, checked) =>
-      placeLot.mutate({ lotId: lot.id, location: { in_slinet: checked } }),
-    placesOf: lot => (lot[own] ? (places ?? null) : null),
-    onPlace: (lot, locationId) =>
-      placeLot.mutate({ lotId: lot.id, location: { location_id: locationId } }),
+      checked
+        ? placeLot.mutate({ lotId: lot.id, location: { in_slinet: true } })
+        : setPlacing({ lot, department: 'trim' }),
+    onPlace: (lot, department) => setPlacing({ lot, department: DEPARTMENT_CODE[department] }),
     onPrint: setLabelled
   }
 
-  const shown = searched(inAssignment, term)
+  const shown = searched(narrowed, term)
   // A page belongs to the list it was turned on: any change to what is listed starts again at one.
-  const view = [scoped, assignment, term, pageSize].join('|')
+  const view = [scoped, assignment, openFolder, term, pageSize].join('|')
   const page = paging.view === view ? paging.page : 0
   // Pages through products, so a product's coils never split across two pages.
   const groups = groupsOf(shown)
   // An edit can drop coils off the last page; the page then steps back rather than show nothing.
   const current = Math.min(page, Math.max(0, Math.ceil(groups.length / pageSize) - 1))
   const from = current * pageSize
-  // An assignment filter left on hides the coil being searched for, and nothing on screen says so.
-  const elsewhere = assignment !== 'all' && !shown.length ? searched(indexed, term).length : 0
+  // A folder tab or an assignment filter left on hides the coil being searched for, and nothing on
+  // screen says so.
+  const elsewhere =
+    (openFolder || assignment !== 'all') && !shown.length ? searched(indexed, term).length : 0
+  const hiddenBy = [
+    openFolder && 'this folder',
+    assignment !== 'all' && ASSIGNMENT_LABEL[assignment]
+  ]
+    .filter(Boolean)
+    .join(' and ')
+  // Rows of every folder are told apart by their folder, which a folder tab already names.
+  const folderName =
+    trim && !openFolder
+      ? (id: string | null) => folders?.find(entry => entry.folder_id === id)?.name
+      : undefined
   // Read off the list on every render, so the window never shows a coil as it stood before a save.
   const adjusted = listed.find(lot => lot.id === adjusting?.lotId) ?? null
 
@@ -778,7 +815,7 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
     )
 
   return (
-    <div className='flex min-w-0 flex-col gap-3'>
+    <div className='flex min-w-0 flex-col gap-3 lg:min-h-0'>
       <StickyTop className='flex-row flex-wrap items-center'>
         {scopeTabs}
         {filterButton}
@@ -807,6 +844,36 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
             {shown.length === 1 ? 'coil' : 'coils'}
           </p>
         </div>
+
+        {/* p1 (253,624), (300,589): each EBMS folder holding a qualifying coil is a tab. The folder,
+            not the Product ID, is what tells apart two coils of one colour and gauge (Kevin's notes
+            of 2026-11-02, A8). The line is there while they load, so the list does not drop under it. */}
+        {trim && (!folders || folders.length) ? (
+          <Tabs
+            className='w-full min-w-0 md:order-3'
+            value={openFolder ?? 'all'}
+            onValueChange={value => setFolder(value === 'all' ? null : String(value))}
+          >
+            {/* A department has dozens of folders; they scroll on their own line rather than widen
+                the page under the sidebar. */}
+            <div className='scrollport overflow-x-auto max-md:scrollbar-none'>
+              <TabsList variant='line'>
+                <TabsTrigger value='all'>All folders</TabsTrigger>
+                {folders?.map(entry => (
+                  <TabsTrigger key={entry.folder_id} value={entry.folder_id}>
+                    {entry.name}
+                    <span
+                      className='font-mono text-xs text-muted-foreground'
+                      title={`${entry.products} products · ${entry.lots} coils`}
+                    >
+                      {entry.products}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+        ) : null}
       </StickyTop>
 
       {!loading && !shown.length ? (
@@ -814,25 +881,32 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
           title='No coils match'
           description={
             elsewhere
-              ? `None ${assignment} — ${elsewhere} ${elsewhere === 1 ? 'is' : 'are'} ${assignment === 'assigned' ? 'unassigned' : 'assigned'}.`
+              ? `${elsewhere} ${elsewhere === 1 ? 'coil matches' : 'coils match'} outside ${hiddenBy}.`
               : 'Clear the search to see every coil.'
           }
           action={
             elsewhere ? (
-              <Button variant='outline' onClick={() => setAssignment('all')}>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setAssignment('all')
+                  setFolder(null)
+                }}
+              >
                 Show all coils
               </Button>
             ) : null
           }
         />
       ) : (
-        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3'>
+        <div ref={listTop} className='flex scroll-mt-4 flex-col gap-3 lg:min-h-0'>
           <ProductGrid
             // Starting a search, or clearing one, starts the rows over from how it opens them.
             key={term.trim() ? 'searching' : 'listing'}
             groups={groups.slice(from, from + pageSize)}
             loading={loading}
             searching={!!term.trim()}
+            folderName={folderName}
             {...handlers}
           />
           {loading ? null : (
@@ -843,8 +917,10 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
               noun='products'
               onPage={next => {
                 setPaging({ view, page: next })
-                // The pager sits under the rows; the next page is read from its first row.
+                // The pager sits under the rows; the next page is read from its first row, at the
+                // top of the page on a phone and of the table's own box from `lg`.
                 listTop.current?.scrollIntoView({ block: 'start' })
+                listTop.current?.querySelector('[data-slot=table-container]')?.scrollTo({ top: 0 })
               }}
               onPageSize={setPageSize}
             />
@@ -883,9 +959,17 @@ export const CoilsTab = ({ search, departmentId, worker }: CoilsTabProps) => {
 
       <MoveConfirm
         moving={moving}
-        isPending={placeLot.isPending}
         onCancel={() => setMoving(null)}
-        onConfirm={next => moveLot(next.lot, { [next.to]: true })}
+        onConfirm={next => {
+          setMoving(null)
+          setPlacing({ lot: next.lot, department: DEPARTMENT_CODE[next.to] })
+        }}
+      />
+
+      <CoilLocationDialog
+        placing={placing}
+        onOpenChange={open => !open && setPlacing(null)}
+        onPick={place}
       />
     </div>
   )

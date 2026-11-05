@@ -67,7 +67,7 @@ export const ScheduleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent sizeKey='shipping:schedule-dialog' className='sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>
             {verb} {count} order{count === 1 ? '' : 's'}

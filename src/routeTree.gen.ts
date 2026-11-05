@@ -16,12 +16,13 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccessoriesRouteImport } from './routes/_app/accessories'
 import { Route as AppDriverRouteImport } from './routes/_app/driver'
 import { Route as AppLoadingRouteImport } from './routes/_app/loading'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppRollformingRouteImport } from './routes/_app/rollforming'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
-import { Route as AppSettingsGaugeWeightsRouteImport } from './routes/_app/settings/gauge-weights'
+import { Route as AppSettingsEbmsRouteImport } from './routes/_app/settings/ebms'
 import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
 import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
 import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
@@ -66,6 +67,11 @@ const AppLoadingRoute = AppLoadingRouteImport.update({
   path: '/loading',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppRollformingRoute = AppRollformingRouteImport.update({
   id: '/rollforming',
   path: '/rollforming',
@@ -91,9 +97,9 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
-const AppSettingsGaugeWeightsRoute = AppSettingsGaugeWeightsRouteImport.update({
-  id: '/gauge-weights',
-  path: '/gauge-weights',
+const AppSettingsEbmsRoute = AppSettingsEbmsRouteImport.update({
+  id: '/ebms',
+  path: '/ebms',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
 const AppSettingsLocationTypesRoute =
@@ -151,10 +157,11 @@ export interface FileRoutesByFullPath {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
+  '/reports': typeof AppReportsRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
-  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/settings/ebms': typeof AppSettingsEbmsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -172,11 +179,12 @@ export interface FileRoutesByTo {
   '/accessories': typeof AppAccessoriesRoute
   '/driver': typeof AppDriverRoute
   '/loading': typeof AppLoadingRoute
+  '/reports': typeof AppReportsRoute
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
   '/': typeof AppIndexRoute
-  '/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/settings/ebms': typeof AppSettingsEbmsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -197,11 +205,12 @@ export interface FileRoutesById {
   '/_app/accessories': typeof AppAccessoriesRoute
   '/_app/driver': typeof AppDriverRoute
   '/_app/loading': typeof AppLoadingRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/rollforming': typeof AppRollformingRoute
   '/_app/shipping': typeof AppShippingRoute
   '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/settings/gauge-weights': typeof AppSettingsGaugeWeightsRoute
+  '/_app/settings/ebms': typeof AppSettingsEbmsRoute
   '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/_app/settings/locations': typeof AppSettingsLocationsRoute
   '/_app/settings/machines': typeof AppSettingsMachinesRoute
@@ -223,10 +232,11 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
+    | '/reports'
     | '/rollforming'
     | '/shipping'
     | '/trim'
-    | '/settings/gauge-weights'
+    | '/settings/ebms'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -244,11 +254,12 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/driver'
     | '/loading'
+    | '/reports'
     | '/rollforming'
     | '/shipping'
     | '/trim'
     | '/'
-    | '/settings/gauge-weights'
+    | '/settings/ebms'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -268,11 +279,12 @@ export interface FileRouteTypes {
     | '/_app/accessories'
     | '/_app/driver'
     | '/_app/loading'
+    | '/_app/reports'
     | '/_app/rollforming'
     | '/_app/shipping'
     | '/_app/trim'
     | '/_app/'
-    | '/_app/settings/gauge-weights'
+    | '/_app/settings/ebms'
     | '/_app/settings/location-types'
     | '/_app/settings/locations'
     | '/_app/settings/machines'
@@ -343,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLoadingRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/rollforming': {
       id: '/_app/rollforming'
       path: '/rollforming'
@@ -378,11 +397,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_app/settings/gauge-weights': {
-      id: '/_app/settings/gauge-weights'
-      path: '/gauge-weights'
-      fullPath: '/settings/gauge-weights'
-      preLoaderRoute: typeof AppSettingsGaugeWeightsRouteImport
+    '/_app/settings/ebms': {
+      id: '/_app/settings/ebms'
+      path: '/ebms'
+      fullPath: '/settings/ebms'
+      preLoaderRoute: typeof AppSettingsEbmsRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
     '/_app/settings/location-types': {
@@ -452,7 +471,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppSettingsRouteRouteChildren {
-  AppSettingsGaugeWeightsRoute: typeof AppSettingsGaugeWeightsRoute
+  AppSettingsEbmsRoute: typeof AppSettingsEbmsRoute
   AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
   AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
   AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
@@ -465,7 +484,7 @@ interface AppSettingsRouteRouteChildren {
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
-  AppSettingsGaugeWeightsRoute: AppSettingsGaugeWeightsRoute,
+  AppSettingsEbmsRoute: AppSettingsEbmsRoute,
   AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
   AppSettingsLocationsRoute: AppSettingsLocationsRoute,
   AppSettingsMachinesRoute: AppSettingsMachinesRoute,
@@ -485,6 +504,7 @@ interface AppRouteRouteChildren {
   AppAccessoriesRoute: typeof AppAccessoriesRoute
   AppDriverRoute: typeof AppDriverRoute
   AppLoadingRoute: typeof AppLoadingRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppRollformingRoute: typeof AppRollformingRoute
   AppShippingRoute: typeof AppShippingRoute
   AppTrimRoute: typeof AppTrimRoute
@@ -496,6 +516,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAccessoriesRoute: AppAccessoriesRoute,
   AppDriverRoute: AppDriverRoute,
   AppLoadingRoute: AppLoadingRoute,
+  AppReportsRoute: AppReportsRoute,
   AppRollformingRoute: AppRollformingRoute,
   AppShippingRoute: AppShippingRoute,
   AppTrimRoute: AppTrimRoute,

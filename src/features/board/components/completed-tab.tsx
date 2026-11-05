@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components
 import { useQuery } from '@tanstack/react-query'
 import { History } from 'lucide-react'
 import { useState } from 'react'
-import { completedOrdersQuery, type CompletedOrder } from '../api'
+import { completedOrdersQuery } from '../api'
 import { useBoard } from '../lib/board-context'
 import { formatStamp } from '../lib/format'
 import { CompletedOrderDialog } from './completed-order-dialog'
+import { EbmsSyncMark } from './ebms-sync'
 
 const Waiting = () => (
   <span
@@ -40,7 +41,7 @@ type CompletedTabProps = {
  */
 export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
   const { tables, pack, packsAtMachine } = useBoard()
-  const [opened, setOpened] = useState<CompletedOrder | null>(null)
+  const [openedId, setOpenedId] = useState<string | null>(null)
   // The header search is the open orders' business: the history is read by opening a row.
   const {
     data: page,
@@ -50,10 +51,12 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
     refetch
   } = useQuery(completedOrdersQuery(departmentId))
   const orders = page?.results ?? []
+  // Read from the list rather than kept, so a refetch — EBMS taking a batch sent again — shows through.
+  const opened = orders.find(order => order.order === openedId) ?? null
   const columns = useColumnOrder(tables.completed)
 
   return (
-    <div className='flex min-w-0 flex-1 flex-col gap-3'>
+    <div className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       {isError && !page ? (
         <QueryError
           title='The completed orders did not load'
@@ -75,7 +78,10 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>{columns.cols}</colgroup>
             <TableHeader>
@@ -83,14 +89,14 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={4} />
+                <TableSkeletonRows />
               ) : (
                 orders.map(order => (
                   // The whole row opens it: there is one thing to do with a finished order.
                   <TableRow
                     key={order.order}
                     aria-label={`Open ${order.order_number ?? order.order}`}
-                    onClick={() => setOpened(order)}
+                    onClick={() => setOpenedId(order.order)}
                   >
                     {columns.cells({
                       ship: (
@@ -110,7 +116,10 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       completed: (
                         <TableCell>
                           {order.completed_at ? (
-                            formatStamp(order.completed_at)
+                            <span className='flex flex-wrap items-baseline gap-x-2'>
+                              {formatStamp(order.completed_at)}
+                              <EbmsSyncMark sync={order.ebms_sync} error={order.ebms_error} />
+                            </span>
                           ) : order.status === 'rolled' ? (
                             order.complete_error ? (
                               <Refused error={order.complete_error} />
@@ -163,7 +172,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
       <CompletedOrderDialog
         departmentId={departmentId}
         order={opened}
-        onOpenChange={open => !open && setOpened(null)}
+        onOpenChange={open => !open && setOpenedId(null)}
       />
     </div>
   )

@@ -146,7 +146,7 @@ export const ScheduleDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
       {/* Wide enough that a day's «1000 / 6000» budget fits its cell whole. */}
-      <DialogContent className='sm:max-w-xl'>
+      <DialogContent sizeKey='board:schedule-dialog' className='sm:max-w-xl'>
         <DialogHeader>
           <DialogTitle>{shownTitle}</DialogTitle>
           <DialogDescription>{shownDescription}</DialogDescription>

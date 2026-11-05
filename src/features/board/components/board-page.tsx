@@ -127,10 +127,11 @@ export const BoardPage = ({
 
   return (
     // `flex-1` down to the tab, so an empty tab centres its message in the page, not under the tabs.
-    <section className='flex min-w-0 flex-1 flex-col gap-3'>
+    <section className='flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0'>
       {/* The tabs stay in reach while a list scrolls, and each tab's own top sticks under them. */}
       <div
         ref={measureBar}
+        data-sticky-edge
         className='flex flex-col gap-3 bg-background md:sticky md:top-13 md:z-6 md:-mx-6 md:-mb-3 md:px-6 md:pb-3'
       >
         <DeptBar

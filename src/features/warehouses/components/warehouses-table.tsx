@@ -1,3 +1,4 @@
+import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -11,32 +12,41 @@ import {
 import type { Warehouse } from '../api'
 import { WarehouseActions } from './warehouse-actions'
 
+// Description takes the leftover width, since it is the one field that runs long. A street address
+// runs to about 40 characters.
+const COLUMNS: ColumnTable = {
+  table: 'warehouses',
+  columns: [
+    { key: 'name', label: 'Name', width: 'w-40', align: 'start', card: 'title' },
+    { key: 'address', label: 'Address', width: 'w-88', align: 'start' },
+    { key: 'description', label: 'Description', align: 'start' },
+    { key: 'default', label: 'Default', width: 'w-24' }
+  ]
+}
+
 type WarehousesTableProps = {
   warehouses: Warehouse[]
   isPending: boolean
 }
 
 export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps) => {
+  const columns = useColumnOrder(COLUMNS)
+
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       {/* `table-fixed` plus the widths below size the columns from the layout instead of from the
           widest cell, so they hold still between the skeleton, the data and every search. */}
       <Table data-cards className='min-w-4xl table-fixed'>
-        {/* Description takes the leftover width, since it is the one field that runs long. A street
-            address runs to about 40 characters. */}
         <colgroup>
-          <col className='w-40' />
-          <col className='w-88' />
-          <col />
-          <col className='w-24' />
+          {columns.cols}
           <col className='w-24' />
         </colgroup>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Default</TableHead>
+            {columns.headers}
             <TableHead>
               {/* The column is obvious from its buttons; the label is for screen readers. */}
               <span className='sr-only'>Actions</span>
@@ -45,22 +55,28 @@ export const WarehousesTable = ({ warehouses, isPending }: WarehousesTableProps)
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={4} />
+            <TableSkeletonRows actions />
           ) : (
             warehouses.map(warehouse => (
               <TableRow key={warehouse.id}>
-                <TableCell card='title'>{warehouse.name ?? '—'}</TableCell>
-                <TableCell label='Address'>{warehouse.address ?? '—'}</TableCell>
-                <TableCell label='Description'>
-                  <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
-                </TableCell>
-                <TableCell label='Default'>
-                  {warehouse.is_default ? (
-                    <Badge variant='soft'>Default</Badge>
-                  ) : (
-                    <span className='text-muted-foreground'>—</span>
-                  )}
-                </TableCell>
+                {columns.cells({
+                  name: <TableCell>{warehouse.name ?? '—'}</TableCell>,
+                  address: <TableCell>{warehouse.address ?? '—'}</TableCell>,
+                  description: (
+                    <TableCell>
+                      <span className='text-muted-foreground'>{warehouse.description ?? '—'}</span>
+                    </TableCell>
+                  ),
+                  default: (
+                    <TableCell>
+                      {warehouse.is_default ? (
+                        <Badge variant='soft'>Default</Badge>
+                      ) : (
+                        <span className='text-muted-foreground'>—</span>
+                      )}
+                    </TableCell>
+                  )
+                })}
                 <TableCell card='trail'>
                   <WarehouseActions warehouse={warehouse} />
                 </TableCell>

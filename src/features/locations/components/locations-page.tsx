@@ -16,29 +16,44 @@ import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, Printer } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { SortHead } from '@/components/table/sort-head'
+import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { sortRows, type Sort } from '@/lib/sort-rows'
 import {
   allLocationTypesQuery,
   departmentsQuery,
   locationsQuery,
   warehousePickerQuery,
-  type Location
+  type Location,
+  type LocationKind
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
 import { LocationActions } from './location-actions'
+import { KindTabs } from './kind-tabs'
 import { CreateLocationDialog } from './location-dialog'
 
 const SEARCH_DEBOUNCE_MS = 250
 
-type SortKey = 'name' | 'warehouse' | 'type' | 'weight'
+// Code, warehouse, type and weight sort the list, as EBMS's own headings do.
+const COLUMNS: ColumnTable = {
+  table: 'locations',
+  columns: [
+    { key: 'name', label: 'Name', width: 'w-40', align: 'start', card: 'title', sortable: true },
+    { key: 'warehouse', label: 'Warehouse', width: 'w-40', sortable: true },
+    { key: 'type', label: 'Location Type', width: 'w-36', sortable: true },
+    { key: 'weight', label: 'Max Weight', width: 'w-32', sortable: true },
+    { key: 'multi', label: 'Multi Order', width: 'w-32' },
+    { key: 'description', label: 'Description', align: 'start', card: 'full' }
+  ]
+}
 
 type LocationsPageProps = {
   search: string | undefined
   department: string | undefined
+  kind: LocationKind
   onSearchChange: (search: string | undefined) => void
-  onDepartmentChange: (department: string | undefined) => void
+  onDepartmentChange: (department: string) => void
+  onKindChange: (kind: LocationKind) => void
 }
 
 /**
@@ -48,18 +63,23 @@ type LocationsPageProps = {
 export const LocationsPage = ({
   search,
   department,
+  kind,
   onSearchChange,
-  onDepartmentChange
+  onDepartmentChange,
+  onKindChange
 }: LocationsPageProps) => {
-  const { data: page, isPending } = useQuery(locationsQuery(search))
+  const { data: page, isPending: rowsPending } = useQuery(locationsQuery(search))
   const { data: warehouses } = useQuery(warehousePickerQuery)
   const { data: types } = useQuery(allLocationTypesQuery)
-  const { data: departments } = useQuery(departmentsQuery)
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  // The rows are narrowed to a department, so they wait for which one too.
+  const isPending = rowsPending || departmentsPending
 
   const [term, setTerm] = useState(search ?? '')
   // By name, numbers as numbers: a location added to a series lands in it, not at the bottom.
   const [printing, setPrinting] = useState(false)
-  const [sort, setSort] = useState<Sort<SortKey>>({ key: 'name', desc: false })
+  const [sort, setSort] = useState<Sort<string>>({ key: 'name', desc: false })
+  const columns = useColumnOrder(COLUMNS, { sort, onSort: setSort })
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleSearch = (value: string) => {
@@ -69,11 +89,12 @@ export const LocationsPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = departmentByCode(racked, department)
+  // One department at a time, the first unless the link names another.
+  const active = departmentByCode(racked, department) ?? racked[0]
   const typeOf = (location: Location) => types?.find(type => type.id === location.location_type_id)
   const locations = sortRows(
     (page?.results ?? []).filter(
-      location => !active || typeOf(location)?.department_id === active.id
+      location => typeOf(location)?.department_id === active?.id && typeOf(location)?.kind === kind
     ),
     sort,
     (location, key) =>
@@ -87,13 +108,12 @@ export const LocationsPage = ({
   )
 
   // The ones a coil is put on, which the forklift scans: each gets a label with its code.
-  const inventory = locations.filter(
-    location => typeOf(location)?.kind === 'inventory' && location.code
-  )
+  const inventory = kind === 'inventory' ? locations.filter(location => location.code) : []
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+      <KindTabs kind={kind} noun='Locations' onChange={onKindChange} />
 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
@@ -119,7 +139,7 @@ export const LocationsPage = ({
             Print inventory labels
           </Button>
         ) : null}
-        <CreateLocationDialog department={active} />
+        <CreateLocationDialog department={active} kind={kind} />
       </div>
 
       {printing ? (
@@ -147,33 +167,18 @@ export const LocationsPage = ({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+        <div
+          data-page-table
+          className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+        >
           <Table data-cards className='min-w-5xl table-fixed'>
             <colgroup>
-              <col className='w-40' />
-              <col className='w-40' />
-              <col className='w-36' />
-              <col className='w-32' />
-              <col className='w-32' />
-              <col />
+              {columns.cols}
               <col className='w-24' />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <SortHead column='name' sort={sort} onSort={setSort}>
-                  Name
-                </SortHead>
-                <SortHead column='warehouse' sort={sort} onSort={setSort}>
-                  Warehouse
-                </SortHead>
-                <SortHead column='type' sort={sort} onSort={setSort}>
-                  Location Type
-                </SortHead>
-                <SortHead column='weight' sort={sort} onSort={setSort}>
-                  Max Weight
-                </SortHead>
-                <TableHead>Multi Order</TableHead>
-                <TableHead>Description</TableHead>
+                {columns.headers}
                 <TableHead>
                   {/* The column is obvious from its buttons; the label is for screen readers. */}
                   <span className='sr-only'>Actions</span>
@@ -182,35 +187,45 @@ export const LocationsPage = ({
             </TableHeader>
             <TableBody>
               {isPending ? (
-                <TableSkeletonRows columns={6} />
+                <TableSkeletonRows actions />
               ) : (
                 locations.map(location => (
                   <TableRow key={location.id}>
-                    <TableCell card='title'>
-                      <span className='font-mono'>{location.code ?? '—'}</span>
-                    </TableCell>
-                    <TableCell label='Warehouse'>
-                      {warehouses?.find(warehouse => warehouse.id === location.warehouse_id)
-                        ?.name ?? '—'}
-                    </TableCell>
-                    <TableCell label='Location Type'>
-                      {types?.find(type => type.id === location.location_type_id)?.name ?? '—'}
-                    </TableCell>
-                    <TableCell label='Max Weight'>
-                      <span className='font-mono'>{location.weight ?? '—'}</span>
-                    </TableCell>
-                    <TableCell label='Multi Order'>
-                      {location.multi_order ? (
-                        <Badge variant='soft'>{location.max_orders ?? 'Any'}</Badge>
-                      ) : (
-                        <span className='text-muted-foreground'>—</span>
-                      )}
-                    </TableCell>
-                    <TableCell label='Description' card='full'>
-                      <span className='truncate text-muted-foreground'>
-                        {location.description ?? '—'}
-                      </span>
-                    </TableCell>
+                    {columns.cells({
+                      name: (
+                        <TableCell>
+                          <span className='font-mono'>{location.code ?? '—'}</span>
+                        </TableCell>
+                      ),
+                      warehouse: (
+                        <TableCell>
+                          {warehouses?.find(warehouse => warehouse.id === location.warehouse_id)
+                            ?.name ?? '—'}
+                        </TableCell>
+                      ),
+                      type: <TableCell>{typeOf(location)?.name ?? '—'}</TableCell>,
+                      weight: (
+                        <TableCell>
+                          <span className='font-mono'>{location.weight ?? '—'}</span>
+                        </TableCell>
+                      ),
+                      multi: (
+                        <TableCell>
+                          {location.multi_order ? (
+                            <Badge variant='soft'>{location.max_orders ?? 'Any'}</Badge>
+                          ) : (
+                            <span className='text-muted-foreground'>—</span>
+                          )}
+                        </TableCell>
+                      ),
+                      description: (
+                        <TableCell>
+                          <span className='truncate text-muted-foreground'>
+                            {location.description ?? '—'}
+                          </span>
+                        </TableCell>
+                      )
+                    })}
                     <TableCell card='trail'>
                       <LocationActions location={location} />
                     </TableCell>

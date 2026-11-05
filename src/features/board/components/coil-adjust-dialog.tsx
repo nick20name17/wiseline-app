@@ -303,11 +303,16 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
         onConfirm={() => {
           if (depleting)
             deplete.mutate(lot.id, {
-              onSuccess: () =>
-                toast.add({
-                  type: 'success',
-                  title: `Coil ${name} zeroed out in EBMS and deleted`
-                }),
+              onSuccess: queued =>
+                toast.add(
+                  queued
+                    ? {
+                        type: 'warning',
+                        title: `Coil ${name} deleted`,
+                        description: `EBMS is not answering: it is zeroed out there once EBMS is back.`
+                      }
+                    : { type: 'success', title: `Coil ${name} zeroed out in EBMS and deleted` }
+                ),
               onError: error =>
                 toast.add({
                   type: 'error',
@@ -319,11 +324,19 @@ const AdjustForm = ({ lot, focus, focusRef, onClose }: AdjustFormProps) => {
             confirm.mutate(
               { lotId: lot.id, values: values() },
               {
-                onSuccess: () =>
-                  toast.add({
-                    type: 'success',
-                    title: 'Adjustment pushed to EBMS (linear feet updated)'
-                  }),
+                onSuccess: queued =>
+                  toast.add(
+                    queued
+                      ? {
+                          type: 'warning',
+                          title: 'Adjustment made (linear feet updated)',
+                          description: 'EBMS is not answering: it goes to EBMS once EBMS is back.'
+                        }
+                      : {
+                          type: 'success',
+                          title: 'Adjustment pushed to EBMS (linear feet updated)'
+                        }
+                  ),
                 onError: error =>
                   toast.add({
                     type: 'error',
@@ -356,7 +369,11 @@ export const CoilAdjustDialog = ({ lot: current, focus, onOpenChange }: CoilAdju
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-2xl' initialFocus={focusRef}>
+      <DialogContent
+        sizeKey='board:coil-adjust-dialog'
+        className='sm:max-w-2xl'
+        initialFocus={focusRef}
+      >
         <DialogHeader>
           <DialogTitle>Coil Adjustment</DialogTitle>
           <DialogDescription>

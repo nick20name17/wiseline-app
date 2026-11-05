@@ -128,7 +128,7 @@ export const CreateWarehouseDialog = () => {
         <PlusCircle data-icon='inline-start' />
         Add warehouse
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='warehouses:warehouse-dialog'>
         <DialogHeader>
           <DialogTitle>Add warehouse</DialogTitle>
         </DialogHeader>
@@ -151,7 +151,7 @@ export const UpdateWarehouseDialog = ({
   onOpenChange
 }: UpdateWarehouseDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='warehouses:warehouse-dialog'>
       <DialogHeader>
         <DialogTitle>Edit warehouse</DialogTitle>
       </DialogHeader>

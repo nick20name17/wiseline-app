@@ -3,7 +3,7 @@ import type { TableCellCard } from '@/components/ui/table'
 // Narrower and a heading is no longer there to grab; wider and one column pushes the rest of the
 // table out of sight. A column whose content needs other bounds sets its own.
 const MIN_WIDTH = 64
-const MAX_WIDTH = 640
+const MAX_WIDTH = 740
 
 export type Column = {
   key: string
@@ -11,13 +11,17 @@ export type Column = {
   label: string
   /** The width class of the column's `<col>`; none takes what the others leave. */
   width?: string
-  /** px a drag cannot take it below or past; 64 and 640 unless set. */
+  /** px a drag cannot take it below or past; 64 and 740 unless set. */
   minWidth?: number
   maxWidth?: number
   /** The column is obvious from its cells, so its heading is for screen readers only. */
   hideLabel?: boolean
+  /** Free text, read from its start; any other column is centred. */
+  align?: 'start'
   /** Where its cells go when the table is laid out as cards; a labelled field unless set. */
   card?: TableCellCard
+  /** A click on the heading sorts the table by it, when the table passes a sort. */
+  sortable?: boolean
 }
 
 /** The least a drag leaves the column, and the least a table leaves one with no width of its own. */

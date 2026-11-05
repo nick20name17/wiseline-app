@@ -1,3 +1,4 @@
+import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,14 +12,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +23,7 @@ import {
   useCreateStockManufacturing,
   type StockCardOption
 } from '../api'
+import { STOCK_BATCHES_TABLE } from '../lib/columns'
 import { formatStamp } from '../lib/format'
 import { pickedProduct } from '../lib/product-pick'
 import { ProductPicker } from './product-picker'
@@ -67,6 +62,7 @@ export const StockManufacturingDialog = ({
   const [lines, setLines] = useState<Line[]>(() => [emptyLine()])
   const [view, setView] = useState<'new' | 'sent'>('new')
   const [error, setError] = useState('')
+  const columns = useColumnOrder(STOCK_BATCHES_TABLE)
   const { data: batches } = useQuery(
     manufacturingBatchesQuery(departmentId, open && view === 'sent')
   )
@@ -119,7 +115,7 @@ export const StockManufacturingDialog = ({
       onOpenChange={onOpenChange}
       onOpenChangeComplete={next => !next && setView('new')}
     >
-      <DialogContent className='sm:max-w-2xl'>
+      <DialogContent sizeKey='board:stock-manufacturing-dialog' className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Stock Manufacturing</DialogTitle>
           <DialogDescription>
@@ -134,7 +130,7 @@ export const StockManufacturingDialog = ({
           </TabsList>
         </Tabs>
 
-        <div className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-40 md:max-h-96 md:overflow-y-auto'>
           {view === 'new' ? (
             // Labels over the boxes, as Create stock order has them: the lines are a form being
             // written, not a table of records.
@@ -173,34 +169,40 @@ export const StockManufacturingDialog = ({
               ))}
             </div>
           ) : batches?.length ? (
-            <Table data-cards>
+            <Table data-cards className='table-fixed'>
+              <colgroup>{columns.cols}</colgroup>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Sent</TableHead>
-                  <TableHead>Batch</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>Items</TableHead>
-                </TableRow>
+                <TableRow>{columns.headers}</TableRow>
               </TableHeader>
               <TableBody>
                 {batches.map(batch => (
                   <TableRow key={batch.id}>
-                    <TableCell card='subtitle'>
-                      <span className='font-mono text-xs'>
-                        {batch.created_at ? formatStamp(batch.created_at) : '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell card='title'>
-                      <span className='font-mono'>{batch.ebms_batch ?? '—'}</span>
-                    </TableCell>
-                    <TableCell label='From'>{batch.order ?? 'Stock Manufacturing'}</TableCell>
-                    <TableCell label='Items' card='full'>
-                      <span className='text-muted-foreground'>
-                        {batch.lines
-                          .map(line => `${line.quantity} × ${line.product_id}`)
-                          .join(', ')}
-                      </span>
-                    </TableCell>
+                    {columns.cells({
+                      sent: (
+                        <TableCell>
+                          {/* The time goes under the date: the dialog has no room for both on one line. */}
+                          <span className='font-mono text-xs whitespace-normal'>
+                            {batch.created_at ? formatStamp(batch.created_at) : '—'}
+                          </span>
+                        </TableCell>
+                      ),
+                      batch: (
+                        <TableCell>
+                          <span className='font-mono'>{batch.ebms_batch ?? '—'}</span>
+                        </TableCell>
+                      ),
+                      from: <TableCell>{batch.order ?? 'Stock Manufacturing'}</TableCell>,
+                      items: (
+                        <TableCell>
+                          {/* A fixed column clips what does not fit; every item sent is the point. */}
+                          <span className='whitespace-normal text-muted-foreground'>
+                            {batch.lines
+                              .map(line => `${line.quantity} × ${line.product_id}`)
+                              .join(', ')}
+                          </span>
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))}
               </TableBody>

@@ -6,7 +6,7 @@ import { Lock } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { departmentRoleQuery, useBoardDepartment } from '../api'
 import { BOARDS, type BoardCode } from '../lib/boards'
-import { BoardContext, ViewOnlyContext } from '../lib/board-context'
+import { BoardContext, BoardRoleContext, ViewOnlyContext } from '../lib/board-context'
 import { BoardPage } from './board-page'
 import { BoardSkeleton } from './board-skeleton'
 import { PackageLabelProvider } from './package-label'
@@ -44,11 +44,13 @@ export const BoardGate = ({ code, userRole, userId, ...page }: BoardGateProps) =
   if (department && (role === 'manager' || role === 'worker' || role === 'viewer'))
     return (
       <BoardContext value={board}>
-        <ViewOnlyContext value={role === 'viewer'}>
-          <PackageLabelProvider>
-            <BoardPage {...page} departmentId={department.id} role={role} />
-          </PackageLabelProvider>
-        </ViewOnlyContext>
+        <BoardRoleContext value={role}>
+          <ViewOnlyContext value={role === 'viewer'}>
+            <PackageLabelProvider>
+              <BoardPage {...page} departmentId={department.id} role={role} />
+            </PackageLabelProvider>
+          </ViewOnlyContext>
+        </BoardRoleContext>
       </BoardContext>
     )
 

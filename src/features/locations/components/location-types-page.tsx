@@ -1,52 +1,44 @@
-import { Badge } from '@/components/ui/badge'
 import { SearchInput } from '@/components/search-input'
-import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
 import { departmentByCode } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
 import { Tags } from 'lucide-react'
 import { useRef, useState } from 'react'
-import {
-  departmentsQuery,
-  locationTypesQuery,
-  warehousePickerQuery,
-  LOCATION_KIND_LABELS
-} from '../api'
+import { departmentsQuery, locationTypesQuery, type LocationKind } from '../api'
 import { rackedDepartments } from '../lib/departments'
 import { DepartmentPills } from '@/components/department-pills'
-import { LocationTypeActions } from './location-actions'
+import { KindTabs } from './kind-tabs'
 import { CreateLocationTypeDialog } from './location-type-dialog'
+import { LocationTypesTable } from './location-types-table'
 
 const SEARCH_DEBOUNCE_MS = 250
 
 type LocationTypesPageProps = {
   search: string | undefined
   department: string | undefined
+  kind: LocationKind
   onSearchChange: (search: string | undefined) => void
-  onDepartmentChange: (department: string | undefined) => void
+  onDepartmentChange: (department: string) => void
+  onKindChange: (kind: LocationKind) => void
 }
 
 /**
  * Location types are how a location gets a department: the type carries it, the locations under it
- * inherit it. Deleting one is refused while any location still points at it.
+ * inherit it. Deleting one is refused while any location still points at it. Their order here is the
+ * order the Select Location window lists them in.
  */
 export const LocationTypesPage = ({
   search,
   department,
+  kind,
   onSearchChange,
-  onDepartmentChange
+  onDepartmentChange,
+  onKindChange
 }: LocationTypesPageProps) => {
-  const { data: page, isPending } = useQuery(locationTypesQuery(search))
-  const { data: departments } = useQuery(departmentsQuery)
-  const { data: warehouses } = useQuery(warehousePickerQuery)
+  const { data: page, isPending: rowsPending } = useQuery(locationTypesQuery(search))
+  const { data: departments, isPending: departmentsPending } = useQuery(departmentsQuery)
+  // The rows are narrowed to a department, so they wait for which one too.
+  const isPending = rowsPending || departmentsPending
 
   const [term, setTerm] = useState(search ?? '')
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -58,13 +50,17 @@ export const LocationTypesPage = ({
   }
 
   const racked = rackedDepartments(departments)
-  const active = departmentByCode(racked, department)
+  // One department at a time, the first unless the link names another.
+  const active = departmentByCode(racked, department) ?? racked[0]
   // A type carries its department, so one department's types are narrowed here from the one list.
-  const types = (page?.results ?? []).filter(type => !active || type.department_id === active.id)
+  const types = (page?.results ?? []).filter(
+    type => type.department_id === active?.id && type.kind === kind
+  )
 
   return (
-    <section className='flex flex-1 flex-col gap-4'>
+    <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
       <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+      <KindTabs kind={kind} noun='Location Types' onChange={onKindChange} />
 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
         {/* On a phone the add button spans the top line and the search takes the full line below it. */}
@@ -84,7 +80,7 @@ export const LocationTypesPage = ({
           ) : null}
         </div>
 
-        <CreateLocationTypeDialog departmentId={active?.id} />
+        <CreateLocationTypeDialog departmentId={active?.id} kind={kind} />
       </div>
 
       {!isPending && !types.length ? (
@@ -102,68 +98,12 @@ export const LocationTypesPage = ({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
-          <Table data-cards className='min-w-3xl table-fixed'>
-            <colgroup>
-              <col className='w-48' />
-              <col className='w-40' />
-              {active ? null : <col className='w-36' />}
-              {/* Wide enough for the Inventory badge. */}
-              <col className='w-36' />
-              <col />
-              <col className='w-24' />
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Warehouse</TableHead>
-                {/* Under one department the pill already says which; under All it is a column. */}
-                {active ? null : <TableHead>Department</TableHead>}
-                <TableHead>Holds</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>
-                  {/* The column is obvious from its buttons; the label is for screen readers. */}
-                  <span className='sr-only'>Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isPending ? (
-                <TableSkeletonRows columns={active ? 4 : 5} />
-              ) : (
-                types.map(type => (
-                  <TableRow key={type.id}>
-                    <TableCell card='title'>{type.name ?? '—'}</TableCell>
-                    <TableCell label='Warehouse'>
-                      {warehouses?.find(warehouse => warehouse.id === type.warehouse_id)?.name ??
-                        '—'}
-                    </TableCell>
-                    {active ? null : (
-                      <TableCell label='Department'>
-                        {departments?.find(entry => entry.id === type.department_id)?.name ?? '—'}
-                      </TableCell>
-                    )}
-                    <TableCell label='Holds'>
-                      {type.kind === 'inventory' ? (
-                        <Badge variant='muted'>Inventory</Badge>
-                      ) : (
-                        LOCATION_KIND_LABELS[type.kind]
-                      )}
-                    </TableCell>
-                    <TableCell label='Description' card='full'>
-                      <span className='truncate text-muted-foreground'>
-                        {type.description ?? '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell card='trail'>
-                      <LocationTypeActions locationType={type} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <LocationTypesTable
+          types={types}
+          departmentId={active?.id}
+          isPending={isPending}
+          searching={!!search}
+        />
       )}
     </section>
   )

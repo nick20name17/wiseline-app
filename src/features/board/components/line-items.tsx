@@ -146,11 +146,6 @@ export const LineItems = ({
                         />
                       </TableCell>
                     ),
-                    pid: (
-                      <TableCell>
-                        <span className='font-mono'>{item.id_inven ?? '—'}</span>
-                      </TableCell>
-                    ),
                     desc: (
                       <TableCell>
                         <Description text={item.description} />

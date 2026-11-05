@@ -73,7 +73,7 @@ export const ReadyCount = ({ order, readiness, className }: ReadyCountProps) => 
       >
         {all ? 'All ready' : `${readiness.lines_ready} of ${readiness.lines_total} ready`}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='shipping:order-readiness'>
         <DialogHeader>
           <DialogTitle>Lines · Order {readiness.order_number ?? '—'}</DialogTitle>
           <DialogDescription>

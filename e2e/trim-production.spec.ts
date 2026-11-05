@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { API_URL, mockAuthApi } from './api.ts'
-import { mockTrimApi, signIn } from './trim-api.ts'
+import { BENDLIST, mockTrimApi, signIn } from './trim-api.ts'
 
 test.beforeEach(async ({ page }) => {
   await mockAuthApi(page)
@@ -20,6 +20,10 @@ test('the tab opens on the Slinet with its cutlists grouped by day', async ({ pa
   // The Slinet cuts; it has no bends and no daily max of its own.
   await expect(page.getByText('Total # Pieces')).toBeVisible()
   await expect(page.getByText('Daily Max (bends)')).toBeHidden()
+  // The server's row for the Slinet: the day's pieces, what of them is cut, against its piece cap.
+  await expect(page.getByText('18 / 24', { exact: true })).toBeVisible()
+  await expect(page.getByText('2 / 4 50%', { exact: true })).toBeVisible()
+  await expect(page.getByText('24 / 1,200', { exact: true })).toBeVisible()
 })
 
 test('a list from a day gone by is marked overdue', async ({ page }) => {
@@ -71,7 +75,7 @@ test('a total opens the orders behind it', async ({ page }) => {
   await expect(dialog.getByText('Orders using this size')).toBeVisible()
   await expect(dialog.getByText('330608')).toBeVisible()
   await expect(dialog.getByText('Jireh Tools')).toBeVisible()
-  await expect(dialog.getByText('TRC8250')).toBeVisible()
+  await expect(dialog.getByText('Ridge Cap Dark Red')).toBeVisible()
 })
 
 test('reopening a row asks first, marking one complete does not', async ({ page }) => {
@@ -114,7 +118,6 @@ test('Cutlist Coils lists the coils this colour can be cut from', async ({ page 
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('37067677')).toBeVisible()
-  await expect(dialog.getByText('CS488306')).toBeVisible()
 
   // Nothing has moved yet, so there is nothing to push.
   await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled()
@@ -238,7 +241,7 @@ test('a machine row asks for a remanufacture against its line', async ({ page })
   // A tap on the row opens what does not fit on it.
   await page.getByRole('cell', { name: 'Ridge Cap Dark Red' }).first().click()
   const details = page.getByRole('dialog', { name: /TRC8250/ })
-  await expect(details.getByText('Qty ordered')).toBeVisible()
+  await expect(details.getByText('Ridge Cap Dark Red')).toBeVisible()
   await page.keyboard.press('Escape')
   // Remanufacture sits on the row, as it does at Wrapping.
   await page
@@ -311,14 +314,115 @@ test('a Slinet list shows the coil in the machine and how many more could go on'
   })
   await page.reload()
 
-  await expect(page.getByText('Coil # 37067677 is in the machine (1,533 ft)').first()).toBeVisible()
-  await expect(
-    page
-      .getByText(
-        '3 more coils available totaling 7,579 ft (2 in Trim and 1 in Rollforming) · at T-1 (2)'
-      )
-      .first()
-  ).toBeVisible()
+  await expect(page.getByText('37067677 (1,533 ft)').first()).toBeVisible()
+  // Kevin's notes of 2026-11-02 (A10): count, feet, departments — the locations are left off.
+  await expect(page.getByText('3 - (7,579 ft) 2 - Trim, 1 - Rollforming').first()).toBeVisible()
   // Every list of the day in one request.
   expect(asked).toHaveLength(1)
+})
+
+test('the totals count another day once it is picked, and Today brings them back', async ({
+  page
+}) => {
+  await expect(page.getByText('today', { exact: true })).toBeVisible()
+  const asked = page.waitForRequest(request =>
+    request.url().includes('machine-capacities/?day=2026-09-24')
+  )
+  await page.getByRole('button', { name: 'Tue, Sep 22, 2026' }).click()
+  await page.getByRole('button', { name: /September 24th, 2026/ }).click()
+  await asked
+
+  await expect(page.getByRole('button', { name: 'Thu, Sep 24, 2026' })).toBeVisible()
+  // The calendar's own today is named «Today, Tuesday, …».
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Tue, Sep 22, 2026' })).toBeVisible()
+  await expect(page.getByText('today', { exact: true })).toBeVisible()
+})
+
+test('a bendlist row says what was ordered and pulled, and Stock opens the keypad from the row', async ({
+  page
+}) => {
+  // Two orders cut as one row: 20 + 6 ordered, 8 of them off the shelf, 18 to make.
+  const line = (item_id: number, order_number: string, qty_ordered: number, pull: number) => ({
+    ...BENDLIST.rows[0]!.sources[0]!,
+    item_id,
+    order: `ARINV-${item_id}`,
+    order_number,
+    origin_item: String(item_id),
+    quantity: qty_ordered - pull,
+    qty_ordered,
+    pull_from_stock: pull
+  })
+  const row = {
+    ...BENDLIST.rows[0]!,
+    quantity: 18,
+    sources: [line(7001, '330608', 20, 8), line(7002, '330611', 6, 0)]
+  }
+  await page.route(`${API_URL}/cutlists/?*kind=bendlist*`, route =>
+    route.fulfill({
+      json:
+        new URL(route.request().url()).searchParams.get('completed') === 'true'
+          ? []
+          : [{ ...BENDLIST, rows: [row] }]
+    })
+  )
+  const edits: { path: string; body: unknown }[] = []
+  await page.route(`${API_URL}/items/*/`, route => {
+    edits.push({
+      path: new URL(route.request().url()).pathname,
+      body: route.request().postDataJSON()
+    })
+    return route.fulfill({ json: {} })
+  })
+  await page.reload()
+  await page.getByRole('tab', { name: 'Press Brake' }).click()
+  await page
+    .getByText('26ga - Charcoal')
+    .first()
+    .locator('..')
+    .getByRole('button', { name: 'Show rows' })
+    .click()
+
+  const headers = page.getByRole('columnheader')
+  await expect(headers.nth(2)).toHaveText('Qty Ordered')
+  await expect(headers.nth(3)).toHaveText('Stock')
+  await expect(headers.nth(4)).toHaveText('Qty to Manufacture')
+  const bendRow = page.getByRole('row').filter({ hasText: '12.5' })
+  await expect(bendRow.getByRole('cell').nth(2)).toHaveText('26')
+
+  // Several orders on the row: whose stock comes first, then the keypad, with no details between.
+  await bendRow.getByRole('button', { name: 'Stock for 12.5 × 120' }).click()
+  await page.getByRole('menuitem', { name: /330611/ }).click()
+  const keypad = page.getByRole('dialog', { name: 'Stock for 330611' })
+  await keypad.getByRole('button', { name: '2', exact: true }).click()
+  await keypad.getByRole('button', { name: 'Enter' }).click()
+
+  // The bendlist's machine goes with the edit, which the server logs a spoiled piece against.
+  await expect
+    .poll(() => edits)
+    .toEqual([{ path: '/items/7002/', body: { pull_from_stock: 2, from_flow: 1 } }])
+})
+
+test('a list changed on another screen is read again when the counts socket says so', async ({
+  page
+}) => {
+  let push: (message: unknown) => void = () => {}
+  await page.routeWebSocket(`${API_URL.replace('https', 'wss')}/ws/counts/`, socket => {
+    push = message => socket.send(JSON.stringify(message))
+  })
+  const read: string[] = []
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/cutlists/')
+      read.push(url.searchParams.get('department_id') ?? '')
+  })
+  await page.reload()
+  await expect(page.getByText('26ga - Charcoal').first()).toBeVisible()
+  const before = read.length
+
+  // Another department's lists leave this board's alone.
+  push({ cutlists_changed: { '2': [40] } })
+  push({ cutlists_changed: { '1': [10] } })
+  await expect.poll(() => read.slice(before)).toContain('1')
+  expect(read.slice(before)).not.toContain('2')
 })

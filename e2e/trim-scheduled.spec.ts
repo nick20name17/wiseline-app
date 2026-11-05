@@ -196,12 +196,24 @@ test('the day tab gear opens the machine capacities for that day', async ({ page
   await expect(page.getByText('(4 - Stock)').first()).toBeVisible()
 })
 
+test('the header box ticks only what a row’s own box could: Reviewed, of one kind', async ({
+  page
+}) => {
+  await page.getByLabel('Select every Reviewed order').click()
+  // Customer orders over stock when nothing is ticked yet; 330615 is not Reviewed.
+  await expect(page.getByLabel('Select order 330608 for release')).toBeChecked()
+  await expect(page.getByLabel('Select order S1042 for release')).not.toBeChecked()
+
+  await page.getByLabel('Select every Reviewed order').click()
+  await expect(page.getByLabel('Select order 330608 for release')).not.toBeChecked()
+})
+
 test('Allocated Stock reports what reviewed orders draw from stock', async ({ page }) => {
   await page.getByRole('button', { name: 'Allocated Stock' }).click()
 
   await expect(page.getByRole('heading', { name: 'Allocated stock' })).toBeVisible()
   await expect(page.getByText('Charcoal', { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'TSG8306' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Snow Guard Charcoal' })).toBeVisible()
 })
 
 test('expanding a scheduled order offers the machine, stock and vented columns', async ({
@@ -214,6 +226,19 @@ test('expanding a scheduled order offers the machine, stock and vented columns',
   await expect(page.getByRole('columnheader', { name: 'Vented' })).toBeVisible()
   await expect(page.getByLabel('Vent TED8250')).toBeVisible()
   await expect(page.getByLabel('Machine for TED8250')).toHaveText(/Assign/)
+})
+
+test('Tab picks a machine and goes on to the next field of the line', async ({ page }) => {
+  await page.getByText('330615').click()
+  await page.getByLabel('Machine for TED8250').focus()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Tab')
+
+  // Not to the menu's focus guards, which leave with it and drop focus on the page.
+  await expect(page.getByLabel('From stock for TED8250')).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByLabel(/^Description for TED8250/)).toBeFocused()
 })
 
 test('the capacities report prints on its own sheet', async ({ page }) => {

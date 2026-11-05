@@ -17,7 +17,7 @@ type StockCardsDialogProps = {
 /** The Stock Cards window the Unscheduled tab opens p1 (95,301). */
 export const StockCardsDialog = ({ open, onOpenChange }: StockCardsDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className='sm:max-w-3xl'>
+    <DialogContent sizeKey='board:stock-cards-dialog' className='sm:max-w-3xl'>
       <DialogHeader>
         <DialogTitle>Stock Cards</DialogTitle>
         <DialogDescription>

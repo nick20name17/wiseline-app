@@ -1,27 +1,20 @@
 import { byDay, formatDate, formatLongDate, today } from '@/lib/days'
+import { useColumnOrder } from '@/components/table/column-order'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
 import { PackageCheck } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { packagingQuery, prioritiesQuery, wrappingRowsQuery, type PackagingOrder } from '../api'
+import { PACKAGING_TABLE } from '../lib/columns'
 import { matchesSearch } from '../lib/search'
 import { orderStatus } from '@/lib/status'
 import { matchesWrapSearch } from '../lib/wrapping'
 import { PriorityPill } from '@/components/priority-pill'
 import { StatusPill } from '@/components/status-pill'
 import { WrapOrder } from './wrap-order'
-
-const COLUMNS = 7
 
 /** «Overdue Accessories to be packaged need to be highlighted in red» p3 (1271,348). */
 const isOverdue = (order: PackagingOrder) =>
@@ -38,6 +31,7 @@ type PackagingTabProps = {
  */
 export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
   const [opened, setOpened] = useState<string | null>(null)
+  const columns = useColumnOrder(PACKAGING_TABLE)
   const {
     data: orders,
     isPending,
@@ -100,37 +94,24 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
     )
 
   return (
-    <div className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'>
+    <div
+      data-page-table
+      className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
+    >
       <Table data-cards className='min-w-4xl table-fixed'>
-        <colgroup>
-          <col className='w-40' />
-          <col className='w-36' />
-          <col className='w-32' />
-          <col />
-          <col className='w-24' />
-          <col className='w-32' />
-          <col className='w-40' />
-        </colgroup>
+        <colgroup>{columns.cols}</colgroup>
         <TableHeader>
-          <TableRow>
-            <TableHead>Prep Date</TableHead>
-            <TableHead>Order #</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Truck</TableHead>
-            <TableHead>Ship Via</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
+          <TableRow>{columns.headers}</TableRow>
         </TableHeader>
         <TableBody>
           {isPending ? (
-            <TableSkeletonRows columns={COLUMNS} />
+            <TableSkeletonRows />
           ) : (
             days.map(day => (
               <Fragment key={day.date}>
                 {/* «a distinct line between the different days» p3 (1249,187). */}
                 <TableRow data-divider>
-                  <TableCell colSpan={COLUMNS}>
+                  <TableCell colSpan={columns.order.length}>
                     <span className='text-xs font-semibold tracking-wider uppercase'>
                       {formatLongDate(day.date)}
                       {day.date === today() ? ' · today' : ''}
@@ -155,39 +136,53 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
                       className={released ? 'cursor-pointer' : undefined}
                       onClick={released ? () => setOpened(order.order) : undefined}
                     >
-                      <TableCell label='Prep Date'>{formatDate(order.prep_date)}</TableCell>
-                      <TableCell card='title'>
-                        <span className='font-mono font-medium'>
-                          {order.order_number ?? order.order}
-                        </span>
-                      </TableCell>
-                      <TableCell label='Priority'>
-                        {priority ? (
-                          <PriorityPill priority={priority} />
-                        ) : (
-                          <span className='text-muted-foreground'>—</span>
-                        )}
-                      </TableCell>
-                      <TableCell card='subtitle'>
-                        <span className='truncate'>{order.customer ?? '—'}</span>
-                      </TableCell>
-                      <TableCell label='Truck'>
-                        {/* «If the order is not assigned to a Truck yet, then the column … would just stay
-                            blank» p3 (1239,204). */}
-                        <span className='font-mono text-muted-foreground'>{order.truck}</span>
-                      </TableCell>
-                      <TableCell label='Ship Via'>
-                        <span className='text-muted-foreground'>{order.ship_via ?? '—'}</span>
-                      </TableCell>
-                      <TableCell label='Status'>
-                        <StatusPill status={orderStatus(order.status)} />
-                        {/* Why the row does not open is its hover title on a desk. */}
-                        {released ? null : (
-                          <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
-                            Not on the bench yet
-                          </span>
-                        )}
-                      </TableCell>
+                      {columns.cells({
+                        prep: <TableCell>{formatDate(order.prep_date)}</TableCell>,
+                        order: (
+                          <TableCell>
+                            <span className='font-mono font-medium'>
+                              {order.order_number ?? order.order}
+                            </span>
+                          </TableCell>
+                        ),
+                        priority: (
+                          <TableCell>
+                            {priority ? (
+                              <PriorityPill priority={priority} />
+                            ) : (
+                              <span className='text-muted-foreground'>—</span>
+                            )}
+                          </TableCell>
+                        ),
+                        customer: (
+                          <TableCell>
+                            <span className='truncate'>{order.customer ?? '—'}</span>
+                          </TableCell>
+                        ),
+                        truck: (
+                          <TableCell>
+                            {/* «If the order is not assigned to a Truck yet, then the column … would just stay
+                                blank» p3 (1239,204). */}
+                            <span className='font-mono text-muted-foreground'>{order.truck}</span>
+                          </TableCell>
+                        ),
+                        shipvia: (
+                          <TableCell>
+                            <span className='text-muted-foreground'>{order.ship_via ?? '—'}</span>
+                          </TableCell>
+                        ),
+                        status: (
+                          <TableCell>
+                            <StatusPill status={orderStatus(order.status)} />
+                            {/* Why the row does not open is its hover title on a desk. */}
+                            {released ? null : (
+                              <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>
+                                Not on the bench yet
+                              </span>
+                            )}
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
                   )
                 })}

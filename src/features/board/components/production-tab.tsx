@@ -1,14 +1,15 @@
 import { StickyTop } from './sticky-top'
 import { useBoard, useViewOnly } from '../lib/board-context'
-import { byDay, formatDate, today } from '@/lib/days'
+import { byDay, formatDate, fromIsoDay, toIsoDay, today } from '@/lib/days'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, Database, Factory, History, Layers } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   cutlistCoilSummariesQuery,
   cutlistsQuery,
@@ -21,15 +22,10 @@ import {
   type Remanufacturing,
   type WrappingRow
 } from '../api'
-import {
-  hasSlinetStarted,
-  isBender,
-  slinetListsFor,
-  slinetTotals,
-  type CutlistGroup
-} from '../lib/cutlists'
+import { hasSlinetStarted, isBender, slinetListsFor, type CutlistGroup } from '../lib/cutlists'
 import { SLINET, setDone, setStation, useProductionView } from '../lib/production-view'
-import { Cap, Progress } from './capacity-parts'
+import { Progress } from './capacity-parts'
+import { formatCount } from '../lib/format'
 import { CutlistCard } from './cutlist-card'
 import { CutlistCoilsDialog } from './cutlist-coils-dialog'
 import { CutlistTotalDialog } from './cutlist-total-dialog'
@@ -49,51 +45,71 @@ const stockNote = (value: number) => (value ? ` (${value} of them from stock ord
 type TotalsProps = {
   departmentId: number | undefined
   machine: Machine | null
-  /** The Slinet, whose Daily Piece Cap its strip reads against. */
+  /** The Slinet, whose row of the day's capacities its strip reads. */
   cutterId: number | undefined
-  /** Every Slinet list, active and completed; only read on the Slinet's own strip. */
-  slinetLists: Cutlist[]
 }
 
+type StatProps = { label: string; title?: string; children: ReactNode }
+
+/** One figure of the bar: its name over it, every figure the same width and type. */
+const Stat = ({ label, title, children }: StatProps) => (
+  <span className='flex w-48 flex-col gap-1 text-center' title={title}>
+    <span className='text-xs tracking-wider text-muted-foreground uppercase'>{label}</span>
+    {children}
+  </span>
+)
+
 /**
- * What this station has in front of it today, how much of it is done, and how full that makes its
- * day — what the capacity report says, where the station works. The Slinet cuts rather than bends,
- * so it counts pieces against its piece cap where a machine counts bends against its daily max.
+ * What this station has in front of it on a day, today unless another is picked, how much of it is
+ * done, and how full that makes its day — what the capacity report says, where the station works.
+ * The Slinet cuts rather than bends, so it counts pieces against its piece cap where a machine counts
+ * bends against its daily max.
  */
-const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) => {
-  const day = today()
+const Totals = ({ departmentId, machine, cutterId }: TotalsProps) => {
+  // `null` follows today, so a floor screen left on overnight moves to the new day by itself.
+  const [picked, setPicked] = useState<string | null>(null)
+  const day = picked ?? today()
+  const isToday = day === today()
   const { data } = useQuery(machineCapacitiesQuery(departmentId, day))
+  // The Slinet's row is the whole day's pieces, whichever machine bends them next.
   const station = data?.machines.find(row => row.flow_id === (machine?.id ?? cutterId))
-  // The capacity report counts everything scheduled for the day, routed or not; the Slinet cuts only
-  // what has been released onto its lists.
-  const slinet = slinetTotals(slinetLists, day)
-  const pieces = machine ? (station?.pieces ?? 0) : slinet.pieces
-  const where = machine ? 'Assigned to this machine for today' : 'Cut on the Slinet today'
+  const pieces = station?.pieces ?? 0
+  const where = machine ? 'Assigned to this machine for the day' : 'Scheduled for the day'
+  const cap = machine ? station?.max_bends : station?.max_pieces
+  const used = machine ? (station?.bends ?? 0) : pieces
+  const over = machine ? station?.over_bends : station?.over_pieces
 
   return (
-    <div className='flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
-      <span className='flex items-center gap-2 text-sm font-medium'>
-        <CalendarCheck className='size-3.5' />
-        {formatDate(day)}
-        <span className='text-muted-foreground'>· today</span>
+    <div className='flex flex-wrap items-start gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-4 py-3'>
+      {/* Kevin's notes of 2026-11-02 (N1): the counters look ahead too, to see how full a day is. */}
+      <span className='flex items-center gap-2 self-center'>
+        <DatePicker
+          value={fromIsoDay(day)}
+          onChange={date => {
+            const next = toIsoDay(date)
+            setPicked(next === today() ? null : next)
+          }}
+          format={date => formatDate(toIsoDay(date))}
+        />
+        {isToday ? (
+          <span className='flex items-center gap-1.5 text-sm text-muted-foreground'>
+            <CalendarCheck className='size-3.5' />
+            today
+          </span>
+        ) : (
+          <Button variant='ghost' onClick={() => setPicked(null)}>
+            Today
+          </Button>
+        )}
       </span>
 
-      <span className='flex flex-col'>
-        <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-          Total # Pieces
-        </span>
-        <span
-          className='font-mono text-lg'
-          title={`${where}${stockNote(machine ? (station?.pieces_from_stock ?? 0) : slinet.stockPieces)}`}
-        >
-          {pieces}
-        </span>
-      </span>
+      {/* Kevin's notes of 2026-11-02 (A1): the three figures line up and read alike — the count, the
+          share of it done, and the share of the day's ceiling it takes, each as «x / y z%». */}
+      <Stat label='Total # Pieces' title={`${where}${stockNote(station?.pieces_from_stock ?? 0)}`}>
+        <span className='font-mono text-sm'>{formatCount(pieces)}</span>
+      </Stat>
 
-      <span className='flex w-48 flex-col gap-1'>
-        <span className='text-xs tracking-wider text-muted-foreground uppercase'>
-          {machine ? 'Bends done' : 'Pieces cut'}
-        </span>
+      <Stat label={machine ? 'Bends done' : 'Pieces cut'}>
         {machine ? (
           <Progress
             done={station?.bends_done ?? 0}
@@ -103,31 +119,24 @@ const Totals = ({ departmentId, machine, cutterId, slinetLists }: TotalsProps) =
           />
         ) : (
           <Progress
-            done={slinet.cut}
-            value={slinet.pieces}
-            fromStock={slinet.stockPieces}
-            fromStockDone={slinet.stockCut}
+            done={station?.pieces_cut ?? 0}
+            value={pieces}
+            fromStock={station?.pieces_from_stock ?? 0}
+            fromStockDone={station?.pieces_cut_from_stock ?? 0}
           />
         )}
-      </span>
+      </Stat>
 
-      <span className='w-56' title='Set in Settings › Machines'>
-        {machine ? (
-          <Cap
-            label='Daily Max (bends)'
-            cap={station?.max_bends}
-            used={station?.bends ?? 0}
-            over={!!station?.over_bends}
-          />
+      <Stat
+        label={machine ? 'Daily Max (bends)' : 'Daily Piece Cap'}
+        title='Set in Settings › Machines'
+      >
+        {cap ? (
+          <Progress done={used} value={cap} over={!!over} />
         ) : (
-          <Cap
-            label='Daily Piece Cap'
-            cap={station?.max_pieces}
-            used={slinet.pieces}
-            over={!!station?.max_pieces && slinet.pieces > station.max_pieces}
-          />
+          <span className='font-mono text-sm text-muted-foreground'>N/A</span>
         )}
-      </span>
+      </Stat>
     </div>
   )
 }
@@ -376,12 +385,7 @@ export const ProductionTab = ({ search, departmentId, onOpenCoils }: ProductionT
             </Tabs>
 
             {done ? null : (
-              <Totals
-                departmentId={departmentId}
-                machine={activeMachine}
-                cutterId={cutter?.id}
-                slinetLists={slinetLists}
-              />
+              <Totals departmentId={departmentId} machine={activeMachine} cutterId={cutter?.id} />
             )}
           </>
         )}

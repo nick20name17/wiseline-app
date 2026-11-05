@@ -42,6 +42,7 @@ import {
 import { COMPLETED_PACKAGES_TABLE, withoutStock } from '../lib/columns'
 import { formatStamp } from '../lib/format'
 import { contentNames, remanTotal, type HeldLocation } from '../lib/wrapping'
+import { ResendEbmsButton } from './ebms-sync'
 import { PackageContents } from './package-contents'
 import {
   LocationChips,
@@ -123,14 +124,9 @@ const LineItemsSection = ({ departmentId, detail, isStock }: LineItemsSectionPro
               return (
                 <TableRow key={line.origin_item}>
                   {columns.cells({
-                    pid: (
-                      <TableCell>
-                        <span className='font-mono'>{line.product_id ?? '—'}</span>
-                      </TableCell>
-                    ),
                     desc: (
                       <TableCell>
-                        <Description text={line.description} className='text-muted-foreground' />
+                        <Description text={line.description} />
                       </TableCell>
                     ),
                     qty: (
@@ -353,7 +349,10 @@ export const CompletedOrderDialog = ({
       }}
     >
       {/* Wide enough for the line items' every column without scrolling sideways on a desk. */}
-      <DialogContent className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'>
+      <DialogContent
+        sizeKey='board:completed-order-dialog'
+        className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'
+      >
         <DialogHeader>
           <DialogTitle>{order ? titleOf(order, isStock) : 'Completed order'}</DialogTitle>
           <DialogDescription>
@@ -362,7 +361,10 @@ export const CompletedOrderDialog = ({
         </DialogHeader>
 
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-        <div className='scrollport flex min-h-56 flex-col gap-4 md:max-h-104 md:overflow-y-auto'>
+        <div
+          data-dialog-grow
+          className='scrollport flex min-h-56 flex-col gap-4 md:max-h-104 md:overflow-y-auto'
+        >
           {isPending || !data ? (
             <Skeleton className='h-56' />
           ) : (
@@ -420,6 +422,27 @@ export const CompletedOrderDialog = ({
 
               <Facts detail={data} isStock={isStock} />
 
+              {/* Completed here either way; this is what EBMS has not got yet, and why. */}
+              {order?.completed_at && order.ebms_sync === 'queued' ? (
+                <p className='text-center text-sm text-muted-foreground'>
+                  <span className='text-warning'>EBMS pending:</span> the manufacturing batch goes
+                  to EBMS once it answers again.
+                </p>
+              ) : order?.completed_at && order.ebms_sync === 'failed' ? (
+                <p className='flex flex-wrap items-baseline justify-center gap-x-2 text-sm text-muted-foreground'>
+                  <span>
+                    <span className='text-destructive'>Not in EBMS:</span>{' '}
+                    {order.ebms_error ?? 'EBMS refused the manufacturing batch.'}
+                  </span>
+                  {departmentId !== undefined ? (
+                    <ResendEbmsButton
+                      target={{ order: order.order, departmentId }}
+                      what={`the manufacturing batch of order ${number}`}
+                      error={order.ebms_error}
+                    />
+                  ) : null}
+                </p>
+              ) : null}
               <p className='text-center text-sm text-muted-foreground'>
                 {data.completed_at
                   ? `Completed ${formatStamp(data.completed_at)}`

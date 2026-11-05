@@ -44,7 +44,6 @@ import {
   stagedQuantity,
   wrapAllowed,
   contentName,
-  lineName,
   type CellRoom,
   type HeldLocation
 } from '../lib/wrapping'
@@ -67,9 +66,6 @@ import { RemanBadge, RemanNotApplicable } from './reman-badge'
 import { RemanufactureDialog } from './remanufacture-dialog'
 import { StatusPill } from '@/components/status-pill'
 import { useLineNoteState } from './use-line-note-state'
-
-// The statuses a line is wrapped from: the floor has finished it, or it came off the shelf.
-const READY = ['bent', 'rolled', 'stock', 'bypassed']
 
 type RemanCellProps = {
   row: WrappingRow
@@ -188,8 +184,9 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
       </span>
     )
 
-  // The pieces left are the ones a remake still owes: they are wrapped once it is Bent.
-  const held = READY.includes(row.status ?? '') && allowed < row.left_to_wrap
+  // The line is open for packing, and the pieces left are the ones a remake still owes: they are
+  // wrapped once it is Bent.
+  const held = row.can_wrap && allowed < row.left_to_wrap
 
   return (
     <span
@@ -197,9 +194,7 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
       title={
         held
           ? 'Held until the machine marks the remanufacture Bent'
-          : pack.ready
-            ? `Needs ${pack.ready} or Stock status`
-            : 'Cannot be packaged'
+          : (pack.waitsFor ?? 'Cannot be packaged')
       }
     >
       <Ban className='size-3.5' />
@@ -264,14 +259,9 @@ const WrapLines = ({
               return (
                 <TableRow key={row.origin_item} data-reman={remanState(lineRemans)}>
                   {columns.cells({
-                    line: (
-                      <TableCell>
-                        <span className='font-mono'>{lineName(row)}</span>
-                      </TableCell>
-                    ),
                     desc: (
                       <TableCell>
-                        <Description text={row.description} className='text-muted-foreground' />
+                        <Description text={row.description} />
                       </TableCell>
                     ),
                     // Anything but the standard 120" is worth a second look, as on the
@@ -528,14 +518,32 @@ const CompleteOrderButton = ({
             ? 'Available once Left To Wrap is zero on every line'
             : 'Available once the first package is created'
 
-  const complete = useCompleteOrder(() => {
+  // EBMS has closed the order (invoiced first): it completes here all the same, sending nothing there.
+  const notInEbms = completion?.can_complete && !completion.ebms_open ? completion.reason : null
+
+  const complete = useCompleteOrder(ebms => {
     setCompleting(false)
-    toast.add({
-      type: 'success',
-      title: batch
-        ? `${sentenceStart} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
-        : `${sentenceStart} complete`
-    })
+    toast.add(
+      ebms === 'not_open'
+        ? {
+            type: 'warning',
+            title: `${sentenceStart} complete · not in EBMS`,
+            description: 'EBMS has closed the order, so no manufacturing batch was sent.'
+          }
+        : ebms === 'queued'
+          ? {
+              type: 'warning',
+              title: `${sentenceStart} complete`,
+              description: `EBMS is not answering: the C_MFG batch (${batch} pcs) goes once it is back.`
+            }
+          : {
+              type: 'success',
+              title:
+                ebms === 'sent'
+                  ? `${sentenceStart} complete · C_MFG batch (${batch} pcs) pushed to EBMS`
+                  : `${sentenceStart} complete`
+            }
+    )
     onDone()
   })
   return (
@@ -555,21 +563,28 @@ const CompleteOrderButton = ({
           {shut}
         </span>
       ) : null}
+      {notInEbms ? (
+        <span className='order-last w-full text-right text-xs text-warning'>{notInEbms}</span>
+      ) : null}
       <ConfirmDialog
         open={completing}
         onOpenChange={setCompleting}
         title={`Complete ${what}?`}
         description={[
-          batch
-            ? `Are you sure you are done with ${part === null ? 'this order' : 'this part'} and that you want to create a manufacturing batch for it (${batch} pcs)?`
-            : `Are you sure you are done with this order? It leaves ${makes ? 'Wrapping' : 'Packaging'} for Completed Orders.`,
+          notInEbms
+            ? `${notInEbms} Are you sure you are done with ${part === null ? 'this order' : 'this part'}?`
+            : batch
+              ? `Are you sure you are done with ${part === null ? 'this order' : 'this part'} and that you want to create a manufacturing batch for it (${batch} pcs)?`
+              : `Are you sure you are done with this order? It leaves ${makes ? 'Wrapping' : 'Packaging'} for Completed Orders.`,
           short
             ? `${short} line${short === 1 ? ' is' : 's are'} not fully packed; only what is in the packages goes to EBMS.`
             : null
         ]
           .filter(Boolean)
           .join(' ')}
-        confirmLabel={batch ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'}
+        confirmLabel={
+          batch && !notInEbms ? 'Yes, Create Manufacturing Batch' : 'Yes, Complete Order'
+        }
         cancelLabel='No'
         isPending={complete.isPending}
         onConfirm={() => departmentId && complete.mutate({ order, departmentId, part })}
@@ -865,7 +880,7 @@ export const WrapOrder = ({
   const locationless = atMachine || jobMode
   const { target, slot: targetSlot } = locationless
     ? { target: null, slot: null }
-    : packageTarget(picked, locations, slots)
+    : packageTarget(picked, locations, slots, hasPackages)
   const weight = lines.length ? packageWeight(lines) : null
   const limit = department?.max_package_weight ?? null
   const overPackage = overPackageLimit(weight, limit)
@@ -1030,7 +1045,8 @@ export const WrapOrder = ({
                 )
               : setPicked(slot)
           }
-          onRemove={removeLocation}
+          // Until the first label has a cell, clicking where the order already stands picks it.
+          onRemove={target ? removeLocation : undefined}
         />
       )}
 

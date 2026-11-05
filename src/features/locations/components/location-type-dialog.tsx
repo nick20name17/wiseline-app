@@ -46,12 +46,18 @@ const KIND_HINTS: Record<LocationKind, string> = {
 
 type LocationTypeFormProps = {
   locationType?: LocationType
-  /** The department the page is showing, which a new type starts in. */
+  /** The department and tab the page is showing, which a new type starts in. */
   departmentId?: number
+  kind?: LocationKind
   onSuccess: () => void
 }
 
-const LocationTypeForm = ({ locationType, departmentId, onSuccess }: LocationTypeFormProps) => {
+const LocationTypeForm = ({
+  locationType,
+  departmentId,
+  kind,
+  onSuccess
+}: LocationTypeFormProps) => {
   const { data: departments } = useQuery(departmentsQuery)
   const { data: warehouses } = useQuery(warehousePickerQuery)
 
@@ -61,7 +67,7 @@ const LocationTypeForm = ({ locationType, departmentId, onSuccess }: LocationTyp
       name: locationType?.name ?? '',
       warehouse_id: locationType?.warehouse_id ?? warehouses?.[0]?.id ?? 0,
       department_id: locationType?.department_id ?? departmentId ?? departments?.[0]?.id ?? 0,
-      kind: locationType?.kind ?? 'order',
+      kind: locationType?.kind ?? kind ?? 'order',
       description: locationType?.description ?? null
     }
   })
@@ -203,9 +209,9 @@ const useReady = () => {
   return !!departments && !!warehouses
 }
 
-type CreateLocationTypeDialogProps = { departmentId: number | undefined }
+type CreateLocationTypeDialogProps = { departmentId: number | undefined; kind: LocationKind }
 
-export const CreateLocationTypeDialog = ({ departmentId }: CreateLocationTypeDialogProps) => {
+export const CreateLocationTypeDialog = ({ departmentId, kind }: CreateLocationTypeDialogProps) => {
   const [open, setOpen] = useState(false)
   const ready = useReady()
 
@@ -215,13 +221,17 @@ export const CreateLocationTypeDialog = ({ departmentId }: CreateLocationTypeDia
         <PlusCircle data-icon='inline-start' />
         Add location type
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='locations:location-type-dialog'>
         <DialogHeader>
           <DialogTitle>Add location type</DialogTitle>
         </DialogHeader>
         {/* The popup unmounts once closed, so a cancelled draft is not there the next time it opens. */}
         {ready ? (
-          <LocationTypeForm departmentId={departmentId} onSuccess={() => setOpen(false)} />
+          <LocationTypeForm
+            departmentId={departmentId}
+            kind={kind}
+            onSuccess={() => setOpen(false)}
+          />
         ) : (
           <Spinner />
         )}
@@ -245,7 +255,7 @@ export const UpdateLocationTypeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent sizeKey='locations:location-type-dialog'>
         <DialogHeader>
           <DialogTitle>Edit location type</DialogTitle>
         </DialogHeader>

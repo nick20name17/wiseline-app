@@ -10,6 +10,7 @@ import {
 import { HTTPError } from 'ky'
 import { departmentByCode, departmentRole } from '@/lib/departments'
 import * as z from 'zod/mini'
+import type { GridSlot } from './lib/location-grid'
 
 /**
  * A board reads two stores through one API. `ebms/orders/` is a mirror of the EBMS sales orders, keyed by
@@ -28,7 +29,9 @@ const departmentSchema = z.object({
   max_package_weight: z._default(z.nullable(z.number()), null),
   // Trim: a job spans several carts and its packages move between them, so locations are held by
   // the job (`jobLocationsQuery`) rather than by each package.
-  job_locations: z._default(z.boolean(), false)
+  job_locations: z._default(z.boolean(), false),
+  // The warehouse Select Location opens on for this department.
+  default_warehouse: z._default(z.nullable(z.number()), null)
 })
 
 export type Department = z.infer<typeof departmentSchema>
@@ -442,6 +445,22 @@ export const refetchCapacity = (client: QueryClient, pushed: unknown) => {
   }
 }
 
+/**
+ * The cutlists and bendlists changed elsewhere — a Complete on another machine's screen, Done, a
+ * release — by department, as the counts socket signals them: that department's lists are read again,
+ * and its Wrapping rows, which show what the machines have done. A row edit still on its way from this
+ * screen is left to refetch the board itself once it lands, so this does not draw over its tick.
+ */
+export const refetchCutlists = (client: QueryClient, pushed: unknown) => {
+  const changed = z.record(z.string(), z.array(z.number())).safeParse(pushed).data
+  if (client.isMutating({ mutationKey: cutlistRowKey })) return
+  for (const id of Object.keys(changed ?? {})) {
+    const departmentId = Number(id)
+    void client.invalidateQueries({ queryKey: [...boardKeys.cutlists(), departmentId] })
+    void client.invalidateQueries({ queryKey: [...boardKeys.wrapping(), departmentId] })
+  }
+}
+
 export const unscheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
     queryKey: boardKeys.unscheduled(category, search),
@@ -636,7 +655,7 @@ type MachineCapacity = z.infer<typeof machineCapacitySchema>['machines'][number]
  * The machines lines are assigned to. The Slinet cuts for all of them and Wrapping comes after, so
  * neither is one.
  */
-export const isMaker = (machine: MachineCapacity) =>
+export const isMaker = (machine: Pick<MachineCapacity, 'kind'>) =>
   machine.kind !== 'cutting' && machine.kind !== 'wrapping'
 
 /** A machine's load in its day's unit: Trim's bends, Rollforming's linear feet. */
@@ -671,51 +690,6 @@ export const machineCapacitiesQuery = (departmentId: number | undefined, day: st
           .json()
       )
   })
-
-const locationTypeSchema = z.object({
-  id: z.number(),
-  name: z._default(z.nullable(z.string()), null),
-  position: z._default(z.nullable(z.number()), null)
-})
-
-export type LocationType = z.infer<typeof locationTypeSchema>
-
-/**
- * Each location's type, which Select Location lays its columns out by. The availability list behind
- * it names only the warehouse, so the type comes from Settings' own lists. Under `['locations']`, so
- * an edit in Settings refreshes it.
- */
-export const locationTypesQuery = queryOptions({
-  queryKey: ['locations', 'type-of'] as const,
-  queryFn: async () => {
-    const [locations, types] = await Promise.all([
-      authApi.get('locations/', { searchParams: { limit: 500 } }).json(),
-      authApi.get('location-types/all/').json()
-    ])
-    const byId = new Map(
-      z
-        .array(locationTypeSchema)
-        .parse(types)
-        .map(type => [type.id, type])
-    )
-    const typeOf = new Map<number, LocationType>()
-    for (const location of z
-      .object({
-        results: z.array(
-          z.object({
-            id: z.number(),
-            location_type_id: z._default(z.nullable(z.number()), null)
-          })
-        )
-      })
-      .parse(locations).results) {
-      const type =
-        location.location_type_id === null ? undefined : byId.get(location.location_type_id)
-      if (type) typeOf.set(location.id, type)
-    }
-    return typeOf
-  }
-})
 
 const allocatedStockSchema = z.array(
   z.object({
@@ -1495,8 +1469,25 @@ export const useUpdateLineItem = ({ released = false } = {}) =>
     meta: { errorTitle: 'The line was not changed' },
     mutationKey: lineItemKey(released),
     scope: { id: 'line-item' },
-    mutationFn: ({ itemId, edit }: { itemId: number; edit: LineItemEdit }) =>
-      authApi.patch(`items/${itemId}/`, { json: edit }).json(),
+    mutationFn: ({
+      itemId,
+      edit,
+      fromFlow
+    }: {
+      itemId: number
+      edit: LineItemEdit
+      /**
+       * The bendlist's machine a Stock edit is made at, which the server logs a spoiled piece against
+       * (Kevin's notes of 2026-11-02, N15); the line's own machine when left out. Not a field of the
+       * line, so the cache never sees it.
+       */
+      fromFlow?: number
+    }) =>
+      authApi
+        .patch(`items/${itemId}/`, {
+          json: fromFlow === undefined ? edit : { ...edit, from_flow: fromFlow }
+        })
+        .json(),
     onMutate: async ({ itemId, edit }, { client }) => {
       await Promise.all([
         client.cancelQueries({ queryKey: boardKeys.orders() }),
@@ -1602,7 +1593,9 @@ export const stockCardOptionsQuery = (search: string) =>
       z
         .array(stockCardOptionSchema)
         .parse(
-          await authApi.get('stock-cards/products/', { searchParams: { search, limit: 50 } }).json()
+          await authApi
+            .get('stock-cards/products/', { searchParams: { search, limit: 100 } })
+            .json()
         )
   })
 
@@ -1929,6 +1922,12 @@ const folderId = z._default(
   null
 )
 
+// The app's last write to EBMS for an order or a coil, as `EbmsSync` reads it.
+const ebmsSyncFields = {
+  ebms_sync: z.catch(z.nullable(z.enum(['queued', 'ok', 'failed'])), null),
+  ebms_error: z._default(z.nullable(z.string()), null)
+}
+
 const coilLotSchema = z.object({
   // The EBMS lot autoid, so a coil has one before the floor has entered anything about it.
   id: z.string(),
@@ -1947,7 +1946,7 @@ const coilLotSchema = z.object({
   core_od: z._default(z.nullable(z.number()), null),
   linear_feet: z._default(z.nullable(z.number()), null),
   weight: z._default(z.nullable(z.number()), null),
-  // What `weight` is worked out with: the gauge's weight in Settings × the width, or EBMS's own.
+  // What `weight` is worked out with: EBMS's weight per foot.
   weight_per_foot: z._default(z.nullable(z.number()), null),
   // The inventory location it stands on, the app's own: EBMS keeps a location per product, not lot.
   location_id: z._default(z.nullable(z.number()), null),
@@ -1960,7 +1959,9 @@ const coilLotSchema = z.object({
   // than working the rules out again on this side.
   can_adjust: z._default(z.boolean(), false),
   slinet_available: z._default(z.boolean(), false),
-  rollforming_available: z._default(z.boolean(), true)
+  rollforming_available: z._default(z.boolean(), true),
+  // Its last adjustment or depletion in EBMS.
+  ...ebmsSyncFields
 })
 
 export type CoilLot = z.infer<typeof coilLotSchema>
@@ -2021,6 +2022,8 @@ const completedOrderSchema = z.object({
   status: z._default(z.nullable(z.string()), null),
   // Why EBMS would not complete a `rolled` order once its packages were located; cleared once it does.
   complete_error: z._default(z.nullable(z.string()), null),
+  // Its manufacturing batch in EBMS.
+  ...ebmsSyncFields,
   production_date: z._default(z.nullable(z.string()), null),
   ship_date: z._default(z.nullable(z.string()), null),
   // The codes the order's packages stand on, oldest first.
@@ -2222,24 +2225,62 @@ export type CoilLocation = {
 
 const inventoryLocationSchema = z.object({
   id: z.number(),
-  code: z._default(z.nullable(z.string()), null)
+  code: z._default(z.nullable(z.string()), null),
+  warehouse_id: z._default(z.nullable(z.number()), null),
+  location_type_id: z._default(z.nullable(z.number()), null)
 })
 
-export type InventoryLocation = z.infer<typeof inventoryLocationSchema>
+const namedSchema = z.object({ id: z.number(), name: z._default(z.nullable(z.string()), null) })
 
-/** The department's inventory locations: where its coils are put, and what the forklift scans. */
-export const coilLocationsQuery = (departmentId: number | undefined) =>
+/**
+ * A department's inventory locations, where its coils are put and what the forklift scans, laid out
+ * as the location picker reads them. The list names only ids, so the warehouse and type names come
+ * from their own lists.
+ */
+export const coilLocationsQuery = (departmentId: number | undefined, enabled = true) =>
   queryOptions({
     queryKey: [...boardKeys.coils(), 'locations', departmentId ?? 0] as const,
-    enabled: departmentId !== undefined,
-    queryFn: async () =>
-      z
+    enabled: departmentId !== undefined && enabled,
+    queryFn: async (): Promise<GridSlot[]> => {
+      const [locations, types, warehouses] = await Promise.all([
+        authApi.get('coils/locations/', { searchParams: { department_id: departmentId! } }).json(),
+        authApi.get('location-types/all/').json(),
+        authApi.get('warehouses/', { searchParams: { limit: 100 } }).json()
+      ])
+      const typeOf = new Map(
+        z
+          .array(namedSchema)
+          .parse(types)
+          .map(type => [type.id, type.name])
+      )
+      const warehouseOf = new Map(
+        z
+          .object({
+            results: z.array(z.extend(namedSchema, { is_default: z._default(z.boolean(), false) }))
+          })
+          .parse(warehouses)
+          .results.map(warehouse => [warehouse.id, warehouse])
+      )
+      return z
         .array(inventoryLocationSchema)
-        .parse(
-          await authApi
-            .get('coils/locations/', { searchParams: { department_id: departmentId! } })
-            .json()
-        )
+        .parse(locations)
+        .map(location => {
+          const warehouse =
+            location.warehouse_id === null ? undefined : warehouseOf.get(location.warehouse_id)
+          return {
+            location_id: location.id,
+            name: location.code,
+            warehouse_id: location.warehouse_id,
+            warehouse: warehouse?.name ?? null,
+            warehouse_is_default: warehouse?.is_default ?? false,
+            location_type_id: location.location_type_id,
+            location_type:
+              location.location_type_id === null
+                ? null
+                : (typeOf.get(location.location_type_id) ?? null)
+          }
+        })
+    }
   })
 
 /** Two scans on the forklift: the coil's lot number, then the location it is put on. */
@@ -2300,21 +2341,29 @@ export const useApplyCoilAdjustment = () =>
       )
   })
 
-/** Confirming an adjustment: EBMS first, and only then the coil here. */
+/**
+ * Confirming an adjustment: EBMS first, and only then the coil here. EBMS not answering, it is queued
+ * for EBMS and goes ahead here; resolves to whether it waits.
+ */
 export const useConfirmCoilAdjustment = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
-      authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json(),
+    mutationFn: async ({ lotId, values }: { lotId: string; values: CoilAdjustment }) =>
+      coilLotSchema.parse(
+        await authApi.post(`coils/lots/${lotId}/adjust/`, { json: values }).json()
+      ).ebms_sync === 'queued',
     onSuccess,
     // Its callers word the failure differently — one coil, or a batch of them under one toast.
     meta: { skipErrorToast: true },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
   })
 
-/** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. */
+/** Confirming Deplete & Delete: zeroed in EBMS, then gone from here. Resolves as the adjustment does. */
 export const useDepleteCoil = (onSuccess?: () => void) =>
   useMutation({
-    mutationFn: (lotId: string) => authApi.post(`coils/lots/${lotId}/deplete/`).json(),
+    mutationFn: async (lotId: string) =>
+      z
+        .object({ ebms: z._default(z.nullable(z.string()), null) })
+        .parse(await authApi.post(`coils/lots/${lotId}/deplete/`).json()).ebms === 'queued',
     onSuccess,
     meta: { skipErrorToast: true },
     onSettled: (_, __, ___, ____, { client }) => invalidateCoils(client)
@@ -2431,6 +2480,8 @@ const wrappingRowSchema = z.object({
   // «Stock» for a stock order.
   customer: z._default(z.nullable(z.string()), null),
   description: z._default(z.nullable(z.string()), null),
+  // The product's colour, which the bench reads a day by: the server sorts day, colour, description.
+  color: z._default(z.nullable(z.string()), null),
   production_date: z._default(z.nullable(z.string()), null),
   // The order is split here: each production day is a part, wrapped and completed on its own.
   is_split: z._default(z.boolean(), false),
@@ -2529,7 +2580,11 @@ const pounds = z.pipe(z.number(), z.transform(hundredths))
 const locationSlotSchema = z.object({
   location_id: z.number(),
   name: z._default(z.nullable(z.string()), null),
+  warehouse_id: z._default(z.nullable(z.number()), null),
   warehouse: z._default(z.nullable(z.string()), null),
+  // The server lists the slots by type, in the types' Settings order, then by location.
+  location_type_id: z._default(z.nullable(z.number()), null),
+  location_type: z._default(z.nullable(z.string()), null),
   max_weight: z._default(z.nullable(z.number()), null),
   used_weight: z._default(pounds, 0),
   orders_on_it: z._default(z.number(), 0),
@@ -3015,8 +3070,11 @@ const partParams = (departmentId: number, part: string | null) =>
 
 const orderCompleteSchema = z.object({
   can_complete: z._default(z.boolean(), false),
-  // Set when the server knows better than the board why not, e.g. EBMS has closed the order.
+  // Why not, when the server knows better than the board — or, with `ebms_open` false, why it
+  // completes without EBMS.
   reason: z._default(z.nullable(z.string()), null),
+  // An order EBMS no longer has Open (invoiced first) still completes here, but takes no batch there.
+  ebms_open: z._default(z.boolean(), true),
   // The asked-for part of a split order is done; it stays listed until the whole order is.
   part_completed: z._default(z.boolean(), false),
   // A stock order is finished through its own Stock window, never through Order Complete.
@@ -3069,7 +3127,13 @@ export const orderCompleteQuery = (
  * Order Complete. The manufacturing batch — ordered minus what came from stock — goes to EBMS first,
  * and the order is only marked complete if that goes through.
  */
-export const useCompleteOrder = (onSuccess: () => void) =>
+/**
+ * Where the batch went: `sent`, `queued` (EBMS did not answer; it goes once EBMS is back), `not_open`
+ * (EBMS has closed the order, so nothing went), or `null` with no batch to send.
+ */
+export type BatchOutcome = 'sent' | 'queued' | 'not_open' | null
+
+export const useCompleteOrder = (onSuccess: (ebms: BatchOutcome) => void) =>
   useMutation({
     // A refused batch answers 502 with EBMS's own reason, which goes under this title.
     meta: { errorTitle: 'The order was not completed' },
@@ -3082,14 +3146,19 @@ export const useCompleteOrder = (onSuccess: () => void) =>
       departmentId: number
       part: string | null
     }) =>
-      z.object({ order_complete: z._default(z.boolean(), true) }).parse(
-        await authApi
-          .post(`wrapping/orders/${order}/complete/`, {
-            searchParams: partParams(departmentId, part)
-          })
-          .json()
-      ),
-    onSuccess: ({ order_complete }, { order, departmentId, part }, __, { client }) => {
+      z
+        .object({
+          order_complete: z._default(z.boolean(), true),
+          ebms: z.catch(z.nullable(z.enum(['sent', 'queued', 'not_open'])), null)
+        })
+        .parse(
+          await authApi
+            .post(`wrapping/orders/${order}/complete/`, {
+              searchParams: partParams(departmentId, part)
+            })
+            .json()
+        ),
+    onSuccess: ({ order_complete, ebms }, { order, departmentId, part }, __, { client }) => {
       // The bench goes back to the list straight away, and the list's refetch is slow: left to it,
       // the completed order sat there until the answer came. A part leaves the order's other parts
       // listed, its own lines locked.
@@ -3104,7 +3173,55 @@ export const useCompleteOrder = (onSuccess: () => void) =>
                   : row
               )
       )
-      onSuccess()
+      onSuccess(ebms)
+    },
+    onSettled: (_, __, ___, ____, { client }) =>
+      client.invalidateQueries({ queryKey: boardKeys.all })
+  })
+
+const outboxWriteSchema = z.object({
+  id: z.number(),
+  order: z._default(z.nullable(z.string()), null),
+  department_id: z._default(z.nullable(z.number()), null),
+  lot_autoid: z._default(z.nullable(z.string()), null),
+  status: z._default(z.string(), ''),
+  last_error: z._default(z.nullable(z.string()), null)
+})
+
+const REFUSED_PAGE_SIZE = 500
+
+/** Whose write to send again: an order's batch in a department, or a coil's change. */
+export type ResendTarget = { order: string; departmentId: number } | { lotAutoid: string }
+
+/**
+ * A write EBMS refused, sent again once whatever it objected to is fixed there. The board knows the
+ * order or the coil, not the write, so the newest refused write of it is the one sent. Resolves to
+ * how it went: `ok`, `queued` (EBMS not answering) or `failed` again.
+ */
+export const useResendEbmsWrite = () =>
+  useMutation({
+    meta: { errorTitle: 'Not sent to EBMS again' },
+    mutationFn: async (target: ResendTarget) => {
+      // The queue cannot be asked for one order's or coil's writes; refused ones wait for a person, so
+      // they are few, and an order's are narrowed to its kind.
+      const { results: refused } = z.object({ results: z.array(outboxWriteSchema) }).parse(
+        await authApi
+          .get('ebms-outbox/', {
+            searchParams: {
+              status: 'failed',
+              ...('lotAutoid' in target ? {} : { kind: 'order_complete' }),
+              limit: REFUSED_PAGE_SIZE
+            }
+          })
+          .json()
+      )
+      const write = refused.find(entry =>
+        'lotAutoid' in target
+          ? entry.lot_autoid === target.lotAutoid
+          : entry.order === target.order && entry.department_id === target.departmentId
+      )
+      if (!write) throw new Error('No refused EBMS write of it is on record.')
+      return outboxWriteSchema.parse(await authApi.post(`ebms-outbox/${write.id}/retry/`).json())
     },
     onSettled: (_, __, ___, ____, { client }) =>
       client.invalidateQueries({ queryKey: boardKeys.all })

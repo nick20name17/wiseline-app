@@ -86,8 +86,11 @@ export type Board = {
    */
   packsAtMachine: boolean
   /** How the department says packing: Trim wraps its trims, Accessories packages p3 (1077,291). */
-  /** `ready` is the status a line is packed from once made, `null` for a department that makes none. */
-  pack: { station: string; verb: string; done: string; doneLabel: string; ready: string | null }
+  /**
+   * `waitsFor` says what opens a line for packing, `null` for a department that makes none. The server
+   * decides it (`can_wrap`); this is only the words.
+   */
+  pack: { station: string; verb: string; done: string; doneLabel: string; waitsFor: string | null }
   /** The order tables as the board lays them out. */
   tables: {
     unscheduled: ColumnTable
@@ -121,7 +124,8 @@ export const BOARDS: Record<BoardCode, Board> = {
       verb: 'Wrap',
       done: 'wrapped',
       doneLabel: 'Wrapped',
-      ready: 'Bent'
+      // The first row the Slinet cuts opens every line on its cutlist (Kevin's notes of 2026-11-02, P5).
+      waitsFor: 'Opens once the Slinet cuts the first row of its cutlist'
     },
     tables: {
       unscheduled: UNSCHEDULED_TABLE,
@@ -164,7 +168,7 @@ export const BOARDS: Record<BoardCode, Board> = {
       done: 'rolled',
       doneLabel: 'Rolled',
       // A released line packs from Not Started; the packages move it to In Progress and Rolled.
-      ready: null
+      waitsFor: null
     },
     tables: {
       unscheduled: ROLLFORMING_UNSCHEDULED_TABLE,
@@ -195,7 +199,7 @@ export const BOARDS: Record<BoardCode, Board> = {
       verb: 'Package',
       done: 'packaged',
       doneLabel: 'Packaged',
-      ready: null
+      waitsFor: null
     },
     tables: {
       unscheduled: ACCESSORIES_UNSCHEDULED_TABLE,

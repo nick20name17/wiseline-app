@@ -30,7 +30,7 @@ const inches = new Intl.NumberFormat('en-US', { maximumFractionDigits: 5, useGro
 export const formatWidth = (value: number) => inches.format(value)
 
 /** A product's colour and gauge the way the cards and their labels print them. */
-export const productFacts = (product: { color: string | null; gauge: string | null }) =>
+export const productFacts = (product: { color: string | null; gauge: string | number | null }) =>
   [product.color, product.gauge === null ? null : `${product.gauge} ga`].filter(Boolean).join(' · ')
 
 const UNITS: Record<CapacityUnit, { short: string; long: string }> = {

@@ -27,15 +27,21 @@ export const PrioritySelect = <T extends Choice>({
       onChange(priorities?.find(priority => String(priority.id) === value) ?? null)
     }
   >
-    {/* The pill is the trigger, so the column reads as it always has; the select's own box and
-        chevron would turn every row into a form field. On a phone a finger hits around the pill. */}
+    {/* In a table the cell is the control, as in tablecn: it shows the value bare and is outlined
+        while its list is open; a pill in every row of a column repeats a box the cell already is. The select's own box and chevron would turn every row into a form
+        field. In a card, where the cell is a labelled field, a finger hits around the value. */}
     <SelectPrimitive.Trigger
+      data-fills-cell
       aria-label={current ? `Priority: ${current.name}` : 'Set priority'}
-      className='relative cursor-pointer rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-md:after:absolute max-md:after:-inset-x-1 max-md:after:-inset-y-2.5'
+      className={cn(
+        'cursor-pointer outline-none after:absolute',
+        'max-lg:relative max-lg:rounded-md max-lg:focus-visible:ring-3 max-lg:focus-visible:ring-ring/50 max-md:after:-inset-x-1 max-md:after:-inset-y-2.5',
+        'lg:after:inset-0 lg:after:ring-inset lg:focus-visible:after:ring-2 lg:focus-visible:after:ring-ring/50 lg:data-popup-open:after:ring-2 lg:data-popup-open:after:ring-primary'
+      )}
     >
-      <PriorityPill priority={current} className='hover:brightness-95' />
+      <PriorityPill priority={current} className='bg-transparent px-0' />
     </SelectPrimitive.Trigger>
-    <SelectContent align='start' className='min-w-48'>
+    <SelectContent className='min-w-48'>
       {priorities?.map(priority => (
         <SelectItem key={priority.id} value={String(priority.id)}>
           <span

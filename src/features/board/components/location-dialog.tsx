@@ -7,26 +7,24 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/dialog'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { inBoardOrder } from '@/lib/departments'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
-import { Timer, Warehouse } from 'lucide-react'
+import { Timer } from 'lucide-react'
 import { useState } from 'react'
 import {
   departmentsQuery,
-  locationTypesQuery,
   useRemoveJobLocation,
   useRemoveOrderLocation,
   wrappingLocationsQuery,
   type LocationSlot,
   type OrderLocation
 } from '../api'
-import { locationColumns, overWeight, type HeldLocation } from '../lib/wrapping'
+import { overWeight, type HeldLocation } from '../lib/wrapping'
+import { LocationButton, LocationGrid } from './location-grid'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 // How an order's own location reads, in the picker and on its chips alike.
@@ -63,8 +61,9 @@ type LocationDialogProps<T extends HeldLocation> = {
 }
 
 /**
- * Select Location. Every location of the department is in view at once, a column per location type,
- * so the Worker scans for a free one rather than paging through types. A full location is shown and
+ * Select Location. A tab per warehouse, opening on the department's default; in it every location
+ * of the department is in view at once, a column per location type in its Settings order, so the
+ * Worker scans for a free one rather than paging through types. A full location is shown and
  * shut rather than hidden — he is looking for a place he can see from the floor. A cell is coloured
  * by what putting *this* order there would mean: its current cell, its earlier (locked) ones, and any
  * the staged package would push over weight.
@@ -87,8 +86,8 @@ export const LocationDialog = <T extends HeldLocation>({
   const shown = tab ?? departmentId
   const { data: departments } = useQuery(departmentsQuery)
   const { data: slots, isPending } = useQuery(wrappingLocationsQuery(shown, order, open))
-  const { data: typeOf } = useQuery({ ...locationTypesQuery, enabled: open })
-  const columns = locationColumns(slots ?? [], typeOf)
+  const departmentDefault =
+    departments?.find(department => department.id === shown)?.default_warehouse ?? null
 
   return (
     <Dialog
@@ -97,7 +96,10 @@ export const LocationDialog = <T extends HeldLocation>({
       onOpenChangeComplete={next => !next && setTab(null)}
     >
       {/* Wide enough for several location types side by side; more scroll sideways. */}
-      <DialogContent className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'>
+      <DialogContent
+        sizeKey='board:location-dialog'
+        className='sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl'
+      >
         <DialogHeader>
           <DialogTitle>Select location · Order {orderNumber}</DialogTitle>
           <DialogDescription>
@@ -124,84 +126,46 @@ export const LocationDialog = <T extends HeldLocation>({
           </div>
         </Tabs>
 
-        {/* A phone's drawer scrolls as one, its columns stacked; a box scrolling inside it would
-            fight the swipe. */}
-        <div className='scrollport min-h-56 md:max-h-120 md:overflow-auto'>
-          {isPending ? (
-            <Skeleton className='h-56' />
-          ) : columns.length ? (
-            <div className='flex flex-col gap-4 md:flex-row md:gap-3'>
-              {columns.map(column => (
-                <section
-                  key={column.key}
-                  className='flex min-w-0 flex-col gap-1.5 md:flex-1 md:shrink-0 md:basis-44'
-                >
-                  {/* Stays over its rows while a long column scrolls. */}
-                  <h3 className='sticky top-0 z-10 flex flex-col bg-popover pb-1'>
-                    <span className='truncate text-xs font-semibold tracking-wider uppercase'>
-                      {column.name}
-                    </span>
-                    {column.warehouse ? (
-                      <span className='truncate text-xs text-muted-foreground'>
-                        {column.warehouse}
-                      </span>
-                    ) : null}
-                  </h3>
-                  {column.slots.map(slot => {
-                    const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
-                    const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
-                    const over = overWeight(slot) || predictOver
+        <LocationGrid
+          // Each department opens on its own default warehouse.
+          key={shown}
+          slots={slots}
+          isPending={isPending}
+          departmentDefault={departmentDefault}
+          renderSlot={slot => {
+            const mine = orderLocations.find(spot => spot.location_id === slot.location_id)
+            const predictOver = stagedWeight > 0 && overWeight(slot, stagedWeight)
+            const over = overWeight(slot) || predictOver
 
-                    return (
-                      <button
-                        key={slot.location_id}
-                        type='button'
-                        disabled={!mine && !slot.available}
-                        // A location made single-order keeps the cap it had as Multi-Order; it still takes one.
-                        title={`${slot.name ?? slot.location_id} · ${weightOf(slot)} · ${slot.orders_on_it}/${slot.multi_order ? `${slot.max_orders ?? '∞'} orders (Multi-Order)` : '1 order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
-                        className={cn(
-                          'flex items-baseline justify-between gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-left text-sm leading-tight hover:border-input disabled:pointer-events-none disabled:bg-muted disabled:text-muted-foreground',
-                          mine
-                            ? tintOf(over, mine.orange)
-                            : slot.available && predictOver
-                              ? TINT.over
-                              : undefined
-                        )}
-                        onClick={() => {
-                          onOpenChange(false)
-                          if (mine && onRemove) onRemove(mine)
-                          else onPick(slot)
-                        }}
-                      >
-                        <span className='truncate font-mono font-medium'>
-                          {slot.name ?? slot.location_id}
-                        </span>
-                        <span className='shrink-0 text-xs opacity-75'>
-                          {slot.multi_order
-                            ? `${slot.orders_on_it}/${slot.max_orders ?? '∞'} · `
-                            : null}
-                          {weightOf(slot)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </section>
-              ))}
-            </div>
-          ) : (
-            <Empty className='min-h-56'>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <Warehouse />
-                </EmptyMedia>
-                <EmptyTitle>No locations</EmptyTitle>
-                <EmptyDescription>
-                  Locations are set up in Settings, under the department they belong to.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
+            return (
+              <LocationButton
+                key={slot.location_id}
+                code={slot.name ?? slot.location_id}
+                detail={
+                  <>
+                    {slot.multi_order ? `${slot.orders_on_it}/${slot.max_orders ?? '∞'} · ` : null}
+                    {weightOf(slot)}
+                  </>
+                }
+                disabled={!mine && !slot.available}
+                // A location made single-order keeps the cap it had as Multi-Order; it still takes one.
+                title={`${slot.name ?? slot.location_id} · ${weightOf(slot)} · ${slot.orders_on_it}/${slot.multi_order ? `${slot.max_orders ?? '∞'} orders (Multi-Order)` : '1 order'}${mine && onRemove ? ' · click to remove it from this order' : ''}`}
+                className={
+                  mine
+                    ? tintOf(over, mine.orange)
+                    : slot.available && predictOver
+                      ? TINT.over
+                      : undefined
+                }
+                onClick={() => {
+                  onOpenChange(false)
+                  if (mine && onRemove) onRemove(mine)
+                  else onPick(slot)
+                }}
+              />
+            )
+          }}
+        />
 
         <DialogFooter className='sm:justify-start'>
           <p className='flex items-start gap-2 text-xs text-muted-foreground'>

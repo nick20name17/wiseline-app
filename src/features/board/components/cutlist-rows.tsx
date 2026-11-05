@@ -23,7 +23,7 @@ import {
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from 'cn'
 import { ArrowRightLeft, ChevronDown, Package, RefreshCw } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import {
   useUpdateCutlistRow,
   useUpdateLineItem,
@@ -95,11 +95,9 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
           atomic inline box — which is how the sign-off itself stays unstruck. The hint sits on the
           label because a disabled box shows no tooltip of its own. */}
       <label
-        className={cn(
-          // A finger-sized target: the floor signs rows off on a touchscreen.
-          'inline-flex min-h-11 min-w-24 cursor-pointer items-center gap-2.5 rounded-md border px-3 has-disabled:cursor-not-allowed has-disabled:opacity-60',
-          group.complete ? 'border-success/40 bg-success/10' : 'border-border bg-background'
-        )}
+        // A finger-sized target with no frame of its own: the floor signs rows off on a touchscreen,
+        // and a boxed field crowded the column's rules.
+        className='inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 has-disabled:cursor-not-allowed has-disabled:opacity-60'
         title={
           group.complete
             ? 'Marked complete — uncheck to reopen (asks first)'
@@ -337,19 +335,8 @@ type RowDetailsBodyProps = Omit<RowDetailsProps, 'open' | 'group' | 'onClose' | 
   group: CutlistGroup
 }
 
-const RowDetailsBody = ({ group, remake, remakes, editsLines, onStock }: RowDetailsBodyProps) => {
+const RowDetailsBody = ({ group, remakes }: RowDetailsBodyProps) => {
   const about = describeGroup(group)
-  // «When a row is marked as Complete ... the Machine button would disappear» p1 (653,358). A
-  // remake's row belongs to the remake: its machine and stock are the line's, edited on the line's.
-  const editable = editsLines && !group.complete && !remake
-  // A remake asked for at the bench shows only what was asked for; one from a machine keeps the
-  // full Qty Ordered (p1 (612,482), (653,546)).
-  const ordered = remake?.source === 'wrapping' ? group.quantity : about.ordered || null
-  const stock = editable ? (
-    <StockCell group={group} onStock={onStock} />
-  ) : (
-    <Figure value={about.fromStock || null} />
-  )
 
   return (
     <>
@@ -360,14 +347,6 @@ const RowDetailsBody = ({ group, remake, remakes, editsLines, onStock }: RowDeta
         </DialogTitle>
         <DialogDescription>{about.description ?? 'No description'}</DialogDescription>
       </DialogHeader>
-
-      <dl className='grid grid-cols-3 gap-4'>
-        <Fact label='Qty ordered'>
-          <Figure value={ordered} />
-        </Fact>
-        <Fact label='Stock'>{stock}</Fact>
-        <Fact label='Qty to manufacture'>{group.quantity}</Fact>
-      </dl>
 
       {remakes.length ? (
         <p className='flex items-center gap-2 text-sm'>
@@ -383,34 +362,20 @@ type RowDetailsProps = {
   open: boolean
   /** Kept through the closing animation, so the window does not empty as it fades. */
   group: CutlistGroup | null
-  /** The remake this row is the work of — its own row, or its list — when it is one. */
-  remake: Remanufacturing | null
   /** Every remake the row answers for, those riding on the line's own bend row included. */
   remakes: Remanufacturing[]
-  /** The row's lines can still be pulled from stock. */
-  editsLines: boolean
-  onStock: (line: EditableLine) => void
   onClose: () => void
   onClosed: (open: boolean) => void
 }
 
-const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className='flex flex-col gap-1'>
-    <dt className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
-      {label}
-    </dt>
-    <dd className='font-mono text-lg'>{children}</dd>
-  </div>
-)
-
 /**
  * Everything on a bendlist row the bender does not read at every piece: the whole description and
- * the order's figures. A tap on the row opens it; the floor's screens are too narrow to carry it all
+ * what is being remade. A tap on the row opens it; the floor's screens are too narrow to carry it all
  * as columns.
  */
 const RowDetails = ({ open, group, onClose, onClosed, ...body }: RowDetailsProps) => (
   <Dialog open={open} onOpenChange={next => !next && onClose()} onOpenChangeComplete={onClosed}>
-    <DialogContent className='sm:max-w-lg'>
+    <DialogContent sizeKey='board:cutlist-rows' className='sm:max-w-lg'>
       {group ? <RowDetailsBody group={group} {...body} /> : null}
     </DialogContent>
   </Dialog>
@@ -461,6 +426,8 @@ export const CutlistRows = ({
   const updateLine = useUpdateLineItem({ released: true })
   const [moving, setMoving] = useState<{ line: EditableLine; machine: Machine } | null>(null)
   const [stocking, setStocking] = useState<EditableLine | null>(null)
+  // Every row of a bendlist carries the list's own machine.
+  const bendMachine = (!isSlinet && rows[0]?.machine) || undefined
   const groups = groupRows(rows, { byProduct: !isSlinet })
   const groupRemakes = new Map(
     groups.map(group => [group.key, remakesOf(group, remake, remakes.values())])
@@ -491,9 +458,18 @@ export const CutlistRows = ({
   const columns = useColumnOrder({
     table: isSlinet ? 'cutlist-slinet' : 'cutlist-bend',
     columns: [
-      { key: 'w', label: 'W"', width: 'w-16' },
+      // A width with its quarter, «4.25», at the rows' larger type (A7).
+      { key: 'w', label: 'W"', width: 'w-18' },
       // A custom length runs to three decimals, 47.625".
       { key: 'l', label: 'L"', width: isSlinet ? 'w-24' : 'w-22' },
+      // Beside what is made, what was ordered and what came off the shelf for it (Kevin's notes of
+      // 2026-11-02, N14).
+      ...(isSlinet
+        ? []
+        : [
+            { key: 'ordered', label: 'Qty Ordered', width: 'w-20' },
+            { key: 'stock', label: 'Stock', width: 'w-24' }
+          ]),
       isSlinet
         ? { key: 'qty', label: 'Total', width: 'w-20' }
         : // Its heading wraps in two, and MANUFACTURE alone takes 99px.
@@ -509,15 +485,25 @@ export const CutlistRows = ({
                   ? 'Vented'
                   : (column.machine.name ?? `Machine ${column.machine.id}`)
             })),
-            { key: 'op', label: 'Operator Notes', width: 'w-28', card: 'full' as const }
+            {
+              key: 'op',
+              label: 'Operator Notes',
+              width: 'w-44',
+              align: 'start' as const,
+              card: 'full' as const
+            }
           ]
         : // A bendlist row keeps what the bender reads at the machine and the buttons it reaches for
-          // now and then, as Wrapping has them; Qty Ordered and Stock open from the row, so the list
-          // fits without a sideways scroll.
+          // now and then, as Wrapping has them.
           [
-            { key: 'pid', label: 'ID', width: 'w-28', card: 'title' as const },
             // The other headings leave it 50px at 1280px, where the 64px default would scroll the list.
-            { key: 'desc', label: 'Description', minWidth: 48, card: 'subtitle' as const },
+            {
+              key: 'desc',
+              label: 'Description',
+              minWidth: 48,
+              align: 'start' as const,
+              card: 'title' as const
+            },
             { key: 'status', label: 'Status', width: 'w-32' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
@@ -525,7 +511,7 @@ export const CutlistRows = ({
             { key: 'drawing', label: 'Drawing', width: 'w-24' },
             { key: 'notes', label: 'Notes', width: 'w-20' }
           ]),
-      { key: 'complete', label: 'Complete', width: isSlinet ? 'w-28' : 'w-32' }
+      { key: 'complete', label: 'Complete', width: 'w-28' }
     ]
   })
   // The row whose details are open, by key: the rows are rebuilt on every refetch, the key is not.
@@ -544,7 +530,8 @@ export const CutlistRows = ({
       {/* Headings wrap rather than widen their column: every column has to fit. */}
       {/* Below `lg` each row is a card: a tablet at the machine is too narrow for every column, and
           a sideways scroll would hide Complete. */}
-      <Table data-cards className='table-fixed [&_th]:whitespace-normal'>
+      {/* The rows are read at arm's length from the machine (Kevin's notes of 2026-11-02, A7). */}
+      <Table data-cards size='lg' className='table-fixed [&_th]:whitespace-normal'>
         <colgroup>{columns.cols}</colgroup>
         <TableHeader>
           <TableRow>{columns.headers}</TableRow>
@@ -593,35 +580,30 @@ export const CutlistRows = ({
                       ) : null}
                     </TableCell>
                   ),
-                  pid: (
+                  desc: (
                     <TableCell>
                       {/* The keyboard's way into the row's details; a tap anywhere on it is the
-                          floor's. A row cutting several orders' pieces is opened through its Total. */}
-                      <Button
-                        variant='link'
-                        className='max-w-full'
-                        aria-label={`Details of ${about.productId ?? sizeOf(group)}`}
+                          floor's. */}
+                      <button
+                        type='button'
+                        className='flex max-w-full items-start gap-1.5 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+                        aria-label={`Details of ${about.description?.trim() || sizeOf(group)}`}
                         onClick={() => setDetailsKey(group.key)}
                       >
                         {about.isStock ? (
                           <Package
-                            className='size-3.5 text-muted-foreground'
+                            className='mt-0.5 size-3.5 shrink-0 text-muted-foreground'
                             aria-label='Stock order'
                           />
                         ) : null}
-                        {about.productId ? (
-                          <span className='truncate font-mono'>{about.productId}</span>
+                        {about.description ? (
+                          <Description text={about.description} />
                         ) : about.lines > 1 ? (
                           <span className='text-xs text-muted-foreground'>{about.lines} lines</span>
                         ) : (
                           '—'
                         )}
-                      </Button>
-                    </TableCell>
-                  ),
-                  desc: (
-                    <TableCell>
-                      <Description text={about.description} className='text-muted-foreground' />
+                      </button>
                     </TableCell>
                   ),
                   status: (
@@ -662,14 +644,43 @@ export const CutlistRows = ({
                       </span>
                     </TableCell>
                   ),
-                  qty: (
+                  ordered: (
                     <TableCell>
+                      {/* A remake asked for at the bench shows only what was asked for; one from a
+                          machine keeps the full Qty Ordered (p1 (612,482), (653,546)). */}
+                      <Figure
+                        value={
+                          ownRemake(group)?.source === 'wrapping'
+                            ? group.quantity
+                            : about.ordered || null
+                        }
+                      />
+                    </TableCell>
+                  ),
+                  stock: (
+                    <TableCell>
+                      {/* «When a row is marked as Complete ... the Machine button would disappear»
+                          p1 (653,358). A remake's row belongs to the remake: its stock is the
+                          line's, edited on the line's. */}
+                      {editsLines && !group.complete && !ownRemake(group) ? (
+                        <StockCell group={group} onStock={setStocking} />
+                      ) : (
+                        <Figure value={about.fromStock || null} />
+                      )}
+                    </TableCell>
+                  ),
+                  qty: (
+                    // What the machine makes, so it is the figure the eye lands on first (Kevin's
+                    // notes of 2026-11-02, A3).
+                    <TableCell data-outline>
                       <Button
                         variant='link'
                         title='See orders using this size'
                         onClick={() => onOpenTotal(group)}
                       >
-                        <span className='font-mono'>{group.quantity}</span>
+                        <span className='font-mono font-bold text-foreground'>
+                          {group.quantity}
+                        </span>
                       </Button>
                     </TableCell>
                   ),
@@ -770,7 +781,11 @@ export const CutlistRows = ({
         onOpenChange={open => !open && setStocking(null)}
         onEnter={value => {
           if (!stocking) return
-          updateLine.mutate({ itemId: stocking.item_id, edit: { pull_from_stock: value } })
+          updateLine.mutate({
+            itemId: stocking.item_id,
+            edit: { pull_from_stock: value },
+            fromFlow: bendMachine
+          })
           setStocking(null)
         }}
       />
@@ -778,10 +793,7 @@ export const CutlistRows = ({
       <RowDetails
         open={detailsKey !== null}
         group={detailed}
-        remake={detailed && ownRemake(detailed)}
         remakes={detailed ? remakesFor(detailed) : []}
-        editsLines={editsLines}
-        onStock={setStocking}
         onClose={() => setDetailsKey(null)}
         onClosed={releaseDetails}
       />

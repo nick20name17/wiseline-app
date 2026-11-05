@@ -138,7 +138,7 @@ export const PickupDialog = ({ card, shipDate }: PickupDialogProps) => {
         <PackagePlus data-icon='inline-start' />
         Supplier pickup
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='shipping:pickup-dialog'>
         <DialogHeader>
           <DialogTitle>Supplier pickup</DialogTitle>
           <DialogDescription>
@@ -174,7 +174,7 @@ export const EditPickupDialog = ({ pickup, open, onOpenChange }: EditPickupDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent sizeKey='shipping:pickup-dialog'>
         <DialogHeader>
           <DialogTitle>Edit pickup</DialogTitle>
           <DialogDescription>{pickup.customer}</DialogDescription>

@@ -69,7 +69,7 @@ export const ConfirmDialog = ({
   if (mobile)
     return (
       <Dialog open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
-        <DialogContent showCloseButton={false}>
+        <DialogContent sizeKey='components:confirm-dialog' showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{shownTitle}</DialogTitle>
             <DialogDescription>{shownDescription}</DialogDescription>

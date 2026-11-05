@@ -70,7 +70,7 @@ export const LineNotesDialog = ({
         release(open)
       }}
     >
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent sizeKey='board:line-notes-dialog' className='sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>Line notes · {productId}</DialogTitle>
           <DialogDescription>
@@ -79,7 +79,10 @@ export const LineNotesDialog = ({
         </DialogHeader>
 
         {/* The floor keeps the thread from opening short and then growing under the pointer. */}
-        <div className='scrollport min-h-40 space-y-4 md:max-h-80 md:overflow-y-auto'>
+        <div
+          data-dialog-grow
+          className='scrollport min-h-40 space-y-4 md:max-h-80 md:overflow-y-auto'
+        >
           {isPending ? (
             <p className='py-6 text-center text-sm text-muted-foreground'>Loading…</p>
           ) : thread?.notes.length ? (

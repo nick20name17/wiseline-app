@@ -367,7 +367,7 @@ export const CoilAssignDialog = ({
   onAssigned
 }: CoilAssignDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className='sm:max-w-2xl'>
+    <DialogContent sizeKey='board:coil-assign-dialog' className='sm:max-w-2xl'>
       <DialogHeader>
         <DialogTitle>{TITLE[action]}</DialogTitle>
         <DialogDescription>{describe(lines, units)}</DialogDescription>

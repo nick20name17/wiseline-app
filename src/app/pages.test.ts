@@ -8,6 +8,7 @@ const access = (...open: (keyof PageAccess)[]): PageAccess => ({
   '/shipping': open.includes('/shipping'),
   '/loading': open.includes('/loading'),
   '/driver': open.includes('/driver'),
+  '/reports': open.includes('/reports'),
   '/settings': open.includes('/settings')
 })
 
@@ -22,8 +23,8 @@ describe('homeOf', () => {
     expect(homeOf(access('/shipping', '/loading', '/driver'))).toBe('/shipping')
   })
 
-  it('never starts anyone on Settings', () => {
-    expect(homeOf(access('/settings', '/driver'))).toBe('/driver')
+  it('never starts anyone on Reports or Settings', () => {
+    expect(homeOf(access('/reports', '/settings', '/driver'))).toBe('/driver')
   })
 
   it('sends someone who may open nothing to Trim, whose board says whom to ask', () => {

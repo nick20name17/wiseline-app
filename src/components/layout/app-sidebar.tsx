@@ -15,7 +15,15 @@ import {
 } from '@/components/ui/sidebar'
 import { useIsWide } from '@/hooks/use-mobile'
 import { Link } from '@tanstack/react-router'
-import { Grid2x2, Layers, PackageCheck, Settings, Truck, Waypoints } from 'lucide-react'
+import {
+  ClipboardList,
+  Grid2x2,
+  Layers,
+  PackageCheck,
+  Settings,
+  Truck,
+  Waypoints
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 
 const NAV_GROUPS = [
@@ -37,7 +45,10 @@ const NAV_GROUPS = [
   },
   {
     label: 'MANAGE',
-    items: [{ to: '/settings', label: 'Settings', icon: Settings }]
+    items: [
+      { to: '/reports', label: 'Reports', icon: ClipboardList },
+      { to: '/settings', label: 'Settings', icon: Settings }
+    ]
   }
 ] as const
 

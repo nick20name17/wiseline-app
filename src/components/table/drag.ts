@@ -8,6 +8,37 @@ import {
   type UniqueIdentifier
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import type { SyntheticEvent } from 'react'
+
+/**
+ * Whether a press on a row may pick it up. Rows pick up anywhere, as on the original, except from
+ * their Edit and Delete buttons, which a slightly moving click or a held finger would otherwise
+ * drag. React bubbles events out of portals too, so a press inside a row's dialog must not either.
+ */
+const startsDrag = ({ currentTarget, target }: SyntheticEvent) =>
+  target instanceof Element &&
+  currentTarget.contains(target) &&
+  !target.closest('button:not([data-grip]), a, input')
+
+export class RowMouseSensor extends MouseSensor {
+  static override activators = [
+    {
+      eventName: 'onMouseDown' as const,
+      handler: (...args: Parameters<(typeof MouseSensor.activators)[number]['handler']>) =>
+        startsDrag(args[0]) && MouseSensor.activators[0]!.handler(...args)
+    }
+  ]
+}
+
+export class RowTouchSensor extends TouchSensor {
+  static override activators = [
+    {
+      eventName: 'onTouchStart' as const,
+      handler: (...args: Parameters<(typeof TouchSensor.activators)[number]['handler']>) =>
+        startsDrag(args[0]) && TouchSensor.activators[0]!.handler(...args)
+    }
+  ]
+}
 
 /**
  * How a sortable table is picked up: a small mouse move, a held finger, or Space on the keyboard. The

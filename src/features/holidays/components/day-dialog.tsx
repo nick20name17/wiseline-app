@@ -30,7 +30,7 @@ const DayForm = ({ day, usual, onDone }: DayFormProps) => {
   const [name, setName] = useState(savedName)
   const mutation = useSetCalendarDay(onDone)
 
-  const weekday = WEEKDAYS[day.weekday - 1]?.long ?? ''
+  const weekday = WEEKDAYS.find(({ day: number }) => number === day.weekday)?.long ?? ''
   // Set as its weekday usually is, the day keeps no name: the server drops the holiday or working day.
   const exceptional = worked !== usual
   const stale = !exceptional && savedName !== ''
@@ -102,7 +102,7 @@ export const DayDialog = ({ day: asked, workDays, onClose }: DayDialogProps) => 
 
   return (
     <Dialog open={asked !== null} onOpenChange={open => (open ? undefined : onClose())}>
-      <DialogContent>
+      <DialogContent sizeKey='holidays:day-dialog'>
         <DialogHeader>
           <DialogTitle>{day ? formatLongDate(day.date) : ''}</DialogTitle>
           <DialogDescription>

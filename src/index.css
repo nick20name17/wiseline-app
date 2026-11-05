@@ -307,6 +307,58 @@
   top: calc(var(--spacing) * 13 + var(--board-bar, 0px));
 }
 
+/* A dialog dragged to a size (`useDialogSize`). A width lifts the dialog's own cap but keeps the page
+   margin; a height makes it a column, whose `data-dialog-grow` part takes what the rest leaves, past
+   the cap it has at the dialog's own size. */
+[data-dialog-width] {
+  width: var(--dialog-width);
+  max-width: calc(100% - 2rem);
+}
+
+[data-dialog-sized] {
+  display: flex;
+  flex-direction: column;
+  height: var(--dialog-height);
+}
+
+[data-dialog-sized] > [data-dialog-grow] {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+}
+
+/*
+ * A page's own table (`data-page-table` on its card) from `lg`: the page stops at the screen's foot and
+ * the table scrolls in its box, both ways, so its header row sticks natively at the box's top and
+ * moves with the rows in the same frame. The shell is held to the screen's height while such a table
+ * is on the page, and each box from the page down to the card is a column that may shrink
+ * (`min-h-0`); the card is as tall as its rows, up to what is left. Below `lg` the rows are cards and
+ * the window scrolls. The header is opaque, the card it sits on; its cells' own rule moves with it.
+ */
+@media (width >= 64rem) {
+  [data-page-table] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* No bounce at either end, and a scroll past the last row does not carry on to the page. */
+  [data-page-table] > [data-slot='table-container'] {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: none;
+  }
+  /* At a zoom that is not a whole number of device pixels per CSS pixel, Chrome rounds a stuck
+     heading's offset apart from the rows' (crbug.com/401693546) and leaves a device pixel above it,
+     where the rows show through. The shadow fills it; past the box's top it is clipped. */
+  [data-page-table] > [data-slot='table-container'] > table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card);
+    box-shadow: 0 -1px var(--card);
+  }
+}
+
 /**
  * An expanded row in a table wider than the screen: its panel stays over the part of the table in
  * view and is as wide as it, so the panel's actions are not off past the right edge. The element
@@ -317,13 +369,32 @@
   @media (width >= 64rem) {
     position: sticky;
     left: calc(var(--spacing) * 4);
-    width: calc(100cqi - var(--spacing) * 8);
+    /* No wider than the table either: a table this person sized can stop short of its card. */
+    width: calc(min(100cqi, var(--sized-width, 100cqi)) - var(--spacing) * 8);
   }
 }
 
-/* The least a table with movable columns takes to leave its flexible ones room: see `useColumnOrder`. */
+/*
+ * The least a table with movable columns takes to leave its flexible ones room, or, once this person
+ * has sized every column (`data-sized`), exactly their sum: see `useColumnOrder`. A sized table drops
+ * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width:
+ * the card rules below are as specific and come later.
+ */
 table[data-slot='table'] {
   width: max(100%, var(--fit-width, 0px));
+}
+table[data-sized] {
+  --sized-width: var(--fit-width);
+  width: var(--fit-width);
+  min-width: 0;
+}
+
+/*
+ * A control that takes the whole cell (`data-fills-cell`) stretches its `::after` over it, so the
+ * cell is what holds it. A card's cell keeps its own place: the card rules are more specific.
+ */
+td:has(> [data-fills-cell]) {
+  position: relative;
 }
 
 /*
@@ -383,11 +454,15 @@ table[data-slot='table'] {
         border-top: 0;
       }
     }
+    /* A field on a card stands under its label: the columns' rules and centring have no column. */
     & > tbody > tr > td {
       display: block;
       min-width: 0;
       height: auto;
       padding: 0;
+      border-left: 0;
+      border-bottom: 0;
+      text-align: start;
       white-space: normal;
     }
     /* A desk's ellipsis leans on a `title` a touch screen never shows; a field on a card has the
@@ -540,6 +615,29 @@ table[data-slot='table'] {
     table[data-cards]:not(td *) > tbody > tr:has(> td[colspan]:only-child > :is(div, table)) {
       background-color: var(--card);
     }
+  }
+}
+
+/*
+ * A column the floor reads first — a cutlist's Total, a bendlist's Qty to Manufacture — is boxed whole,
+ * from its first row to its last, as Kevin's board draws it (notes of 2026-11-02, A3): a column rule's
+ * width in the text's colour, which marks it without the weight of a frame. Laid out as cards, the
+ * rows have no column to box.
+ */
+@media (width >= 64rem) {
+  td[data-outline],
+  td[data-outline] + td {
+    border-left-color: var(--foreground);
+  }
+  td[data-outline]:last-child {
+    border-right: 1px solid var(--foreground);
+  }
+  /* Over the header's rule rather than under it, which would draw the top twice as thick. */
+  tr:first-child > td[data-outline] {
+    box-shadow: 0 -1px var(--foreground);
+  }
+  tr:last-child > td[data-outline] {
+    border-bottom: 1px solid var(--foreground);
   }
 }
 

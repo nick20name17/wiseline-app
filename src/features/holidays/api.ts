@@ -7,15 +7,18 @@ import {
 } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
-/** Monday 1 to Sunday 7, as the server numbers weekdays. */
+/**
+ * The week Sunday first, as the board's calendars and EBMS's are (call of 2026-10-26); `day` is the
+ * server's number, Monday 1 to Sunday 7.
+ */
 export const WEEKDAYS = [
+  { day: 7, short: 'Sun', long: 'Sunday' },
   { day: 1, short: 'Mon', long: 'Monday' },
   { day: 2, short: 'Tue', long: 'Tuesday' },
   { day: 3, short: 'Wed', long: 'Wednesday' },
   { day: 4, short: 'Thu', long: 'Thursday' },
   { day: 5, short: 'Fri', long: 'Friday' },
-  { day: 6, short: 'Sat', long: 'Saturday' },
-  { day: 7, short: 'Sun', long: 'Sunday' }
+  { day: 6, short: 'Sat', long: 'Saturday' }
 ] as const
 
 const MONDAY_TO_FRIDAY = [1, 2, 3, 4, 5]

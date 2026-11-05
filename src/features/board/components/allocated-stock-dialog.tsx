@@ -52,7 +52,7 @@ export const AllocatedStockDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-4xl'>
+      <DialogContent sizeKey='board:allocated-stock-dialog' className='sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>Allocated stock</DialogTitle>
           <DialogDescription>
@@ -70,7 +70,7 @@ export const AllocatedStockDialog = ({
         {/* The floor is the placeholder's own height: the dialog is centred, so a box that grew from
             nothing into the answer would move the whole sheet under the pointer. */}
         {/* A phone's drawer scrolls as one; a box scrolling inside it would fight the swipe. */}
-        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : rows?.length ? (
@@ -90,14 +90,9 @@ export const AllocatedStockDialog = ({
                     >
                       {columns.cells({
                         color: <TableCell>{row.color ?? '—'}</TableCell>,
-                        pid: (
-                          <TableCell>
-                            <span className='font-mono'>{row.product_id || '—'}</span>
-                          </TableCell>
-                        ),
                         desc: (
                           <TableCell>
-                            <Description text={row.description} className='text-muted-foreground' />
+                            <Description text={row.description} />
                           </TableCell>
                         ),
                         qty: (

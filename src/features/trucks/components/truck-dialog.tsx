@@ -107,7 +107,7 @@ export const CreateTruckDialog = () => {
         <PlusCircle data-icon='inline-start' />
         Add truck
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent sizeKey='trucks:truck-dialog'>
         <DialogHeader>
           <DialogTitle>Add truck</DialogTitle>
         </DialogHeader>
@@ -126,7 +126,7 @@ type UpdateTruckDialogProps = {
 
 export const UpdateTruckDialog = ({ truck, open, onOpenChange }: UpdateTruckDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent sizeKey='trucks:truck-dialog'>
       <DialogHeader>
         <DialogTitle>Edit truck</DialogTitle>
       </DialogHeader>

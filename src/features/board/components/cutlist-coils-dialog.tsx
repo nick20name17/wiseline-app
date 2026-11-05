@@ -90,14 +90,25 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
           : adjust.mutateAsync({ lotId: coil.id, values: { coil_thickness: next } })
       )
     ).then(
-      () => {
-        toast.add({
-          type: 'success',
-          title:
-            asking === 'deplete'
-              ? `Depleted & deleted ${batch.length} coil(s) — zeroed out in EBMS`
-              : 'Coil adjustment pushed to EBMS (linear feet updated)'
-        })
+      queued => {
+        toast.add(
+          queued.some(Boolean)
+            ? {
+                type: 'warning',
+                title:
+                  asking === 'deplete'
+                    ? `Depleted & deleted ${batch.length} coil(s)`
+                    : 'Coil adjustment made (linear feet updated)',
+                description: 'EBMS is not answering: it goes to EBMS once EBMS is back.'
+              }
+            : {
+                type: 'success',
+                title:
+                  asking === 'deplete'
+                    ? `Depleted & deleted ${batch.length} coil(s) — zeroed out in EBMS`
+                    : 'Coil adjustment pushed to EBMS (linear feet updated)'
+              }
+        )
         setQuestion(null)
         // Once the cutter has adjusted the coil there is nothing left to do here, so the window goes
         // rather than waiting to be closed; it stays only for changes the deplete question held back.
@@ -118,7 +129,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={settle}>
-      <DialogContent className='sm:max-w-5xl xl:max-w-6xl'>
+      <DialogContent sizeKey='board:cutlist-coils-dialog' className='sm:max-w-5xl xl:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>Cutlist coils</DialogTitle>
           <DialogDescription>
@@ -127,7 +138,7 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
           </DialogDescription>
         </DialogHeader>
 
-        <div className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
+        <div data-dialog-grow className='scrollport min-h-56 md:max-h-96 md:overflow-y-auto'>
           {isPending ? (
             <Skeleton className='h-56' />
           ) : coils?.length ? (
@@ -150,11 +161,6 @@ export const CutlistCoilsDialog = ({ cutlist: current, onOpenChange }: CutlistCo
                           num: (
                             <TableCell>
                               <span className='font-mono'>{coil.lot_number ?? '—'}</span>
-                            </TableCell>
-                          ),
-                          pid: (
-                            <TableCell>
-                              <span className='font-mono'>{coil.product_id ?? '—'}</span>
                             </TableCell>
                           ),
                           width: (

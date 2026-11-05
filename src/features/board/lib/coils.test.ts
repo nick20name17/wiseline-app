@@ -52,6 +52,8 @@ const lot = (patch: Partial<CoilLot> = {}): CoilLot => ({
   can_adjust: true,
   slinet_available: false,
   rollforming_available: true,
+  ebms_sync: null,
+  ebms_error: null,
   ...patch
 })
 
@@ -82,7 +84,7 @@ describe('the coil geometry', () => {
     expect(poundsPerFoot(lot(), 0.0358)).toBeCloseTo((2 * 6608) / 2260)
     expect(poundsPerFoot(lot({ weight: null }), 0.0179)).toBeNull()
     expect(poundsPerFoot(lot({ material_thickness: null }), 0.0179)).toBeCloseTo(6608 / 2260)
-    // The server's weight per foot, from the gauge's weight, wins over the figures on record.
+    // The server's weight per foot wins over the figures on record.
     expect(poundsPerFoot(lot({ weight_per_foot: 3 }), 0.0179)).toBeCloseTo(3)
   })
 })

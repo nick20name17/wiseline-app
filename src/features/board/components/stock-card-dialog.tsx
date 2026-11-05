@@ -297,7 +297,7 @@ export const StockCardDialog = ({ target: current, onOpenChange }: StockCardDial
 
   return (
     <Dialog open={!!current} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent sizeKey='board:stock-card-dialog' className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>{card ? `Edit ${card.product_id}` : 'Create stock card'}</DialogTitle>
           <DialogDescription>
