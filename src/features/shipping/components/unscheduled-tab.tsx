@@ -2,6 +2,7 @@ import { useColumnOrder, type ColumnTable } from '@/components/table/column-orde
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { OrderNoteDialog } from '@/components/order-note-dialog'
 import { PriorityPill } from '@/components/priority-pill'
+import { EbmsSyncNote } from '@/components/ebms-sync-note'
 import { PrioritySelect } from '@/components/priority-select'
 import { QueryError } from '@/components/query-error'
 import { SelectionBar } from '@/components/selection-bar'
@@ -269,11 +270,17 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ship: (
                             <TableCell>
                               {/* Past its ship date and not delivered p3 (605,628). */}
-                              <span
-                                className={cn(order.is_overdue && 'font-medium text-destructive')}
-                                title={order.is_overdue ? 'Overdue' : undefined}
-                              >
-                                {formatDate(order.ship_date)}
+                              <span className='flex flex-wrap items-baseline gap-x-2'>
+                                <span
+                                  className={cn(order.is_overdue && 'font-medium text-destructive')}
+                                  title={order.is_overdue ? 'Overdue' : undefined}
+                                >
+                                  {formatDate(order.ship_date)}
+                                </span>
+                                <EbmsSyncNote
+                                  sync={order.ship_date_ebms_sync}
+                                  error={order.ship_date_ebms_error}
+                                />
                               </span>
                             </TableCell>
                           ),

@@ -22,6 +22,7 @@ import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/rou
 import { Route as AppShippingRouteImport } from './routes/_app/shipping'
 import { Route as AppTrimRouteImport } from './routes/_app/trim'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsEbmsRouteImport } from './routes/_app/settings/ebms'
 import { Route as AppSettingsLocationTypesRouteImport } from './routes/_app/settings/location-types'
 import { Route as AppSettingsLocationsRouteImport } from './routes/_app/settings/locations'
 import { Route as AppSettingsMachinesRouteImport } from './routes/_app/settings/machines'
@@ -96,6 +97,11 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
+const AppSettingsEbmsRoute = AppSettingsEbmsRouteImport.update({
+  id: '/ebms',
+  path: '/ebms',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
 const AppSettingsLocationTypesRoute =
   AppSettingsLocationTypesRouteImport.update({
     id: '/location-types',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/rollforming': typeof AppRollformingRoute
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
+  '/settings/ebms': typeof AppSettingsEbmsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/shipping': typeof AppShippingRoute
   '/trim': typeof AppTrimRoute
   '/': typeof AppIndexRoute
+  '/settings/ebms': typeof AppSettingsEbmsRoute
   '/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/settings/locations': typeof AppSettingsLocationsRoute
   '/settings/machines': typeof AppSettingsMachinesRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/_app/shipping': typeof AppShippingRoute
   '/_app/trim': typeof AppTrimRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/settings/ebms': typeof AppSettingsEbmsRoute
   '/_app/settings/location-types': typeof AppSettingsLocationTypesRoute
   '/_app/settings/locations': typeof AppSettingsLocationsRoute
   '/_app/settings/machines': typeof AppSettingsMachinesRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/rollforming'
     | '/shipping'
     | '/trim'
+    | '/settings/ebms'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/shipping'
     | '/trim'
     | '/'
+    | '/settings/ebms'
     | '/settings/location-types'
     | '/settings/locations'
     | '/settings/machines'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/_app/shipping'
     | '/_app/trim'
     | '/_app/'
+    | '/_app/settings/ebms'
     | '/_app/settings/location-types'
     | '/_app/settings/locations'
     | '/_app/settings/machines'
@@ -385,6 +397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
+    '/_app/settings/ebms': {
+      id: '/_app/settings/ebms'
+      path: '/ebms'
+      fullPath: '/settings/ebms'
+      preLoaderRoute: typeof AppSettingsEbmsRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
     '/_app/settings/location-types': {
       id: '/_app/settings/location-types'
       path: '/location-types'
@@ -452,6 +471,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppSettingsRouteRouteChildren {
+  AppSettingsEbmsRoute: typeof AppSettingsEbmsRoute
   AppSettingsLocationTypesRoute: typeof AppSettingsLocationTypesRoute
   AppSettingsLocationsRoute: typeof AppSettingsLocationsRoute
   AppSettingsMachinesRoute: typeof AppSettingsMachinesRoute
@@ -464,6 +484,7 @@ interface AppSettingsRouteRouteChildren {
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsEbmsRoute: AppSettingsEbmsRoute,
   AppSettingsLocationTypesRoute: AppSettingsLocationTypesRoute,
   AppSettingsLocationsRoute: AppSettingsLocationsRoute,
   AppSettingsMachinesRoute: AppSettingsMachinesRoute,

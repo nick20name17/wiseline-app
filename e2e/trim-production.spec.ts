@@ -402,3 +402,27 @@ test('a bendlist row says what was ordered and pulled, and Stock opens the keypa
     .poll(() => edits)
     .toEqual([{ path: '/items/7002/', body: { pull_from_stock: 2, from_flow: 1 } }])
 })
+
+test('a list changed on another screen is read again when the counts socket says so', async ({
+  page
+}) => {
+  let push: (message: unknown) => void = () => {}
+  await page.routeWebSocket(`${API_URL.replace('https', 'wss')}/ws/counts/`, socket => {
+    push = message => socket.send(JSON.stringify(message))
+  })
+  const read: string[] = []
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (request.method() === 'GET' && url.pathname === '/cutlists/')
+      read.push(url.searchParams.get('department_id') ?? '')
+  })
+  await page.reload()
+  await expect(page.getByText('26ga - Charcoal').first()).toBeVisible()
+  const before = read.length
+
+  // Another department's lists leave this board's alone.
+  push({ cutlists_changed: { '2': [40] } })
+  push({ cutlists_changed: { '1': [10] } })
+  await expect.poll(() => read.slice(before)).toContain('1')
+  expect(read.slice(before)).not.toContain('2')
+})

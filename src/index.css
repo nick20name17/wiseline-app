@@ -368,6 +368,14 @@ table[data-sized] {
 }
 
 /*
+ * A control that takes the whole cell (`data-fills-cell`) stretches its `::after` over it, so the
+ * cell is what holds it. A card's cell keeps its own place: the card rules are more specific.
+ */
+td:has(> [data-fills-cell]) {
+  position: relative;
+}
+
+/*
  * A table marked `data-cards` lays each row out as a card below `lg`, where its columns would not
  * fit: the same rows, cells and handlers, so a phone or a tablet loses nothing a desk has. Each cell
  * is a field under its column's label (`data-label`); `data-card` on a cell gives it another place —

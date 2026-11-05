@@ -26,12 +26,16 @@ export const SPOILED_TABLE: ColumnTable = {
 
 export const REMAKES_TABLE: ColumnTable = {
   table: 'reports-remakes',
+  // The description and the note take what the rest leave, half each.
   columns: [
     { key: 'when', label: 'When', width: 'w-44', align: 'start' },
-    { key: 'by', label: 'Asked by', width: 'w-36' },
-    { key: 'source', label: 'From', width: 'w-28' },
-    { key: 'pieces', label: 'Pieces', width: 'w-24' },
-    { key: 'status', label: 'Status', width: 'w-36' },
+    { key: 'order', label: 'Order', width: 'w-24' },
+    { key: 'description', label: 'Description', align: 'start', card: 'full' },
+    { key: 'machine', label: 'Machine', width: 'w-28' },
+    { key: 'pieces', label: 'Pieces', width: 'w-20' },
+    { key: 'status', label: 'Status', width: 'w-32' },
+    { key: 'by', label: 'Asked by', width: 'w-28' },
+    { key: 'source', label: 'From', width: 'w-24' },
     { key: 'note', label: 'Note', align: 'start', card: 'full' }
   ]
 }

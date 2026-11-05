@@ -341,7 +341,8 @@ test.describe('a truck on the Scheduled tab', () => {
             pickup: {},
             orders: [
               assignment(1, 'W12631', null),
-              assignment(2, 'W20936', null),
+              // Its Ship Date went to the queue: EBMS did not answer on Apply.
+              { ...assignment(2, 'W20936', null), ship_date_ebms_sync: 'queued' },
               pickup,
               ...onLoad
             ]
@@ -419,6 +420,14 @@ test.describe('a truck on the Scheduled tab', () => {
         body: { orders: ['ORD-1'], pickup_ids: [], ship_date: '2026-10-01', truck_id: 106 }
       }
     ])
+  })
+
+  test('says which order’s Ship Date is still waiting for EBMS', async ({ page }) => {
+    const waiting = page.getByRole('listitem').filter({ hasText: 'W20936' })
+    await expect(waiting.getByText('EBMS pending')).toBeVisible()
+    await expect(
+      page.getByRole('listitem').filter({ hasText: 'W12631' }).getByText('EBMS pending')
+    ).toHaveCount(0)
   })
 
   test('says when EBMS kept an order’s old Ship Date', async ({ page }) => {
@@ -584,6 +593,33 @@ test('the tab counts follow what the counts socket pushes', async ({ page }) => 
 
   await expect(page.getByRole('tab', { name: /^Unscheduled/ })).toContainText('1424')
   await expect(page.getByRole('tab', { name: /^Scheduled/ })).toContainText('14')
+})
+
+test('an unscheduled order says when EBMS would not take its Ship Date, and why', async ({
+  page
+}) => {
+  await page.route(`${API_URL}/shipping/unscheduled/?*`, route =>
+    route.fulfill({
+      json: {
+        count: 1,
+        results: [
+          {
+            order: 'ORD-7',
+            order_number: '116764',
+            customer: 'Kielstra',
+            ship_date: '2026-10-02',
+            ship_date_ebms_sync: 'failed',
+            ship_date_ebms_error: 'Invoiced in EBMS'
+          }
+        ]
+      }
+    })
+  )
+  await page.goto('/shipping?view=unscheduled')
+  await signIn(page)
+
+  const row = page.getByRole('row').filter({ hasText: '116764' })
+  await expect(row.getByText('Not in EBMS')).toHaveAttribute('title', 'Invoiced in EBMS')
 })
 
 test('Unscheduled narrows to the ship dates in the address', async ({ page }) => {

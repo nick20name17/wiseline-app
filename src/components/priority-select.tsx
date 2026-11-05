@@ -28,12 +28,14 @@ export const PrioritySelect = <T extends Choice>({
     }
   >
     {/* The pill is the trigger, so the column reads as it always has; the select's own box and
-        chevron would turn every row into a form field. On a phone a finger hits around the pill. */}
+        chevron would turn every row into a form field. In a table the whole cell opens it, as in
+        Notion or Linear; in a card, where the cell is a labelled field, a finger hits around the pill. */}
     <SelectPrimitive.Trigger
+      data-fills-cell
       aria-label={current ? `Priority: ${current.name}` : 'Set priority'}
-      className='relative cursor-pointer rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-md:after:absolute max-md:after:-inset-x-1 max-md:after:-inset-y-2.5'
+      className='group/priority cursor-pointer rounded-md outline-none after:absolute focus-visible:ring-3 focus-visible:ring-ring/50 max-lg:relative max-md:after:-inset-x-1 max-md:after:-inset-y-2.5 lg:after:inset-0'
     >
-      <PriorityPill priority={current} className='hover:brightness-95' />
+      <PriorityPill priority={current} className='group-hover/priority:brightness-95' />
     </SelectPrimitive.Trigger>
     <SelectContent align='start' className='min-w-48'>
       {priorities?.map(priority => (
