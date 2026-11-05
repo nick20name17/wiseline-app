@@ -164,9 +164,11 @@ export const BoardPage = ({
         />
 
         {showStrip && (machines.length || machinesPending) ? (
-          // A tab's toolbar shares the row: on a laptop the board's list starts a row higher.
+          // A tab's toolbar shares the row: on a laptop the board's list starts a row higher. The strip
+          // asks for all its tabs' width, so with too many to sit beside the toolbar the toolbar drops
+          // to the next row rather than cutting a tab off; only a screen narrower than the tabs scrolls.
           <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
-            <div className='min-w-0 grow basis-80'>
+            <div className='max-w-full min-w-0 grow'>
               {machines.length ? (
                 <MachineStrip
                   machines={machines}

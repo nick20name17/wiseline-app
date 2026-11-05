@@ -124,7 +124,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
       data-slot='table-head'
       className={cn(
         // Set close: a heading that wraps, «PRESS / BRAKE», reads as one label rather than two lines.
-        'h-8.5 px-4 align-middle text-xs leading-[1.1] font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
+        'h-8.5 px-2.5 align-middle text-xs leading-[1.1] font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0',
         COLUMN_RULES,
         // A movable column's header: the one in hand fades, and a bar on the side it will land on
         // marks where it goes; the body cells only move on drop, so the bar is the whole preview.
@@ -166,7 +166,7 @@ function TableCell({
       data-card={card ?? column?.card}
       data-align={column?.align}
       className={cn(
-        'overflow-hidden px-4 py-0.75 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
+        'overflow-hidden px-2.5 py-0.75 align-middle text-ellipsis whitespace-nowrap [&:has([role=checkbox])]:pr-0',
         COLUMN_RULES,
         className
       )}

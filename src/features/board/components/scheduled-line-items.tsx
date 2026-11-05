@@ -9,11 +9,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger
+  DropdownMenuRadioItem
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { CellInput, CellTextarea } from '@/components/cell-input'
 import {
   Table,
   TableBody,
@@ -51,6 +49,7 @@ import { formatWidth } from '../lib/format'
 import { byProduct, lineDay, newProduct, partLines, toMake } from '../lib/parts'
 import { itemStatus } from '@/lib/status'
 import { coilSummary, unitCoils } from '../lib/unit-coils'
+import { CellMenuTrigger } from '@/components/cell-trigger'
 import { NoteButton } from '@/components/note-button'
 import { useTabSelect } from '@/components/tab-select'
 import { contentName } from '../lib/wrapping'
@@ -479,18 +478,13 @@ export const ScheduledLineItems = ({
                             <span className='text-muted-foreground'>Stock</span>
                           ) : editable ? (
                             <DropdownMenu>
-                              <DropdownMenuTrigger
-                                render={
-                                  <Button
-                                    variant='outline'
-                                    className='w-full justify-between'
-                                    aria-label={`Machine for ${item.id_inven ?? item.id}`}
-                                  />
-                                }
+                              <CellMenuTrigger
+                                aria-label={`Machine for ${item.id_inven ?? item.id}`}
                               >
-                                <span className='truncate'>{machine?.name ?? 'Assign'}</span>
-                                <ChevronDown data-icon='inline-end' />
-                              </DropdownMenuTrigger>
+                                {machine?.name ?? (
+                                  <span className='text-muted-foreground'>Assign</span>
+                                )}
+                              </CellMenuTrigger>
                               <DropdownMenuContent
                                 align='start'
                                 className='min-w-40'
@@ -530,8 +524,9 @@ export const ScheduledLineItems = ({
                           {otherDay ? (
                             <span className='font-mono text-muted-foreground'>{fromStock}</span>
                           ) : (
-                            <Input
+                            <CellInput
                               key={fromStock}
+                              className='text-center'
                               type='number'
                               min={0}
                               max={item.quantity}
@@ -582,10 +577,9 @@ export const ScheduledLineItems = ({
                           {editable ? (
                             // A textarea, as an input drops the memo's line breaks and a blur would
                             // save the description run together.
-                            <Textarea
+                            <CellTextarea
                               key={description ?? ''}
                               rows={1}
-                              size='sm'
                               aria-label={`Description for ${name}`}
                               placeholder='Add a description'
                               defaultValue={shownDescription(description)}
@@ -606,8 +600,9 @@ export const ScheduledLineItems = ({
                       w: (
                         <TableCell>
                           {editable ? (
-                            <Input
+                            <CellInput
                               key={width ?? ''}
+                              className='text-center'
                               {...DECIMAL_INPUT}
                               aria-label={`Width for ${item.id_inven ?? item.id}`}
                               placeholder='0'

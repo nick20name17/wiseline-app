@@ -91,13 +91,15 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
 
   return (
     <>
-      {/* `inline-flex`: the row's crossing-out is drawn across its cells, and does not reach into an
-          atomic inline box — which is how the sign-off itself stays unstruck. The hint sits on the
-          label because a disabled box shows no tooltip of its own. */}
+      {/* `inline-flex`, or out of flow in a table: the row's crossing-out is drawn across its cells,
+          and reaches neither into an atomic inline box nor an absolute one — which is how the
+          sign-off itself stays unstruck. The hint sits on the label because a disabled box shows no
+          tooltip of its own. */}
       <label
-        // A finger-sized target with no frame of its own: the floor signs rows off on a touchscreen,
-        // and a boxed field crowded the column's rules.
-        className='inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 has-disabled:cursor-not-allowed has-disabled:opacity-60'
+        // No frame of its own, and in a table the whole cell: the floor signs rows off on a
+        // touchscreen, and a boxed field crowded the column's rules.
+        data-fills-cell
+        className='inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 has-disabled:cursor-not-allowed has-disabled:opacity-60 lg:absolute lg:inset-0 lg:justify-center'
         title={
           group.complete
             ? 'Marked complete — uncheck to reopen (asks first)'
@@ -105,7 +107,6 @@ const CompleteCell = ({ group, blocked, onComplete }: CompleteCellProps) => {
         }
       >
         <Checkbox
-          className='size-5'
           aria-label={`Complete ${sizeOf(group)}`}
           checked={group.complete}
           disabled={viewOnly || (!!blocked && !group.complete)}

@@ -362,15 +362,15 @@
 /**
  * An expanded row in a table wider than the screen: its panel stays over the part of the table in
  * view and is as wide as it, so the panel's actions are not off past the right edge. The element
- * around the scrolling table carries `@container`; the inset is the cell's own `px-4`. The cell must
+ * around the scrolling table carries `@container`; the inset is the cell's own `px-2.5`. The cell must
  * not clip, or it, not the table, is what the panel sticks in. From `lg` only: below it rows are cards.
  */
 @utility sticky-view {
   @media (width >= 64rem) {
     position: sticky;
-    left: calc(var(--spacing) * 4);
+    left: calc(var(--spacing) * 2.5);
     /* No wider than the table either: a table this person sized can stop short of its card. */
-    width: calc(min(100cqi, var(--sized-width, 100cqi)) - var(--spacing) * 8);
+    width: calc(min(100cqi, var(--sized-width, 100cqi)) - var(--spacing) * 5);
   }
 }
 
@@ -380,13 +380,30 @@
  * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width:
  * the card rules below are as specific and come later.
  */
+/* Each table's own: a table opened inside a row of another would take the outer one's width. */
+@property --fit-width {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
 table[data-slot='table'] {
-  width: max(100%, var(--fit-width, 0px));
+  width: max(100%, var(--fit-width));
 }
 table[data-sized] {
   --sized-width: var(--fit-width);
   width: var(--fit-width);
   min-width: 0;
+}
+
+/* A page's card ends where its sized table does, rather than trailing an empty strip past it. A size
+   container has no content width to fit, so it stops being one: a sized table's opened row is held to
+   the table's own width anyway (`sticky-view`). */
+@media (width >= 64rem) {
+  [data-page-table]:has(> [data-slot='table-container'] > table[data-sized]) {
+    container-type: normal;
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 /*
@@ -395,6 +412,14 @@ table[data-sized] {
  */
 td:has(> [data-fills-cell]) {
   position: relative;
+}
+
+/* A textarea that fills its cell stays in flow, as it is what makes the row tall; it reaches out over
+   the cell's padding with negative margins, and a textarea does not stretch into them by itself. */
+@media (width >= 64rem) {
+  td > textarea[data-fills-cell] {
+    width: calc(100% + var(--spacing) * 5);
+  }
 }
 
 /*
@@ -526,7 +551,7 @@ td:has(> [data-fills-cell]) {
       > tbody
       > tr:has(> td[data-card='lead']:not(:empty))
       > td:is([data-card='title'], [data-card='subtitle']) {
-      padding-left: calc(var(--spacing) * 7);
+      padding-left: calc(var(--spacing) * 9);
     }
     &
       > tbody
@@ -787,6 +812,12 @@ td:has(> [data-fills-cell]) {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* An icon carries the weight of the text beside it, which is regular almost everywhere; lucide's
+     own 2px reads bolder than a date or a name next to it. The rule outranks the SVG's attribute. */
+  .lucide {
+    stroke-width: 1.5;
   }
 
   /* SearchInput draws its own clear button. */

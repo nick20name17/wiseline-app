@@ -51,9 +51,12 @@ type TotalsProps = {
 
 type StatProps = { label: string; title?: string; children: ReactNode }
 
-/** One figure of the bar: its name over it, every figure the same width and type. */
+/**
+ * One figure of the bar: its name over it, every figure the same width and type. On a phone, where
+ * they stack, each takes the bar's width, so its meter lies under its centred figure.
+ */
 const Stat = ({ label, title, children }: StatProps) => (
-  <span className='flex w-48 flex-col gap-1 text-center' title={title}>
+  <span className='flex w-48 flex-col gap-1 text-center max-md:w-full' title={title}>
     <span className='text-xs tracking-wider text-muted-foreground uppercase'>{label}</span>
     {children}
   </span>

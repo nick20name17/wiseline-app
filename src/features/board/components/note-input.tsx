@@ -1,8 +1,8 @@
-import { Input } from '@/components/ui/input'
+import { CellInput } from '@/components/cell-input'
 import { useState, type ComponentProps } from 'react'
 
 type NoteInputProps = Omit<
-  ComponentProps<typeof Input>,
+  ComponentProps<typeof CellInput>,
   'value' | 'defaultValue' | 'onChange' | 'onBlur'
 > & {
   /** What the server holds now. */
@@ -15,7 +15,7 @@ export const NoteInput = ({ saved, onSave, ...props }: NoteInputProps) => {
   const [draft, setDraft] = useState(saved)
 
   return (
-    <Input
+    <CellInput
       {...props}
       value={draft}
       onChange={event => setDraft(event.target.value)}

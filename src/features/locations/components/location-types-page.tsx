@@ -6,7 +6,7 @@ import { Tags } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { departmentsQuery, locationTypesQuery, type LocationKind } from '../api'
 import { rackedDepartments } from '../lib/departments'
-import { DepartmentPills } from '@/components/department-pills'
+import { DepartmentTabs } from '@/components/department-tabs'
 import { KindTabs } from './kind-tabs'
 import { CreateLocationTypeDialog } from './location-type-dialog'
 import { LocationTypesTable } from './location-types-table'
@@ -59,7 +59,7 @@ export const LocationTypesPage = ({
 
   return (
     <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
-      <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+      <DepartmentTabs departments={racked} active={active} onChange={onDepartmentChange} />
       <KindTabs kind={kind} noun='Location Types' onChange={onKindChange} />
 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>

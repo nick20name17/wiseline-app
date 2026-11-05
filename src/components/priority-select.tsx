@@ -1,6 +1,7 @@
 import { PriorityPill, type PillPriority } from '@/components/priority-pill'
 import { Select, SelectContent, SelectItem } from '@/components/ui/select'
 import { Select as SelectPrimitive } from '@base-ui/react/select'
+import { CELL_TRIGGER } from '@/components/cell-trigger-class'
 import { cn } from 'cn'
 import type { CSSProperties } from 'react'
 
@@ -27,17 +28,10 @@ export const PrioritySelect = <T extends Choice>({
       onChange(priorities?.find(priority => String(priority.id) === value) ?? null)
     }
   >
-    {/* In a table the cell is the control, as in tablecn: it shows the value bare and is outlined
-        while its list is open; a pill in every row of a column repeats a box the cell already is. The select's own box and chevron would turn every row into a form
-        field. In a card, where the cell is a labelled field, a finger hits around the value. */}
     <SelectPrimitive.Trigger
       data-fills-cell
       aria-label={current ? `Priority: ${current.name}` : 'Set priority'}
-      className={cn(
-        'cursor-pointer outline-none after:absolute',
-        'max-lg:relative max-lg:rounded-md max-lg:focus-visible:ring-3 max-lg:focus-visible:ring-ring/50 max-md:after:-inset-x-1 max-md:after:-inset-y-2.5',
-        'lg:after:inset-0 lg:after:ring-inset lg:focus-visible:after:ring-2 lg:focus-visible:after:ring-ring/50 lg:data-popup-open:after:ring-2 lg:data-popup-open:after:ring-primary'
-      )}
+      className={CELL_TRIGGER}
     >
       <PriorityPill priority={current} className='bg-transparent px-0' />
     </SelectPrimitive.Trigger>

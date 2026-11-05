@@ -1,4 +1,4 @@
-import { DepartmentPills } from '@/components/department-pills'
+import { DepartmentTabs } from '@/components/department-tabs'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { useColumnOrder } from '@/components/table/column-order'
@@ -128,7 +128,7 @@ export const ReportsPage = ({
 
   return (
     <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
-      <DepartmentPills departments={offered} active={active} onChange={onDepartmentChange} />
+      <DepartmentTabs departments={offered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex flex-wrap items-end gap-3'>
         <div className='flex flex-col gap-1.5'>

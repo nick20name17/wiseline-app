@@ -27,7 +27,7 @@ import {
   type LocationKind
 } from '../api'
 import { rackedDepartments } from '../lib/departments'
-import { DepartmentPills } from '@/components/department-pills'
+import { DepartmentTabs } from '@/components/department-tabs'
 import { LocationActions } from './location-actions'
 import { KindTabs } from './kind-tabs'
 import { CreateLocationDialog } from './location-dialog'
@@ -112,7 +112,7 @@ export const LocationsPage = ({
 
   return (
     <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
-      <DepartmentPills departments={racked} active={active} onChange={onDepartmentChange} />
+      <DepartmentTabs departments={racked} active={active} onChange={onDepartmentChange} />
       <KindTabs kind={kind} noun='Locations' onChange={onKindChange} />
 
       <div className='flex flex-wrap items-center justify-end gap-3.5 max-sm:*:last:flex-1'>
