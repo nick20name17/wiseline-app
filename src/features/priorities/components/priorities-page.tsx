@@ -1,4 +1,4 @@
-import { DepartmentPills } from '@/components/department-pills'
+import { DepartmentTabs } from '@/components/department-tabs'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { departmentByCode, departmentRole, inBoardOrder } from '@/lib/departments'
 import { useQuery } from '@tanstack/react-query'
@@ -43,7 +43,7 @@ export const PrioritiesPage = ({
 
   return (
     <section className='flex flex-1 flex-col gap-4 lg:min-h-0'>
-      <DepartmentPills departments={ordered} active={active} onChange={onDepartmentChange} />
+      <DepartmentTabs departments={ordered} active={active} onChange={onDepartmentChange} />
 
       <div className='flex items-center gap-3.5 max-md:flex-wrap'>
         {active && priorities.length ? (

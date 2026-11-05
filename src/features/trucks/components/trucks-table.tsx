@@ -19,7 +19,7 @@ const weightFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const formatWeight = (pounds: number | null) =>
-  pounds === null ? '—' : weightFormatter.format(pounds).replace(/\blb\b/, 'lbs')
+  pounds === null ? '' : weightFormatter.format(pounds).replace(/\blb\b/, 'lbs')
 
 const COLUMNS: ColumnTable = {
   table: 'trucks',
@@ -71,7 +71,7 @@ export const TrucksTable = ({ trucks, isPending }: TrucksTableProps) => {
                   name: <TableCell>{truck.name}</TableCell>,
                   plate: (
                     <TableCell>
-                      <span className='font-mono'>{truck.plate ?? '—'}</span>
+                      {truck.plate && <span className='font-mono'>{truck.plate}</span>}
                     </TableCell>
                   ),
                   weight: <TableCell>{formatWeight(truck.max_weight)}</TableCell>

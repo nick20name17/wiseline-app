@@ -1,12 +1,12 @@
 const pounds = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
-/** `1,673.49 lbs`, the way the board prints a weight; `—` when there is none. */
+/** `1,673.49 lbs`, the way the board prints a weight; blank when there is none. */
 export const formatWeight = (value: number | null) =>
-  value === null ? '—' : `${pounds.format(value)} lbs`
+  value === null ? '' : `${pounds.format(value)} lbs`
 
 /** `13'6" (162")`: the board gives a length in feet and inches, and in inches beside it p3 (595,185). */
 export const formatLength = (inches: number | null) => {
-  if (!inches) return '—'
+  if (!inches) return ''
   // Rounded before the split: rounding the rest after it read 23.97" as 1'12".
   const tenths = Math.round(inches * 10)
   const feet = Math.floor(tenths / 120)

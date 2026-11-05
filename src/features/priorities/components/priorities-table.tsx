@@ -18,8 +18,8 @@ import { closestCenter, DndContext, type DragEndEvent, type UniqueIdentifier } f
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { RowGrip, RowNumber } from '@/components/row-grip'
 import { cn } from 'cn'
-import { GripVertical } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { useReorderPriorities, type Priority } from '../api'
 import { reorder } from '../lib/reorder'
@@ -50,9 +50,10 @@ type SortableRowProps = {
   departmentId: number
   disabled: boolean
   readOnly: boolean
+  number: number
 }
 
-const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRowProps) => {
+const SortableRow = ({ priority, departmentId, disabled, readOnly, number }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -79,17 +80,15 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRow
         {/* The keyboard's way in: Space picks the row up, the arrows move it. It is never
               natively disabled while a move saves: that would drop the focus it holds after a
               keyboard drop. */}
-        {readOnly ? null : (
-          <button
+        {readOnly ? (
+          <RowNumber number={number} />
+        ) : (
+          <RowGrip
             ref={setActivatorNodeRef}
-            type='button'
-            data-grip
+            number={number}
             aria-label={`Move ${priority.name}`}
-            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50 pointer-coarse:-m-3 pointer-coarse:p-3'
             {...attributes}
-          >
-            <GripVertical className='size-3.5' />
-          </button>
+          />
         )}
       </TableCell>
       {columns.cells({
@@ -106,9 +105,9 @@ const SortableRow = ({ priority, departmentId, disabled, readOnly }: SortableRow
                   priority.color ? ({ '--swatch': priority.color } as CSSProperties) : undefined
                 }
               />
-              <span className='font-mono text-xs text-muted-foreground'>
-                {priority.color ?? '—'}
-              </span>
+              {priority.color && (
+                <span className='font-mono text-xs text-muted-foreground'>{priority.color}</span>
+              )}
             </span>
           </TableCell>
         ),
@@ -204,7 +203,7 @@ export const PrioritiesTable = ({
                 items={rows.map(priority => priority.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {rows.map(priority => {
+                {rows.map((priority, index) => {
                   const changeable = canChange(priority)
                   return (
                     // A second drag while the first saves would renumber from a list about to change.
@@ -214,6 +213,7 @@ export const PrioritiesTable = ({
                       departmentId={departmentId}
                       disabled={!changeable || save.isPending}
                       readOnly={!changeable}
+                      number={index + 1}
                     />
                   )
                 })}

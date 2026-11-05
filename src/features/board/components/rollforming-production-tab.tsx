@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { Description } from '@/components/description'
 import { QueryError } from '@/components/query-error'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
@@ -103,9 +105,9 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => {
                     ),
                     l: (
                       <TableCell>
-                        <span className='font-mono'>
-                          {line.length === null ? '—' : `${line.length}"`}
-                        </span>
+                        {line.length !== null && (
+                          <span className='font-mono'>{line.length}&quot;</span>
+                        )}
                       </TableCell>
                     ),
                     status: (
@@ -115,18 +117,14 @@ const PartLines = ({ lines }: { lines: BoardLineItem[] }) => {
                     ),
                     supplier: (
                       <TableCell>
-                        {stock ? (
-                          '—'
-                        ) : (
+                        {stock ? null : (
                           <Coil value={line.item?.supplier ?? null} item={line.item} />
                         )}
                       </TableCell>
                     ),
                     coil: (
                       <TableCell>
-                        {stock ? (
-                          '—'
-                        ) : (
+                        {stock ? null : (
                           <Coil value={line.item?.coil_number ?? null} item={line.item} mono />
                         )}
                       </TableCell>
@@ -171,7 +169,11 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
   } = useQuery(releasedOrdersQuery(board.name, search, true))
   const { data: coil } = useQuery(currentCoilQuery(machineId))
   // One order open at a time: opening another folds the last.
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useRemembered(
+    `expanded:${board.name}:released`,
+    z.nullable(z.string()),
+    null
+  )
   const [packing, setPacking] = useState<string | null>(null)
   // Only the bench reads the Wrapping rows, so they are fetched once an order is opened.
   const { data: benchRows } = useQuery({
@@ -263,6 +265,8 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                   const state = departmentStateOf(order, departmentId)
                   const profiles = [...new Set(lines.map(line => line.profile).filter(Boolean))]
                   const onCoil = runsOffCoil(lines, coil)
+                  const materials = materialsOf({ ...order, origin_items: lines }).join(', ')
+                  const coilNumbers = coilNumbersOf(lines).join(', ')
                   return (
                     <Fragment key={key}>
                       {/* The row opens the order's bench, where it is packaged; the chevron only
@@ -297,41 +301,34 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                           ),
                           customer: (
                             <TableCell>
-                              <span className='truncate'>{order.customer ?? '—'}</span>
+                              {order.customer && <span className='truncate'>{order.customer}</span>}
                             </TableCell>
                           ),
                           po: (
                             <TableCell>
-                              <span className='truncate'>{order.po_no ?? '—'}</span>
+                              {order.po_no && <span className='truncate'>{order.po_no}</span>}
                             </TableCell>
                           ),
                           material: (
                             <TableCell>
-                              <span className='truncate'>
-                                {materialsOf({
-                                  ...order,
-                                  origin_items: lines
-                                }).join(', ') || '—'}
-                              </span>
+                              {materials && <span className='truncate'>{materials}</span>}
                             </TableCell>
                           ),
                           profile: (
                             <TableCell>
-                              <span className='truncate'>{profiles.join(' / ') || '—'}</span>
+                              {profiles.length > 0 && (
+                                <span className='truncate'>{profiles.join(' / ')}</span>
+                              )}
                             </TableCell>
                           ),
                           salesman: (
                             <TableCell>
-                              <span className='truncate'>{order.salesman ?? '—'}</span>
+                              {order.salesman && <span className='truncate'>{order.salesman}</span>}
                             </TableCell>
                           ),
                           priority: (
                             <TableCell>
-                              {state?.priority ? (
-                                <PriorityPill priority={state.priority} />
-                              ) : (
-                                <span className='text-muted-foreground'>—</span>
-                              )}
+                              {state?.priority ? <PriorityPill priority={state.priority} /> : null}
                             </TableCell>
                           ),
                           status: (
@@ -341,23 +338,27 @@ const ReleasedParts = ({ search, departmentId, machineId }: RollformingProductio
                           ),
                           location: (
                             <TableCell>
-                              <span className='truncate font-mono'>
-                                {order.locations.join(', ') || '—'}
-                              </span>
+                              {order.locations.length > 0 && (
+                                <span className='truncate font-mono'>
+                                  {order.locations.join(', ')}
+                                </span>
+                              )}
                             </TableCell>
                           ),
                           coil: (
                             <TableCell>
-                              <span className='flex items-center gap-1.5'>
-                                <span
-                                  className={cn(
-                                    'truncate font-mono',
-                                    onCoil && 'font-medium text-primary'
-                                  )}
-                                >
-                                  {coilNumbersOf(lines).join(', ') || '—'}
+                              {coilNumbers && (
+                                <span className='flex items-center gap-1.5'>
+                                  <span
+                                    className={cn(
+                                      'truncate font-mono',
+                                      onCoil && 'font-medium text-primary'
+                                    )}
+                                  >
+                                    {coilNumbers}
+                                  </span>
                                 </span>
-                              </span>
+                              )}
                             </TableCell>
                           ),
                           source: (

@@ -5,7 +5,7 @@ import { closestCenter, DndContext, type DragEndEvent, type UniqueIdentifier } f
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, SortableContext } from '@dnd-kit/sortable'
 import { dragAnnouncements, useDragSensors } from './drag'
-import { clampWidth, minWidth, type Column } from './column'
+import { clampWidth, leastWidth, type Column } from './column'
 import type { Sort } from '@/lib/sort-rows'
 import { SortableHead } from './sortable-head'
 import {
@@ -72,7 +72,7 @@ export const useColumnOrder = (definition: ColumnTable, sorting?: ColumnSort) =>
   const widthOf = (key: string) => {
     const column = byKey.get(key)
     const width = saved?.[key]
-    return column && width ? clampWidth(column, width) : undefined
+    return column && !column.fixed && width ? clampWidth(column, width) : undefined
   }
   // A drag sets the `<col>` directly: a render a step would redraw every row of the table.
   const colEls = useRef(new Map<string, HTMLTableColElement>())
@@ -106,7 +106,10 @@ export const useColumnOrder = (definition: ColumnTable, sorting?: ColumnSort) =>
       for (const col of all)
         width += fixed(col)
           ? parseFloat(getComputedStyle(col).width) || 0
-          : minWidth(byKey.get(keys.get(col) ?? ''))
+          : leastWidth(
+              byKey.get(keys.get(col) ?? ''),
+              table.querySelector(`th[data-column="${CSS.escape(keys.get(col) ?? '')}"]`)
+            )
     table.style.setProperty('--fit-width', `${width}px`)
     table.toggleAttribute('data-sized', sized)
   }
@@ -122,7 +125,7 @@ export const useColumnOrder = (definition: ColumnTable, sorting?: ColumnSort) =>
       // Its header, not the `<col>`: WebKit gives a `<col>` no box to measure.
       const head = col.closest('table')?.querySelector(`th[data-column="${CSS.escape(key)}"]`)
       if (!head) continue
-      const width = clampWidth(column, head.getBoundingClientRect().width)
+      const width = clampWidth(column, head.getBoundingClientRect().width, leastWidth(column, head))
       col.style.width = `${width}px`
       pinned.current[key] = width
     }

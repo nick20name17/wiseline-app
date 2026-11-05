@@ -101,16 +101,20 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                     {columns.cells({
                       ship: (
                         <TableCell>
-                          <span className='text-muted-foreground'>
-                            {formatDate(order.ship_date)}
-                          </span>
+                          {order.ship_date && (
+                            <span className='text-muted-foreground'>
+                              {formatDate(order.ship_date)}
+                            </span>
+                          )}
                         </TableCell>
                       ),
                       prod: (
                         <TableCell>
-                          <span className='text-muted-foreground'>
-                            {order.production_date ? formatDate(order.production_date) : '—'}
-                          </span>
+                          {order.production_date && (
+                            <span className='text-muted-foreground'>
+                              {formatDate(order.production_date)}
+                            </span>
+                          )}
                         </TableCell>
                       ),
                       completed: (
@@ -126,9 +130,7 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                             ) : (
                               <Waiting />
                             )
-                          ) : (
-                            '—'
-                          )}
+                          ) : null}
                         </TableCell>
                       ),
                       order: (
@@ -139,25 +141,25 @@ export const CompletedTab = ({ departmentId }: CompletedTabProps) => {
                       customer: (
                         <TableCell>
                           <span className='truncate'>
-                            {order.is_stock ? 'Stock' : (order.customer ?? '—')}
+                            {order.is_stock ? 'Stock' : order.customer}
                           </span>
                         </TableCell>
                       ),
                       location: (
                         <TableCell>
-                          <span className='truncate'>
-                            <span className='font-mono'>{order.trim_location.join(', ')}</span>
-                            {/* Done but not located: the locations so far, and more to come. A refused
+                          {order.trim_location.length || order.status === 'rolled' ? (
+                            <span className='truncate'>
+                              <span className='font-mono'>{order.trim_location.join(', ')}</span>
+                              {/* Done but not located: the locations so far, and more to come. A refused
                                 one is located already; Completed says why it stays. */}
-                            {order.status === 'rolled' && !order.complete_error ? (
-                              <>
-                                {order.trim_location.length ? ', ' : null}
-                                <Waiting />
-                              </>
-                            ) : order.trim_location.length ? null : (
-                              '—'
-                            )}
-                          </span>
+                              {order.status === 'rolled' && !order.complete_error ? (
+                                <>
+                                  {order.trim_location.length ? ', ' : null}
+                                  <Waiting />
+                                </>
+                              ) : null}
+                            </span>
+                          ) : null}
                         </TableCell>
                       )
                     })}

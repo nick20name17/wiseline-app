@@ -77,12 +77,16 @@ export const OrderRow = ({
         {cells({
           entry: (
             <TableCell>
-              <span className='text-muted-foreground'>{formatDate(order.crea_date)}</span>
+              {order.crea_date && (
+                <span className='text-muted-foreground'>{formatDate(order.crea_date)}</span>
+              )}
             </TableCell>
           ),
           ship: (
             <TableCell>
-              <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
+              {order.ship_date && (
+                <span className='text-muted-foreground'>{formatDate(order.ship_date)}</span>
+              )}
             </TableCell>
           ),
           order: (
@@ -109,27 +113,31 @@ export const OrderRow = ({
           ),
           customer: (
             <TableCell>
-              <span className='truncate'>{stock ? 'Stock' : (order.customer ?? '—')}</span>
+              {(stock || order.customer) && (
+                <span className='truncate'>{stock ? 'Stock' : order.customer}</span>
+              )}
             </TableCell>
           ),
           material: (
             <TableCell>
-              <span className='truncate' title={materialsOf(order).join(', ')}>
-                {materialsOf(order).join(', ') || '—'}
-              </span>
+              {materialsOf(order).length > 0 && (
+                <span className='truncate' title={materialsOf(order).join(', ')}>
+                  {materialsOf(order).join(', ')}
+                </span>
+              )}
             </TableCell>
           ),
           shipvia: (
             <TableCell>
-              <span className='truncate text-muted-foreground'>{order.ship_via ?? '—'}</span>
+              {order.ship_via && (
+                <span className='truncate text-muted-foreground'>{order.ship_via}</span>
+              )}
             </TableCell>
           ),
           notes: (
             <TableCell onClick={stopRowClick}>
               {/* A stock order has no EBMS row, so there is no salesman's note to import. */}
-              {stock ? (
-                <span className='text-muted-foreground'>—</span>
-              ) : (
+              {stock ? null : (
                 <NoteButton state={noteState} label='Order notes' onClick={onOpenOrderNotes} />
               )}
             </TableCell>

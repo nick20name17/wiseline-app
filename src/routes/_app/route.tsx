@@ -10,7 +10,12 @@ import { preferencesLoaded } from '@/lib/preferences'
 import { sessionStore } from '@/lib/session-store'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useSyncExternalStore } from 'react'
+import * as z from 'zod/mini'
+import { persistedStore } from '@/lib/persisted-store'
+
+// Kept in this browser, so a sidebar folded away stays folded on the next visit.
+const sidebarStore = persistedStore('sidebar', z.object({ wide: z.boolean(), open: z.boolean() }))
 
 const AppLayout = () => {
   useLiveCounts()
@@ -26,11 +31,11 @@ const AppLayout = () => {
   // A desk gets the full sidebar and a tablet the icon rail, which leaves a board's cards the width.
   // Either is opened or closed by hand from there, until the window crosses into the other.
   const wide = useIsWide()
-  const [toggled, setToggled] = useState<{ wide: boolean; open: boolean }>()
+  const toggled = useSyncExternalStore(sidebarStore.subscribe, sidebarStore.get)
   const open = toggled?.wide === wide ? toggled.open : wide
 
   return (
-    <SidebarProvider open={open} onOpenChange={next => setToggled({ wide, open: next })}>
+    <SidebarProvider open={open} onOpenChange={next => sidebarStore.set({ wide, open: next })}>
       <PageHeaderProvider>
         {/* A disabled query stays pending, so the role is waited on only once there is a user. A
             failed request is not pending, so the placeholders give way to the links it allows. */}

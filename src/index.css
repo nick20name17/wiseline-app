@@ -362,15 +362,15 @@
 /**
  * An expanded row in a table wider than the screen: its panel stays over the part of the table in
  * view and is as wide as it, so the panel's actions are not off past the right edge. The element
- * around the scrolling table carries `@container`; the inset is the cell's own `px-4`. The cell must
+ * around the scrolling table carries `@container`; the inset is the cell's own `px-2.5`. The cell must
  * not clip, or it, not the table, is what the panel sticks in. From `lg` only: below it rows are cards.
  */
 @utility sticky-view {
   @media (width >= 64rem) {
     position: sticky;
-    left: calc(var(--spacing) * 4);
+    left: calc(var(--spacing) * 2.5);
     /* No wider than the table either: a table this person sized can stop short of its card. */
-    width: calc(min(100cqi, var(--sized-width, 100cqi)) - var(--spacing) * 8);
+    width: calc(min(100cqi, var(--sized-width, 100cqi)) - var(--spacing) * 5);
   }
 }
 
@@ -380,13 +380,30 @@
  * its `min-w-*` too, which only kept room for a flexible column. Cards take the screen's width:
  * the card rules below are as specific and come later.
  */
+/* Each table's own: a table opened inside a row of another would take the outer one's width. */
+@property --fit-width {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
 table[data-slot='table'] {
-  width: max(100%, var(--fit-width, 0px));
+  width: max(100%, var(--fit-width));
 }
 table[data-sized] {
   --sized-width: var(--fit-width);
   width: var(--fit-width);
   min-width: 0;
+}
+
+/* A page's card ends where its sized table does, rather than trailing an empty strip past it. A size
+   container has no content width to fit, so it stops being one: a sized table's opened row is held to
+   the table's own width anyway (`sticky-view`). */
+@media (width >= 64rem) {
+  [data-page-table]:has(> [data-slot='table-container'] > table[data-sized]) {
+    container-type: normal;
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 /*
@@ -395,6 +412,14 @@ table[data-sized] {
  */
 td:has(> [data-fills-cell]) {
   position: relative;
+}
+
+/* A textarea that fills its cell stays in flow, as it is what makes the row tall; it reaches out over
+   the cell's padding with negative margins, and a textarea does not stretch into them by itself. */
+@media (width >= 64rem) {
+  td > textarea[data-fills-cell] {
+    width: calc(100% + var(--spacing) * 5);
+  }
 }
 
 /*
@@ -471,6 +496,10 @@ td:has(> [data-fills-cell]) {
       white-space: normal;
       overflow-wrap: anywhere;
     }
+    /* A field with nothing in it is left off the card, rather than a label over an empty line. */
+    & > tbody > tr > td[data-label]:empty {
+      display: none;
+    }
     & > tbody > tr > td[data-label]::before {
       content: attr(data-label);
       /* Inline-block, so a struck-through row does not strike its labels too. */
@@ -526,7 +555,7 @@ td:has(> [data-fills-cell]) {
       > tbody
       > tr:has(> td[data-card='lead']:not(:empty))
       > td:is([data-card='title'], [data-card='subtitle']) {
-      padding-left: calc(var(--spacing) * 7);
+      padding-left: calc(var(--spacing) * 9);
     }
     &
       > tbody
@@ -625,18 +654,30 @@ td:has(> [data-fills-cell]) {
  * rows have no column to box.
  */
 @media (width >= 64rem) {
-  td[data-outline],
-  td[data-outline] + td {
-    border-left-color: var(--foreground);
+  /* Drawn as one box over the cell rather than out of its borders and a shadow: in a table of
+     separate borders the cell's right rule is its neighbour's, so the pieces stopped a pixel short of
+     each other at the corners. Laid out over the cell's own rules, one pixel past each side. */
+  /* Visible, not the cell's usual clip, which would cut off what lies past its padding box: a
+     figure this short never needs cutting. */
+  td[data-outline] {
+    position: relative;
+    overflow: visible;
   }
-  td[data-outline]:last-child {
-    border-right: 1px solid var(--foreground);
+  td[data-outline]::after {
+    content: '';
+    position: absolute;
+    inset: 0 -1px -1px;
+    border-inline: 1px solid var(--foreground);
+    pointer-events: none;
   }
   /* Over the header's rule rather than under it, which would draw the top twice as thick. */
-  tr:first-child > td[data-outline] {
-    box-shadow: 0 -1px var(--foreground);
+  tr:first-child > td[data-outline]::after {
+    top: -1px;
+    border-top: 1px solid var(--foreground);
   }
-  tr:last-child > td[data-outline] {
+  /* Inside the last row, where the table's scroll box would clip a pixel below it. */
+  tr:last-child > td[data-outline]::after {
+    bottom: 0;
     border-bottom: 1px solid var(--foreground);
   }
 }
@@ -787,6 +828,12 @@ td:has(> [data-fills-cell]) {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /* An icon carries the weight of the text beside it, which is regular almost everywhere; lucide's
+     own 2px reads bolder than a date or a name next to it. The rule outranks the SVG's attribute. */
+  .lucide {
+    stroke-width: 1.5;
   }
 
   /* SearchInput draws its own clear button. */

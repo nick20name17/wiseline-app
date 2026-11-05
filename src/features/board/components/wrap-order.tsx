@@ -4,7 +4,8 @@ import { formatDate, formatDayLabel } from '@/lib/days'
 import { Badge } from '@/components/ui/badge'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { CellButton } from '@/components/cell-trigger'
+import { CellInput } from '@/components/cell-input'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/components/ui/toast'
 import { useQuery } from '@tanstack/react-query'
@@ -84,15 +85,14 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
   const room = remakeRoom(row.qty_ordered, remans)
   const made = row.status === 'bent' || row.status === 'wrapped'
   const again = remans.length ? 'Remanufacture again' : 'Remanufacture'
+  const canRemake = made && !viewOnly
+  // Nothing to show and nothing to offer: no wrapper either, so the cell stays empty.
+  if (!remans.length && !canRemake) return null
 
   return (
     <span className='flex items-center gap-1'>
       {remans.length ? <RemanBadge remans={remans} /> : null}
-      {viewOnly ? (
-        remans.length ? null : (
-          <span className='text-muted-foreground'>—</span>
-        )
-      ) : made ? (
+      {canRemake ? (
         <Button
           variant='ghost'
           size='icon-sm'
@@ -103,11 +103,7 @@ const RemanCell = ({ row, remans, onRemake }: RemanCellProps) => {
         >
           <RefreshCw />
         </Button>
-      ) : remans.length ? null : (
-        <span className='text-muted-foreground' title='Available once the line is Bent'>
-          —
-        </span>
-      )}
+      ) : null}
     </span>
   )
 }
@@ -131,13 +127,14 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
   if (row.wrapped > 0 && row.left_to_wrap <= 0)
     return <span className='text-xs text-muted-foreground'>Packed ✓</span>
 
-  if (viewOnly) return <span className='text-muted-foreground'>—</span>
+  if (viewOnly) return null
 
+  // The field is the cell, as every field in a table is; Auto fill sits at its right end, over it.
   if (row.can_wrap && allowed > 0)
     return (
-      <span className='flex flex-wrap items-center gap-2'>
-        <Input
-          className='w-20'
+      <>
+        <CellInput
+          className='max-lg:w-20 lg:pr-24'
           type='number'
           min={0}
           max={allowed}
@@ -152,6 +149,8 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
         {/* Auto fill copies what may be wrapped, and takes itself back. */}
         <Button
           variant='outline'
+          size='sm'
+          className='max-lg:ml-2 lg:absolute lg:top-1/2 lg:right-1.5 lg:-translate-y-1/2'
           disabled={!staged && (!row.auto_fill_available || otherProduct)}
           title={
             staged
@@ -166,11 +165,11 @@ const WrapCell = ({ row, allowed, staged, otherProduct, onAmount }: WrapCellProp
         </Button>
         {/* Why Auto fill is shut is its hover title on a desk; a touch screen has no hover. */}
         {!staged && otherProduct ? (
-          <span className='hidden w-full text-xs text-muted-foreground pointer-coarse:block'>
+          <span className='hidden w-full text-xs text-muted-foreground pointer-coarse:block lg:pointer-coarse:hidden'>
             Another Product ID is in this package
           </span>
         ) : null}
-      </span>
+      </>
     )
 
   if (row.coil_missing)
@@ -268,17 +267,18 @@ const WrapLines = ({
                     // cutlists p1 (465,337) — on a board that has a standard length.
                     length: (
                       <TableCell>
-                        <span
-                          className={cn(
-                            'font-mono',
-                            board.standardLength !== null &&
-                              row.length !== null &&
-                              !row.is_standard_length &&
-                              'text-destructive'
-                          )}
-                        >
-                          {row.length === null ? '—' : `${row.length}"`}
-                        </span>
+                        {row.length !== null && (
+                          <span
+                            className={cn(
+                              'font-mono',
+                              board.standardLength !== null &&
+                                !row.is_standard_length &&
+                                'text-destructive'
+                            )}
+                          >
+                            {row.length}&quot;
+                          </span>
+                        )}
                       </TableCell>
                     ),
                     qty: (
@@ -293,14 +293,13 @@ const WrapLines = ({
                       <TableCell>
                         {/* A line with no app row has nothing for the keypad to write to. */}
                         {board.stockCards && !viewOnly && !row.is_stock && row.item_id !== null ? (
-                          <Button
-                            variant='link'
+                          <CellButton
                             aria-label={`Stock for ${contentName(row)}`}
                             title='Pull from stock'
                             onClick={() => setStocking(row)}
                           >
                             <Figure value={row.from_stock || null} />
-                          </Button>
+                          </CellButton>
                         ) : (
                           <Figure value={row.from_stock || null} />
                         )}

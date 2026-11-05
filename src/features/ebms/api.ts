@@ -1,5 +1,5 @@
 import { authApi } from '@/api/client'
-import { infiniteQueryOptions, queryOptions, useMutation } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useMutation } from '@tanstack/react-query'
 import * as z from 'zod/mini'
 
 /** Where a write stands: still waiting for EBMS, refused by it, or sent once it answered. */
@@ -7,7 +7,7 @@ export type OutboxStatus = 'failed' | 'queued' | 'ok'
 
 const ebmsKeys = {
   all: ['ebms-outbox'] as const,
-  list: (status: OutboxStatus) => [...ebmsKeys.all, 'list', status] as const,
+  list: (status: OutboxStatus, page: number) => [...ebmsKeys.all, 'list', status, page] as const,
   count: (status: OutboxStatus) => [...ebmsKeys.all, 'count', status] as const
 }
 
@@ -56,16 +56,12 @@ const readPage = async (status: OutboxStatus, limit: number, offset: number) =>
     await authApi.get('ebms-outbox/', { searchParams: { status, limit, offset } }).json()
   )
 
-/** The writes in one state, newest first, a page at a time. */
-export const outboxQuery = (status: OutboxStatus) =>
-  infiniteQueryOptions({
-    queryKey: ebmsKeys.list(status),
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) => readPage(status, OUTBOX_PAGE, pageParam),
-    getNextPageParam: (last, pages) => {
-      const read = pages.reduce((total, page) => total + page.results.length, 0)
-      return read < last.count && last.results.length ? read : undefined
-    }
+/** The writes in one state, newest first, a page at a time; `page` is zero-based. */
+export const outboxQuery = (status: OutboxStatus, page: number) =>
+  queryOptions({
+    queryKey: ebmsKeys.list(status, page),
+    placeholderData: keepPreviousData,
+    queryFn: () => readPage(status, OUTBOX_PAGE, page * OUTBOX_PAGE)
   })
 
 /** How many writes are in a state: a tab's count, whichever tab is open. */

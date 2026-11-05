@@ -1,9 +1,12 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { StickyTop } from './sticky-top'
 import { useColumnOrder } from '@/components/table/column-order'
 import { Pager } from '@/components/table/pager'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CellButton } from '@/components/cell-trigger'
 import { Checkbox } from '@/components/ui/checkbox'
 import { QrLabels } from '@/components/qr-labels'
 import {
@@ -14,7 +17,6 @@ import {
   EmptyMedia,
   EmptyTitle
 } from '@/components/ui/empty'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -28,6 +30,7 @@ import { toggled } from '@/lib/sets'
 import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
+import { CellInput } from '@/components/cell-input'
 import { ExpandButton } from '@/components/expand-button'
 import { Database, Printer, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
@@ -171,7 +174,7 @@ const NoteCell = ({ lot }: NoteCellProps) => {
   }
 
   return (
-    <Input
+    <CellInput
       readOnly={viewOnly}
       aria-label={`Note on coil ${coilName(lot)}`}
       placeholder='Add note…'
@@ -229,8 +232,13 @@ const LotLocation = ({ lot, department, onTick, onPlace }: LotLocationProps) => 
   const location = lot.location ?? 'No location'
 
   return (
-    // The hint sits on a wrapper: a disabled control never shows its own.
-    <span className='flex items-center gap-2' title={shut ? IN_SLINET : undefined}>
+    // The hint sits on a wrapper: a disabled control never shows its own. In a table it is the whole
+    // cell, so the box centres under its heading and not within the cell's one-sided padding.
+    <span
+      data-fills-cell
+      className='flex items-center gap-2 lg:absolute lg:inset-0 lg:justify-center'
+      title={shut ? IN_SLINET : undefined}
+    >
       <Checkbox
         aria-label={`${DEPARTMENT_LABEL[department]} holds coil ${coilName(lot)}`}
         checked={lot[department]}
@@ -266,28 +274,38 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
   return (
     <>
       <TableCell card='title'>
+        {/* In a table the whole cell prints the label, its icon in the right corner. The button
+            comes first so that the mark, raised after it, keeps its own click over it; in a card it
+            sits at the title's right. */}
+        {lot.lot_number ? (
+          <button
+            type='button'
+            data-fills-cell
+            aria-label={`Print the label of coil ${coilName(lot)}`}
+            title='Print the label the forklift scans'
+            className={cn(
+              'inline-flex cursor-pointer items-center text-muted-foreground outline-none',
+              'max-lg:order-last max-lg:ml-auto max-lg:size-6 max-lg:justify-center max-lg:rounded-md max-lg:hover:bg-muted max-lg:hover:text-foreground max-lg:focus-visible:ring-3 max-lg:focus-visible:ring-ring/50',
+              'lg:absolute lg:inset-0 lg:justify-end lg:pr-2.5 lg:hover:text-foreground lg:focus-visible:ring-2 lg:focus-visible:ring-ring/50 lg:focus-visible:ring-inset'
+            )}
+            onClick={() => onPrint(lot)}
+          >
+            <Printer className='size-3.5' />
+          </button>
+        ) : null}
         {/* The EBMS mark drops under the number when the column has no room for it beside. */}
-        <span className='flex flex-wrap items-center gap-x-1'>
-          <span className='font-mono'>{lot.lot_number ?? '—'}</span>
-          {lot.lot_number ? (
-            <Button
-              variant='ghost'
-              size='icon-xs'
-              aria-label={`Print the label of coil ${coilName(lot)}`}
-              title='Print the label the forklift scans'
-              onClick={() => onPrint(lot)}
-            >
-              <Printer />
-            </Button>
-          ) : null}
-          <EbmsSyncMark
-            sync={lot.ebms_sync}
-            error={lot.ebms_error}
-            resend={{
-              target: { lotAutoid: lot.lot_autoid },
-              what: `the last change of coil ${coilName(lot)}`
-            }}
-          />
+        <span className='flex flex-wrap items-center gap-x-1 lg:pr-6'>
+          {lot.lot_number && <span className='font-mono'>{lot.lot_number}</span>}
+          <span className='inline-flex lg:relative'>
+            <EbmsSyncMark
+              sync={lot.ebms_sync}
+              error={lot.ebms_error}
+              resend={{
+                target: { lotAutoid: lot.lot_autoid },
+                what: `the last change of coil ${coilName(lot)}`
+              }}
+            />
+          </span>
         </span>
       </TableCell>
       {/* The three figures are one control: clicking any of them opens the window that works the
@@ -302,10 +320,11 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
         return (
           <TableCell key={key} label={label}>
             {viewOnly ? (
-              shown
+              missing || lot[key] !== null ? (
+                shown
+              ) : null
             ) : (
-              <Button
-                variant='link'
+              <CellButton
                 aria-label={`Adjust ${label} of coil ${coilName(lot)}`}
                 title={
                   missing
@@ -315,7 +334,7 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
                 onClick={() => onAdjust(lot, key)}
               >
                 {shown}
-              </Button>
+              </CellButton>
             )}
           </TableCell>
         )
@@ -328,7 +347,11 @@ const LotCells = ({ lot, onAdjust, onLocate, onSlinet, onPlace, onPrint }: LotCe
       </TableCell>
       <TableCell label='Slinet In / Out'>
         {/* The Slinet sits inside Trim and needs a Coil Thickness before it opens. */}
-        <span className='flex items-center gap-2' title={slinetShut ? SLINET_SHUT : undefined}>
+        <span
+          data-fills-cell
+          className='flex items-center gap-2 lg:absolute lg:inset-0 lg:justify-center'
+          title={slinetShut ? SLINET_SHUT : undefined}
+        >
           <Checkbox
             aria-label={`Slinet holds coil ${coilName(lot)}`}
             checked={lot.in_slinet}
@@ -362,15 +385,17 @@ const LotHead = () => (
 
 const LotColumns = () => (
   <>
-    {/* A lot number runs to 16 characters (01-02-1484403-05). The rest are as wide as their heading
-        on one line: the headings, not the figures, are the longest. */}
-    <col className='w-40' />
+    {/* A lot number runs to 17 characters (01-17-00203463-03), with the print button and the EBMS
+        mark beside it on one line. The rest are as wide as their heading on one line, padding and
+        all: the headings, not the figures, are the longest. Trim's heading is short, and its box and
+        location are what it holds. Every pixel spared goes to the Note, inside a 1440px screen's box. */}
+    <col className='w-56' />
     <col className='w-36' />
+    <col className='w-29' />
     <col className='w-32' />
-    <col className='w-36' />
-    <col className='w-36' />
-    <col className='w-36' />
-    <col className='w-36' />
+    <col className='w-32' />
+    <col className='w-20' />
+    <col className='w-34' />
     <col />
   </>
 )
@@ -401,18 +426,22 @@ type ProductGridProps = CellHandlers & {
 
 /** One row per coil product with its totals and location; a row opens into its coils. */
 const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: ProductGridProps) => {
-  // The rows turned against how they open by default — shut, or open under a search — kept only for
-  // the search state they were turned in. Without a search that is one row at a time, as everywhere:
-  // opening another folds the last.
+  // The rows turned against how they open by default — shut, or open under a search — kept only while
+  // that search lasts. Without a search that is one row at a time, as everywhere: opening another
+  // folds the last, and the row stays open across reloads.
   const [turned, setTurned] = useState({ searching, keys: new Set<string>() })
-  const flipped = turned.searching === searching ? turned.keys : new Set<string>()
+  const [opened, setOpened] = useRemembered('expanded:coils', z.nullable(z.string()), null)
+  const flipped = searching
+    ? turned.searching
+      ? turned.keys
+      : new Set<string>()
+    : new Set(opened === null ? [] : [opened])
   const columns = useColumnOrder(COIL_GROUPS_TABLE)
 
   const toggle = (key: string) =>
-    setTurned({
-      searching,
-      keys: searching ? toggled(flipped, key) : new Set(flipped.has(key) ? [] : [key])
-    })
+    searching
+      ? setTurned({ searching, keys: toggled(flipped, key) })
+      : setOpened(opened === key ? null : key)
 
   return (
     <div
@@ -420,7 +449,7 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
       className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
     >
       {/* The other columns' widths plus the longest Product ID (24 characters), which the table
-          scrolls sideways rather than cut — and wide enough that an opened product's coils, 928px
+          scrolls sideways rather than cut — and wide enough that an opened product's coils, 1000px
           of fixed columns inside its 44px frame, keep a Note box worth typing in. */}
       <Table data-cards className='min-w-280 table-fixed'>
         <colgroup>
@@ -470,9 +499,11 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
                       // it («21-1/4" Wide 26 Ga. SS Coils»).
                       color: (
                         <TableCell>
-                          <span className='truncate' title={productFacts(group) || undefined}>
-                            {productFacts(group) || '—'}
-                          </span>
+                          {productFacts(group) && (
+                            <span className='truncate' title={productFacts(group)}>
+                              {productFacts(group)}
+                            </span>
+                          )}
                           {folderName?.(group.folderId) ? (
                             <span className='block truncate text-xs text-muted-foreground'>
                               {folderName(group.folderId)}
@@ -482,7 +513,9 @@ const ProductGrid = ({ groups, loading, searching, folderName, ...handlers }: Pr
                       ),
                       width: (
                         <TableCell>
-                          <span className='font-mono'>{figure(group.width)}</span>
+                          {group.width !== null && (
+                            <span className='font-mono'>{figure(group.width)}</span>
+                          )}
                         </TableCell>
                       ),
                       count: (

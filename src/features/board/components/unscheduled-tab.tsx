@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { StickyTop } from './sticky-top'
 import { cn } from 'cn'
 import { useBoard, useStripSlot, useViewOnly } from '../lib/board-context'
@@ -62,7 +64,11 @@ export const UnscheduledTab = ({ search, departmentId, machine }: UnscheduledTab
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   // One order open at a time: opening another folds the last.
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useRemembered(
+    `expanded:${board.name}:unscheduled`,
+    z.nullable(z.string()),
+    null
+  )
   const [split, setSplit] = useState<Split | null>(null)
   const [dialog, setDialog] = useState<OpenDialog>(null)
   const [noteOrder, setNoteOrder] = useState<BoardOrder | null>(null)

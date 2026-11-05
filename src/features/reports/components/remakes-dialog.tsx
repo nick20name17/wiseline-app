@@ -87,29 +87,33 @@ export const RemakesDialog = ({
                   {remakes.map(remake => (
                     <TableRow key={remake.id}>
                       {columns.cells({
-                        when: <TableCell>{formatStamp(remake.created_at) || '—'}</TableCell>,
+                        when: <TableCell>{formatStamp(remake.created_at)}</TableCell>,
                         order: (
                           <TableCell>
-                            <span className='font-mono'>{remake.order_number ?? '—'}</span>
+                            {remake.order_number && (
+                              <span className='font-mono'>{remake.order_number}</span>
+                            )}
                           </TableCell>
                         ),
                         description: (
                           <TableCell>
-                            <Description text={remake.description ?? remake.product_id ?? '—'} />
+                            <Description text={remake.description ?? remake.product_id} />
                           </TableCell>
                         ),
                         machine: <TableCell>{machineName(remake.machine)}</TableCell>,
-                        by: <TableCell>{remake.requested_by ?? '—'}</TableCell>,
+                        by: <TableCell>{remake.requested_by}</TableCell>,
                         source: (
                           <TableCell>
-                            {(remake.source && SOURCES[remake.source]) ?? remake.source ?? '—'}
+                            {(remake.source && SOURCES[remake.source]) ?? remake.source}
                           </TableCell>
                         ),
                         pieces: (
                           <TableCell>
-                            <span className='font-mono font-semibold'>
-                              {formatPieces(remake.remanufacturing_qty)}
-                            </span>
+                            {remake.remanufacturing_qty !== null && (
+                              <span className='font-mono font-semibold'>
+                                {formatPieces(remake.remanufacturing_qty)}
+                              </span>
+                            )}
                           </TableCell>
                         ),
                         status: (
@@ -117,7 +121,7 @@ export const RemakesDialog = ({
                             <StatusPill status={itemStatus(remake.status)} />
                           </TableCell>
                         ),
-                        note: <TableCell>{remake.note || '—'}</TableCell>
+                        note: <TableCell>{remake.note}</TableCell>
                       })}
                     </TableRow>
                   ))}

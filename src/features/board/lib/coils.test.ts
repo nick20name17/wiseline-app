@@ -126,7 +126,7 @@ describe('figure', () => {
   it('rounds the float noise off a coil figure and groups it', () => {
     expect(figure(5909.177880000001)).toBe('5,909.178')
     expect(figure(262)).toBe('262')
-    expect(figure(null)).toBe('—')
+    expect(figure(null)).toBe('')
   })
 })
 

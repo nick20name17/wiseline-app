@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { QueryError } from '@/components/query-error'
 import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -6,7 +8,6 @@ import { formatLongDate } from '@/lib/days'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ChevronDown, Truck } from 'lucide-react'
-import { useState } from 'react'
 import { scheduledQuery, type TruckCard } from '../api'
 import { formatWeight } from '../lib/format'
 import { DayPicker } from './day-picker'
@@ -66,7 +67,7 @@ type ScheduledTabProps = {
 /** «Choose the day you want to work on» p3 (616,306), then a card for each truck p3 (594,308). */
 export const ScheduledTab = ({ day, onDayChange }: ScheduledTabProps) => {
   const { data: cards, isPending, isError, error, refetch } = useQuery(scheduledQuery(day))
-  const [open, setOpen] = useState<number | null>(null)
+  const [open, setOpen] = useRemembered('expanded:shipping:scheduled', z.nullable(z.number()), null)
   const used = (cards ?? []).filter(card => card.orders.length)
 
   return (

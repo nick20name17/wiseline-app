@@ -1,9 +1,7 @@
 import { authApi } from '@/api/client'
 import { toast } from '@/components/ui/toast'
 import {
-  infiniteQueryOptions,
   keepPreviousData,
-  type InfiniteData,
   queryOptions,
   useMutation,
   type QueryClient
@@ -16,7 +14,8 @@ const shippingKeys = {
   // The lists and their count under one prefix, so whatever refreshes one refreshes both; only the
   // lists hold rows to patch.
   unscheduledLists: () => [...shippingKeys.all, 'unscheduled', 'list'] as const,
-  unscheduled: (filter: UnscheduledFilter) => [...shippingKeys.unscheduledLists(), filter] as const,
+  unscheduled: (filter: UnscheduledFilter, page: number) =>
+    [...shippingKeys.unscheduledLists(), filter, page] as const,
   // Under the list's own key, so whatever refreshes the list refreshes its count.
   unscheduledCount: () => [...shippingKeys.all, 'unscheduled', 'count'] as const,
   totals: (selection: Selection) => [...shippingKeys.all, 'totals', selection] as const,
@@ -122,31 +121,26 @@ export type UnscheduledFilter = { search: string; shipFrom?: string; shipTo?: st
 
 /**
  * The delivery orders still waiting for a ship date and a truck p3 (605,182). A long list — every open
- * delivery in EBMS — so it is read a page at a time, each «Show more» fetching only the next.
+ * delivery in EBMS — so it is read a page at a time; `page` is zero-based.
  */
-export const unscheduledQuery = ({ search, shipFrom, shipTo }: UnscheduledFilter) =>
-  infiniteQueryOptions({
-    queryKey: shippingKeys.unscheduled({ search, shipFrom, shipTo }),
+export const unscheduledQuery = ({ search, shipFrom, shipTo }: UnscheduledFilter, page: number) =>
+  queryOptions({
+    queryKey: shippingKeys.unscheduled({ search, shipFrom, shipTo }, page),
     placeholderData: keepPreviousData,
-    initialPageParam: 0,
-    queryFn: async ({ pageParam }) =>
+    queryFn: async () =>
       unscheduledPageSchema.parse(
         await authApi
           .get('shipping/unscheduled/', {
             searchParams: {
               limit: UNSCHEDULED_PAGE,
-              offset: pageParam,
+              offset: page * UNSCHEDULED_PAGE,
               ...(search ? { search } : {}),
               ...(shipFrom ? { ship_date__gte: shipFrom } : {}),
               ...(shipTo ? { ship_date__lte: shipTo } : {})
             }
           })
           .json()
-      ),
-    getNextPageParam: (last, pages) => {
-      const read = pages.reduce((total, page) => total + page.results.length, 0)
-      return read < last.count && last.results.length ? read : undefined
-    }
+      )
   })
 
 /** How many deliveries wait on the Unscheduled tab, whatever it is searched or filtered to. */
@@ -864,22 +858,19 @@ export const prioritiesQuery = (departmentId: number | undefined) =>
       )
   })
 
-type UnscheduledPages = InfiniteData<z.infer<typeof unscheduledPageSchema>>
+type UnscheduledPage = z.infer<typeof unscheduledPageSchema>
 
 const patchUnscheduled = (
   client: QueryClient,
   order: string,
   patch: (row: UnscheduledOrder) => UnscheduledOrder
 ) =>
-  client.setQueriesData<UnscheduledPages>(
+  client.setQueriesData<UnscheduledPage>(
     { queryKey: shippingKeys.unscheduledLists() },
     data =>
       data && {
         ...data,
-        pages: data.pages.map(page => ({
-          ...page,
-          results: page.results.map(row => (row.order === order ? patch(row) : row))
-        }))
+        results: data.results.map(row => (row.order === order ? patch(row) : row))
       }
   )
 
@@ -894,8 +885,8 @@ export const useSetShippingPriority = (order: string) =>
     mutationFn: async (input: { departmentId: number; priority: Priority | null }, { client }) => {
       // Read now, not when clicked: a pick queued behind the one that made the sales order uses it.
       let id = client
-        .getQueriesData<UnscheduledPages>({ queryKey: shippingKeys.unscheduledLists() })
-        .flatMap(([, data]) => data?.pages.flatMap(page => page.results) ?? [])
+        .getQueriesData<UnscheduledPage>({ queryKey: shippingKeys.unscheduledLists() })
+        .flatMap(([, data]) => data?.results ?? [])
         .find(row => row.order === order)?.sales_order_id
       if (!id) {
         id = z

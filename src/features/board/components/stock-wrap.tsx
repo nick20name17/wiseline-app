@@ -140,9 +140,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     ),
                     wrapped: (
                       <TableCell>
-                        {line.manufactured ? (
-                          <span className='text-muted-foreground'>—</span>
-                        ) : viewOnly ? (
+                        {line.manufactured ? null : viewOnly ? (
                           <Figure value={line.wrapped ?? 0} />
                         ) : (
                           <Button
@@ -158,9 +156,7 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     ),
                     made: (
                       <TableCell>
-                        {line.qty_manufactured === null ? (
-                          <span className='text-muted-foreground'>—</span>
-                        ) : (
+                        {line.qty_manufactured === null ? null : (
                           <span className='font-mono'>
                             <b>{line.qty_manufactured}</b> / {line.qty_ordered}
                           </span>
@@ -179,14 +175,16 @@ export const StockWrap = ({ departmentId, rows, onBack }: StockWrapProps) => {
                     ),
                     length: (
                       <TableCell>
-                        <span
-                          className={cn(
-                            'font-mono',
-                            line.length !== null && !line.is_standard_length && 'text-destructive'
-                          )}
-                        >
-                          {line.length === null ? '—' : `${line.length}"`}
-                        </span>
+                        {line.length !== null && (
+                          <span
+                            className={cn(
+                              'font-mono',
+                              !line.is_standard_length && 'text-destructive'
+                            )}
+                          >
+                            {line.length}&quot;
+                          </span>
+                        )}
                       </TableCell>
                     )
                   })}

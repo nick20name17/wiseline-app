@@ -25,7 +25,7 @@ const DepartmentsCell = ({ user }: DepartmentsCellProps) => {
   }
 
   const departments = toDepartments(user)
-  if (!departments.length) return <span className='text-muted-foreground'>—</span>
+  if (!departments.length) return null
 
   return (
     <div className='flex gap-1 max-lg:flex-wrap'>
@@ -44,7 +44,7 @@ const COLUMNS: ColumnTable = {
   columns: [
     { key: 'name', label: 'Name', width: 'w-48', align: 'start', card: 'title' },
     { key: 'email', label: 'Email or login', width: 'w-72', align: 'start', card: 'subtitle' },
-    { key: 'role', label: 'Role', width: 'w-36' },
+    { key: 'role', label: 'Role', width: 'w-36', minWidth: 152 },
     { key: 'departments', label: 'Departments', align: 'start' }
   ]
 }
@@ -88,7 +88,7 @@ export const UsersTable = ({ users, isPending }: UsersTableProps) => {
             users.map(user => (
               <TableRow key={user.id}>
                 {columns.cells({
-                  name: <TableCell>{fullName(user) || '—'}</TableCell>,
+                  name: <TableCell>{fullName(user)}</TableCell>,
                   email: <TableCell className='max-lg:break-all'>{user.email}</TableCell>,
                   role: (
                     <TableCell>

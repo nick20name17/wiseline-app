@@ -25,8 +25,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
+import { RowGrip, RowNumber } from '@/components/row-grip'
 import { cn } from 'cn'
-import { GripVertical, Layers, Pencil, Scissors } from 'lucide-react'
+import { Layers, Pencil, Scissors } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import {
   prioritiesQuery,
@@ -57,6 +58,8 @@ type QueueLineProps = {
   row: QueueRow
   priority: Priority | null
   movable: boolean
+  /** The row's place in its day. */
+  number: number
   /** Ticks the row's coil into the machine, or takes it out p2 (902,356). */
   onInMachine: ((row: QueueRow, inMachine: boolean) => void) | null
   /** Names the coil the Manager left Undefined, which the Worker may after release p2 (894,313). */
@@ -146,7 +149,7 @@ const InMachine = ({
   </span>
 )
 
-const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLineProps) => {
+const QueueLine = ({ row, priority, movable, number, onInMachine, onFill }: QueueLineProps) => {
   const {
     attributes,
     listeners,
@@ -172,24 +175,23 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
       {/* On a card the grip sits in the corner by the thumb, sized for one. */}
       <TableCell card='trail'>
         {movable ? (
-          <button
+          <RowGrip
             ref={setActivatorNodeRef}
-            type='button'
+            number={number}
             aria-label={`Move ${rowName(row)}`}
-            className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:p-3'
             {...attributes}
-          >
-            <GripVertical className='size-3.5 pointer-coarse:size-4' />
-          </button>
-        ) : null}
+          />
+        ) : (
+          <RowNumber number={number} />
+        )}
       </TableCell>
       {cells({
         material: (
           <TableCell>
-            <span className='font-mono font-medium'>{row.material_id ?? '—'}</span>
+            {row.material_id && <span className='font-mono font-medium'>{row.material_id}</span>}
           </TableCell>
         ),
-        profile: <TableCell>{row.profile ?? '—'}</TableCell>,
+        profile: <TableCell>{row.profile}</TableCell>,
         lf: (
           <TableCell>
             <span className='font-mono'>{formatCount(row.linear_feet)}</span>
@@ -203,11 +205,7 @@ const QueueLine = ({ row, priority, movable, onInMachine, onFill }: QueueLinePro
         priority: (
           <TableCell>
             {/* Shown, not sorted by: the Manager's order is the order p2 (935,297), (498,662). */}
-            {priority ? (
-              <PriorityPill priority={priority} />
-            ) : (
-              <span className='text-muted-foreground'>—</span>
-            )}
+            {priority ? <PriorityPill priority={priority} /> : null}
           </TableCell>
         ),
         supplier: (
@@ -386,9 +384,10 @@ export const QueueTab = ({ departmentId, machineId, worker }: QueueTabProps) => 
                       items={day.items.map(row => row.key)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {day.items.map(row => (
+                      {day.items.map((row, index) => (
                         <QueueLine
                           key={row.key}
+                          number={index + 1}
                           row={row}
                           priority={(row.priority && priorityOf.get(row.priority.id)) ?? null}
                           movable={movable}

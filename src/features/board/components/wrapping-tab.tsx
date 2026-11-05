@@ -218,7 +218,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                           ),
                           customer: (
                             <TableCell>
-                              <span className='truncate'>{row.customer ?? '—'}</span>
+                              {row.customer && <span className='truncate'>{row.customer}</span>}
                             </TableCell>
                           ),
                           qty: (
@@ -260,9 +260,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                                     }
                                   }
                                 />
-                              ) : (
-                                <span className='text-muted-foreground'>—</span>
-                              )}
+                              ) : null}
                             </TableCell>
                           ),
                           remfg: (
@@ -275,7 +273,7 @@ export const WrappingTab = ({ search, departmentId, machine }: WrappingTabProps)
                               {row.is_bypassed ? (
                                 <RemanNotApplicable />
                               ) : (
-                                <RemanBadge remans={lineRemans} />
+                                <RemanBadge cell remans={lineRemans} />
                               )}
                             </TableCell>
                           ),

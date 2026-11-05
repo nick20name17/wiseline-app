@@ -117,14 +117,16 @@ export const PackagesDialog = ({
                         ),
                         weight: (
                           <TableCell>
-                            <span className='font-mono'>
-                              {parcel.weight === null ? '—' : `${parcel.weight} lb`}
-                            </span>
+                            {parcel.weight !== null && (
+                              <span className='font-mono'>{parcel.weight} lb</span>
+                            )}
                           </TableCell>
                         ),
                         location: (
                           <TableCell>
-                            <span className='font-mono'>{parcel.location ?? '—'}</span>
+                            {parcel.location && (
+                              <span className='font-mono'>{parcel.location}</span>
+                            )}
                             {/* Why Delete is shut is its hover title on a desk. */}
                             {parcel.is_loaded ? (
                               <span className='hidden text-xs text-muted-foreground pointer-coarse:block'>

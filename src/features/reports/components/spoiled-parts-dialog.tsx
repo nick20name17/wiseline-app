@@ -78,28 +78,34 @@ export const SpoiledPartsDialog = ({
                   {parts.map(part => (
                     <TableRow key={part.id}>
                       {columns.cells({
-                        when: <TableCell>{formatStamp(part.created_at) || '—'}</TableCell>,
+                        when: <TableCell>{formatStamp(part.created_at)}</TableCell>,
                         order: (
                           <TableCell>
-                            <span className='font-mono'>{part.order_number ?? '—'}</span>
+                            {part.order_number && (
+                              <span className='font-mono'>{part.order_number}</span>
+                            )}
                           </TableCell>
                         ),
                         description: (
                           <TableCell>
-                            <Description text={part.description ?? part.product_id ?? '—'} />
+                            <Description text={part.description ?? part.product_id} />
                           </TableCell>
                         ),
                         machine: <TableCell>{machineName(part.machine)}</TableCell>,
                         release: (
                           <TableCell>
-                            <span className='font-mono'>{formatPieces(part.at_release)}</span>
+                            {part.at_release !== null && (
+                              <span className='font-mono'>{formatPieces(part.at_release)}</span>
+                            )}
                           </TableCell>
                         ),
                         stock: (
                           <TableCell>
-                            <span className='font-mono'>
-                              {formatPieces(part.before)} → {formatPieces(part.after)}
-                            </span>
+                            {part.before !== null || part.after !== null ? (
+                              <span className='font-mono'>
+                                {formatPieces(part.before)} → {formatPieces(part.after)}
+                              </span>
+                            ) : null}
                           </TableCell>
                         ),
                         spoiled: (

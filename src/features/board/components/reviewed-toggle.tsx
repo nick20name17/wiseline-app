@@ -34,10 +34,11 @@ export const ReviewedToggle = ({
   const mutation = useSetReviewed()
   const viewOnly = useViewOnly()
 
-  // Once an order is out on the floor the toggle is a record, not a control, and reads as one.
+  // Once an order is out on the floor the toggle is a record, not a control, and reads as one: bare,
+  // as a status in a cell is.
   if (released)
     return (
-      <span className='inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium tracking-wider text-muted-foreground uppercase'>
+      <span className='text-xs font-medium tracking-wider text-muted-foreground uppercase'>
         Reviewed
       </span>
     )

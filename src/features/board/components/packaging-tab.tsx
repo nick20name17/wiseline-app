@@ -147,16 +147,12 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
                         ),
                         priority: (
                           <TableCell>
-                            {priority ? (
-                              <PriorityPill priority={priority} />
-                            ) : (
-                              <span className='text-muted-foreground'>—</span>
-                            )}
+                            {priority ? <PriorityPill priority={priority} /> : null}
                           </TableCell>
                         ),
                         customer: (
                           <TableCell>
-                            <span className='truncate'>{order.customer ?? '—'}</span>
+                            {order.customer && <span className='truncate'>{order.customer}</span>}
                           </TableCell>
                         ),
                         truck: (
@@ -168,7 +164,9 @@ export const PackagingTab = ({ search, departmentId }: PackagingTabProps) => {
                         ),
                         shipvia: (
                           <TableCell>
-                            <span className='text-muted-foreground'>{order.ship_via ?? '—'}</span>
+                            {order.ship_via && (
+                              <span className='text-muted-foreground'>{order.ship_via}</span>
+                            )}
                           </TableCell>
                         ),
                         status: (

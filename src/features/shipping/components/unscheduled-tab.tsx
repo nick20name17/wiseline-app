@@ -1,3 +1,5 @@
+import { useRemembered } from '@/lib/use-remembered'
+import * as z from 'zod/mini'
 import { useColumnOrder, type ColumnTable } from '@/components/table/column-order'
 import { NoteButton, type NoteState } from '@/components/note-button'
 import { OrderNoteDialog } from '@/components/order-note-dialog'
@@ -9,7 +11,6 @@ import { SelectionBar } from '@/components/selection-bar'
 import { TableSkeletonRows } from '@/components/table-skeleton-rows'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
@@ -20,11 +21,13 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { formatDate, formatLongDate } from '@/lib/days'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from 'cn'
 import { ExpandButton } from '@/components/expand-button'
 import { CalendarDays, MapPin, Truck } from 'lucide-react'
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
+import { TablePagination } from '@/components/table-pagination'
+import { lastPage, usePage } from '@/lib/use-page'
 import { toast } from '@/components/ui/toast'
 import {
   UNSCHEDULED_PAGE,
@@ -50,19 +53,19 @@ const SERVICE_COLUMNS = 2
 const COLUMNS: ColumnTable = {
   table: 'shipping-unscheduled',
   columns: [
-    { key: 'entry', label: 'Entry', width: 'w-40' },
-    { key: 'ship', label: 'Ship', width: 'w-40' },
-    { key: 'order', label: 'Order #', width: 'w-32', card: 'title' },
+    { key: 'entry', label: 'Entry', width: 'w-40', minWidth: 144 },
+    { key: 'ship', label: 'Ship', width: 'w-40', minWidth: 144 },
+    { key: 'order', label: 'Order #', width: 'w-32', card: 'title', minWidth: 104 },
     { key: 'customer', label: 'Customer', align: 'start', card: 'subtitle' },
     { key: 'address', label: 'Address', width: 'w-56', align: 'start' },
     { key: 'city', label: 'City', width: 'w-40', align: 'start' },
     { key: 'map', label: 'Map', width: 'w-16' },
-    { key: 'weight', label: 'Weight', width: 'w-36' },
-    { key: 'longest', label: 'Longest Length', width: 'w-44' },
+    { key: 'weight', label: 'Weight', width: 'w-36', minWidth: 128 },
+    { key: 'longest', label: 'Longest Length', width: 'w-44', minWidth: 164 },
     { key: 'shipvia', label: 'Ship Via', width: 'w-24' },
-    { key: 'priority', label: 'Priority', width: 'w-32' },
-    { key: 'ready', label: 'Ready', width: 'w-32' },
-    { key: 'notes', label: 'Notes', width: 'w-20' }
+    { key: 'priority', label: 'Priority', width: 'w-32', minWidth: 100 },
+    { key: 'ready', label: 'Ready', width: 'w-32', minWidth: 100 },
+    { key: 'notes', label: 'Notes', width: 'w-20', fixed: true }
   ]
 }
 
@@ -124,24 +127,27 @@ type UnscheduledTabProps = {
  * Schedule window; selections survive expanding, searching and the map p3 (560,202).
  */
 export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: UnscheduledTabProps) => {
-  const {
-    data,
-    isPending,
-    isError,
-    error,
-    refetch,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage
-  } = useInfiniteQuery(unscheduledQuery({ search: search ?? '', ...shipDates }))
-  const count = data?.pages[0]?.count ?? 0
+  const filter = { search: search ?? '', ...shipDates }
+  const tableBox = useRef<HTMLDivElement>(null)
+  const [page, setPage] = usePage(JSON.stringify(filter))
+  const { data, isPending, isError, error, refetch, isPlaceholderData } = useQuery(
+    unscheduledQuery(filter, page)
+  )
+  const count = data?.count ?? 0
+  // Scheduling empties the tab under the reader: past the end, the last page there is shows.
+  if (data && !isPlaceholderData && page > lastPage(count, UNSCHEDULED_PAGE))
+    setPage(lastPage(count, UNSCHEDULED_PAGE))
   // Kept by order, not by row on screen: a search that hides a ticked order leaves it scheduled.
   const [selected, setSelected] = useState<ReadonlyMap<string, UnscheduledOrder>>(() => new Map())
   const [scheduling, setScheduling] = useState(false)
   // One order open at a time: opening another folds the last.
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useRemembered(
+    'expanded:shipping:unscheduled',
+    z.nullable(z.string()),
+    null
+  )
   const [noteOrder, setNoteOrder] = useState<UnscheduledOrder | null>(null)
-  const orders = data?.pages.flatMap(page => page.results) ?? []
+  const orders = data?.results ?? []
   const picked = [...selected.values()]
   const { data: department } = useQuery(shippingDepartmentQuery)
   // The salesman's notes come on the rows, checked off here as on the boards p3 (592,338).
@@ -209,6 +215,7 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
         </Empty>
       ) : (
         <div
+          ref={tableBox}
           data-page-table
           className='overflow-hidden rounded-lg border border-border bg-card shadow-xs'
         >
@@ -265,18 +272,24 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ship: (
                             <TableCell>
                               {/* Past its ship date and not delivered p3 (605,628). */}
-                              <span className='flex flex-wrap items-baseline gap-x-2'>
-                                <span
-                                  className={cn(order.is_overdue && 'font-medium text-destructive')}
-                                  title={order.is_overdue ? 'Overdue' : undefined}
-                                >
-                                  {formatDate(order.ship_date)}
+                              {order.ship_date || order.ship_date_ebms_sync ? (
+                                <span className='flex flex-wrap items-baseline gap-x-2'>
+                                  {order.ship_date && (
+                                    <span
+                                      className={cn(
+                                        order.is_overdue && 'font-medium text-destructive'
+                                      )}
+                                      title={order.is_overdue ? 'Overdue' : undefined}
+                                    >
+                                      {formatDate(order.ship_date)}
+                                    </span>
+                                  )}
+                                  <EbmsSyncNote
+                                    sync={order.ship_date_ebms_sync}
+                                    error={order.ship_date_ebms_error}
+                                  />
                                 </span>
-                                <EbmsSyncNote
-                                  sync={order.ship_date_ebms_sync}
-                                  error={order.ship_date_ebms_error}
-                                />
-                              </span>
+                              ) : null}
                             </TableCell>
                           ),
                           order: (
@@ -286,21 +299,27 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ),
                           customer: (
                             <TableCell>
-                              <span className='lg:truncate'>{order.customer ?? '—'}</span>
+                              {order.customer && (
+                                <span className='lg:truncate'>{order.customer}</span>
+                              )}
                             </TableCell>
                           ),
                           address: (
                             <TableCell>
-                              <span className='text-muted-foreground lg:truncate'>
-                                {order.address ?? '—'}
-                              </span>
+                              {order.address && (
+                                <span className='text-muted-foreground lg:truncate'>
+                                  {order.address}
+                                </span>
+                              )}
                             </TableCell>
                           ),
                           city: (
                             <TableCell>
-                              <span className='text-muted-foreground lg:truncate'>
-                                {order.city ?? '—'}
-                              </span>
+                              {order.city && (
+                                <span className='text-muted-foreground lg:truncate'>
+                                  {order.city}
+                                </span>
+                              )}
                             </TableCell>
                           ),
                           map: (
@@ -311,7 +330,11 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                                   target='_blank'
                                   rel='noreferrer'
                                   aria-label={`Map of ${name}`}
-                                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                                  data-fills-cell
+                                  className={cn(
+                                    buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                                    'lg:absolute lg:inset-0 lg:size-auto lg:rounded-none lg:focus-visible:ring-2 lg:focus-visible:ring-inset'
+                                  )}
                                 >
                                   <MapPin />
                                 </a>
@@ -325,12 +348,14 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
                           ),
                           longest: (
                             <TableCell>
-                              <span className='font-mono'>
-                                {formatLength(order.longest_length)}
-                              </span>
+                              {order.longest_length > 0 && (
+                                <span className='font-mono'>
+                                  {formatLength(order.longest_length)}
+                                </span>
+                              )}
                             </TableCell>
                           ),
-                          shipvia: <TableCell>{order.ship_via ?? '—'}</TableCell>,
+                          shipvia: <TableCell>{order.ship_via}</TableCell>,
                           priority: (
                             <TableCell>
                               <PriorityCell order={order} departmentId={department?.id} />
@@ -384,17 +409,14 @@ export const UnscheduledTab = ({ search, shipDates, onShipDatesChange }: Unsched
         </div>
       )}
 
-      {hasNextPage ? (
-        <Button
-          variant='outline'
-          className='self-center'
-          disabled={isFetchingNextPage}
-          onClick={() => void fetchNextPage()}
-        >
-          {isFetchingNextPage ? <Spinner data-icon='inline-start' /> : null}
-          Show {Math.min(UNSCHEDULED_PAGE, count - orders.length)} more of {count - orders.length}
-        </Button>
-      ) : null}
+      <TablePagination
+        page={page}
+        pageSize={UNSCHEDULED_PAGE}
+        count={count}
+        pending={isPlaceholderData}
+        onPageChange={setPage}
+        table={tableBox}
+      />
 
       <OrderNoteDialog
         order={

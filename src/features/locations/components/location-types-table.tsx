@@ -24,8 +24,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useQuery } from '@tanstack/react-query'
+import { RowGrip } from '@/components/row-grip'
 import { cn } from 'cn'
-import { GripVertical } from 'lucide-react'
 import { useState } from 'react'
 import {
   allLocationTypesQuery,
@@ -49,9 +49,14 @@ const COLUMNS: ColumnTable = {
 const byPosition = (a: LocationType, b: LocationType) =>
   (a.position ?? Infinity) - (b.position ?? Infinity) || a.id - b.id
 
-type SortableRowProps = { type: LocationType; warehouse: string | undefined; disabled: boolean }
+type SortableRowProps = {
+  type: LocationType
+  warehouse: string | undefined
+  disabled: boolean
+  number: number
+}
 
-const SortableRow = ({ type, warehouse, disabled }: SortableRowProps) => {
+const SortableRow = ({ type, warehouse, disabled, number }: SortableRowProps) => {
   const {
     attributes,
     listeners,
@@ -75,23 +80,21 @@ const SortableRow = ({ type, warehouse, disabled }: SortableRowProps) => {
     >
       <TableCell card='lead'>
         {/* The keyboard's way in: Space picks the row up, the arrows move it. */}
-        <button
+        <RowGrip
           ref={setActivatorNodeRef}
-          type='button'
-          data-grip
+          number={number}
           aria-label={`Move ${type.name ?? 'location type'}`}
-          className='flex cursor-grab items-center rounded-sm text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-default aria-disabled:opacity-50 pointer-coarse:-m-3 pointer-coarse:p-3'
           {...attributes}
-        >
-          <GripVertical className='size-3.5' />
-        </button>
+        />
       </TableCell>
       {columns.cells({
-        name: <TableCell>{type.name ?? '—'}</TableCell>,
-        warehouse: <TableCell>{warehouse ?? '—'}</TableCell>,
+        name: <TableCell>{type.name}</TableCell>,
+        warehouse: <TableCell>{warehouse}</TableCell>,
         description: (
           <TableCell>
-            <span className='truncate text-muted-foreground'>{type.description ?? '—'}</span>
+            {type.description && (
+              <span className='truncate text-muted-foreground'>{type.description}</span>
+            )}
           </TableCell>
         )
       })}
@@ -195,7 +198,7 @@ export const LocationTypesTable = ({
                 items={rows.map(type => type.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {rows.map(type => (
+                {rows.map((type, index) => (
                   // A second drag while the first saves would renumber from a list about to change.
                   <SortableRow
                     key={type.id}
@@ -205,6 +208,7 @@ export const LocationTypesTable = ({
                       undefined
                     }
                     disabled={searching || save.isPending || !everyType}
+                    number={index + 1}
                   />
                 ))}
               </SortableContext>

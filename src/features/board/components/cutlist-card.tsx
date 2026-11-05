@@ -76,8 +76,8 @@ export const CutlistCard = ({
         // The paint is the warning; a hard red edge on top of it turns a late list into an error.
         overdue && 'bg-destructive/5',
         // On a day of a dozen lists the open one has to stand out from across the floor (Kevin's
-        // notes of 2026-11-02, A2). The ring adds to the border, so the rows do not shift.
-        expanded && 'border-primary ring-2 ring-primary'
+        // notes of 2026-11-02, A2): its border takes the primary colour.
+        expanded && 'border-primary'
       )}
     >
       {/* The whole header opens the list; the chevron is its keyboard stop, and its click reaches the
