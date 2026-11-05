@@ -21,10 +21,10 @@ import { ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { departmentsQuery, summaryQuery, type Count, type MachineSummary } from '../api'
 import { SUMMARY_TABLE } from '../lib/columns'
-import { formatPieces, machineName } from '../lib/figures'
+import { formatPieces, machineName, type MachineScope } from '../lib/figures'
 import type { Period } from '../lib/period'
 import { RemakesDialog } from './remakes-dialog'
-import { SpoiledPartsDialog, type SpoiledScope } from './spoiled-parts-dialog'
+import { SpoiledPartsDialog } from './spoiled-parts-dialog'
 
 // Shipping runs no machines, so it spoils and remakes nothing.
 const MACHINELESS = 'shipping'
@@ -35,13 +35,13 @@ type FigureProps = {
   value: number
   /** What a screen reader hears for the button, which shows only the number. */
   label: string
-  /** Opens the rows behind the number; none leaves it plain. */
-  onOpen?: () => void
+  /** Opens the rows behind the number. */
+  onOpen: () => void
 }
 
 /** A count of the summary; a click on one that is not zero opens what it counts. */
 const Figure = ({ value, label, onOpen }: FigureProps) =>
-  value && onOpen ? (
+  value ? (
     <Button variant='link' aria-label={label} onClick={onOpen}>
       <span className='font-mono'>{value}</span>
     </Button>
@@ -73,8 +73,8 @@ export const ReportsPage = ({
   const active = departmentByCode(offered, department) ?? offered[0]
   const { data: summary, isPending, error, refetch } = useQuery(summaryQuery(active?.id, period))
   const columns = useColumnOrder(SUMMARY_TABLE)
-  const [spoiled, setSpoiled] = useState<SpoiledScope | null>(null)
-  const [remakes, setRemakes] = useState(false)
+  const [spoiled, setSpoiled] = useState<MachineScope | null>(null)
+  const [remakes, setRemakes] = useState<MachineScope | null>(null)
 
   // A day picked past the other end takes that end with it, so the period never runs backwards.
   const pickFrom = (date: Date) => {
@@ -90,7 +90,7 @@ export const ReportsPage = ({
     name: string,
     counts: { spoiled: Count; remakes: Count },
     openSpoiled: () => void,
-    openRemakes?: () => void
+    openRemakes: () => void
   ) =>
     columns.cells({
       machine: <TableCell>{name}</TableCell>,
@@ -180,13 +180,19 @@ export const ReportsPage = ({
               {isPending ? (
                 <TableSkeletonRows />
               ) : (
-                machines.map(machine => (
-                  <TableRow key={machine.flow_id ?? 'none'}>
-                    {cells(machineName(machine.machine), machine, () =>
-                      setSpoiled({ flowId: machine.flow_id, machine: machine.machine })
-                    )}
-                  </TableRow>
-                ))
+                machines.map(machine => {
+                  const scope = { flowId: machine.flow_id, machine: machine.machine }
+                  return (
+                    <TableRow key={machine.flow_id ?? 'none'}>
+                      {cells(
+                        machineName(machine.machine),
+                        machine,
+                        () => setSpoiled(scope),
+                        () => setRemakes(scope)
+                      )}
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
             {summary && machines.length ? (
@@ -196,7 +202,7 @@ export const ReportsPage = ({
                     'All machines',
                     summary.totals,
                     () => setSpoiled('every'),
-                    () => setRemakes(true)
+                    () => setRemakes('every')
                   )}
                 </TableRow>
               </TableFooter>
@@ -216,8 +222,8 @@ export const ReportsPage = ({
           <RemakesDialog
             departmentId={active.id}
             period={period}
-            open={remakes}
-            onOpenChange={setRemakes}
+            scope={remakes}
+            onOpenChange={open => !open && setRemakes(null)}
           />
         </>
       ) : null}

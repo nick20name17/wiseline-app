@@ -1,3 +1,4 @@
+import { Description } from '@/components/description'
 import { QueryError } from '@/components/query-error'
 import { StatusPill } from '@/components/status-pill'
 import {
@@ -13,11 +14,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate, formatStamp } from '@/lib/days'
 import { itemStatus } from '@/lib/status'
+import { useRetained } from '@/lib/use-retained'
 import { useQuery } from '@tanstack/react-query'
 import { RotateCcw } from 'lucide-react'
 import { remakesQuery } from '../api'
 import { REMAKES_TABLE } from '../lib/columns'
-import { formatPieces } from '../lib/figures'
+import { formatPieces, machineName, type MachineScope } from '../lib/figures'
 import type { Period } from '../lib/period'
 
 const SOURCES: Record<string, string> = { wrapping: 'Wrapping', machine: 'Machine' }
@@ -25,27 +27,37 @@ const SOURCES: Record<string, string> = { wrapping: 'Wrapping', machine: 'Machin
 type RemakesDialogProps = {
   departmentId: number
   period: Period
-  open: boolean
+  /** `null` when closed. */
+  scope: MachineScope | null
   onOpenChange: (open: boolean) => void
 }
 
 /**
- * The remakes behind the summary's total. Every machine's at once: a remake does not record which
- * machine spoiled the piece, and the list cannot be asked for one machine's.
+ * The remakes behind a figure of the summary. A remake does not record which machine spoiled the
+ * piece, so it counts on the line's machine, as the summary does.
  */
-export const RemakesDialog = ({ departmentId, period, open, onOpenChange }: RemakesDialogProps) => {
+export const RemakesDialog = ({
+  departmentId,
+  period,
+  scope,
+  onOpenChange
+}: RemakesDialogProps) => {
+  // Kept through the closing animation, so the title and rows do not change under it.
+  const [shown, release] = useRetained(scope)
   const columns = useColumnOrder(REMAKES_TABLE)
   const { data, isPending, error, refetch } = useQuery({
-    ...remakesQuery(departmentId, period),
-    enabled: open
+    ...remakesQuery(departmentId, period, shown ?? 'every'),
+    enabled: !!scope
   })
   const remakes = data?.results
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent sizeKey='reports:remakes-dialog' className='sm:max-w-5xl'>
+    <Dialog open={!!scope} onOpenChange={onOpenChange} onOpenChangeComplete={release}>
+      <DialogContent sizeKey='reports:remakes-dialog' className='sm:max-w-6xl'>
         <DialogHeader>
-          <DialogTitle>Remakes · All machines</DialogTitle>
+          <DialogTitle>
+            Remakes · {!shown || shown === 'every' ? 'All machines' : machineName(shown.machine)}
+          </DialogTitle>
           <DialogDescription>
             Remakes asked for, {formatDate(period.from)} to {formatDate(period.to)}.
             {data && data.count > data.results.length
@@ -76,6 +88,17 @@ export const RemakesDialog = ({ departmentId, period, open, onOpenChange }: Rema
                     <TableRow key={remake.id}>
                       {columns.cells({
                         when: <TableCell>{formatStamp(remake.created_at) || '—'}</TableCell>,
+                        order: (
+                          <TableCell>
+                            <span className='font-mono'>{remake.order_number ?? '—'}</span>
+                          </TableCell>
+                        ),
+                        description: (
+                          <TableCell>
+                            <Description text={remake.description ?? remake.product_id ?? '—'} />
+                          </TableCell>
+                        ),
+                        machine: <TableCell>{machineName(remake.machine)}</TableCell>,
                         by: <TableCell>{remake.requested_by ?? '—'}</TableCell>,
                         source: (
                           <TableCell>

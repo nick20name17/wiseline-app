@@ -17,17 +17,14 @@ import { useQuery } from '@tanstack/react-query'
 import { PackageX } from 'lucide-react'
 import { spoiledPartsQuery } from '../api'
 import { SPOILED_TABLE } from '../lib/columns'
-import { formatPieces, machineName } from '../lib/figures'
+import { formatPieces, machineName, type MachineScope } from '../lib/figures'
 import type { Period } from '../lib/period'
-
-/** Whose spoiled parts the dialog lists: one machine's, or `every` machine's. */
-export type SpoiledScope = { flowId: number | null; machine: string | null } | 'every'
 
 type SpoiledPartsDialogProps = {
   departmentId: number
   period: Period
   /** `null` when closed. */
-  scope: SpoiledScope | null
+  scope: MachineScope | null
   onOpenChange: (open: boolean) => void
 }
 

@@ -53,6 +53,10 @@ const REMAKES = {
       id: 31,
       order: 'ORD9',
       origin_item: 'I9',
+      order_number: '147042',
+      product_id: 'GT-30',
+      description: 'Gable Trim 30"',
+      machine: 'Press Brake',
       source: 'wrapping',
       remanufacturing_qty: 3,
       note: 'Dented on the bench',
@@ -64,6 +68,10 @@ const REMAKES = {
       id: 32,
       order: 'ORD8',
       origin_item: 'I8',
+      order_number: '147098',
+      product_id: 'RC-4',
+      description: 'Ridge Cap 4',
+      machine: 'Press Brake',
       source: 'machine',
       remanufacturing_qty: 2,
       note: null,
@@ -113,8 +121,8 @@ test('the report opens on this month for the first department, per machine', asy
   const totals = rows.filter({ hasText: 'All machines' })
   await expect(totals).toContainText('6.5')
   await expect(totals.getByRole('button', { name: 'Remakes on All machines: 2' })).toBeVisible()
-  // A remake does not say which machine spoiled the piece, so one machine's cannot be listed.
-  await expect(page.getByRole('button', { name: 'Remakes on Press Brake: 2' })).toHaveCount(0)
+  // A machine's remakes open too: they count on the line's machine.
+  await expect(page.getByRole('button', { name: 'Remakes on Press Brake: 2' })).toBeVisible()
 })
 
 test('a machine’s spoiled count lists that machine’s parts only', async ({ page }) => {
@@ -135,30 +143,36 @@ test('a machine’s spoiled count lists that machine’s parts only', async ({ p
   await expect(none.getByText('Ridge Cap 4')).toBeVisible()
 })
 
-test('the remakes total lists the period’s remakes, shop days to the end of the last', async ({
-  page
-}) => {
-  const asked = new Promise<URLSearchParams>(resolve =>
-    page.route(`${API_URL}/remanufacturings/?*`, route => {
-      resolve(new URL(route.request().url()).searchParams)
-      return route.fulfill({ json: REMAKES })
-    })
-  )
+test('the remakes figures list the period’s remakes, on all machines or one', async ({ page }) => {
+  const asked: URLSearchParams[] = []
+  await page.route(`${API_URL}/remanufacturings/?*`, route => {
+    asked.push(new URL(route.request().url()).searchParams)
+    return route.fulfill({ json: REMAKES })
+  })
   await page.goto('/reports')
   await signIn(page)
 
   await page.getByRole('button', { name: 'Remakes on All machines: 2' }).click()
-  const params = await asked
-  expect(params.get('department')).toBe('1')
-  // The shop's midnights: daylight time ends there on Nov 1.
-  expect(params.get('created_at__gte')).toBe('2026-11-01T04:00:00.000Z')
-  expect(params.get('created_at__lt')).toBe('2026-11-05T05:00:00.000Z')
+  await expect.poll(() => asked.length).toBe(1)
+  expect(asked[0]!.get('department')).toBe('1')
+  // Days, not moments: the server takes them as the shop's, as the summary does.
+  expect(asked[0]!.get('date_from')).toBe('2026-11-01')
+  expect(asked[0]!.get('date_to')).toBe('2026-11-04')
+  expect(asked[0]!.has('flow_id')).toBe(false)
 
-  const dialog = page.getByRole('dialog', { name: 'Remakes · All machines' })
-  await expect(dialog.getByRole('row').filter({ hasText: 'Kevin Fehr' })).toContainText(
-    'Dented on the bench'
-  )
-  await expect(dialog.getByRole('row').filter({ hasText: 'Kevin Fehr' })).toContainText('Wrapping')
+  const all = page.getByRole('dialog', { name: 'Remakes · All machines' })
+  const kevin = all.getByRole('row').filter({ hasText: 'Kevin Fehr' })
+  await expect(kevin).toContainText('Dented on the bench')
+  await expect(kevin).toContainText('Wrapping')
+  await expect(kevin).toContainText('147042')
+  await expect(kevin).toContainText('Gable Trim 30"')
+  await page.keyboard.press('Escape')
+  await expect(all).toBeHidden()
+
+  // A machine's figure asks the server for that machine's: the list is paged, so it is not narrowed here.
+  await page.getByRole('button', { name: 'Remakes on Press Brake: 2' }).click()
+  await expect.poll(() => asked.at(-1)?.get('flow_id')).toBe('10')
+  await expect(page.getByRole('dialog', { name: 'Remakes · Press Brake' })).toBeVisible()
 })
 
 test('another department and a start past the end move the whole period', async ({ page }) => {

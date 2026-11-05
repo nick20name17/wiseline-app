@@ -445,6 +445,22 @@ export const refetchCapacity = (client: QueryClient, pushed: unknown) => {
   }
 }
 
+/**
+ * The cutlists and bendlists changed elsewhere — a Complete on another machine's screen, Done, a
+ * release — by department, as the counts socket signals them: that department's lists are read again,
+ * and its Wrapping rows, which show what the machines have done. A row edit still on its way from this
+ * screen is left to refetch the board itself once it lands, so this does not draw over its tick.
+ */
+export const refetchCutlists = (client: QueryClient, pushed: unknown) => {
+  const changed = z.record(z.string(), z.array(z.number())).safeParse(pushed).data
+  if (client.isMutating({ mutationKey: cutlistRowKey })) return
+  for (const id of Object.keys(changed ?? {})) {
+    const departmentId = Number(id)
+    void client.invalidateQueries({ queryKey: [...boardKeys.cutlists(), departmentId] })
+    void client.invalidateQueries({ queryKey: [...boardKeys.wrapping(), departmentId] })
+  }
+}
+
 export const unscheduledOrdersQuery = (category: string, search: string | undefined) =>
   queryOptions({
     queryKey: boardKeys.unscheduled(category, search),
@@ -1906,14 +1922,11 @@ const folderId = z._default(
   null
 )
 
-// The app's last write to EBMS for an order or a coil: `queued` while EBMS does not answer (it goes
-// once EBMS is back), `ok`, or `failed` with EBMS's reason. `null` is no write yet.
+// The app's last write to EBMS for an order or a coil, as `EbmsSync` reads it.
 const ebmsSyncFields = {
   ebms_sync: z.catch(z.nullable(z.enum(['queued', 'ok', 'failed'])), null),
   ebms_error: z._default(z.nullable(z.string()), null)
 }
-
-export type EbmsSync = 'queued' | 'ok' | 'failed' | null
 
 const coilLotSchema = z.object({
   // The EBMS lot autoid, so a coil has one before the floor has entered anything about it.
@@ -3175,6 +3188,8 @@ const outboxWriteSchema = z.object({
   last_error: z._default(z.nullable(z.string()), null)
 })
 
+const REFUSED_PAGE_SIZE = 500
+
 /** Whose write to send again: an order's batch in a department, or a coil's change. */
 export type ResendTarget = { order: string; departmentId: number } | { lotAutoid: string }
 
@@ -3187,9 +3202,19 @@ export const useResendEbmsWrite = () =>
   useMutation({
     meta: { errorTitle: 'Not sent to EBMS again' },
     mutationFn: async (target: ResendTarget) => {
-      const refused = z
-        .array(outboxWriteSchema)
-        .parse(await authApi.get('ebms-outbox/', { searchParams: { status: 'failed' } }).json())
+      // The queue cannot be asked for one order's or coil's writes; refused ones wait for a person, so
+      // they are few, and an order's are narrowed to its kind.
+      const { results: refused } = z.object({ results: z.array(outboxWriteSchema) }).parse(
+        await authApi
+          .get('ebms-outbox/', {
+            searchParams: {
+              status: 'failed',
+              ...('lotAutoid' in target ? {} : { kind: 'order_complete' }),
+              limit: REFUSED_PAGE_SIZE
+            }
+          })
+          .json()
+      )
       const write = refused.find(entry =>
         'lotAutoid' in target
           ? entry.lot_autoid === target.lotAutoid

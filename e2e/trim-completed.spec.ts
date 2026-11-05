@@ -89,7 +89,10 @@ test('an order EBMS refused says so, and a Manager sends its batch again', async
   // The board knows the order, not the write: the order's own, in this department, is sent.
   await page.route(`${API_URL}/ebms-outbox/?*`, route =>
     route.fulfill({
-      json: [write(7, 'ARINV-9', 2), write(8, 'ARINV-9', 1), write(9, 'ARINV-4', 1)]
+      json: {
+        count: 3,
+        results: [write(7, 'ARINV-9', 2), write(8, 'ARINV-9', 1), write(9, 'ARINV-4', 1)]
+      }
     })
   )
   const resent: string[] = []

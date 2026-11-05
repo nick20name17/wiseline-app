@@ -1,7 +1,8 @@
 import { authApi } from '@/api/client'
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import * as z from 'zod/mini'
-import { remakePeriod, type Period } from './lib/period'
+import type { MachineScope } from './lib/figures'
+import type { Period } from './lib/period'
 
 const departmentSchema = z.object({
   id: z.number(),
@@ -27,8 +28,15 @@ const reportKeys = {
     [...reportKeys.all, 'summary', department, period.from, period.to] as const,
   spoiled: (department: number, period: Period) =>
     [...reportKeys.all, 'spoiled', department, period.from, period.to] as const,
-  remakes: (department: number, period: Period) =>
-    [...reportKeys.all, 'remakes', department, period.from, period.to] as const
+  remakes: (department: number, period: Period, scope: MachineScope) =>
+    [
+      ...reportKeys.all,
+      'remakes',
+      department,
+      period.from,
+      period.to,
+      scope === 'every' ? scope : scope.flowId
+    ] as const
 }
 
 const countSchema = z.object({ times: z.number(), pieces: z.number() })
@@ -115,6 +123,10 @@ export const spoiledPartsQuery = (departmentId: number, period: Period) =>
 
 const remakeSchema = z.object({
   id: z.number(),
+  order_number: z._default(z.nullable(z.string()), null),
+  product_id: z._default(z.nullable(z.string()), null),
+  description: z._default(z.nullable(z.string()), null),
+  machine: z._default(z.nullable(z.string()), null),
   source: z._default(z.nullable(z.string()), null),
   remanufacturing_qty: z._default(z.nullable(z.number()), null),
   note: z._default(z.nullable(z.string()), null),
@@ -128,17 +140,26 @@ export type Remake = z.infer<typeof remakeSchema>
 // A remake is an exception, not a queue: a period's fit one page.
 const REMAKE_PAGE_SIZE = 500
 
-/** The department's remakes asked for over the period. */
-export const remakesQuery = (departmentId: number, period: Period) =>
+/**
+ * The department's remakes asked for over the period, on one machine or all. The server counts a
+ * remake on the line's machine by the summary's own join, so a machine's list matches its figure.
+ */
+export const remakesQuery = (departmentId: number, period: Period, scope: MachineScope) =>
   queryOptions({
-    queryKey: reportKeys.remakes(departmentId, period),
+    queryKey: reportKeys.remakes(departmentId, period, scope),
     queryFn: async () =>
       z.object({ count: z.number(), results: z.array(remakeSchema) }).parse(
         await authApi
           .get('remanufacturings/', {
             searchParams: {
               department: departmentId,
-              ...remakePeriod(period),
+              date_from: period.from,
+              date_to: period.to,
+              ...(scope === 'every'
+                ? {}
+                : scope.flowId === null
+                  ? { flow_id__isnull: true }
+                  : { flow_id: scope.flowId }),
               limit: REMAKE_PAGE_SIZE
             }
           })

@@ -1,3 +1,4 @@
+import { EbmsSyncNote } from '@/components/ebms-sync-note'
 import { Badge } from '@/components/ui/badge'
 import { cn } from 'cn'
 import { formatWeight } from '../lib/format'
@@ -44,6 +45,8 @@ export const OrderLine = ({ order, lead, trail }: OrderLineProps) => (
       )}
     </span>
     <span className='min-w-0 flex-1 truncate'>{order.customer ?? '—'}</span>
+    {/* The day this order is on, not yet in EBMS. */}
+    <EbmsSyncNote sync={order.ship_date_ebms_sync} error={order.ship_date_ebms_error} />
     {order.is_overdue ? (
       <span className='text-xs text-destructive pointer-fine:hidden'>Overdue</span>
     ) : null}

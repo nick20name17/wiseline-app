@@ -66,10 +66,19 @@ const readinessShape = {
   lines_made: z._default(z.number(), 0)
 }
 
+// The Ship Date's last write to EBMS, which Apply hands to the server: it waits while EBMS does not
+// answer, and an order EBMS will not change keeps the reason. Unscheduled rows and the Scheduled
+// cards carry it; a Load's rows do not.
+const shipDateSyncShape = {
+  ship_date_ebms_sync: z.catch(z.nullable(z.enum(['queued', 'ok', 'failed'])), null),
+  ship_date_ebms_error: z._default(z.nullable(z.string()), null)
+}
+
 export type Readiness = { lines_total: number; lines_ready: number; order_number: string | null }
 
 const unscheduledOrderSchema = z.object({
   ...readinessShape,
+  ...shipDateSyncShape,
   order: z.string(),
   order_number: z._default(z.nullable(z.string()), null),
   customer: z._default(z.nullable(z.string()), null),
@@ -324,6 +333,7 @@ const kindTotalsSchema = z.object({
 
 const assignmentSchema = z.object({
   ...readinessShape,
+  ...shipDateSyncShape,
   assignment_id: z.number(),
   order: z._default(z.nullable(z.string()), null),
   order_number: z._default(z.nullable(z.string()), null),
