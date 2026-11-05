@@ -491,14 +491,21 @@ export const CutlistRows = ({
         : // A bendlist row keeps what the bender reads at the machine and the buttons it reaches for
           // now and then, as Wrapping has them.
           [
-            { key: 'desc', label: 'Description', align: 'start' as const, card: 'title' as const },
+            // What the bender reads first: a whole name on one line, «End Wall Coffee Brown».
+            {
+              key: 'desc',
+              label: 'Description',
+              minWidth: 240,
+              align: 'start' as const,
+              card: 'title' as const
+            },
             { key: 'status', label: 'Status', width: 'w-32', minWidth: 116 },
             // Apart from Status, as Wrapping has it: the badge opens the history from its whole cell.
             { key: 'remfg', label: 'Remfg', width: 'w-17' },
             // Two icon buttons under one heading: a column each left the Description no room at
             // 1280px.
             ...(anyActions
-              ? [{ key: 'actions', label: 'Actions', width: 'w-28', hideLabel: true, fixed: true }]
+              ? [{ key: 'actions', label: 'Actions', width: 'w-24', hideLabel: true, fixed: true }]
               : []),
             // Each just wide enough for its heading.
             { key: 'drawing', label: 'Drawing', width: 'w-21', fixed: true },
